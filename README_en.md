@@ -13,7 +13,7 @@ NOTE：
 sudo apt-get -y install build-essential asciidoc binutils bzip2 gawk gettext git libncurses5-dev libz-dev patch python3.5 python2.7 unzip zlib1g-dev lib32gcc1 libc6-dev-i386 subversion flex uglifyjs git-core gcc-multilib p7zip p7zip-full msmtp libssl-dev texinfo libglib2.0-dev xmlto qemu-utils upx libelf-dev autoconf automake libtool autopoint device-tree-compiler g++-multilib antlr3 gperf wget libncurses5:i386 libelf1:i386 lib32z1 lib32stdc++6 gtk-doc-tools intltool binutils-dev cmake lzma liblzma-dev lzma-dev uuid-dev liblzo2-dev xsltproc dos2unix libstdc++5 docbook-xsl-* sharutils autogen shtool gengetopt libltdl-dev libtool-bin
 `
 
-3. Enter `git clone https://github.com/SWRT-dev/rtac68u` to download source code 
+3. Enter `git clone https://github.com/SWRT-dev/asuswrt-bcm470x` to download source code 
 
 4. Enter `git clone https://github.com/SWRT-dev/bcmhnd-toolchains` to download toolchains
 
@@ -55,11 +55,14 @@ sudo apt-get -y install build-essential asciidoc binutils bzip2 gawk gettext git
 
     `sudo ln -sf /bin/bash /bin/sh`
 
-6. Then enter `cd ../rtac68u/release/src-rt-6.x.4708` to enter folder
-
-7. Enter `make rt-ac68u` to start compiling the firmware
-
-8. The firmware is in rtac68u/release/src-rt-6.x.4708/image
+6. Build firmware
+	`cd asuswrt-bcm470x/release/src-rt-6.x.4708`
+	`make rt-ac68u`
+	`cd asuswrt-bcm470x/release/src-rt-7.14.114.x/src` 
+	`make rt-ac88u`
+	`make rt-ac3100`
+	`make rt-ac5300`
+	The firmware is in asuswrt-bcm470x/release/src-rt-6.x.4708/image asuswrt-bcm470x/release/src-rt-7.14.114.x/src/image
 
 ## Donate
 

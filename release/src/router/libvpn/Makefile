@@ -18,9 +18,9 @@ INSTALL = install
 
 OBJS = openvpn_config.o openvpn_control.o openvpn_utils.o openvpn_options.o
 
-ifneq ($(wildcard ./prebuild/libvpn.so),)
+ifneq ($(wildcard ./prebuild/$(BUILD_NAME)/libvpn.so),)
 all:
-	cp -f ./prebuild/libvpn.so .
+	cp -f ./prebuild/$(BUILD_NAME)/libvpn.so .
 else
 all: libvpn.so
 
@@ -42,7 +42,7 @@ clean:
 	@echo " [libvpn] CC $@"
 	@$(CC) $(CFLAGS) -o $@ -c $<
 
-%.o: prebuild/%.o
+%.o: prebuild/$(BUILD_NAME)/%.o
 	@echo " [libvpn] cp $@"
 	@cp -f $< $@
 

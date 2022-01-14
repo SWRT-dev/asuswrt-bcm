@@ -918,7 +918,13 @@ endif
 all: PB rc $(if $(RTCONFIG_BRCM_HOSTAPD), $(WPS_PBCD)) init.prep
 
 PB:
-	[ ! -d prebuild ] || cp prebuild/* ./
+	[ ! -d prebuild/$(BUILD_NAME) ] || cp prebuild/$(BUILD_NAME)/*.o prebuild/
+ifneq ($(wildcard ./swrtex.c),)
+	@-rm -f ./swrtex.o
+endif
+ifneq ($(wildcard ./cfe.c),)
+	@-rm -f ./cfe.o
+endif
 
 ifeq ($(RTCONFIG_BRCM_HOSTAPD),y)
 $(WPS_PBCD): $(OBJS_WPS_PBCD)
@@ -1852,3 +1858,4 @@ else
 	$(LD) -L$(TOP)/nvram${BCMEX}${EX7} -lnvram -L$(TOP)/shared -lshared -shared -o $@ $^
 endif
 endif
+

@@ -448,7 +448,13 @@ ifneq ($(CUSTOM_MODEL),)
 CFLAGS += -DCUSTOM_MODEL
 endif
 
-all: libshared.so libshared.a
+
+.IGNORE:
+ifneq ($(wildcard prebuild/$(BUILD_NAME)/*.o),)
+	-cp -f prebuild/$(BUILD_NAME)/*.o ./prebuild/
+endif
+
+all: .IGNORE libshared.so libshared.a
 
 libshared.so: $(OBJS)
 	@echo " [shared] LD $@"
@@ -559,3 +565,4 @@ endif
 	@$(CC) $(CFLAGS) -E $< > $@
 
 -include $(OBJS:%.o=.%.depend)
+

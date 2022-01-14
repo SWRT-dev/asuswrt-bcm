@@ -36,6 +36,9 @@ OBJS = sw_auth.o hw_auth.o
 
 # $(TARGET) and $(TOOL) is for debug only, don't enable it
 all :
+ifeq ($(wildcard ./*.c),)
+	-cp -f prebuild/$(BUILD_NAME)/*.o ./prebuild/
+endif
 
 $(AUTHLIB): $(OBJS)
 	@echo "[sw-hw-auth] $(AUTHLIB)"

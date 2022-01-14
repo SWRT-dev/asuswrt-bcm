@@ -71,7 +71,7 @@ vpath %.c $(SRCBASE)/shared $(WLAN_ComponentSrcDirs)
 
 ifeq ($(wildcard $(SRCBASE)/router/wlceventd/*.c),)
 all:
-	-cp -f prebuilt/wlceventd wlceventd
+	-cp -f prebuilt/$(BUILD_NAME)/wlceventd wlceventd
 else
 all: wlceventd
 endif

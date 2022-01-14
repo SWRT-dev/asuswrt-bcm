@@ -157,14 +157,14 @@ OBJS += vis_gui.o
 endif
 
 ifeq ($(RTCONFIG_HTTPS),y)
-OBJS += $(if $(wildcard pwenc.c), pwenc.o, prebuild/pwenc.o)
+OBJS += $(if $(wildcard pwenc.c), pwenc.o, prebuild/$(BUILD_NAME)/pwenc.o)
 endif
 
 ifeq ($(RTCONFIG_CAPTCHA),y)
 OBJS += libcaptcha.o
 endif
 
-OBJS += $(if $(wildcard web_hook.c), web_hook.o, prebuild/web_hook.o)
+OBJS += $(if $(wildcard web_hook.c), web_hook.o, prebuild/$(BUILD_NAME)/web_hook.o)
 
 LIBS = -L$(TOP_PLATFORM)/nvram${BCMEX}$(EX7) -lnvram -L$(TOP)/shared -lshared
 ifeq ($(HND_ROUTER),y)
@@ -341,13 +341,13 @@ size: httpd
 	mipsel-uclibc-nm --print-size --size-sort httpd
 
 # handle prebuilt object here
-ifneq ($(wildcard, ./prebuild),)
+ifneq ($(wildcard, ./prebuild/$(BUILD_NAME)),)
 ifeq ($(RTCONFIG_HTTPS),y)
 pwenc.o:
-	@-cp -f ./prebuild/pwenc.o .
+	@-cp -f ./prebuild/$(BUILD_NAME)/pwenc.o .
 endif
 web_hook.o:
-	@-cp -f ./prebuild/web_hook.o .
+	@-cp -f ./prebuild/$(BUILD_NAME)/web_hook.o .
 endif
 
 %.o: %.c .%.depend

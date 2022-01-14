@@ -1,6 +1,6 @@
 include ../common.mak
 
-ifeq ($(wildcard $(TOP)/bwdpi_source/prebuild/*),)
+ifeq ($(wildcard $(TOP)/bwdpi_source/prebuild/$(BUILD_NAME)/*),)
 
 ifeq ($(RTCONFIG_LIBASUSLOG),y)
 CFLAGS += -I$(TOP)/libasuslog
@@ -243,7 +243,7 @@ asus_sql_build:
 
 all: pre_build asus_build asus_sql_build
 
-ifeq ($(wildcard $(TOP)/bwdpi_source/prebuild/*),)
+ifeq ($(wildcard $(TOP)/bwdpi_source/prebuild/$(BUILD_NAME)/*),)
 install: all
 	# asus function here
 	@cd asus/ && $(MAKE) install
@@ -362,7 +362,7 @@ install:
 	@cd asus_sql/ && $(MAKE) install
 	# [INSTALL] prebuild into RC_INDEP
 	-@mkdir RC_INDEP
-	-@cp -f prebuild/* RC_INDEP/
+	-@cp -f prebuild/$(BUILD_NAME)/* RC_INDEP/
 ifeq ($(or $(HND_ROUTER),$(HND_ROUTER_AX),$(RTCONFIG_HND_ROUTER_AX_675X),$(RTCONFIG_HND_ROUTER_AX_6710),$(RTCONFIG_HND_ROUTER_AX_6756)),y)
 	@echo "start to install bwdpi_source into 94908HND"
 	@install -d $(INSTALLDIR)/usr/bwdpi/
@@ -383,7 +383,7 @@ ifeq ($(or $(HND_ROUTER),$(HND_ROUTER_AX),$(RTCONFIG_HND_ROUTER_AX_675X),$(RTCON
 endif
 endif
 
-ifeq ($(wildcard $(TOP)/bwdpi_source/prebuild/*),)
+ifeq ($(wildcard $(TOP)/bwdpi_source/prebuild/$(BUILD_NAME)/*),)
 clean:
 	# asus function here
 	@cd asus && $(MAKE) clean

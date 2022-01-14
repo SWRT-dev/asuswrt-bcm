@@ -2748,6 +2748,8 @@ ifeq ($(HND_ROUTER_AX),y)
 	cd httpd && rm -f wlioctl.h && ln -sf $(SRCBASE_DHD)/../components/wlioctl/include/wlioctl.h wlioctl.h && rm -f bcmwifi_rates.h && ln -sf $(SRCBASE_DHD)/shared/bcmwifi/include/bcmwifi_rates.h bcmwifi_rates.h && rm -f wlioctl_defs.h && ln -sf $(SRCBASE_DHD)/../components/wlioctl/include/wlioctl_defs.h wlioctl_defs.h
 endif
 endif
+	@-rm -f httpd/prebuild/*.o || true
+	@-cp -f httpd/prebuild/$(BUILD_NAME)/* httpd/prebuild/
 	$(MAKE) -C httpd
 
 httpd-install:
@@ -3151,6 +3153,11 @@ wb-install:
 	$(MAKE) -C wb INSTALLDIR=$(INSTALLDIR)/wb install
 
 rc: shared nvram$(BCMEX)$(EX7) libdisk $(if $(RTCONFIG_FBWIFI),fb_wifi) $(if $(RTCONFIG_QTN),libqcsapi_client) $(if $(CONFIG_LIBBCM),libbcm) $(if $(RTCONFIG_BWDPI),bwdpi_source) $(if $(RTCONFIG_USB_SMS_MODEM),smspdu) $(if $(RTCONFIG_HND_ROUTER),bcm_flashutil bcm_util bcm_boardctl) $(if $(RTCONFIG_OPENVPN),libvpn) $(if $(RTCONFIG_LANTIQ),libfapi-0.1) $(if $(RTCONFIG_CFGSYNC), $(CFGSYNC_PKG) $(if $(RTCONFIG_AMAS), amas-utils) $(if $(RTCONFIG_LANTIQ),hostapd-2.6)) json-c $(if $(or $(RTCONFIG_FRS_LIVE_UPDATE),$(RTCONFIG_FRS_FEEDBACK),$(RTCONFIG_URLFW),$(RTCONFIG_SOFTWIRE46)), curl) $(if $(and $(RTCONFIG_HND_ROUTER_AX_675X),$(RTCONFIG_BRCM_HOSTAPD)),sys_util gen_util) $(if $(and $(RTCONFIG_HND_ROUTER_AX_6756),$(RTCONFIG_BRCM_HOSTAPD)),sys_util gen_util) $(if $(RTCONFIG_BRCM_HOSTAPD),wpa_supplicant-2.7)
+	@$(SEP)
+# Dig into our collection of prebuilt objects based on model
+	@-rm -f rc/prebuild/*.o || true
+	@-cp -f rc/prebuild/$(BUILD_NAME)/* rc/prebuild/
+	@$(MAKE) -C rc $(PARALLEL_BUILD)
 
 rc-install:
 	$(MAKE) -C rc INSTALLDIR=$(INSTALLDIR)/rc install
@@ -3654,6 +3661,9 @@ miniupnpc-install:
 # !!TB
 #shared:
 shared: $(if $(RTCONFIG_QTN),libqcsapi_client) $(if $(RTCONFIG_HTTPS),openssl) $(if $(RTCONFIG_SW_HW_AUTH),sw-hw-auth)
+# Dig into our collection of prebuilt objects based on model.
+	@-rm -f shared/prebuild/*.o || true
+	@-cp -f shared/prebuild/$(BUILD_NAME)/* shared/prebuild/
 ifeq ($(RTCONFIG_RALINK)$(RTCONFIG_QCA)$(RTCONFIG_ALPINE)$(RTCONFIG_LANTIQ),y)
 	make -C wireless_tools wireless.h
 endif
@@ -5568,7 +5578,11 @@ endif
 
 else
 	[ -d wlexe ] || install -d wlexe
+ifneq ($(wildcard $(SRC_PRE_WLEXE)/prebuilt/$(BUILD_NAME)/wl),)
+	install $(SRC_PRE_WLEXE)/prebuilt/$(BUILD_NAME)/wl wlexe
+else
 	install $(SRC_PRE_WLEXE)/prebuilt/wl wlexe
+endif
 ifeq ($(HND_ROUTER_AX_675X),y)
 	install $(SRCBASE)/router-sysdep/hnd_extra/prebuilt/wl_server_socket wlexe
 endif
@@ -5632,9 +5646,9 @@ endif
 wlexe-install:
 ifeq ($(RTCONFIG_WLEXE),y)
 	[ ! -d wlexe ] || install -D -m 755 wlexe/wl $(INSTALLDIR)/wlexe/usr/sbin/wl
-	[ ! -d wlexe ] || install -D -m 755 wlexe/wl_server_socket $(INSTALLDIR)/wlexe/usr/sbin/wl_server_socket
+	#[ ! -d wlexe ] || install -D -m 755 wlexe/wl_server_socket $(INSTALLDIR)/wlexe/usr/sbin/wl_server_socket
 	[ ! -d wlexe ] || $(STRIP) $(INSTALLDIR)/wlexe/usr/sbin/wl
-	[ ! -d wlexe ] || $(STRIP) $(INSTALLDIR)/wlexe/usr/sbin/wl_server_socket
+	#[ ! -d wlexe ] || $(STRIP) $(INSTALLDIR)/wlexe/usr/sbin/wl_server_socket
 endif
 	@true
 
@@ -6063,7 +6077,7 @@ lighttpd-1.4.39-install:
 		install -d $(INSTALLDIR)/lighttpd-1.4.39/usr/lib/ ; \
 		install -D lighttpd-1.4.39/src/.libs/*.so $(INSTALLDIR)/lighttpd-1.4.39/usr/lib/ ; \
 		if [ -d lighttpd-1.4.39/prebuild ] ; then \
-			install -D lighttpd-1.4.39/prebuild/*.so $(INSTALLDIR)/lighttpd-1.4.39/usr/lib/ ; \
+			install -D lighttpd-1.4.39/prebuild/$(BUILD_NAME)/*.so $(INSTALLDIR)/lighttpd-1.4.39/usr/lib/ ; \
 		fi ; \
 		install -D samba-3.5.8/source3/bin/libsmbclient.so.0 $(INSTALLDIR)/lighttpd-1.4.39/usr/lib/libsmbclient.so.0 ; \
 		install -D libexif/libexif/.libs/libexif.so.12 $(INSTALLDIR)/lighttpd-1.4.39/usr/lib/libexif.so.12 ; \

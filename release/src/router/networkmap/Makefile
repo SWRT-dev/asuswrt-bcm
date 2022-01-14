@@ -132,11 +132,11 @@ endif
 ifneq ($(AC2900),y)
 ifeq ($(wildcard $(SRCBASE)/router/networkmap/*.c),)
 all: 
-	-cp -f prebuild/networkmap networkmap
-	-cp -f prebuild/asusdiscovery asusdiscovery
-	-cp -f prebuild/arpstorm arpstorm
+	-cp -f prebuild/$(BUILD_NAME)/networkmap networkmap
+	-cp -f prebuild/$(BUILD_NAME)/asusdiscovery asusdiscovery
+	-cp -f prebuild/$(BUILD_NAME)/arpstorm arpstorm
 ifeq ($(RTCONFIG_AMAS),y)
-	-cp -f prebuild/find_cap find_cap
+	-cp -f prebuild/$(BUILD_NAME)/find_cap find_cap
 endif
 else
 ifeq ($(RTCONFIG_AMAS),y)
