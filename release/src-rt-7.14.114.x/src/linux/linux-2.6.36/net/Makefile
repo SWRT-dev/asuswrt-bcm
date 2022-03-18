@@ -68,3 +68,6 @@ obj-$(CONFIG_SYSCTL)		+= sysctl_net.o
 endif
 obj-$(CONFIG_WIMAX)		+= wimax/
 obj-$(CONFIG_DNS_RESOLVER)	+= dns_resolver/
+ifeq ($(PGB_QUICK_PATH),y)
+obj-y		+= swrt_fastpath/
+endif

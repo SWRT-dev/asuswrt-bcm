@@ -46,7 +46,11 @@ export CONFIGURE_64 := ./configure LD=$(CROSS_COMPILE_64)ld --host=aarch64-build
 export HOSTCONFIG_64 := linux-aarch64 -DL_ENDIAN -march=armv8-a -fomit-frame-pointer -mabi=lp64 -ffixed-r8 -D__ARM_ARCH_8A__
 endif
 endif
+ifeq ($(BRCM_CHIP),4908)
+export HOSTCONFIG := linux-armv4 -DL_ENDIAN -march=armv8-a -fomit-frame-pointer -mabi=aapcs-linux -marm -ffixed-r8 -msoft-float -D__ARM_ARCH_8A__
+else
 export HOSTCONFIG := linux-armv4 -DL_ENDIAN -march=armv7-a -fomit-frame-pointer -mabi=aapcs-linux -marm -ffixed-r8 -msoft-float -D__ARM_ARCH_7A__
+endif
 export TOP_PLATFORM := $(SRCBASE)/router-sysdep
 export BCMEX :=
 export ARCH := arm
@@ -398,9 +402,9 @@ define platformKernelConfig
 		elif [ "$(BCM_7114)" = "y" ]; then \
 			if [ -d $(SRCBASE)/router/wl_arm_7114/prebuilt ]; then \
 				mkdir -p $(SRCBASE)/../dhd/src/dhd/linux ; \
-				cp $(SRCBASE)/router/wl_arm_7114/prebuilt/dhd.o $(SRCBASE)/../dhd/src/dhd/linux ; \
+				cp $(SRCBASE)/router/wl_arm_7114/prebuilt/$(BUILD_NAME)/dhd.o $(SRCBASE)/../dhd/src/dhd/linux ; \
 				mkdir -p $(SRCBASE)/../dhd24/src/dhd/linux ; \
-				cp $(SRCBASE)/router/wl_arm_7114/prebuilt/dhd24.o $(SRCBASE)/../dhd24/src/dhd/linux ; \
+				cp $(SRCBASE)/router/wl_arm_7114/prebuilt/$(BUILD_NAME)/dhd24.o $(SRCBASE)/../dhd24/src/dhd/linux ; \
 			fi; \
 			if [ -d $(SRCBASE)/router/et_arm_7114/prebuilt ]; then \
 				mkdir -p $(SRCBASE)/et/linux ; \
@@ -607,9 +611,9 @@ define platformKernelConfig
 					cp -f $(SRCBASE)/wl/sysdeps/default/clm/src/wlc_clm_data.c $(SRCBASE)/wl/clm/src/. ; \
 				fi; \
 			fi; \
-			if [ -d $(SRCBASE)/router/wl_arm/prebuilt ]; then \
+			if [ -d $(SRCBASE)/router/wl_arm/prebuilt/$(BUILD_NAME) ]; then \
 				mkdir $(SRCBASE)/wl/linux ; \
-				cp $(SRCBASE)/router/wl_arm/prebuilt/wl*.o $(SRCBASE)/wl/linux ; \
+				cp $(SRCBASE)/router/wl_arm/prebuilt/$(BUILD_NAME)/wl*.o $(SRCBASE)/wl/linux ; \
 			fi; \
 			if [ -d $(SRCBASE)/router/et_arm/prebuilt ]; then \
 				mkdir -p $(SRCBASE)/et/linux ; \
@@ -637,3 +641,5 @@ define platformKernelConfig
 	fi; \
 	)
 endef
+
+export PARALLEL_BUILD := -j$(shell grep -c '^processor' /proc/cpuinfo)

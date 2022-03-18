@@ -65,6 +65,30 @@ struct REPLACE_PRODUCTID_S replace_productid_t[] =
 	{NULL, NULL, NULL}
 };
 
+struct REPLACE_MODELNAME_S replace_modelname_t[] = {
+	{ "K3C" },
+	{ "K3" },
+	{ "XWR3100" },
+	{ "R7000P" },
+	{ "EA6700" },
+	{ "SBRAC1900P" },
+	{ "F9K1118" },
+	{ "SBRAC3200P" },
+	{ "R8500" },
+	{ "R8000P" },
+	{ "TY6201_RTK" },
+	{ "TY6201_BCM" },
+	{ "RAX120" },
+	{ "DIR868L" },
+	{ "R6300V2" },
+	{ "MR62" },
+	{ "RAX70" },
+	{ "360V6" },
+	{ "GLAX1800" },
+	//{ "RMAC2100" },move to model_list
+	{ NULL },
+};
+
 static char * get_arg(char *args, char **next);
 static void call(char *func, FILE *stream);
 
@@ -189,6 +213,19 @@ extern void replace_productid(char *GET_PID_STR, char *RP_PID_STR, int len){
 	}
 }
 
+extern int replace_modelname(char *GET_PID_STR, char *RP_PID_STR, int len){
+
+	struct REPLACE_MODELNAME_S *p;
+
+	for(p = &replace_modelname_t[0]; p->modelname; p++){
+		if(!strcmp(GET_PID_STR, p->modelname)){
+			strlcpy(RP_PID_STR, p->modelname, len);
+			return 1;
+		}
+	}
+	return 0;
+}
+
 // Call this function if and only if we can read whole <#....#> pattern.
 static char *
 translate_lang (char *s, char *e, FILE *f, kw_t *pkw)
@@ -213,6 +250,7 @@ translate_lang (char *s, char *e, FILE *f, kw_t *pkw)
 			char GET_PID_STR[32]={0};
 			char *p_PID_STR = NULL;
 			char *PID_STR = nvram_safe_get("productid");
+			char *modelname = nvram_safe_get("modelname");
 			char *pSrc, *pDest;
 			int pid_len, get_pid_len;
 
@@ -221,8 +259,9 @@ translate_lang (char *s, char *e, FILE *f, kw_t *pkw)
 			get_pid_len = strlen(GET_PID_STR);
 
 			memset(RP_PID_STR, 0, sizeof(RP_PID_STR));
-			replace_productid(GET_PID_STR, RP_PID_STR, sizeof(RP_PID_STR));
-
+			if(replace_modelname(modelname, RP_PID_STR, sizeof(RP_PID_STR)) != 1)
+				replace_productid(GET_PID_STR, RP_PID_STR, sizeof(RP_PID_STR));
+			
 			if(strcmp(PID_STR, RP_PID_STR) != 0){
 				get_pid_len = strlen(RP_PID_STR);
 				pSrc  = desc;
@@ -283,7 +322,7 @@ do_ej(char *path, FILE *stream)
 #ifdef TRANSLATE_ON_FLY
 	// Load dictionary file
 	lang = nvram_safe_get("preferred_lang");
-	if(!check_lang_support(lang)){
+	if(!check_lang_support_swrt(lang)){
 		lang = nvram_default_get("preferred_lang");
 		nvram_set("preferred_lang", lang);
 	}
@@ -471,3 +510,4 @@ ejArgs(int argc, char **argv, char *fmt, ...)
 
 	return arg;
 }
+

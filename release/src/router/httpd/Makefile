@@ -152,6 +152,10 @@ ifeq ($(RTCONFIG_GEOIP),y)
 OBJS += geoiplookup.o
 endif
 
+ifeq ($(RTCONFIG_EXT_RTL8365MB),y)
+CFLAGS += -I$(LINUXDIR)/drivers/char/rtl8365mb
+endif
+
 ifeq ($(and $(HND_ROUTER),$(RTCONFIG_VISUALIZATION)),y)
 OBJS += vis_gui.o
 endif
@@ -160,6 +164,11 @@ ifeq ($(RTCONFIG_HTTPS),y)
 OBJS += $(if $(wildcard pwenc.c), pwenc.o, prebuild/$(BUILD_NAME)/pwenc.o)
 endif
 
+OBJS += sysinfo.o
+OBJS += swrt.o
+ifeq ($(RTCONFIG_SOFTCENTER),y)
+OBJS += dbapi.o
+endif
 ifeq ($(RTCONFIG_CAPTCHA),y)
 OBJS += libcaptcha.o
 endif
@@ -312,6 +321,16 @@ CFLAGS += -I$(TOP)/libasuslog
 LIBS += -L$(TOP)/libasuslog -lasuslog
 endif
 
+ifeq ($(RTCONFIG_HND_ROUTER_AX_6710),y)
+CFLAGS +=-DRTCONFIG_HND_ROUTER_AX_6710
+endif
+ifeq ($(RTCONFIG_HND_ROUTER_AX_675X),y)
+CFLAGS +=-DRTCONFIG_HND_ROUTER_AX_675X
+endif
+ifeq ($(RTCONFIG_HND_ROUTER_AX_6756),y)
+CFLAGS +=-DRTCONFIG_HND_ROUTER_AX_6756
+endif
+
 all: httpd #test_apps
 
 #test_apps: apps.c
@@ -358,3 +377,4 @@ endif
 	@$(CC) $(CFLAGS) -M $< > $@
 
 -include $(OBJS:%.o=.%.depend)
+

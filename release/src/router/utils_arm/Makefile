@@ -61,10 +61,7 @@ endif
 
 vpath %.c $(SRCBASE)/tools/misc $(WLAN_ComponentSrcDirs)
 
-ifneq ($(wildcard $(SRCBASE)/et/linux/et.c),)
 UTILS += et
-vpath %.c $(SRCBASE)/et/linux
-endif
 
 ifneq ($(wildcard $(SRCBASE)/wl/exe),)
 CFLAGS += -I$(SRCBASE)/wl/exe
@@ -101,7 +98,12 @@ all: $(UTILS)
 
 ifeq ($(wildcard $(SRCBASE)/wl/exe/*.c),)
 wl:
+
+ifneq ($(wildcard $(SRCBASE)/wl/exe/prebuilt/$(BUILD_NAME)/wl),)
+	-cp -f $(SRCBASE)/wl/exe/prebuilt/$(BUILD_NAME)/wl wl
+else
 	-cp -f $(SRCBASE)/wl/exe/prebuilt/wl wl
+endif
 else
 wl: $(WLU_OBJS)
 	$(CC) $^ -o $@ $(LDFLAGS)
@@ -129,7 +131,15 @@ wifi/%.o: %.c
 	$(CC) -c $(CFLAGS) -DRWL_WIFI -o $@ $^
 endif
 
+ifeq ($(wildcard $(SRCBASE)/router/utils/robocfg.c),)
+robocfg:
+	-cp -f $(SRCBASE)/wl/exe/prebuilt/robocfg robocfg
+else
 robocfg: robocfg.c etc53xx.h
+endif
+
+et:
+	cp -f $(SRCBASE)/wl/exe/prebuilt/$(BUILD_NAME)/et et
 
 clean:
 	rm -f *.o *~ $(UTILS)
@@ -141,3 +151,4 @@ install: all
 	$(STRIP) $(foreach file,$(UTILS),$(INSTALLDIR)/usr/sbin/$(file))
 	install -D -m 755 WlGetDriverCfg.sh $(INSTALLDIR)/usr/sbin/WlGetDriverCfg.sh
 	install -D -m 755 WlGetDriverStats.sh $(INSTALLDIR)/usr/sbin/WlGetDriverStats.sh
+

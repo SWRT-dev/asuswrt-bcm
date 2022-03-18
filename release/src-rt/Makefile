@@ -108,6 +108,9 @@ else
 export TOP_PLATFORM := $(SRCBASE)/router
 endif
 
+export SWRT_VER := $(SWRT_VER_MAJOR)$(SWRT_VER_MINOR)
+export SWRTVER := $(SWRT_NAME)_$(SWRT_VER)
+
 # tmp depend on busybox
 E2FSPROGS := $(if $(filter $(BUSYBOX),busybox-1.17.4),n,y)
 
@@ -136,7 +139,7 @@ else
 RCSTRING:=
 RC_EXT_NO=0
 endif
-EXTENDNO1=$(shell git log --pretty=oneline asuswrt_$(KERNEL_VER).$(FS_VER).$(SERIALNO)..HEAD | wc -l)
+EXTENDNO1=$(shell git log --pretty=oneline asuswrt_$(KERNEL_VER).$(FS_VER).$(SERIALNO)$(RCSTRING) | wc -l)
 
 ifeq ($(BRANCH),)
 include ./router/extendno.conf
@@ -147,14 +150,15 @@ else
 EXSTRING:=
 endif
 ifneq ($(FW_JUMP),)
-export EXTENDNO := $(FW_JUMP)-g$(shell git log --pretty=format:'%h' -n 1|sed -e "s,\([0-9a-z]\{7\}\)[0-9a-z]*,\1,")$(EXSTRING)
+export EXTENDNO := $(SWRTVER)-g$(shell git log --pretty=format:'%h' -n 1|sed -e "s,\([0-9a-z]\{7\}\)[0-9a-z]*,\1,")$(EXSTRING)
 else
-export EXTENDNO := $(shell expr $(EXTENDNO1) + $(RC_EXT_NO))-g$(shell git log --pretty=format:'%h' -n 1|sed -e "s,\([0-9a-z]\{7\}\)[0-9a-z]*,\1,")$(EXSTRING)
+export EXTENDNO := $(SWRTVER)-g$(shell git log --pretty=format:'%h' -n 1|sed -e "s,\([0-9a-z]\{7\}\)[0-9a-z]*,\1,")$(EXSTRING)
 endif
 endif
+export SWRTEXTENDNO:= $(shell expr $(EXTENDNO1) + $(RC_EXT_NO))
 
 ifeq ($(EXTENDNO),)
-export EXTENDNO := 0-g$(shell git log --pretty=format:'%h' -n 1|sed -e "s,\([0-9a-z]\{7\}\)[0-9a-z]*,\1,")
+export EXTENDNO := $(SWRTVER)-g$(shell git log --pretty=format:'%h' -n 1|sed -e "s,\([0-9a-z]\{7\}\)[0-9a-z]*,\1,")
 endif
 
 export SWPJNAME := $(shell git branch | grep "*" | grep "swpj-" | sed 's/.*swpj-//g')
@@ -172,7 +176,7 @@ export SWPJEXTENDNO := $(shell git describe --match swpj_$(SWPJNAME)_$(SWPJVERNO
 ifneq ($(SWPJEXTENDNO),)
 export EXTENDNO := $(SWPJEXTENDNO)
 else
-export EXTENDNO := 0-g$(shell git log --pretty=format:'%h' -n 1|sed -e "s,\([0-9a-z]\{7\}\)[0-9a-z]*,\1,")
+export EXTENDNO := $(SWRTVER)-g$(shell git log --pretty=format:'%h' -n 1|sed -e "s,\([0-9a-z]\{7\}\)[0-9a-z]*,\1,")
 endif
 endif
 
@@ -255,6 +259,12 @@ export BUILD_MFG := 1
 export WLTEST := 1
 export CFLAGS += -DWLTEST
 endif
+ifneq ($(SWRT_NAME),)
+export CFLAGS += -D$(SWRT_NAME)
+export $(SWRT_NAME):=y
+export CFLAGS += -DSWRT_VER_MAJOR_$(SWRT_VER_MAJOR)
+export SWRT_VER_MAJOR_$(SWRT_VER_MAJOR):=y
+endif
 
 EXTRA_KERNEL_YES_CONFIGS_1 := $(filter %=y %=Y,$(EXTRA_KERNEL_CONFIGS))
 EXTRA_KERNEL_NO_CONFIGS_1 := $(filter %=n %=N,$(EXTRA_KERNEL_CONFIGS))
@@ -286,7 +296,11 @@ uppercase_B = $(shell echo $(BUILD_NAME) | tr a-z  A-Z)
 lowercase_B = $(shell echo $(BUILD_NAME) | tr A-Z a-z)
 BUILD_TIME := $(shell LC_ALL=C date -u)
 BUILD_USER ?= $(shell whoami)
+ifneq ($(findstring $(BUILD_USER), paldier iss),)
+BUILD_INFO := SWRTdev
+else
 BUILD_INFO := $(shell git log --pretty="%h" -n 1|sed -e "s,\([0-9a-z]\{7\}\)[0-9a-z]*,\1,")
+endif
 
 ifeq ($(CONFIG_LINUX26),y)
 mips_rev = $(if $(filter $(MIPS32),r2),MIPSR2,MIPSR1)
@@ -301,7 +315,8 @@ export IMGNAME := $(BUILD_NAME)_$(KERNEL_VER).$(FS_VER)_$(FORCE_SN)_$(SWPJVER)$(
 else ifneq ($(CUSTOM_MODEL),)
 export IMGNAME := $(CUSTOM_MODEL)_$(KERNEL_VER).$(FS_VER)_$(SERIALNO)_$(SWPJVER)$(EXTENDNO)$(ISPCTRL_POSTFIX)
 else
-export IMGNAME := $(BUILD_NAME)_$(KERNEL_VER).$(FS_VER)_$(SERIALNO)_$(SWPJVER)$(EXTENDNO)$(ISPCTRL_POSTFIX)
+#export IMGNAME := $(BUILD_NAME)_$(KERNEL_VER).$(FS_VER)_$(SERIALNO)_$(SWPJVER)$(EXTENDNO)$(ISPCTRL_POSTFIX)
+export IMGNAME := $(SWRTVER)_$(SWRTEXTENDNO)-g$(shell git log --pretty=format:'%h' -n 1|sed -e "s,\([0-9a-z]\{7\}\)[0-9a-z]*,\1,")$(EXSTRING)
 endif
 
 ifeq ($(OPDBG),y)
@@ -346,7 +361,7 @@ $(if $(CONFIG_UBOOT_CONFIG_LTQ_IMAGE_EXTRA_CHECKS), \
 endef
 
 ifneq ($(LIVE_UPDATE_RSA),)
-export KEY_PATH = $(SRC_ROOT)/../../../key
+export KEY_PATH = $(SRC_ROOT)/../../key
 ifneq ($(LIVE_UPDATE_RSA_GPL),)
 export LIVE_UPDATE_RSA_VER = 
 else
@@ -615,6 +630,8 @@ endif
 endif
 	@echo '$(BUILD_NAME)_$(KERNEL_VER).$(FS_VER) $(BUILD_TIME)' > router/shared/version
 	@echo 'EXTENDNO=$(EXTENDNO)' > router/extendno.conf
+	@echo '#define RT_FWVER "$(SWRT_VER_MINOR)"' >> router/shared/version.h
+	@echo '#define RT_FWEXTENDNO "$(SWRTEXTENDNO)"' >> router/shared/version.h
 	@-$(MAKE) -f model-desc.mak
 
 rt_ver_ntools:
@@ -1031,6 +1048,11 @@ ifneq ($(CONFIG_BCMWL5),)
 else
 	ctools/trx_asus -i image/linux-lzma.trx -r $(BUILD_NAME),$(KERNEL_VER).$(FS_VER),image/$(IMGNAME).trx
 endif
+ifeq ($(R6300V2),y)
+ifneq ($(RTCONFIG_SOFTCENTER),y)
+	@cp -f image/linux-lzma.trx image/ofw-lzma.trx
+endif
+endif
 	@rm -f image/linux-lzma.trx
 endif
 
@@ -1098,6 +1120,29 @@ endif
 ifeq ($(ARM),y)
 	ln -sf $(LINUXDIR)/vmlinux image/vmlinux
 	ln -sf $(LINUXDIR)/vmlinux.o image/vmlinux.o
+endif
+ifeq ($(R8500),y)
+ifneq ($(RTCONFIG_SOFTCENTER),y)
+	cd image && touch rootfs && \
+	../packet -k $(IMGNAME).trx -f rootfs -b ../compatible_r8500.txt \
+	-ok kernel_image -oall kernel_rootfs_image -or rootfs_image \
+	-i ../ambitCfg_WW_R8500.h && \
+	rm -f rootfs && rm -f kernel_image.chk && rm -f rootfs_image.chk && \
+	mv kernel_rootfs_image.chk r8500_2_asus.chk
+endif
+else ifeq ($(R6300V2),y)
+ifneq ($(RTCONFIG_SOFTCENTER),y)
+	cd image && touch rootfs && \
+	../packet -k ofw-lzma.trx -f rootfs -b ../compatible_r6300v2.txt \
+	-ok kernel_image -oall r6300v2_2_asus -or rootfs_image \
+	-i ../ambitCfg_WW_R6300v2.h && \
+	rm -f rootfs && rm -f kernel_image.chk && rm -f rootfs_image.chk
+	cd image && touch rootfs && \
+	../packet -k ofw-lzma.trx -f rootfs -b ../compatible_r6300v2CH.txt \
+	-ok kernel_image -oall r6300v2CH_2_asus -or rootfs_image \
+	-i ../ambitCfg_WW_R6300v2CH.h && \
+	rm -f rootfs && rm -f kernel_image.chk && rm -f rootfs_image.chk
+endif
 endif
 	@echo ""
 
@@ -1840,21 +1885,19 @@ define RouterOptions
 		sed -i "/RTCONFIG_PUSH_EMAIL/d" $(1); \
 		echo "RTCONFIG_PUSH_EMAIL=y" >>$(1); \
 	fi; \
-	if [ "$(AHS)" = "n" ]; then \
+	if [ "$(AHS)" = "y" ]; then \
 		sed -i "/RTCONFIG_AHS/d" $(1); \
-		echo "# RTCONFIG_AHS is not set" >>$(1); \
-		if [ "$(ASD)" = "n" ]; then \
-			sed -i "/RTCONFIG_LIBASC/d" $(1); \
-			echo "# RTCONFIG_LIBASC is not set" >>$(1); \
-		fi; \
+		echo "RTCONFIG_AHS=y" >>$(1); \
+		sed -i "/RTCONFIG_HTTPS/d" $(1); \
+		echo "RTCONFIG_HTTPS=y" >>$(1); \
+		sed -i "/RTCONFIG_LIBASC/d" $(1); \
+		echo "RTCONFIG_LIBASC=y" >>$(1); \
 	fi; \
-	if [ "$(ASD)" = "n" ]; then \
+	if [ "$(ASD)" = "y" ]; then \
 		sed -i "/RTCONFIG_ASD/d" $(1); \
-		echo "# RTCONFIG_ASD is not set" >>$(1); \
-		if [ "$(AHS)" = "n" ]; then \
-			sed -i "/RTCONFIG_LIBASC/d" $(1); \
-			echo "# RTCONFIG_LIBASC is not set" >>$(1); \
-		fi; \
+		echo "RTCONFIG_ASD=y" >>$(1); \
+		sed -i "/RTCONFIG_LIBASC/d" $(1); \
+		echo "RTCONFIG_LIBASC=y" >>$(1); \
 	fi; \
 	if [ "$(RSYSLOGD)" = "y" ]; then \
 		sed -i "/RTCONFIG_RSYSLOGD/d" $(1); \
@@ -2128,7 +2171,7 @@ define RouterOptions
 		sed -i "/RTCONFIG_HTTPS/d" $(1); \
 		echo "RTCONFIG_HTTPS=y" >>$(1); \
 		sed -i "/RTCONFIG_FORCE_AUTO_UPGRADE/d" $(1); \
-		echo "RTCONFIG_FORCE_AUTO_UPGRADE=y" >>$(1); \
+		echo "# RTCONFIG_FORCE_AUTO_UPGRADE is not set" >>$(1); \
 		sed -i "/RTCONFIG_CAPTCHA/d" $(1); \
 		echo "RTCONFIG_CAPTCHA=y" >>$(1); \
 	else \
@@ -3760,6 +3803,50 @@ define RouterOptions
 		sed -i "/RTCONFIG_COMFW/d" $(1); \
 		echo "RTCONFIG_COMFW=y" >>$(1); \
 	fi; \
+	if [ "$(SOFTCENTER)" = "y" ]; then \
+	sed -i "/RTCONFIG_SOFTCENTER/d" $(1); \
+	echo "RTCONFIG_SOFTCENTER=y" >>$(1); \
+	fi; \
+	if [ "$(SMARTDNS)" = "y" ]; then \
+	sed -i "/RTCONFIG_SMARTDNS/d" $(1); \
+	echo "RTCONFIG_SMARTDNS=y" >>$(1); \
+	fi; \
+	if [ "$(SWRT)" = "y" ]; then \
+	sed -i "/RTCONFIG_SWRT\>/d" $(1); \
+	echo "RTCONFIG_SWRT=y" >>$(1); \
+	fi; \
+	if [ "$(SWRT_LED)" = "y" ]; then \
+	sed -i "/RTCONFIG_SWRT_LED\>/d" $(1); \
+	echo "RTCONFIG_SWRT_LED=y" >>$(1); \
+	fi; \
+	if [ "$(SWRT_UU)" = "y" ]; then \
+	sed -i "/RTCONFIG_SWRT_UU/d" $(1); \
+	echo "RTCONFIG_SWRT_UU=y" >>$(1); \
+	fi; \
+	if [ "$(SWRT_FULLCONE)" = "y" ]; then \
+	sed -i "/RTCONFIG_SWRT_FULLCONE/d" $(1); \
+	echo "RTCONFIG_SWRT_FULLCONE=y" >>$(1); \
+	fi; \
+	if [ "$(SWRT_I2CLED)" = "y" ]; then \
+	sed -i "/RTCONFIG_SWRT_I2CLED/d" $(1); \
+	echo "RTCONFIG_SWRT_I2CLED=y" >>$(1); \
+	fi; \
+	if [ "$(SWRT_FASTPATH)" = "y" ]; then \
+	sed -i "/RTCONFIG_SWRT_FASTPATH/d" $(1); \
+	echo "RTCONFIG_SWRT_FASTPATH=y" >>$(1); \
+	fi; \
+	if [ "$(SWRT_KVR)" = "y" ]; then \
+	sed -i "/RTCONFIG_SWRT_KVR/d" $(1); \
+	echo "RTCONFIG_SWRT_KVR=y" >>$(1); \
+	fi; \
+	if [ "$(SWRT_LED_RGB)" = "y" ]; then \
+	sed -i "/RTCONFIG_SWRT_LED_RGB/d" $(1); \
+	echo "RTCONFIG_SWRT_KVR=y" >>$(1); \
+	fi; \
+	if [ "$(ENTWARE)" = "y" ]; then \
+	sed -i "/RTCONFIG_ENTWARE/d" $(1); \
+	echo "RTCONFIG_ENTWARE=y" >>$(1); \
+	fi; \
 	)
 	$(call platformRouterOptions, $(1))
 endef
@@ -4178,7 +4265,7 @@ define KernelConfig
 	sed -i "/CONFIG_PPP_FILTER/d" $(1); \
 	echo "# CONFIG_PPP_FILTER is not set" >>$(1); \
 	sed -i "/CONFIG_PPP_MULTILINK/d" $(1); \
-	echo "# CONFIG_PPP_MULTILINK is not set" >>$(1); \
+	echo "CONFIG_PPP_MULTILINK=y" >>$(1); \
 if [ "$(TUNEK)" != "n" ]; then \
 	if [ "$(RALINK)" = "y" ] || [ "$(QCA)" = "y" ]; then \
 		sed -i "/CONFIG_NVRAM_SIZE/d" $(1); \
@@ -4857,45 +4944,45 @@ fi; \
 		sed -i "/CONFIG_BCM_PKTRUNNER_WAR_SKIP_TUN/d" $(1); \
 		echo "CONFIG_BCM_PKTRUNNER_WAR_SKIP_TUN=y" >>$(1); \
 	fi; \
-	if [ "$(TCPLUGIN)" = "y" ]; then \
+	if [ "$(TCPLUGIN)" = "y" ] || [ "$(SWRT)" = "y" ]; then \
 		sed -i "/CONFIG_NETFILTER_XT_SET/d" $(1); \
 		echo "CONFIG_NETFILTER_XT_SET=y" >>$(1); \
 		sed -i "/CONFIG_IP_SET/d" $(1); \
-		echo "CONFIG_IP_SET=y" >>$(1); \
+		echo "CONFIG_IP_SET=m" >>$(1); \
 		sed -i "/CONFIG_IP_SET_MAX/d" $(1); \
 		echo "CONFIG_IP_SET_MAX=256" >>$(1); \
 		sed -i "/CONFIG_IP_SET_BITMAP_IP/d" $(1); \
-		echo "CONFIG_IP_SET_BITMAP_IP=y" >>$(1); \
+		echo "CONFIG_IP_SET_BITMAP_IP=m" >>$(1); \
 		sed -i "/CONFIG_IP_SET_BITMAP_IPMAC/d" $(1); \
-		echo "CONFIG_IP_SET_BITMAP_IPMAC=y" >>$(1); \
+		echo "CONFIG_IP_SET_BITMAP_IPMAC=m" >>$(1); \
 		sed -i "/CONFIG_IP_SET_BITMAP_PORT/d" $(1); \
-		echo "CONFIG_IP_SET_BITMAP_PORT=y" >>$(1); \
+		echo "CONFIG_IP_SET_BITMAP_PORT=m" >>$(1); \
 		sed -i "/CONFIG_IP_SET_HASH_IP/d" $(1); \
-		echo "CONFIG_IP_SET_HASH_IP=y" >>$(1); \
+		echo "CONFIG_IP_SET_HASH_IP=m" >>$(1); \
 		sed -i "/CONFIG_IP_SET_HASH_IPMARK/d" $(1); \
-		echo "CONFIG_IP_SET_HASH_IPMARK=y" >>$(1); \
+		echo "CONFIG_IP_SET_HASH_IPMARK=m" >>$(1); \
 		sed -i "/CONFIG_IP_SET_HASH_IPPORT/d" $(1); \
-		echo "CONFIG_IP_SET_HASH_IPPORT=y" >>$(1); \
+		echo "CONFIG_IP_SET_HASH_IPPORT=m" >>$(1); \
 		sed -i "/CONFIG_IP_SET_HASH_IPPORTIP/d" $(1); \
-		echo "CONFIG_IP_SET_HASH_IPPORTIP=y" >>$(1); \
+		echo "CONFIG_IP_SET_HASH_IPPORTIP=m" >>$(1); \
 		sed -i "/CONFIG_IP_SET_HASH_IPPORTNET/d" $(1); \
-		echo "CONFIG_IP_SET_HASH_IPPORTNET=y" >>$(1); \
-		sed -i "/CONFIG_IP_SET_HASH_IPMAC/d" $(1); \
-		echo "# CONFIG_IP_SET_HASH_IPMAC is not set" >>$(1); \
+		echo "CONFIG_IP_SET_HASH_IPPORTNET=m" >>$(1); \
 		sed -i "/CONFIG_IP_SET_HASH_MAC/d" $(1); \
-		echo "CONFIG_IP_SET_HASH_MAC=y" >>$(1); \
+		echo "CONFIG_IP_SET_HASH_MAC=m" >>$(1); \
 		sed -i "/CONFIG_IP_SET_HASH_NET/d" $(1); \
-		echo "CONFIG_IP_SET_HASH_NET=y" >>$(1); \
+		echo "CONFIG_IP_SET_HASH_NET=m" >>$(1); \
 		sed -i "/CONFIG_IP_SET_HASH_NETNET/d" $(1); \
-		echo "CONFIG_IP_SET_HASH_NETNET=y" >>$(1); \
+		echo "CONFIG_IP_SET_HASH_NETNET=m" >>$(1); \
 		sed -i "/CONFIG_IP_SET_HASH_NETPORT/d" $(1); \
-		echo "CONFIG_IP_SET_HASH_NETPORT=y" >>$(1); \
+		echo "CONFIG_IP_SET_HASH_NETPORT=m" >>$(1); \
 		sed -i "/CONFIG_IP_SET_HASH_NETPORTNET/d" $(1); \
-		echo "CONFIG_IP_SET_HASH_NETPORTNET=y" >>$(1); \
+		echo "CONFIG_IP_SET_HASH_NETPORTNET=m" >>$(1); \
 		sed -i "/CONFIG_IP_SET_HASH_NETIFACE/d" $(1); \
-		echo "CONFIG_IP_SET_HASH_NETIFACE=y" >>$(1); \
+		echo "CONFIG_IP_SET_HASH_NETIFACE=m" >>$(1); \
 		sed -i "/CONFIG_IP_SET_LIST_SET/d" $(1); \
-		echo "CONFIG_IP_SET_LIST_SET=y" >>$(1); \
+		echo "CONFIG_IP_SET_LIST_SET=m" >>$(1); \
+		sed -i "/CONFIG_IP_SET_HASH_IPMAC/d" $(1); \
+		echo "CONFIG_IP_SET_HASH_IPMAC=m" >>$(1); \
 	fi; \
 	if [ "$(GMAC3)" = "y" ]; then \
 		sed -i "/CONFIG_BCM_GMAC3/d" $(1); \
@@ -5582,7 +5669,7 @@ endef
 	$(call save_src_config, RT$@)
 	$(MAKE) bin
 
-brt-% BRT-% rt-% RT-% CT-% ct-% gt-% GT-% gx-% GX-% rp-% RP-% ea-% EA-% tm-% TM-% pl-% PL-% ac% map-% MAP-% vzw-% VZW-% sh-% SH-% tuf-% TUF-% gs-% GS-%:
+brt-% BRT-% rt-% RT-% CT-% ct-% gt-% GT-% gx-% GX-% rp-% RP-% ea-% EA-% tm-% TM-% pl-% PL-% ac% map-% MAP-% vzw-% VZW-% sh-% SH-% tuf-% TUF-% gs-% GS-% swrt-% SWRT-%:
 ifeq ($(REALTEK),y)
 	rm -f include
 	ln -sf include-n66u include

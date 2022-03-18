@@ -145,9 +145,7 @@ OBJS += bwdpi_utils.o
 OBJS += bwdpi_utils.o
 OBJS += mac_name_tbl.o
 OBJS += stun.o
-ifeq ($(RTCONFIG_TOR),y)
 OBJS += scripts.o
-endif
 ifeq ($(RTCONFIG_AHS),y)
 OBJS += $(if $(wildcard notify_ahs.c),notify_ahs.o,prebuild/notify_ahs.o)
 endif
@@ -448,13 +446,7 @@ ifneq ($(CUSTOM_MODEL),)
 CFLAGS += -DCUSTOM_MODEL
 endif
 
-
-.IGNORE:
-ifneq ($(wildcard prebuild/$(BUILD_NAME)/*.o),)
-	-cp -f prebuild/$(BUILD_NAME)/*.o ./prebuild/
-endif
-
-all: .IGNORE libshared.so libshared.a
+all: libshared.so libshared.a
 
 libshared.so: $(OBJS)
 	@echo " [shared] LD $@"
@@ -489,11 +481,15 @@ endif
 sw_auth.o:
 ifeq ($(wildcard $(SRCBASE)/router/sw-hw-auth/*.c),)
 	cp -f $(TOP)/sw-hw-auth/prebuild/sw_auth.o ./
+else
+	cp -f $(TOP)/sw-hw-auth/sw_auth.o ./
 endif
 
 hw_auth.o:
 ifeq ($(wildcard $(SRCBASE)/router/sw-hw-auth/*.c),)
 	cp -f $(TOP)/sw-hw-auth/prebuild/hw_auth.o ./
+else
+	cp -f $(TOP)/sw-hw-auth/hw_auth.o ./
 endif
 
 nvpriv.o:

@@ -555,7 +555,11 @@ extern int osifname_to_nvifname(const char *osifname, char *nvifname_buf,
 
 int ure_any_enabled(void);
 
+#if defined(RTCONFIG_WLMODULE_MT7629_AP) || defined(RTCONFIG_WLMODULE_MT7622_AP)
+#define is_hwnat_loaded() module_loaded("mtkhnat")
+#else
 #define is_hwnat_loaded() module_loaded("hw_nat")
+#endif
 
 #define vstrsep(buf, sep, args...) _vstrsep(buf, sep, args, NULL)
 extern int _vstrsep(char *buf, const char *sep, ...);
@@ -589,5 +593,8 @@ extern int hex2str(unsigned char *hex, char *str, int hex_len);
 extern void reset_stacksize(int new_stacksize);
 extern int arpcache(char *tgmac, char *tgip);
 extern int ether_inc(unsigned char *e, const unsigned char n);
+extern char *ether_cal(const char *e, char *a, int i);
+extern char *ether_cal_b(const unsigned char *e, char *a, int i);
 
 #endif /* _shutils_h_ */
+

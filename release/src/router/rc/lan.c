@@ -2118,6 +2118,10 @@ gmac3_no_swbr:
 	if(nvram_match("lan_proto", "static"))
 #endif
 		ifconfig(lan_ifname, IFUP | IFF_ALLMULTI, nvram_safe_get("lan_ipaddr"), nvram_safe_get("lan_netmask"));
+#if defined(RTCONFIG_SWRT) && defined(RTCONFIG_AMAS)
+	else if(aimesh_re_node())
+		ifconfig(lan_ifname, IFUP | IFF_ALLMULTI, "192.168.111.111", nvram_default_get("lan_netmask"));
+#endif
 	else
 		ifconfig(lan_ifname, IFUP | IFF_ALLMULTI, nvram_default_get("lan_ipaddr"), nvram_default_get("lan_netmask"));
 
@@ -2380,6 +2384,13 @@ _dprintf("nat_rule: stop_nat_rules 1.\n");
 #endif
 
 	post_start_lan();
+#if defined(RTCONFIG_SWRT_FASTPATH)
+	char fbuf[3];
+	if(f_read("/proc/lan_ip", fbuf, 2) > 0){
+		char *p = nvram_get("lan_ipaddr");
+		f_write_string("/proc/lan_ip", p, 0, 0);
+	}
+#endif
 	_dprintf("%s %d\n", __FUNCTION__, __LINE__);
 }
 
@@ -5458,6 +5469,7 @@ void lanaccess_wl(void)
 #ifdef RTCONFIG_CAPTIVE_PORTAL
 	CP_lanaccess_wl();
 #endif
+	setup_leds();   // Refresh LED state if in Stealth Mode
 }
 
 #ifdef RTCONFIG_FBWIFI
@@ -6264,3 +6276,4 @@ void set_onboarding_vif_status()
 		nvram_set_int("obvif_bss", 0);
 }
 #endif
+

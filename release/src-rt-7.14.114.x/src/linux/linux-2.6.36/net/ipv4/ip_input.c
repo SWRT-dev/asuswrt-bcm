@@ -148,6 +148,10 @@
 #include <typedefs.h>
 #include <bcmdefs.h>
 
+#ifdef PGB_QUICK_PATH
+#include <linux/swrt_fastpath/fast_path.h>
+#endif
+
 /*
  *	Process Router Attention IP option (RFC 2113)
  */
@@ -263,7 +267,11 @@ int ip_local_deliver(struct sk_buff *skb)
 		if (ip_defrag(skb, IP_DEFRAG_LOCAL_DELIVER))
 			return 0;
 	}
-
+#ifdef PGB_QUICK_PATH
+	if (SWRT_FASTPATH(skb))
+		return ip_local_deliver_finish(skb);
+	else 
+#endif
 	return NF_HOOK(NFPROTO_IPV4, NF_INET_LOCAL_IN, skb, skb->dev, NULL,
 		       ip_local_deliver_finish);
 }
@@ -450,7 +458,11 @@ int BCMFASTPATH_HOST ip_rcv(struct sk_buff *skb, struct net_device *dev, struct 
 		skb->tcpf_smb = (th[1] == htons(0x01bd)); /* SMB data */
 	}
 #endif
-
+#ifdef PGB_QUICK_PATH
+	if (SWRT_FASTPATH(skb))
+		return ip_rcv_finish(skb);
+	else 
+#endif
 	return NF_HOOK(NFPROTO_IPV4, NF_INET_PRE_ROUTING, skb, dev, NULL,
 		       ip_rcv_finish);
 

@@ -37,7 +37,6 @@
 #include <linux/major.h>
 
 #ifdef RTCONFIG_BCMWL6
-# ifdef RTCONFIG_BCM_7114
 /* phy types, PhyVersion:PhyType field */
 #define PHY_TYPE_A              0       /* A-Phy value */
 #define PHY_TYPE_B              1       /* B-Phy value */
@@ -50,10 +49,8 @@
 #define PHY_TYPE_LCNXN          9       /* LCNXN-Phy value */
 #define PHY_TYPE_LCN40          10      /* LCN40-Phy value */
 #define PHY_TYPE_AC             11      /* AC-Phy value */
+#define PHY_TYPE_AX				13
 #define PHY_TYPE_NULL           0xf     /* Invalid Phy value */
-#else
-#include <d11.h>
-#endif
 
 #ifdef RTCONFIG_HND_ROUTER_AX
 #define WLCONF_PHYTYPE2STR(phy)	((phy) == PHY_TYPE_A ? "a" : \
@@ -3376,12 +3373,12 @@ void load_wl()
 	}
 #endif
 
-#if defined(RTAC88U) || defined(RTAC3100)
-	int chk_reboot = 0;
+//#if defined(RTAC88U) || defined(RTAC3100)
+//	int chk_reboot = 0;
 
-	if(!*nvram_safe_get("chiprev"))
-		chk_reboot = 1;
-#endif
+//	if(!*nvram_safe_get("chiprev"))
+//		chk_reboot = 1;
+//#endif
 _dprintf("load_wl(): starting...\n");
 
 	memset(modules, 0, sizeof(modules));
@@ -3485,19 +3482,19 @@ _dprintf("load_wl(): insmod %s %s.\n", module, instance_base);
 	}
 #endif
 
-#if defined(RTAC88U) || defined(RTAC3100)
-	int n = nvram_get_int("tryc")?:5;
+//#if defined(RTAC88U) || defined(RTAC3100)
+//	int n = nvram_get_int("tryc")?:5;
 
-	if(chk_reboot) {
-		for(i=0; i<n; ++i) {
-			if(nvram_get_hex("chiprev")>0 && chiprev_patch(nvram_safe_get("chiprev"))) {
-				_dprintf("\n>>> reboot due chiprev\n");
-				reboot(RB_AUTOBOOT);
-			}
-			sleep(1);
-		}
-	}
-#endif
+//	if(chk_reboot) {
+//		for(i=0; i<n; ++i) {
+//			if(nvram_get_hex("chiprev")>0 && chiprev_patch(nvram_safe_get("chiprev"))) {
+//				_dprintf("\n>>> reboot due chiprev\n");
+//				reboot(RB_AUTOBOOT);
+//			}
+//			sleep(1);
+//		}
+//	}
+//#endif
 _dprintf("load_wl(): end.\n");
 }
 #endif
@@ -3541,7 +3538,7 @@ void init_wl(void)
 	wl_disband5grp();
 #endif
 #if !defined(RTCONFIG_HND_ROUTER_AX)
-	set_wltxpower();
+	set_wltxpower_swrt();
 #endif
 #ifdef RTCONFIG_BRCM_HOSTAPD
 #if defined(RTCONFIG_HND_ROUTER_AX_6756)
@@ -3561,7 +3558,7 @@ void init_wl(void)
 	eval("insmod", "wl");
 #endif
 #if defined(RTCONFIG_HND_ROUTER_AX)
-	set_wltxpower();
+	set_wltxpower_swrt();
 #endif
 #if !defined(RTCONFIG_BCMARM) && defined(NAS_GTK_PER_STA) && defined(PROXYARP)
 	eval("insmod", "proxyarp");
@@ -3686,7 +3683,7 @@ void init_wl_compact(void)
 	wl_disband5grp();
 #endif
 #if !defined(RTCONFIG_HND_ROUTER_AX)
-	set_wltxpower();
+	set_wltxpower_swrt();
 #endif
 #ifdef RTCONFIG_DHDAP
 	load_wl();
@@ -3694,7 +3691,7 @@ void init_wl_compact(void)
 	eval("insmod", "wl");
 #endif
 #if defined(RTCONFIG_HND_ROUTER_AX)
-	set_wltxpower();
+	set_wltxpower_swrt();
 #endif
 #ifndef RTCONFIG_BCMARM
 #if defined(NAS_GTK_PER_STA) && defined(PROXYARP)
@@ -4381,11 +4378,31 @@ void init_others(void)
 #endif // ASUS_TWEAK
 
 #if defined(RTAC68U) && !defined(RTAC68A) && !defined(RT4GAC68U)
+#if defined(EA6700)
+	update_cfe_ea6700();
+#elif defined(DIR868L)
+	update_cfe_dir868l();
+#elif defined(R6300V2)
+	update_cfe_r6300v2();
+#elif defined(SBRAC1900P)
+	ac1900p_patch_cfe();
+#else
 	update_cfe();
+	update_cfe_tm1900();
+#endif
 #endif
 #ifdef RTAC3200
 	update_cfe_ac3200();
 	update_cfe_ac3200_128k();
+#endif
+#if defined(K3)
+	k3_nvram_patch();
+#elif defined(XWR3100)
+	xwr3100_nvram_patch();
+#elif defined(R8500)
+	r8500_nvram_patch();
+#elif defined(SWRT_VER_MAJOR_X) && (defined(RTAC86U) || defined(RTAC88U) || defined(RTAC5300))
+	swrt_patch_nvram();
 #endif
 #ifdef RTAC68U
 	ac68u_cofs();
@@ -10658,3 +10675,4 @@ void smart_connect_sync_config(int unit) {
 
 }
 #endif
+

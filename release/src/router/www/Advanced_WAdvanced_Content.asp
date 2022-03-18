@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html>
 <head>
 	<meta charset="UTF-8">
@@ -85,6 +85,14 @@
 	border-bottom-right-radius: 1px;
 }
 #slider .ui-slider-handle { border-color: #93E7FF; }
+#slider1 .ui-slider-range {
+	background: #93E7FF; 
+	border-top-left-radius: 3px;
+	border-top-right-radius: 1px;
+	border-bottom-left-radius: 3px;
+	border-bottom-right-radius: 1px;
+}
+#slider1 .ui-slider-handle { border-color: #93E7FF; }
 .parental_th{
 	color:white;
 	background:#2F3A3E;
@@ -168,6 +176,7 @@ var wl_user_rssi_onload = '<% nvram_get("wl_user_rssi"); %>';
 var reboot_needed_time = eval("<% get_default_reboot_time(); %>");
 var orig_region = '<% nvram_get("location_code"); %>';
 var wl_txpower_orig = '<% nvram_get("wl_txpower"); %>';
+var wl_custompower_orig = '<% nvram_get("wl_custompower"); %>';
 var machine_name = '<% get_machine_name(); %>';
 var machine_arm = (machine_name.search("arm") == -1 && machine_name.search("aarch64") == -1) ? false : true;
 var array;
@@ -587,6 +596,7 @@ function initial(){
 	}
 		
 	adjust_tx_power();	
+	adjust_custom_power();
 	if(svc_ready == "0")
 		document.getElementById('svc_hint_div').style.display = "";	
 	
@@ -833,14 +843,16 @@ function generate_country_selection(){
 }
 
 function adjust_tx_power(){
+	var custompower = parseInt(document.form.wl_cpenable.value);
 	var power_value_old = document.form.wl_TxPower.value;	//old nvram not exist now (value)
 	var power_value_new = document.form.wl_txpower.value;	//current nvram now (percentage)
 	var translated_value = 0;
 	
-	if(!power_support){
+	if(!power_support ||　custompower == 1){
 		document.getElementById("wl_txPower_field").style.display = "none";
 	}
 	else{
+		document.form.wl_txpower.disabled = false;
 		if(power_value_old != ""){
 			translated_value = parseInt(power_value_old/80*100);
 			if(translated_value >=100){
@@ -893,6 +905,33 @@ function adjust_tx_power(){
 	}
 }
 
+function adjust_custom_power(){
+	var custompower = parseInt(document.form.wl_cpenable.value);
+	var power_value = parseInt(document.form.wl_custompower.value);
+
+	//window.alert(custompower);
+		
+	if(custompower == 0){
+		document.getElementById("wl_custompower_field").style.display = "none";
+	}
+	else{
+		document.form.wl_custompower.disabled = false;
+		document.getElementById('slider1').children[0].style.width = (power_value * 100 / 118) + "%";
+		document.getElementById('slider1').children[1].style.left = (power_value * 100 / 118) + "%";
+		document.form.wl_custompower.value = power_value;
+		document.getElementById("tx_power1_desc").innerHTML = ((power_value - 6) / 4) + "dbm " + Math.round(Math.pow(10,( ((power_value - 6) / 4) / 10 )))+ "mW ";
+	}
+}
+
+function handle_chpower(){
+	document.getElementById("wl_txPower_field").style.display = "";
+	document.getElementById("wl_custompower_field").style.display = "";
+	document.form.wl_custompower.disabled = true;
+	document.form.wl_txpower.disabled = true;
+	adjust_tx_power();
+	adjust_custom_power();
+}
+
 function changeRSSI(_switch){
 	if(_switch == 0){
 		document.getElementById("rssiDbm").style.display = "none";
@@ -935,6 +974,9 @@ function applyRule(){
 		}
 
 		if (Bcmwifi_support && wl_txpower_orig != document.form.wl_txpower.value) {
+			FormActions("start_apply.htm", "apply", "reboot", "<% get_default_reboot_time(); %>");
+		}
+		else if(Bcmwifi_support &&  wl_custompower_orig != document.form.wl_custompower.value && document.form.wl_cpenable.value == "1"){
 			FormActions("start_apply.htm", "apply", "reboot", "<% get_default_reboot_time(); %>");
 		}
 
@@ -1093,6 +1135,22 @@ function register_event(){
 			},
 			stop:function(event, ui){
 				set_power(ui.value);	  
+			}
+		}); 
+	});
+
+	$(function() {
+		$( "#slider1" ).slider({
+			orientation: "horizontal",
+			range: "min",
+			min:6,
+			max: 118,
+			value:98,
+			slide:function(event, ui){
+				document.getElementById('tx_power1_desc').innerHTML = ((ui.value - 6) / 4) + "dbm " + Math.round(Math.pow(10,( ((ui.value - 6) / 4) / 10 )))+ "mW ";
+			},
+			stop:function(event, ui){
+				document.form.wl_custompower.value = ui.value;
 			}
 		}); 
 	});
@@ -1657,8 +1715,9 @@ function checkWLReady(){
 <input type="hidden" name="acs_dfs" value="<% nvram_get("acs_dfs"); %>">
 <input type="hidden" name="w_Setting" value="1">
 <input type="hidden" name="wl_sched" value="<% nvram_get("wl_sched"); %>">
-<input type="hidden" name="wl_txpower" value="<% nvram_get("wl_txpower"); %>">
+<input type="hidden" name="wl_txpower" value="<% nvram_get("wl_txpower"); %>" disabled>
 <input type="hidden" name="wl1_mumimo" value="<% nvram_get("wl1_mumimo"); %>" disabled>
+<input type="hidden" name="wl_custompower" value="<% nvram_get("wl_custompower"); %>" disabled>
 <table class="content" align="center" cellpadding="0" cellspacing="0">
 	<tr>
 		<td width="17">&nbsp;</td>
@@ -2026,8 +2085,17 @@ function checkWLReady(){
 							</select>
 						</td>
 					</tr>
+					<tr id="wl_chPower_field">
+						<th><#WLANConfig11b_TxPower_custom#></th>
+						<td>
+							<select name="wl_cpenable" class="input_option" onchange="handle_chpower()">
+								<option value="0" <% nvram_match("wl_cpenable", "0","selected"); %>><#checkbox_No#></option>
+								<option value="1" <% nvram_match("wl_cpenable", "1","selected"); %>><#checkbox_Yes#></option>
+							</select>
+						</td>
+					</tr>
 					<tr id="wl_txPower_field">
-						<th><a id="wl_txPower_field_title" class="hintstyle" href="javascript:void(0);" onClick="openHint(0, 16);"><#WLANConfig11b_TxPower_itemname#></a></th>
+						<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(0, 16);"><#WLANConfig11b_TxPower_itemname#></a></th>
 						<td>
 							<div>
 								<table>
@@ -2037,7 +2105,24 @@ function checkWLReady(){
 										</td>									
 										<td style="border:0px;width:60px;">
 											<div id="tx_power_desc" style="width:150px;font-size:14px;"></div>
-											<div id="tx_power_desc_EG" style="margin-top:-20px;margin-left:140px;display:none;"></div>
+										</td>					
+
+									</tr>
+								</table>
+							</div>
+						</td>
+					</tr>
+					<tr id="wl_custompower_field">
+						<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(0, 16);"><#WLANConfig11b_TxPower_itemname#></a></th>
+						<td>
+							<div>
+								<table>
+									<tr>
+										<td style="border:0px;padding-left:0px;">
+											<div id="slider1" style="width:300px;"></div>
+										</td>									
+										<td style="border:0px;width:60px;">
+											<div id="tx_power1_desc" style="width:150px;font-size:14px;"></div>
 										</td>					
 
 									</tr>
@@ -2092,3 +2177,4 @@ function checkWLReady(){
 <div id="footer"></div>
 </body>
 </html>
+

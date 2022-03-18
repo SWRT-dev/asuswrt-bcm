@@ -32,6 +32,11 @@ EXPORT_SYMBOL_GPL(nf_conntrack_event_cb);
 struct nf_exp_event_notifier *nf_expect_event_cb __read_mostly;
 EXPORT_SYMBOL_GPL(nf_expect_event_cb);
 
+#if defined(CONFIG_NETFILTER_XT_TARGET_FULLCONENAT)
+struct nf_ct_event_notifier *nf_fullcone_event_cb __read_mostly;
+EXPORT_SYMBOL_GPL(nf_fullcone_event_cb);
+#endif
+
 /* deliver cached events and clear cache entry - must be called with locally
  * disabled softirqs */
 void nf_ct_deliver_cached_events(struct nf_conn *ct)
@@ -101,6 +106,30 @@ out_unlock:
 }
 EXPORT_SYMBOL_GPL(nf_conntrack_register_notifier);
 
+#if defined(CONFIG_NETFILTER_XT_TARGET_FULLCONENAT)
+int nf_conntrack_register_notifier_fullcone(struct nf_ct_event_notifier *new)
+{
+	int ret = 0;
+	struct nf_ct_event_notifier *notify;
+
+	mutex_lock(&nf_ct_ecache_mutex);
+	notify = rcu_dereference_protected(nf_fullcone_event_cb,
+					   lockdep_is_held(&nf_ct_ecache_mutex));
+	if (notify != NULL) {
+		ret = -EBUSY;
+		goto out_unlock;
+	}
+	rcu_assign_pointer(nf_fullcone_event_cb, new);
+	mutex_unlock(&nf_ct_ecache_mutex);
+	return ret;
+
+out_unlock:
+	mutex_unlock(&nf_ct_ecache_mutex);
+	return ret;
+}
+EXPORT_SYMBOL_GPL(nf_conntrack_register_notifier_fullcone);
+#endif
+
 void nf_conntrack_unregister_notifier(struct nf_ct_event_notifier *new)
 {
 	struct nf_ct_event_notifier *notify;
@@ -113,6 +142,21 @@ void nf_conntrack_unregister_notifier(struct nf_ct_event_notifier *new)
 	mutex_unlock(&nf_ct_ecache_mutex);
 }
 EXPORT_SYMBOL_GPL(nf_conntrack_unregister_notifier);
+
+#if defined(CONFIG_NETFILTER_XT_TARGET_FULLCONENAT)
+void nf_conntrack_unregister_notifier_fullcone(struct nf_ct_event_notifier *new)
+{
+	struct nf_ct_event_notifier *notify;
+
+	mutex_lock(&nf_ct_ecache_mutex);
+	notify = rcu_dereference_protected(nf_fullcone_event_cb,
+					   lockdep_is_held(&nf_ct_ecache_mutex));
+	BUG_ON(notify != new);
+	rcu_assign_pointer(nf_fullcone_event_cb, NULL);
+	mutex_unlock(&nf_ct_ecache_mutex);
+}
+EXPORT_SYMBOL_GPL(nf_conntrack_unregister_notifier_fullcone);
+#endif
 
 int nf_ct_expect_register_notifier(struct nf_exp_event_notifier *new)
 {

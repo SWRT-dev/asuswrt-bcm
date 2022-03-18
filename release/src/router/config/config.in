@@ -2512,3 +2512,49 @@ config RTCONFIG_LLDPD_0_9_8
 config RTCONFIG_LLDPD_1_0_11
 	bool "lldpd-1.0.11"
 endchoice
+
+config RTCONFIG_SOFTCENTER
+	bool "softcenter"
+	default n
+
+config RTCONFIG_SMARTDNS
+	bool "smart dns"
+	default n
+
+config RTCONFIG_SWRT
+	bool "RTCONFIG_SWRT"
+	default n
+
+config RTCONFIG_SWRT_LED
+	bool "RTCONFIG_SWRT_LED"
+	default n
+
+config RTCONFIG_SWRT_UU
+	bool "RTCONFIG_SWRT_UU"
+	default n
+
+config RTCONFIG_SWRT_FULLCONE
+	bool "fullcone"
+	default n
+
+config RTCONFIG_SWRT_I2CLED
+	bool "i2c led dirver"
+	default n
+
+config RTCONFIG_SWRT_FASTPATH
+	bool "Q-Path Mass Storage accelerater"
+	default n
+
+config RTCONFIG_SWRT_KVR
+	bool "swrt kvr support"
+	depends on RTCONFIG_RALINK || RTCONFIG_LANTIQ || RTCONFIG_QCA
+	default n
+
+config RTCONFIG_SWRT_LED_RGB
+	bool "swrt rgb led support"
+	depends on RTCONFIG_FIXED_BRIGHTNESS_RGBLED || RTCONFIG_RGBLED || RTCONFIG_BCM_CLED
+	default n
+
+config RTCONFIG_ENTWARE
+	bool "install entware"
+	default n

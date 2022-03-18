@@ -428,9 +428,12 @@ var wl_info = {
 			})()
 };
 //wireless end
-
+var rc_support = '<% nvram_get("rc_support"); %>';
 function isSupport(_ptn){
 	var ui_support = [<% get_ui_support(); %>][0];
+	if(_ptn == "uu_accel")
+		if(rc_support.search("uu_accel") != -1)
+			return 1;
 	return (ui_support[_ptn]) ? ui_support[_ptn] : 0;
 }
 
@@ -618,6 +621,10 @@ var gameMode_support = isSupport('gameMode');
 var oam_support = isSupport('oam');
 var hnd_ax_675x_support = isSupport('hnd_ax_675x');
 var wireguard_support = isSupport('wireguard');
+var softcenter_support = isSupport('softcenter');
+var entware_support = isSupport('entware');
+var swrt_fullcone_support = isSupport('swrt_fullcone');
+var smartdns_support = isSupport('smartdns');
 var QISWIZARD = "QIS_wizard.htm";
 
 var wl_version = "<% nvram_get("wl_version"); %>";
@@ -1365,7 +1372,8 @@ function submitenter(myfield,e)
 	else
 		return true;
 }
-
+var tabtitle = [""];
+var tablink = [""];
 function show_menu(){
 	var wan_pppoe_username = decodeURIComponent('<% nvram_char_to_ascii("", "wan0_pppoe_username"); %>');
 	var cht_pppoe = wan_pppoe_username.split("@");
@@ -1407,7 +1415,26 @@ function show_menu(){
 			menus: menuTree.exclude.menus(),
 			tabs: menuTree.exclude.tabs()
 		};
-
+		if (typeof menu_hook != "undefined") {
+			menu_hook();
+			for (var i = 0; i < tablink[0].length - 1; i++) {
+				menuList[menuList.length - 1].tab[i] = {
+					url: tablink[0][i + 1],
+					tabName: tabtitle[0][i + 1]
+				}
+			}
+			menuList[menuList.length - 1].tab[tablink[0].length - 1] = {
+				url: "NULL",
+				tabName: "__INHERIT__"
+			}
+		}else{
+			if(window.location.pathname.indexOf("Module_") != -1){
+				menuList[menuList.length - 1].tab[0] = {
+					url: window.location.pathname.split("/")[1],
+					tabName: window.location.pathname.split(".asp")[0].split("/Module_")[1]
+				}
+			}
+		}
 		Session.set("menuList", menuList);
 		Session.set("menuExclude", menuExclude);
 		showMenuTree(menuList, menuExclude);
@@ -4283,3 +4310,4 @@ function Get_Component_PWD_Strength_Meter(id){
 	var $strength_color = $("<div>").addClass("strength_color").appendTo($pwd_strength_container).attr("id", "scorebar"+postfix);
 	return $pwd_strength_container;
 }
+

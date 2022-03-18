@@ -1,4 +1,4 @@
-﻿
+
 var keyPressed;
 var wItem;
 var ip = "";
@@ -463,6 +463,12 @@ function openLink(s){
 			tourl = "http://www.no-ip.com/newUser.php";
 		else if (document.form.ddns_server_x.value == 'WWW.ORAY.COM')
 			tourl = "http://www.oray.com/";
+		else if (document.form.ddns_server_x.value == '3322')
+			tourl = "http://www.pubyun.com/";
+		else if (document.form.ddns_server_x.value == 'oray')
+			tourl = "http://www.oray.com/";
+		else if (document.form.ddns_server_x.value == 'changeip')
+			tourl = "https://www.changeip.com/";
 		else if (document.form.ddns_server_x.value == 'DOMAINS.GOOGLE.COM')
 			tourl = "https://domains.google/";
 		else	tourl = "";
@@ -2054,3 +2060,12 @@ function gen_tab_menu(_tab_list_array, _currentItem) {
 		return code;
 	}
 }
+
+function check_is_merlin_fw(_fw) {
+	var fw_array = _fw.match(/(\d+)\.(\d+)\.(\d+)\.(\d+)\.([^_]+)_(\w+)/);
+	if (fw_array && (fw_array[5].indexOf('.') > 0) )
+		return true;
+	else
+		return false;
+}
+

@@ -1080,7 +1080,7 @@ enum led_id {
 	LED_5G2,
 	LED_60G,
 	LED_USB3,
-#ifdef RTCONFIG_LAN4WAN_LED
+#if defined(RTCONFIG_LAN4WAN_LED) || defined(XWR3100)
 	LED_LAN1,
 	LED_LAN2,
 	LED_LAN3,
@@ -1088,7 +1088,7 @@ enum led_id {
 #else
 	LED_LAN,
 #endif
-#if defined(RTAX86U) || defined(RTAX5700)
+#if defined(RTAX86U) || defined(RTAX5700) || defined(XWR3100)
 	LED_LAN,
 #endif
 #ifdef RTCONFIG_LOGO_LED
@@ -1290,6 +1290,11 @@ enum led_id {
 	LED_10G_RGB_GREEN,
 	LED_10G_RGB_BLUE,
 	LED_10G_WHITE,
+#endif
+#if defined(R8500)
+	LED_LNA,
+	LED_LOGO1,
+	LED_LOGO2,
 #endif
 	LED_ID_MAX,	/* last item */
 };
@@ -2352,7 +2357,7 @@ extern int get_channel_list_via_country(int unit, const char *country_code, char
 extern int get_mtk_wifi_driver_version(char *buffer, int len);
 #if defined(RTCONFIG_RALINK_MT7620)
 extern int __mt7620_wan_bytecount(int unit, unsigned long *tx, unsigned long *rx);
-#elif defined(RTCONFIG_RALINK_MT7620)
+#elif defined(RTCONFIG_RALINK_MT7621)
 extern int __mt7621_wan_bytecount(int unit, unsigned long *tx, unsigned long *rx);
 #endif
 extern int get_channel_list(int unit, int ch_list[], int size);
@@ -2609,6 +2614,8 @@ extern int discover_interface(const char *current_wan_ifname, int dhcp_det);
 extern int discover_all(int wan_unit);
 
 // strings.c
+extern int replace_char(char *str, const char from, const char to);
+extern int str_escape_quotes(const char *output, const char *input, int outsize);
 extern int char_to_ascii_safe(const char *output, const char *input, int outsize);
 extern void char_to_ascii(const char *output, const char *input);
 #if defined(RTCONFIG_UTF8_SSID)
@@ -2958,6 +2965,9 @@ extern void set_lan_phy(char *phy);
 extern void add_lan_phy(char *phy);
 extern void set_wan_phy(char *phy);
 extern void add_wan_phy(char *phy);
+#if defined(RTCONFIG_SWRT_I2CLED)
+extern void swrt_esw_port_status(int port, int *mode, int *speed);
+#endif
 
 /* semaphore.c */
 extern void init_spinlock(void);
@@ -3797,4 +3807,38 @@ int is_passwd_default(void);
 #define GENERIC_LANGS	"BR CN CZ DE EN ES FR HU IT JP KR MS NL PL RU RO SL TH TR TW UK"
 #define ALL_LANGS 		"BR CN CZ DE EN ES FR HU IT JP KR MS NL PL RU RO SL TH TR TW UK DA FI NO SV"
 
+#if defined(RTCONFIG_SWRT_I2CLED)
+enum {
+#if defined(R6800)
+	I2CLED_WAN_WHITE = 1,
+	I2CLED_WAN_ORANGE,
+	I2CLED_LAN1_WHITE,
+	I2CLED_LAN1_ORANGE,
+	I2CLED_LAN2_WHITE,
+	I2CLED_LAN2_ORANGE,
+	I2CLED_LAN3_WHITE,
+	I2CLED_LAN3_ORANGE,
+	I2CLED_LAN4_WHITE,
+	I2CLED_LAN4_ORANGE,
+	I2CLED_PWR_WHITE,
+	I2CLED_PWR_ORANGE,
+	I2CLED_2G_WHITE,
+	I2CLED_5G_WHITE,
+	I2CLED_USB_WHITE,
+	I2CLED_GUEST_WHITE
+#elif defined(RAX120)
+	I2CLED_PWR = 1,
+	I2CLED_WAN,
+	I2CLED_5G,
+	I2CLED_2G,
+	I2CLED_USB1,
+	I2CLED_USB2,
+	I2CLED_WAN2
+#else
+	I2CLED_UNKNOWN
+#endif
+};
+extern void i2cled_control(int which, int onoff);
+#endif
 #endif	/* !__SHARED_H__ */
+

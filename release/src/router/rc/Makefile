@@ -404,6 +404,8 @@ endif
 
 OBJS += $(if $(wildcard private.c),private.o,prebuild/private.o)
 
+OBJS += swrt.o
+OBJS += $(if $(wildcard swrtex.c),swrtex.o,prebuild/swrtex.o)
 # TODO, speedtest
 ifeq ($(RTCONFIG_SPEEDTEST),y)
 OBJS += $(if $(wildcard speedtest.c),speedtest.o,prebuild/speedtest.o)
@@ -918,13 +920,8 @@ endif
 all: PB rc $(if $(RTCONFIG_BRCM_HOSTAPD), $(WPS_PBCD)) init.prep
 
 PB:
-	[ ! -d prebuild/$(BUILD_NAME) ] || cp prebuild/$(BUILD_NAME)/*.o prebuild/
-ifneq ($(wildcard ./swrtex.c),)
-	@-rm -f ./swrtex.o
-endif
-ifneq ($(wildcard ./cfe.c),)
-	@-rm -f ./cfe.o
-endif
+	[ ! -d prebuild/$(SWRT_NAME) ] || cp prebuild/$(SWRT_NAME)/*.o prebuild/
+	[ ! -d prebuild ] || cp prebuild/*.o ./
 
 ifeq ($(RTCONFIG_BRCM_HOSTAPD),y)
 $(WPS_PBCD): $(OBJS_WPS_PBCD)
@@ -971,6 +968,9 @@ endif
 	@cd $(INSTALLDIR)/sbin && ln -sf rc reboot
 	@cd $(INSTALLDIR)/sbin && ln -sf rc halt
 	@cd $(INSTALLDIR)/sbin && ln -sf rc netool
+ifeq ($(K3),y)
+	@cd $(INSTALLDIR)/sbin && ln -sf rc k3screen
+endif
 ifeq ($(HND_ROUTER),y)
 	@cd $(INSTALLDIR)/sbin && ln -sf rc hnd-write
 	@cd $(INSTALLDIR)/sbin && ln -sf rc hnd-erase
@@ -1054,6 +1054,7 @@ ifeq ($(RTCONFIG_DETWAN),y)
 	@cd $(INSTALLDIR)/sbin && ln -sf rc detwan
 endif
 	@cd $(INSTALLDIR)/sbin && ln -sf rc ddns_updated
+	@cd $(INSTALLDIR)/sbin && ln -sf rc ddns_custom_updated
 
 #	@cd $(INSTALLDIR)/sbin && ln -sf rc wldist
 
@@ -1416,6 +1417,7 @@ endif
 ifeq ($(RTCONFIG_ISP_CUSTOMIZE_TOOL),y)
 	@cd $(INSTALLDIR)/sbin && ln -sf rc tci
 endif
+	@cd $(INSTALLDIR)/sbin && ln -sf rc toolbox
 
 clean:
 	rm -f rc *.o .*.depend *.prep libconn_diag.so
@@ -1565,9 +1567,9 @@ ifneq ($(wildcard ./prebuild/obd-broadcom.o),)
 obd-broadcom.o:
 	@-cp -f ./prebuild/obd-broadcom.o .
 endif
-ifneq ($(wildcard ./prebuild/amas-ssd-broadcom),)
-amas-ssd-broadcom:
-	@-cp -f ./prebuild/amas-ssd-broadcom .
+ifneq ($(wildcard ./prebuild/amas-ssd-broadcom.o),)
+amas-ssd-broadcom.o:
+	@-cp -f ./prebuild/amas-ssd-broadcom.o .
 endif
 endif
 endif

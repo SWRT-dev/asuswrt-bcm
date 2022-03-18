@@ -169,11 +169,46 @@ enum {
 	SWITCH_RTL8370M,
 };
 
+enum {
+	SWRT_MODEL_SWRTMIN = 0,
+	SWRT_MODEL_K3,
+	SWRT_MODEL_XWR3100,
+	SWRT_MODEL_R7000P,
+	SWRT_MODEL_EA6700,
+	SWRT_MODEL_SBRAC1900P,
+	SWRT_MODEL_F9K1118,
+	SWRT_MODEL_SBRAC3200P,
+	SWRT_MODEL_R8500,
+	SWRT_MODEL_R8000P,
+	SWRT_MODEL_K3C,
+	SWRT_MODEL_TY6201_RTK,
+	SWRT_MODEL_TY6201_BCM,
+	SWRT_MODEL_RAX120,
+	SWRT_MODEL_DIR868L,
+	SWRT_MODEL_R6300V2,
+	SWRT_MODEL_MR60,
+	SWRT_MODEL_MS60,
+	SWRT_MODEL_RAX70,
+	SWRT_MODEL_TY6202,
+	SWRT_MODEL_360V6,
+	SWRT_MODEL_GLAX1800,
+	SWRT_MODEL_RMAC2100,
+	SWRT_MODEL_R6800,
+	SWRT_MODEL_PGBM1,
+	SWRT_MODEL_SWRTMAX
+};
+
 extern int get_blver(char *bls);
 extern int get_fwver(char *buildno, char *extendno);
 extern int get_model(void);
 extern char *get_modelid(int model);
 extern int get_switch(void);
+extern int get_modelname(void);
+extern char *get_modelnameid(int model);
+static inline int is_swrt_mod(void)
+{
+	return get_modelname() != SWRT_MODEL_SWRTMIN;
+}
 
 /* define external PHY */
 enum {
@@ -184,3 +219,4 @@ enum {
 };
 
 #endif /* __MODEL_H__ */
+

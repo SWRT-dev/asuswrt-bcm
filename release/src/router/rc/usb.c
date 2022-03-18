@@ -35,6 +35,8 @@
 #include <disk_initial.h>
 #include <limits.h>		//PATH_MAX, LONG_MIN, LONG_MAX
 
+#include <swrt.h>
+
 char *usb_dev_file = "/proc/bus/usb/devices";
 
 #define ERR_DISK_FS_RDONLY "1"
@@ -1755,7 +1757,9 @@ int umount_mountpoint(struct mntent *mnt, uint flags)
 {
 	int ret = 1, count;
 	char flagfn[128];
-
+#if defined(RTCONFIG_SOFTCENTER)
+	nvram_set("sc_unmount_sig", "1");
+#endif
 	snprintf(flagfn, sizeof(flagfn), "%s/.autocreated-dir", mnt->mnt_dir);
 
 	/* Run user pre-unmount scripts if any. It might be too late if
@@ -1860,6 +1864,11 @@ _dprintf("%s: stop_cloudsync.\n", __func__);
 #ifdef RTCONFIG_USB_SWAP	
 		stop_usb_swap(mnt->mnt_dir);
 #endif	
+
+	run_custom_script("unmount", 120, mnt->mnt_dir, NULL);
+
+	sync();
+	sleep(1);       // Give some time for buffers to be physically written to disk
 
 	for (count = 0; count < 35; count++) {
 		sync();
@@ -2041,6 +2050,7 @@ int mount_partition(char *dev_name, int host_num, char *dsc_name, char *pt_name,
 	}
 	if (type == NULL)
 		type = "unknown";
+	run_custom_script("pre-mount", 120, dev_name, type);
 
 	if (f_exists("/etc/fstab")) {
 		if (strcmp(type, "swap") == 0) {
@@ -2232,6 +2242,11 @@ _dprintf("usb_path: 4. don't set %s.\n", tmp);
 
 		if (nvram_get_int("usb_automount"))
 			run_nvscript("script_usbmount", mountpoint, 3);
+
+		run_custom_script("post-mount", 120, mountpoint, NULL);
+#if defined(RTCONFIG_SOFTCENTER)
+		nvram_set("sc_mount_sig", "1");
+#endif
 
 #if defined(RTCONFIG_APP_PREINSTALLED) && defined(RTCONFIG_CLOUDSYNC)
 		char word[PATH_MAX], *next_word;
@@ -2871,7 +2886,11 @@ void write_ftpd_conf()
 #else
 	fprintf(fp, "ssl_enable=NO\n");
 #endif	// HTTPS
+	append_custom_config("vsftpd.conf", fp);
 	fclose(fp);
+
+	use_custom_config("vsftpd.conf", "/etc/vsftpd.conf");
+	run_postconf("vsftpd", "/etc/vsftpd.conf");
 }
 
 /*
@@ -3009,7 +3028,7 @@ void stop_tftpd(int force)
 	}
 
 	killall_tk("in.tftpd");
-	logmessage("TFTP-HPA Server", "daemon is stoped");
+	logmessage("TFTP-HPA Server", "daemon is stopped");
 }
 #endif	/* RTCONFIG_TFTP_SERVER */
 
@@ -3092,6 +3111,9 @@ void create_custom_passwd(void)
 	if (fps)
 		fclose(fps);
 
+	chmod("/etc/shadow.custom", 0600);
+	chmod("/etc/passwd.custom", 0644);
+
 	/* write /etc/group.custom & /etc/ghsadow.custom */
 	fps = fopen("/etc/gshadow.custom", "w+");
 	fpp = fopen("/etc/group.custom", "w+");
@@ -3141,6 +3163,9 @@ void create_custom_passwd(void)
 	if (fpp)
 		fclose(fpp);
 
+	chmod("/etc/gshadow.custom", 0600);
+	chmod("/etc/group.custom", 0644);
+
 	/* free list */
 	PMS_FreeAccInfo(&account_list, &group_list);
 }
@@ -3177,6 +3202,8 @@ void create_custom_passwd(void)
 	}
 	fclose(fp);
 
+	chmod("/etc/passwd.custom", 0644);
+
 	/* write /etc/group.custom  */
 	fp = fopen("/etc/group.custom", "w+");
 	is_first = 1;
@@ -3190,6 +3217,9 @@ void create_custom_passwd(void)
 		fprintf(fp, "%s:x:%d:\n", account_list[i], n);
 	}
 	fclose(fp);
+
+	chmod("/etc/group.custom", 0644);
+
 	free_2_dimension_list(&acc_num, &account_list);
 }
 #endif
@@ -3348,6 +3378,8 @@ start_samba(void)
 	// use samba-3.6.x_opwrt to replace from samba-3.6.x
 	//system("echo -e \"\n\n\" |/usr/sbin/smbpasswd -s -a nobody");
 	system("/usr/sbin/smbpasswd nobody \"\"");
+#elif defined(RTCONFIG_SAMBA4)
+	system("echo -e \"\n\n\" |/usr/sbin/smbpasswd -s -a nobody");
 #else
 	system("smbpasswd nobody \"\"");
 #endif
@@ -3488,6 +3520,8 @@ start_samba(void)
 		xstart(smbd_cmd, "-D", "-s", "/etc/smb.conf");
 #endif
 
+	start_wsdd();
+
 	logmessage("Samba Server", "daemon is started");
 
 	return;
@@ -3500,6 +3534,7 @@ void stop_samba(int force)
 		return;
 	}
 
+	stop_wsdd();
 	kill_samba(SIGTERM);
 	/* clean up */
 	unlink("/var/log/smb");
@@ -3507,7 +3542,7 @@ void stop_samba(int force)
 
 	eval("rm", "-rf", "/var/run/samba");
 
-	logmessage("Samba Server", "smb daemon is stoped");
+	logmessage("Samba Server", "smb daemon is stopped");
 
 #if defined(RTCONFIG_BCMARM) && !defined(RTCONFIG_HND_ROUTER)
 	tweak_smp_affinity(0);
@@ -3787,6 +3822,8 @@ void start_dms(void)
 			if (nv)
 				fprintf(f, "force_sort_criteria=%s\n", nv);
 
+			append_custom_config(MEDIA_SERVER_APP".conf",f);
+
 			fclose(f);
 		}
 
@@ -3797,6 +3834,8 @@ void start_dms(void)
 		if (nvram_get_int("dms_web"))
 			argv[index++] = "-W";
 #endif
+		use_custom_config(MEDIA_SERVER_APP".conf","/etc/"MEDIA_SERVER_APP".conf");
+		run_postconf(MEDIA_SERVER_APP, "/etc/"MEDIA_SERVER_APP".conf");
 
 		/* start media server if it's not already running */
 		if (pidof(MEDIA_SERVER_APP) <= 0) {
@@ -3996,7 +4035,7 @@ stop_mt_daapd(int force)
 	if (check_if_dir_exist(nvram_safe_get("daapd_dbdir")))
 		eval("rm", "-rf", nvram_safe_get("daapd_dbdir"));
 
-	logmessage("iTunes", "daemon is stoped");
+	logmessage("iTunes", "daemon is stopped");
 }
 #endif
 #endif	// RTCONFIG_MEDIA_SERVER
@@ -4179,7 +4218,7 @@ void stop_webdav(void)
 		unlink("/tmp/lighttpd/lighttpd-arpping.pid");
 	}
 
-	logmessage("WEBDAV Server", "daemon is stoped");
+	logmessage("WEBDAV Server", "daemon is stopped");
 #endif
 
 /* Independent from AiCloud
@@ -4205,7 +4244,7 @@ void stop_all_webdav(void)
 		kill_pidfile_tk("/tmp/lighttpd/lighttpd-arpping.pid");
 		unlink("/tmp/lighttpd/lighttpd-arpping.pid");
 	}
-	logmessage("WEBDAV Server", "arpping daemon is stoped");
+	logmessage("WEBDAV Server", "arpping daemon is stopped");
 }
 #endif
 
@@ -4445,7 +4484,7 @@ void stop_cloudsync(int type)
 		if(pids("webdav_client"))
 			killall_tk("webdav_client");
 
-		logmessage("Webdav_client", "daemon is stoped");
+		logmessage("Webdav_client", "daemon is stopped");
 	}
 	else if(type == 2){
 		if(pids("inotify") && !pids("asuswebstorage") && !pids("dropbox_client") && !pids("webdav_client") && !pids("sambaclient") && !pids("usbclient")&& !pids("google_client"))
@@ -4454,7 +4493,7 @@ void stop_cloudsync(int type)
 		if(pids("ftpclient"))
 			killall_tk("ftpclient");
 
-		logmessage("ftp client", "daemon is stoped");
+		logmessage("ftp client", "daemon is stopped");
 	}
 	else if(type == 3){
 		if(pids("inotify") && !pids("asuswebstorage") && !pids("webdav_client") && !pids("ftpclient") && !pids("sambaclient") && !pids("usbclient")&& !pids("google_client"))
@@ -4463,7 +4502,7 @@ void stop_cloudsync(int type)
 		if(pids("dropbox_client"))
 			killall_tk("dropbox_client");
 
-		logmessage("dropbox_client", "daemon is stoped");
+		logmessage("dropbox_client", "daemon is stopped");
 	}
 	else if(type == 4){
 		if(pids("inotify") && !pids("asuswebstorage") && !pids("webdav_client") && !pids("ftpclient") && !pids("dropbox_client") && !pids("usbclient")&& !pids("google_client"))
@@ -4472,7 +4511,7 @@ void stop_cloudsync(int type)
 		if(pids("sambaclient"))
 			killall_tk("sambaclient");
 
-		logmessage("sambaclient", "daemon is stoped");
+		logmessage("sambaclient", "daemon is stopped");
 	}
 	else if(type == 5){
 		if(pids("inotify") && !pids("asuswebstorage") && !pids("webdav_client") && !pids("ftpclient") && !pids("dropbox_client") && !pids("sambaclient")&& !pids("google_client"))
@@ -4481,7 +4520,7 @@ void stop_cloudsync(int type)
 		if(pids("usbclient"))
 			killall_tk("usbclient");
 
-		logmessage("usbclient", "daemon is stoped");
+		logmessage("usbclient", "daemon is stopped");
 	}
 	else if(type == 6){
 
@@ -4493,7 +4532,7 @@ void stop_cloudsync(int type)
             killall_tk("google_client");
         }
 
-        logmessage("google_client", "daemon is stoped");
+        logmessage("google_client", "daemon is stopped");
 
     }
 	else if(type == 0){
@@ -4502,14 +4541,13 @@ void stop_cloudsync(int type)
 
 		if(pids("asuswebstorage"))
 			killall_tk("asuswebstorage");
-
 		logmessage("Cloudsync client", "daemon is stoped");
 	}
 	else{
-  	if(pids("inotify"))
+	if(pids("inotify"))
 			killall_tk("inotify");
 
-  	if(pids("webdav_client"))
+	if(pids("webdav_client"))
 			killall_tk("webdav_client");
 
 		if(pids("asuswebstorage"))
@@ -4533,7 +4571,7 @@ void stop_cloudsync(int type)
               //system("killall google_client");
     }
 
-		logmessage("Cloudsync client and Webdav_client and dropbox_client ftp_client sambaclient usb_client google_client", "daemon is stoped");
+		logmessage("Cloudsync client and Webdav_client and dropbox_client ftp_client sambaclient usb_client google_client", "daemon is stopped");
 	}
 }
 //#endif
@@ -5658,4 +5696,42 @@ void webdav_account_default(void)
 	}
 }
 //#endif
+
+void start_wsdd()
+{
+	unsigned char ea[ETHER_ADDR_LEN];
+	char serial[18];
+	pid_t pid;
+	char bootparms[64];
+	char *wsdd_argv[] = { "/usr/sbin/wsdd2",
+				"-d",
+				"-w",
+				"-i",
+				nvram_safe_get("lan_ifname"),
+				"-b",
+				NULL,	// boot parameters
+				NULL };
+	stop_wsdd();
+
+	if (!ether_atoe(get_lan_hwaddr(), ea))
+		f_read("/dev/urandom", ea, sizeof(ea));
+
+	snprintf(serial, sizeof(serial), "%02x%02x%02x%02x%02x%02x",
+		ea[0], ea[1], ea[2], ea[3], ea[4], ea[5]);
+
+	snprintf(bootparms, sizeof(bootparms), "sku:%s,serial:%s", get_productid(), serial);
+	wsdd_argv[6] = bootparms;
+
+#if 0
+	if(!f_exists("/etc/machine-id"))
+		system("echo $(nvram get lan_hwaddr) | md5sum | cut -b -32 > /etc/machine-id");
+#endif
+
+	_eval(wsdd_argv, NULL, 0, &pid);
+}
+
+void stop_wsdd() {
+	if (pids("wsdd2"))
+		killall_tk("wsdd2");
+}
 

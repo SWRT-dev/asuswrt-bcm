@@ -84,6 +84,10 @@
 #include <typedefs.h>
 #include <bcmdefs.h>
 
+#ifdef PGB_QUICK_PATH
+#include <linux/swrt_fastpath/fast_path.h>
+#endif
+
 int sysctl_ip_default_ttl __read_mostly = IPDEFTTL;
 
 /* Generate a checksum for an outgoing IP datagram. */
@@ -104,7 +108,11 @@ int __ip_local_out(struct sk_buff *skb)
 	/* Mark skb to identify SMB data packet */
 	if ((ip_hdr(skb)->protocol == IPPROTO_TCP) && tcp_hdr(skb))
 		skb->tcpf_smb = (tcp_hdr(skb)->source == htons(0x01bd));
-
+#ifdef PGB_QUICK_PATH
+	if (SWRT_FASTPATH(skb))
+		return dst_output(skb);
+	else 
+#endif 
 	return nf_hook(NFPROTO_IPV4, NF_INET_LOCAL_OUT, skb, NULL,
 		       skb_dst(skb)->dev, dst_output);
 }
@@ -299,7 +307,11 @@ int ip_mc_output(struct sk_buff *skb)
 			NF_HOOK(NFPROTO_IPV4, NF_INET_POST_ROUTING, newskb,
 				NULL, newskb->dev, ip_dev_loopback_xmit);
 	}
-
+#ifdef PGB_QUICK_PATH
+	if (SWRT_FASTPATH(skb))
+		return ip_finish_output(skb);
+	else 
+#endif 
 	return NF_HOOK_COND(NFPROTO_IPV4, NF_INET_POST_ROUTING, skb, NULL,
 			    skb->dev, ip_finish_output,
 			    !(IPCB(skb)->flags & IPSKB_REROUTED));
@@ -313,7 +325,11 @@ int ip_output(struct sk_buff *skb)
 
 	skb->dev = dev;
 	skb->protocol = htons(ETH_P_IP);
-
+#ifdef PGB_QUICK_PATH
+	if (SWRT_FASTPATH(skb))
+		return ip_finish_output(skb);
+	else 
+#endif 
 	return NF_HOOK_COND(NFPROTO_IPV4, NF_INET_POST_ROUTING, skb, NULL, dev,
 			    ip_finish_output,
 			    !(IPCB(skb)->flags & IPSKB_REROUTED));

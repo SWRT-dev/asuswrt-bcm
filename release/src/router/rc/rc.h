@@ -964,6 +964,7 @@ extern void check_wl_country();
 extern int wl_dfs_support(int unit);
 extern void wl_dfs_radarthrs_config(char *ifname, int unit);
 extern int set_wltxpower();
+extern int set_wltxpower_swrt(void);
 #if defined(RTAC3200) || defined(RTAC68U) || defined(RTCONFIG_BCM_7114) || defined(HND_ROUTER)
 extern void wl_disband5grp();
 #endif
@@ -2397,6 +2398,13 @@ extern void dnsfilter6_settings(FILE *fp, char *lan_if, char *lan_ip);
 extern void dnsfilter_setup_dnsmasq(FILE *fp);
 #endif
 extern void dnsfilter_dot_rules(FILE *fp, char *lan_if);
+
+#if defined(RTCONFIG_SMARTDNS)
+extern void start_smartdns();
+#endif
+extern void setup_leds();
+int ddns_custom_updated_main(int argc, char *argv[]);
+
 #ifdef RTCONFIG_TIMEMACHINE
 extern int start_timemachine(void);
 extern void stop_timemachine(int force);
@@ -3087,6 +3095,9 @@ extern int oauth_google_send_message(const char* receiver, const char* subject, 
 extern void oauth_google_check_token_status(void);
 extern void oauth_google_drive_check_token_status(void);
 #endif
+#ifdef RTCONFIG_UUPLUGIN
+extern void exec_uu();
+#endif
 
 #if defined(RTCONFIG_QCA_LBD)
 #define LBD_PATH "/tmp/lbd.conf"
@@ -3283,3 +3294,4 @@ extern int is_wg_enabled();
 #endif /* RTCONFIG_QCA_PLC2 */
 
 #endif	/* __RC_H__ */
+

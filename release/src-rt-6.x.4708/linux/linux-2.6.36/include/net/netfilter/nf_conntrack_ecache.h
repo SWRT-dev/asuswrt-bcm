@@ -63,6 +63,11 @@ extern struct nf_ct_event_notifier *nf_conntrack_event_cb;
 extern int nf_conntrack_register_notifier(struct nf_ct_event_notifier *nb);
 extern void nf_conntrack_unregister_notifier(struct nf_ct_event_notifier *nb);
 
+#if defined(CONFIG_NETFILTER_XT_TARGET_FULLCONENAT)
+extern int nf_conntrack_register_notifier_fullcone(struct nf_ct_event_notifier *nb);
+extern void nf_conntrack_unregister_notifier_fullcone(struct nf_ct_event_notifier *nb);
+#endif
+
 extern void nf_ct_deliver_cached_events(struct nf_conn *ct);
 
 static inline void

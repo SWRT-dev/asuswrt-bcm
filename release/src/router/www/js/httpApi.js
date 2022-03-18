@@ -939,7 +939,10 @@ var httpApi ={
 	},
 
 	"checkCloudModelIcon": function(model_info, callBackSuccess, callBackError){
-		var server = "https://nw-dlcdnet.asus.com";
+		if(model_info.cloudModelName == "RAX120" || model_info.cloudModelName == "RAX70" || model_info.cloudModelName == "MR60" || model_info.cloudModelName == "MS60" || model_info.cloudModelName == "R8000P" || model_info.cloudModelName == "360V6")
+			var server = "https://update.paldier.com";
+		else
+			var server = "https://nw-dlcdnet.asus.com";
 		var cloudModelName = "";
 		if(model_info.cloudModelName != undefined && model_info.cloudModelName != "")
 			cloudModelName = model_info.cloudModelName;

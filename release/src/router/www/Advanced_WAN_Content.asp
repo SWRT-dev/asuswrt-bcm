@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <html xmlns:v>
 <head>
@@ -1490,7 +1490,7 @@ function showDiableDHCPclientID(clientid_enable){
 }
 
 function change_nat(state) {
-	if (isSupport("bcm_kf_netfilter")) {
+	if (isSupport("bcm_kf_netfilter") || isSupport("swrt_fullcone")) {
 		document.getElementById("nat_type_tr").style.display = (state ? "" : "none");
 	}
 }
@@ -2077,3 +2077,4 @@ function change_nat(state) {
 
 </body>
 </html>
+

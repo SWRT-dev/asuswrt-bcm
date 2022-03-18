@@ -37,6 +37,10 @@
 #include <sys/reboot.h>
 #endif
 
+#if defined(RTCONFIG_SWRT)
+#include "swrt.h"
+#endif
+
 #ifndef ARRAYSIZE
 #define ARRAYSIZE(a) (sizeof(a) / sizeof(a[0]))
 #endif /* ARRAYSIZE */
@@ -1566,6 +1570,7 @@ static const applets_t applets[] = {
 	{ "usbled",			usbled_main			},
 #endif
 	{ "ddns_updated", 		ddns_updated_main		},
+	{ "ddns_custom_updated",	ddns_custom_updated_main	},
 	{ "radio",			radio_main			},
 	{ "udhcpc",			udhcpc_wan			},
 	{ "udhcpc_lan",			udhcpc_lan			},
@@ -1642,7 +1647,11 @@ static const applets_t applets[] = {
 #endif
 	{ "firmware_check",		firmware_check_main		},
 #if defined(RTCONFIG_FRS_LIVE_UPDATE)
+#if defined(RTCONFIG_BCMARM) || defined(RTCONFIG_LANTIQ) || defined(RTCONFIG_QCA) || defined(RTCONFIG_HND_ROUTER)
+	{ "firmware_check_update",	swrt_firmware_check_update_main	},
+#else
 	{ "firmware_check_update",	firmware_check_update_main	},
+#endif
 #endif
 #ifdef RTAC68U
 	{ "firmware_enc_crc",		firmware_enc_crc_main		},
@@ -1743,6 +1752,7 @@ static const applets_t applets[] = {
 #ifdef RTCONFIG_ASUSDDNS_ACCOUNT_BASE
 	{ "update_asus_ddns_token",		update_asus_ddns_token_main			},
 #endif
+	{ "toolbox",			swrt_toolbox		},
 	{NULL, NULL}
 };
 
@@ -2732,6 +2742,9 @@ int main(int argc, char **argv)
 				(!strcmp(argv[1], "rootfs")) ||
 				(!strcmp(argv[1], "rootfs2")) ||
 				(!strcmp(argv[1], "brcmnand")) ||
+#if defined(RTAC68U)
+				(!strcmp(argv[1], "asus")) ||
+#endif
 				(!strcmp(argv[1], "nvram")))) {
 			return mtd_erase(argv[1]);
 		} else {
@@ -3144,3 +3157,4 @@ void exe_eu_wa_rr(void){
 
 }
 #endif
+

@@ -36,6 +36,7 @@
 #include <dmalloc.h>
 #endif
 #include <rtconfig.h>
+#include "swrt.h"
 
 /* Basic authorization userid and passwd limit */
 #define AUTH_MAX 64
@@ -133,6 +134,10 @@ struct REPLACE_PRODUCTID_S {
 };
 #endif
 
+struct REPLACE_MODELNAME_S {
+        char *modelname;
+};
+
 #define MIME_EXCEPTION_NOAUTH_ALL 	1<<0
 #define MIME_EXCEPTION_NOAUTH_FIRST	1<<1
 #define MIME_EXCEPTION_NORESETTIME	1<<2
@@ -194,7 +199,7 @@ enum {
 	HTTP_RULE_ADD_SUCCESS = 2001,
 	HTTP_RULE_DEL_SUCCESS,
 	HTTP_NORULE_DEL,
-        HTTP_RULE_MODIFY_SUCCESS,
+	HTTP_RULE_MODIFY_SUCCESS,
 	HTTP_OVER_MAX_RULE_LIMIT = 4000,
 	HTTP_INVALID_ACTION,
 	HTTP_INVALID_MAC,
@@ -205,7 +210,7 @@ enum {
 	HTTP_INVALID_IPADDR,
 	HTTP_INVALID_TS,
 	HTTP_INVALID_FILE,
-        HTTP_INVALID_SUPPORT,
+	HTTP_INVALID_SUPPORT,
 	HTTP_SHMGET_FAIL = 5000,
 	HTTP_FB_SVR_FAIL
 };
@@ -559,3 +564,4 @@ extern void slow_post_read_check();
 extern int check_chpass_auth(char *cur_username, char *cur_passwd);
 extern void reg_default_final_token();
 #endif /* _httpd_h_ */
+

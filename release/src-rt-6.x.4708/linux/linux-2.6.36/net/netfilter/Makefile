@@ -108,5 +108,9 @@ obj-$(CONFIG_NETFILTER_XT_MATCH_CONDITION) += xt_condition.o
 obj-$(CONFIG_NETFILTER_XT_MATCH_GEOIP) += xt_geoip.o
 obj-$(CONFIG_NETFILTER_XT_MATCH_ETHPORT) += xt_ethport.o
 
+# ipset
+obj-$(CONFIG_IP_SET) += ipset/
+
 # IPVS
 obj-$(CONFIG_IP_VS) += ipvs/
+obj-$(CONFIG_NETFILTER_XT_TARGET_FULLCONENAT) += xt_FULLCONENAT.o

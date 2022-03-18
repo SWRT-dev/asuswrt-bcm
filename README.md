@@ -13,7 +13,7 @@
 sudo apt-get -y install build-essential asciidoc binutils bzip2 gawk gettext git libncurses5-dev libz-dev patch python3.5 python2.7 unzip zlib1g-dev lib32gcc1 libc6-dev-i386 subversion flex uglifyjs git-core gcc-multilib p7zip p7zip-full msmtp libssl-dev texinfo libglib2.0-dev xmlto qemu-utils upx libelf-dev autoconf automake libtool autopoint device-tree-compiler g++-multilib antlr3 gperf wget libncurses5:i386 libelf1:i386 lib32z1 lib32stdc++6 gtk-doc-tools intltool binutils-dev cmake lzma liblzma-dev lzma-dev uuid-dev liblzo2-dev xsltproc dos2unix libstdc++5 docbook-xsl-* sharutils autogen shtool gengetopt libltdl-dev libtool-bin
 `
 
-3. 使用 `git clone https://github.com/SWRT-dev/asuswrt-bcm470x` 命令下载好源代码
+3. 使用 `git clone https://github.com/SWRT-dev/asuswrt-bcm` 命令下载好源代码
 
 4. 使用 `git clone https://github.com/SWRT-dev/bcmhnd-toolchains` 命令下载toolchains
 
@@ -56,13 +56,21 @@ sudo apt-get -y install build-essential asciidoc binutils bzip2 gawk gettext git
     `sudo ln -sf /bin/bash /bin/sh`
 
 6. 编译固件
-	`cd asuswrt-bcm470x/release/src-rt-6.x.4708` 
+	`cd asuswrt-bcm/release/src-rt-6.x.4708` 
+
 	`make rt-ac68u`
-	`cd asuswrt-bcm470x/release/src-rt-7.14.114.x/src` 
+
+	`cd asuswrt-bcm/release/src-rt-7.14.114.x/src` 
+
 	`make rt-ac88u`
+
 	`make rt-ac3100`
+
 	`make rt-ac5300`
-	编译完成后输出固件路径：asuswrt-bcm470x/release/src-rt-6.x.4708/image asuswrt-bcm470x/release/src-rt-7.14.114.x/src/image
+
+	编译完成后输出固件路径：
+	asuswrt-bcm/release/src-rt-6.x.4708/image 
+	asuswrt-bcm/release/src-rt-7.14.114.x/src/image
 
 
 

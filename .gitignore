@@ -1,6 +1,10 @@
 *~
 *.log
+key/*
 swrtex.c
+swrtex.h
 tcode.c
+release/src-rt-6.x.4708/linux/linux-2.6.36/net/swrt_fastpath/*.c
+release/src-rt-7.14.114.x/src/linux/linux-2.6.36/net/swrt_fastpath/*.c
 
 

@@ -36,6 +36,7 @@
 #include <shutils.h>
 #include <rc.h>
 #include <stdarg.h>
+#include "swrt.h"
 
 #define SECONDS_TO_WAIT 3
 #define NTP_RETRY_INTERVAL 30
@@ -81,7 +82,12 @@ static void ntp_service()
 		notify_rc("restart_diskmon");
 #endif
 #ifdef RTCONFIG_UUPLUGIN
+		if(nvram_get_int("uu_enable"))
+#if defined(RTCONFIG_SWRT_UU)
+		exec_uu_swrt();
+#else
 		exec_uu();
+#endif
 #endif
 	}
 }
@@ -284,3 +290,4 @@ int ntp_main(int argc, char *argv[])
 		pause();
 	}
 }
+

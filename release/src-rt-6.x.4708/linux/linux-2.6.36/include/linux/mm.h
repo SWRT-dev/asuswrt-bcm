@@ -1312,8 +1312,15 @@ int write_one_page(struct page *page, int wait);
 void task_dirty_inc(struct task_struct *tsk);
 
 /* readahead.c */
-#define VM_MAX_READAHEAD	128	/* kbytes */
-#define VM_MIN_READAHEAD	16	/* kbytes (includes current page) */
+//#define VM_MAX_READAHEAD	128	/* kbytes */
+//#define VM_MIN_READAHEAD	16	/* kbytes (includes current page) */
+#if defined(PGB_QUICK_PATH)
+#define VM_MAX_READAHEAD	4096	/* kbytes */
+#define VM_MIN_READAHEAD	16		/* kbytes (includes current page) */
+#else
+#define VM_MAX_READAHEAD	512		/* kbytes */
+#define VM_MIN_READAHEAD	16		/* kbytes (includes current page) */
+#endif
 
 int force_page_cache_readahead(struct address_space *mapping, struct file *filp,
 			pgoff_t offset, unsigned long nr_to_read);
@@ -1392,6 +1399,7 @@ struct page *follow_page(struct vm_area_struct *, unsigned long address,
 #define FOLL_GET	0x04	/* do get_page on page */
 #define FOLL_DUMP	0x08	/* give error on hole if it would be zero */
 #define FOLL_FORCE	0x10	/* get_user_pages read/write w/o permission */
+#define FOLL_COW	0x4000	/* internal GUP flag */
 
 typedef int (*pte_fn_t)(pte_t *pte, pgtable_t token, unsigned long addr,
 			void *data);

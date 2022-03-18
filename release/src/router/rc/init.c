@@ -98,6 +98,10 @@
 #include <sched_v2.h>
 #endif
 
+#if defined(RTCONFIG_SWRT)
+#include "swrt.h"
+#endif
+
 #if defined(RTCONFIG_DWB)
 #include <amas_dwb.h>
 #endif
@@ -8189,7 +8193,9 @@ int init_nvram(void)
 		check_cfe_ac68u();
 		nvram_set("vlan1hwname", "et0");
 		nvram_set("landevs", "vlan1 wl0 wl1");
-
+#if defined(RTCONFIG_SWRT)
+		swrt_init();
+#endif
 #ifdef RTCONFIG_DUALWAN
 		if (is_router_mode()) {
 			if (get_wans_dualwan()&WANSCAP_WAN && get_wans_dualwan()&WANSCAP_LAN)
@@ -13105,7 +13111,9 @@ int init_nvram(void)
 	case MODEL_RTAC88U:
 	case MODEL_RTAC3100:
 		ldo_patch();
-
+#if defined(RTCONFIG_SWRT)
+		swrt_init();
+#endif
 		set_tcode_misc();
 #if defined(RTAC88U) || defined(RTAC3100)
 		//if(nvram_match("lazy_et", "1"))
@@ -15145,7 +15153,9 @@ NO_USB_CAP:
 #endif
 
 #ifdef RTCONFIG_AMAS
+#if !defined(SWRT_VER_MAJOR_B)
 	add_rc_support("amas");
+#endif
 	if (nvram_get_int("amas_bdl"))
 	add_rc_support("amas_bdl");
 #endif
@@ -15304,6 +15314,21 @@ NO_USB_CAP:
 #endif
 #ifdef RTCONFIG_BCMARM
 	add_rc_support("dis11b");
+#endif
+#if defined(RTCONFIG_SWRT_FULLCONE)
+	add_rc_support("swrt_fullcone");
+#endif
+#if defined(RTCONFIG_ENTWARE)
+	add_rc_support("entware");
+#endif
+#if defined(RTCONFIG_SOFTCENTER)
+	add_rc_support("softcenter");
+#endif
+#if defined(RTCONFIG_SMARTDNS)
+	add_rc_support("smartdns");
+#endif
+#if defined(RTCONFIG_SWRT_KVR)
+	add_rc_support("swrt_kvr");
 #endif
 
 	return 0;
@@ -16394,6 +16419,9 @@ static void sysinit(void)
 		"/tmp/lib/firmware",
 		"/tmp/etc/wireless",
 #endif // RTCONFIG_WLMODULE_MT7663E_AP
+#if defined(RTCONFIG_SOFTCENTER)
+		"/tmp/etc/dnsmasq.user",
+#endif
 		NULL
 	};
 	umask(0);
@@ -16469,6 +16497,25 @@ static void sysinit(void)
 #if defined(RTCONFIG_BLINK_LED)
 	modprobe("bled");
 #endif
+#endif
+#if defined(RTCONFIG_NTFS3)
+	modprobe("ntfs3");
+#endif
+#if defined(R6800) || defined(RTAC85P)
+	modprobe("jffs_concat");
+#endif
+#if defined(RTCONFIG_SWRT_I2CLED)
+#if defined(R6800)
+	modprobe("sx150x-leds");
+#else
+	modprobe("i2cleds");
+#endif
+#endif
+#if defined(RTCONFIG_LANTIQ) || defined(RTCONFIG_QCA) || defined(RTCONFIG_RALINK) || defined(RTCONFIG_HND_ROUTER)
+#if defined(RTCONFIG_SOC_IPQ40XX)
+	modprobe("qcrypto");
+#endif
+	modprobe("cryptodev");
 #endif
 #ifdef LINUX26
 	do {
@@ -16790,8 +16837,13 @@ static void sysinit(void)
 
 #ifdef RTCONFIG_JFFS_NVRAM
 	if(RESTORE_DEFAULTS()) {
+#if defined(RTCONFIG_UBIFS)
+		nvram_set("ubifs_on", "1");
+		nvram_set("ubifs_clean_fs", "1");
+#else
 		nvram_set("jffs2_on", "1");
 		nvram_set("jffs2_clean_fs", "1");
+#endif
 	}
 	start_jffs2();
 #endif
@@ -17205,6 +17257,7 @@ int init_main(int argc, char *argv[])
 #ifdef RTN65U
 		asm1042_upgrade(1);	// check whether upgrade firmware of ASM1042
 #endif
+		run_custom_script("init-start", 0, NULL, NULL);
 
 		state = SIGUSR2;	/* START */
 
@@ -17843,6 +17896,9 @@ _dprintf("%s %d turnning on power on ethernet here\n", __func__, __LINE__);
 
 			extern int start_misc_services(void);
 			start_misc_services();
+#if defined(RTCONFIG_SWRT)
+			swrt_init_done();
+#endif
 #ifdef RTCONFIG_AMAS
 			nvram_set("start_service_ready", "1");
 #endif
@@ -18072,3 +18128,4 @@ void reset_button_state(void) {
 	nvram_commit();
 }
 #endif
+
