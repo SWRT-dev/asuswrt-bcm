@@ -336,5 +336,15 @@ else
 	rm -f $(INSTALLDIR)/rom/etc/profile.hnd
 endif
 
+ifeq ($(RTCONFIG_TPVPN),y)
+	mkdir -p $(INSTALLDIR)/rom/vpn
+	install -m 0644 vpn/HMA_TCP.JSON $(INSTALLDIR)/rom/vpn/HMA_TCP.JSON
+	install -m 0644 vpn/HMA_UDP.JSON $(INSTALLDIR)/rom/vpn/HMA_UDP.JSON
+endif
+
+ifeq ($(RTCONFIG_HND_ROUTER_AX_6756), y)
+	install -m 0755 apps_scripts/brcm_cled.sh $(INSTALLDIR)/usr/sbin
+endif
+
 .PHONY: dummy
 

@@ -566,6 +566,10 @@ wl_sysdep:
 		elif [ -f $(SRCBASE)/../../../bcm9$(BRCM_CHIP)/$(DHD_DIR)/src/dongle/sysdeps/$(BUILD_NAME)/43684b0/rtecdc.bin ]; then \
 			cp -f $(SRCBASE)/../../../bcm9$(BRCM_CHIP)/$(DHD_DIR)/src/dongle/sysdeps/$(BUILD_NAME)/43684b0/rtecdc.bin $(SRCBASE)/../../../bcm9$(BRCM_CHIP)/$(DHD_DIR)/src/dongle/bin/43684b0/. ; \
 		fi; \
+		if [ -f $(SRCBASE)/../../../bcm9$(BRCM_CHIP)/$(DHD_DIR)/src/dongle/sysdeps/$(BUILD_NAME)/43684c0/rtecdc.bin ]; then \
+			mkdir -p $(SRCBASE)/../../../bcm9$(BRCM_CHIP)/$(DHD_DIR)/src/dongle/bin/43684c0/ ; \
+			cp -f $(SRCBASE)/../../../bcm9$(BRCM_CHIP)/$(DHD_DIR)/src/dongle/sysdeps/$(BUILD_NAME)/43684c0/rtecdc.bin $(SRCBASE)/../../../bcm9$(BRCM_CHIP)/$(DHD_DIR)/src/dongle/bin/43684c0/. ; \
+		fi; \
 	else \
 		if [ -f $(SRCBASE)/../../../bcm9$(BRCM_CHIP)/$(DHD_DIR)/src/dongle/sysdeps/default/6715b0/rtecdc.bin ]; then \
 			mkdir -p $(SRCBASE)/../../../bcm9$(BRCM_CHIP)/$(DHD_DIR)/src/dongle/bin/6715b0/ ; \
@@ -5362,7 +5366,7 @@ fi; \
 		sed -i "/CONFIG_CRYPTO_SHA512 is not set/d" $(1); \
 		echo "CONFIG_CRYPTO_SHA512=y" >>$(1); \
 	fi; \
-	if [ "$(WTFAST)" = "y" ]; then \
+	if [ "$(SWRT)" = "y" ]; then \
 		sed -i "/CONFIG_NETFILTER_TPROXY/d" $(1); \
 		echo "CONFIG_NETFILTER_TPROXY=m" >>$(1); \
 		sed -i "/CONFIG_NETFILTER_XT_MATCH_COMMENT/d" $(1); \
@@ -5691,6 +5695,16 @@ ifeq ($(REALTEK),y)
 	fi;
 endif
 	$(call save_src_config, $@)
+
+ifeq ($(HND_ROUTER),y)
+ifeq ($(or $(HND_ROUTER_AX_675x),$(HND_ROUTER_AX)),y)
+	@echo "Copy router-sysdep.$(lowercase_B) content"
+	@rm -fr router-sysdep
+	@cp -ar router-sysdep.$(lowercase_B)/ router-sysdep
+else	# RT-AC86U or GT-AC2900
+	@cp -ar $(TOP_PLATFORM)/hnd_extra/prebuilt/$(BUILD_NAME)/* $(TOP_PLATFORM)/hnd_extra/prebuilt/
+endif
+endif
 	$(MAKE) bin
 
 Bluecave bluecave:

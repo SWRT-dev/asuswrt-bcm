@@ -1,0 +1,190 @@
+=============================================================================================
+* DATE/WHOM/TYPE:
+- 2016/10/26, PlusWang ;bug fix
+* DIGEST: sync from sd9 (151228_8192cd_V3.1_QHB_WPS_key_zero_padding_patch)
+Date: 2015/12/28
+Author: Nathan
+*Description:  In WPS stress test, the M2 authenticator attribute
+	as derived by DUT is not synced up with the one from Registrar (BRCM solution).
+	
+*Root cause:
+DUT invoke DH_compute_key() to derive a shared key it's length should be 192bytes 
+biut sometime only outcome 191 bytes,
+in this case we should do zero padding let it become 192 bytes
+
+
+======================================================================  
+* DATE/WHOM/TYPE:
+- 2016/10/26, PlusWang ;refine
+* DIGEST:
+-let daemon can support wps1.0 or wps2.0 no need re-build code
+ just control by mib "WPS_VERSION"
+-its default version is 2.0
+-has a define called CLIENT_MODE_USE1DOT0,if it's enable then STA mode default config to wps 1.0
+-add a new config item "wps-version" in config file, default case config file no include this item.
+ usage:when "wps-version = 1 "  or "wps-version = 2 " add to config file then mib WPS_VERSION be set to 1 or 2.
+-it's passible to observe wps version by cat /tmp/wscd_version-%s
+-it's passible to observe wscd daemon parameters by cat /tmp/wscd_daemon_parameters-%s-%s
+
+M       src/rxpkt.c
+M       src/txpkt.c
+M       src/utils.c
+M       src/wsc.c
+M       src/wsc.h
+
+=============================================================================================
+* DATE/WHOM/TYPE:
+- 2016/09/22, PlusWang ;bug fix
+* DIGEST:
+EV_MAC_HAS_CHANGED
+fixed the problem, 
+orig: using strlen to judge if a valid mac addr, 
+when mac addr include 0x0 then strlen will report len < 6 => has problem.
+=============================================================================================
+* DATE/WHOM/TYPE:
+- 2016/06/17, PlusWang ;bug fix
+* DIGEST:
+1) WPS logo issue.
+	-modify wsc.conf , when the parameter config_method=0x188, upnp feature out of order (ex config by win7(as ER) and wpa_cli )
+	-add read wsc.conf's config_method parameter by hex fromat.
+	-(M2) : regardless DUT use WPA2PSK-AES or midxed mode , AUTH and ENCRY capablilty should all included.
+	 (check brm's test bed AP, it also as that)
+	-(probe_resp), the context of WSC IE in probe_resp , PBC releated config method capablilty should not appear,
+  	 orignal: we jsut not included PBC in un-config status,
+	 new:regardless DUT under configured or un-configured status shouldn't include it. in foxcomm case APUT's OOB still keep configure status as configured
+2) Refine	 
+	-refine WPS_status report value we keep in "/tmp/wscd_status", it's difficult to decide WPS success or fail when APUT config by ER .
+	-add default keep wscd start parameter at "/tmp/wscd_daemon_parameters"
+
+=============================================================================================
+* DATE/WHOM/TYPE:
+- 2014/07/02, PlusWang ;feature refine
+* DIGEST:
+P2P related refine 
+- 1)DUT as GC mode
+   1-1. after WPS success, wscd via ioctl report SSID and PSK to wlan driver then interface apply mib and down  up 
+        interface instead of orig flow, orig flow is when wscd success write to flash and do init.sh gw all
+        then  wlan driver read mib from flash, it's so slow some GO(peer) will timeout and back to p2p_dev mode.
+
+- 2)DUT and Peer are all ours device , via web and select PIN method to do P2P will fail
+   change 
+   system("wscd -sig_start wlan0"); 
+   to 
+   sprintf(tmpbuf2,"wscd -sig_start %s",GET_CURRENT_INTERFACE);
+- 3)when DUT is GC mode ,when choose AP to connect will avoid SSID!= [DIRECT-*]
+- 4)when DUT is GC mode ,do PBC PBC timeout will be 25 secs, per run scan timeout will be 10 secs
+
+* TEST METHOD:
+* ROOT CAUSE:
+* MODIFIED FILES
+* DESCRIPTION:
+
+=============================================================================================
+
+* DATE/WHOM/TYPE:
+- 2013/12/27, PlusWang ;feature refine
+* DIGEST:
+ for reaver-wps attack soft, when AP mode under  PBC duration don't allow ER nego with DUT
+
+* TEST METHOD:
+* ROOT CAUSE:
+* MODIFIED FILES
+	-rxptk.c
+	-wsc.h
+* DESCRIPTION:
+
+=============================================================================================
+
+- 2013/12/12, PlusWang ;feature refine
+* DIGEST:
+-modify  config method value at beacon/probe_rsp when wsc under unconfig mode
+
+* TEST METHOD:
+* ROOT CAUSE:
+* MODIFIED FILES
+	-utils.c
+* DESCRIPTION:
+-under unconfigured status let CM at beacon/probe_rsp no include PBC, comply with WPS test plan
+-under configured status let CM at beacon/probe_rsp include PBC, for IOT with win7 WZC PBC optional
+ let win7 wzc nego with DUT can always popup PBC optional
+
+=============================================================================================
+* DATE/WHOM/TYPE:
+- 2013/12/05, PlusWang ;update version string
+* DIGEST:
+-enlarge 1)issue scan request , 2) get scan result wait time
+
+* TEST METHOD:
+* ROOT CAUSE:
+* MODIFIED FILES
+	-wsc.c
+* DESCRIPTION:
+some customer has DFS channel delay,or scan dealy between run and run
+1 run means complete per-channel scan
+
+=============================================================================================
+- 2013/11/27, PlusWang ;update version string
+* DIGEST:
+-update wscd version string to 2.13
+
+* TEST METHOD:
+* ROOT CAUSE:
+* MODIFIED FILES
+	-wsc.h
+* DESCRIPTION:
+
+=============================================================================================
+* DATE/WHOM/TYPE:
+- 2013/11/22, PlusWang ;feature refine
+* DIGEST:
+-under 2.0 STA mode can accept WPA(TKIP) credential
+ under 2.0 both AP and STA mode can't accept WEP credential
+* TEST METHOD:
+* ROOT CAUSE:
+* MODIFIED FILES
+	-wsc.c
+
+* DESCRIPTION:
+	
+	Wi-Fi Simple Configuration Technical Specification v2.0.2
+  --------------------------------------------------------------------
+  If a STA gets provisioned with WPA-Personal credentials (by a
+  Registrar  that only supports WSC version 1.0), the STA will have to
+  look at the AP's  beacon (as the AP might have gone through initial
+  configuration); if the AP advertises WPA2-Personal the STA shall use
+  WPA2-Personal to connect  otherwise if the AP advertises WPA-Personal
+  the STA shall use the received WPA-Personal credentials.
+  --------------------------------------------------------------------
+=============================================================================================
+  
+* DATE/WHOM/TYPE:
+- 2013/09/27, PlusWang ;feature refine
+* DIGEST:
+- add support for WIFI-DIRECT
+* TEST METHOD:
+
+* ROOT CAUSE:
+
+* MODIFIED FILES
+	-wsc.c
+	-wscd.conf	
+	-utils.c
+	-rxptk.c
+* DESCRIPTION:
+	when bual interface board case let P2P can work well
+=============================================================================================
+* DATE/WHOM/TYPE:
+- 2013/09/13, PlusWang ;bug fixed
+* DIGEST:
+- for fixed  IOT issue with BroadCom test bed.
+* TEST METHOD:
+	DUT is AP mode & unconfigured status , BroadCom test bed as enrollee
+	let STA do WPS with AP then sometimes WPS will fail.
+* ROOT CAUSE:
+- on open/noisy enrivonment,after AP send out M8 , STA sometimes send disassoc before EAP-DONE
+  then AP can't complete WPS
+* MODIFIED FILES
+	-wsc.c
+	-utils.c
+* DESCRIPTION:
+besides, remove some unnecessary debug msg
