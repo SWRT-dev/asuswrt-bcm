@@ -27,7 +27,7 @@ hashtable_iterator(struct hashtable *h);
 /*****************************************************************************/
 /* hashtable_iterator_key
  * - return the value of the (key,value) pair at the current position */
-
+#if !defined(RTCONFIG_HND_ROUTER)
 extern inline void *
 hashtable_iterator_key(struct hashtable_itr *i)
 {
@@ -42,7 +42,7 @@ hashtable_iterator_value(struct hashtable_itr *i)
 {
     return i->e->v;
 }
-
+#endif
 /*****************************************************************************/
 /* advance - advance the iterator to the next element
  *           returns zero if advanced to end of table */

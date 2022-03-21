@@ -56,6 +56,7 @@ sudo apt-get -y install build-essential asciidoc binutils bzip2 gawk gettext git
     `sudo ln -sf /bin/bash /bin/sh`
 
 6. Build firmware
+
 	`cd asuswrt-bcm/release/src-rt-6.x.4708`
 
 	`make rt-ac68u`
@@ -68,9 +69,14 @@ sudo apt-get -y install build-essential asciidoc binutils bzip2 gawk gettext git
 
 	`make rt-ac5300`
 
+	`cd asuswrt-bcm/release/src-rt-5.02hnd` 
+
+	`make rt-ac86u`
+
 	The firmware is in 
 	asuswrt-bcm/release/src-rt-6.x.4708/image 
 	asuswrt-bcm/release/src-rt-7.14.114.x/src/image
+	asuswrt-bcm/release/src-rt-5.02hnd/image
 
 ## Donate
 

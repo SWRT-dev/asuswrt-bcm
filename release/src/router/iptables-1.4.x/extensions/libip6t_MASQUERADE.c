@@ -16,6 +16,7 @@
 #if defined(BCMARM) && !defined(HND_ROUTER)
 #include <net/netfilter/nf_nat.h>
 #else
+#include <net/netfilter/nf_conntrack_tuple.h>
 #include <linux/netfilter/nf_nat.h>
 #endif
 
@@ -179,3 +180,4 @@ void _init(void)
 {
 	xtables_register_target(&masquerade_tg_reg);
 }
+

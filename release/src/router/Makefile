@@ -4049,7 +4049,7 @@ ifeq ($(ALPINE)$(LANTIQ),y)
 		WITHOUT_XATTR=1 -C $@
 else
 	$(MAKE) CPPFLAGS="-I$(STAGEDIR)/usr/include" \
-		CFLAGS="-I$(TOP)/mtd-utils/include -I$(TOP)/mtd-utils/ubi-utils/include $(MUSL_CFLAGS)" \
+		CFLAGS="-I$(TOP)/mtd-utils/include -I$(TOP)/mtd-utils/ubi-utils/include $(MUSL_CFLAGS) $(if $(RTCONFIG_HND_ROUTER), -DRTCONFIG_HND_ROUTER)" \
 		LDFLAGS="-L$(STAGEDIR)/usr/lib" \
 		WITHOUT_XATTR=1 -C $@
 endif

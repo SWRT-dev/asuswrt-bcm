@@ -56,6 +56,7 @@ sudo apt-get -y install build-essential asciidoc binutils bzip2 gawk gettext git
     `sudo ln -sf /bin/bash /bin/sh`
 
 6. 编译固件
+
 	`cd asuswrt-bcm/release/src-rt-6.x.4708` 
 
 	`make rt-ac68u`
@@ -68,10 +69,14 @@ sudo apt-get -y install build-essential asciidoc binutils bzip2 gawk gettext git
 
 	`make rt-ac5300`
 
+	`cd asuswrt-bcm/release/src-rt-5.02hnd` 
+
+	`make rt-ac86u`
+
 	编译完成后输出固件路径：
 	asuswrt-bcm/release/src-rt-6.x.4708/image 
 	asuswrt-bcm/release/src-rt-7.14.114.x/src/image
-
+	asuswrt-bcm/release/src-rt-5.02hnd/image
 
 
 ## Donate

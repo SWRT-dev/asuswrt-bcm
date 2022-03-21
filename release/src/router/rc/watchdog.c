@@ -7718,7 +7718,7 @@ static void auto_firmware_check()
 			|| (update_enable == 1 && nvram_get_int("webs_state_flag") == 1)
 #endif
 #else
-			if(false
+			if(0
 #endif
 			)
 			{
