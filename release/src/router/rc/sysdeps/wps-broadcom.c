@@ -338,6 +338,7 @@ stop_wps_method_ob(void)
 		}
 	}
 #endif
+	return 0;
 }
 /*
  * input variables:

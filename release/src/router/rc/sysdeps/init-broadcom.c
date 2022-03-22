@@ -82,6 +82,8 @@
 #include <amas-utils.h>
 #endif
 
+#include <swrt.h>
+
 #ifdef RTCONFIG_BCMARM
 #if defined(RTCONFIG_HND_ROUTER_AX) && defined(BCA_HNDROUTER) && (defined(RTCONFIG_HND_WL) || defined(BCM4912))
 void wl_thread_affinity_update(void);
