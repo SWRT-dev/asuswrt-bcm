@@ -73,6 +73,8 @@ sudo apt-get -y install build-essential asciidoc binutils bzip2 gawk gettext git
 
 	`make rt-ac86u`
 
+	`make gt-ac2900`
+
 	编译完成后输出固件路径：
 	asuswrt-bcm/release/src-rt-6.x.4708/image 
 	asuswrt-bcm/release/src-rt-7.14.114.x/src/image
