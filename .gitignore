@@ -1,6 +1,7 @@
 *~
 *.log
 key/*
+buildtools/*
 swrtex.c
 swrtex.h
 tcode.c
