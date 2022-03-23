@@ -2286,6 +2286,7 @@ void start_s46_tunnel(int unit)
 	char tmp[256], prefix[sizeof("wanXXXXXXXXXX_")];
 	char ipaddr[INET_ADDRSTRLEN], draft[4];
 	char *wan_ifname, *wan6_ifname, *elim, *ttl, *end;
+	char *ports[256] = {0};
 #if defined(RTCONFIG_PORT_BASED_VLAN) || defined(RTCONFIG_TAGGED_BASED_VLAN)
 	char ip_mask[sizeof("192.168.100.200/255.255.255.255XXX")];
 #endif
@@ -2360,9 +2361,9 @@ void start_s46_tunnel(int unit)
 	     "encaplimit", elim,
 	     atoi(ttl) ? "hoplimit" : NULL, ttl);
 
-	_dprintf("[%s(%d)][wan_ifname]%s\n", __FUNCTION__, __LINE__, wan_ifname);
-	_dprintf("[%s(%d)][wan6_ifname]%s\n", __FUNCTION__, __LINE__, wan6_ifname);
-	_dprintf("[%s(%d)][elim]%s\n", __FUNCTION__, __LINE__, elim);
+	S46_DBG("[wan_ifname]:%s\n", wan_ifname);
+	S46_DBG("[wan6_ifname]:%s\n", wan6_ifname);
+	S46_DBG("[elim]:%s\n", elim);
 
 	/* Install FMRS into ip6_tunnel module via iproute2*/
 	eval("ip", "link", "set", wan_ifname, "type", "ip6tnl", "fmrs", "/tmp/v6maps", "draft", draft);
@@ -2370,7 +2371,9 @@ void start_s46_tunnel(int unit)
 	snprintf(tmp, sizeof(tmp), "echo \"%s\" > /proc/sys/net/ipv4/ip_local_reserved_ports",
 		 calc_s46_port_range(0, nvram_get_int(ipv6_nvname("ipv6_s46_psid")),
 					nvram_get_int(ipv6_nvname("ipv6_s46_psidlen")),
-					nvram_get_int(ipv6_nvname("ipv6_s46_offset"))));
+					nvram_get_int(ipv6_nvname("ipv6_s46_offset")),
+					ports, sizeof(ports)));
+	//S46_DBG("[CMD]:%s\n", tmp);
 	//system(tmp);
 
 	/* Assign static IP address to i/f */
@@ -2588,6 +2591,9 @@ int no_need_to_start_wps(void)
 	if ((sw_mode() != SW_MODE_ROUTER) &&
 #ifdef RTCONFIG_DPSTA
                 !((dpsta_mode()||rp_mode()) && nvram_get_int("re_mode") == 0) &&
+#endif
+#ifdef RTCONFIG_AMAS
+		!(sw_mode() == SW_MODE_AP && nvram_match("re_mode", "1")) &&
 #endif
 		(sw_mode() != SW_MODE_AP))
 		return 1;
@@ -3898,7 +3904,7 @@ static char *get_ddns_macaddr(void)
 
 // TODO: handle wan0 only now
 int
-start_ddns(void)
+start_ddns(char *caller)
 {
 	FILE *fp;
 	char tmp[100], prefix[sizeof("wanXXXXXXXXXX_")];
@@ -3920,8 +3926,13 @@ start_ddns(void)
 	if (!is_routing_enabled())
 		return 0;
 
-	if (!nvram_get_int("ddns_enable_x"))
+	if (!nvram_get_int("ddns_enable_x")) {
+		/* Show the Return Code in UI */
+		if (nvram_match("ddns_return_code", "ddns_query")) {
+			nvram_set("ddns_return_code", nvram_safe_get("ddns_return_code_chk"));
+		}
 		return 0;
+	}
 
 	unit = wan_primary_ifunit();
 #if defined(RTCONFIG_DUALWAN)
@@ -3955,10 +3966,6 @@ start_ddns(void)
 	if (ipv6_enabled()) {
 		if (_get_ipv6_addr(wan_ifname, ip6_addr, sizeof(ip6_addr)) != 0) {
 			logmessage("start_ddns", "%s has not yet obtained an ipv6 address", wan_ifname);
-			/* Trigger watchdog when start fails */
-			nvram_unset("ddns_updated");
-			nvram_set("ddns_return_code_chk", "ddns_query");
-			return -1;
 		}
 	}
 #endif
@@ -4082,6 +4089,12 @@ start_ddns(void)
 	/* Show WAN unit used by ddns client to console and syslog. */
 	_dprintf("start_ddns update %s %s, wan_unit %d\n", server, service, unit);
 	logmessage("start_ddns", "update %s %s, wan_unit %d\n", server, service, unit);
+
+	/* MAX Retry Count mechanism */
+	if (caller == NULL) { // not from watchdog
+		//logmessage("start_ddns", "Reset DDNS Retry.\n");
+		nvram_set("ddns_check_retry", "10");
+	}
 
 	nvram_set("ddns_return_code", "ddns_query");
 
@@ -4225,7 +4238,8 @@ start_ddns(void)
 				unlink(cache_path);
 				nvram_set("ddns_act", "update");
 			}
-			logmessage("start_ddns", "Start Inadyn.\n");
+			int ddns_check_retry = nvram_get_int("ddns_check_retry");
+			logmessage("start_ddns", "Start Inadyn(%d).\n", ddns_check_retry);
 			ret = _eval(inadyn_argv, NULL, 0, &pid);
 		}
 	} else {	// Custom DDNS
@@ -5053,17 +5067,7 @@ mcpd_conf(void)
 	if (nvram_get_int("switch_stb_x") == 0 || nvram_get_int("switch_stb_x") > 6) {
 		if (nvram_match("switch_wantag", "movistar"))
 			fprintf(fp, "igmp-proxy-interfaces %s\n", "vlan2");
-		else if (nvram_match("switch_wantag", "unifi_biz") ||
-			nvram_match("switch_wantag", "stuff_fibre") || nvram_match("switch_wantag", "spark") ||
-			nvram_match("switch_wantag", "2degrees") || nvram_match("switch_wantag", "slingshot") ||
-			nvram_match("switch_wantag", "orcon") || nvram_match("switch_wantag", "voda_nz") ||
-			nvram_match("switch_wantag", "tpg") || nvram_match("switch_wantag", "iinet") ||
-			nvram_match("switch_wantag", "aapt") || nvram_match("switch_wantag", "intronode") ||
-			nvram_match("switch_wantag", "amaysim") || nvram_match("switch_wantag", "dodo") ||
-			nvram_match("switch_wantag", "iprimus") || nvram_match("switch_wantag", "centurylink") ||
-			nvram_match("switch_wantag", "actrix") || nvram_match("switch_wantag", "jastel") ||
-			nvram_match("switch_wantag", "kpn_nl") ||
-			(nvram_match("switch_wantag", "manual") && !nvram_get_int("switch_stb_x") && nvram_get_int("switch_wan0tagid")))
+		else if (!nvram_match("switch_wantag", "") && nvram_get_int("switch_stb_x") == 0 && nvram_get_int("switch_wan0tagid") > 0)
 			fprintf(fp, "igmp-proxy-interfaces %s\n", nvram_safe_get("wan0_ifname"));
 		else
 			fprintf(fp, "igmp-proxy-interfaces %s\n", proxy_ifname);
@@ -5095,17 +5099,7 @@ mcpd_conf(void)
 	else if (nvram_match("switch_wantag", "unifi_home"))
 		fprintf(fp, "igmp-mcast-interfaces %s\n", "eth0.600");
 #endif
-	else if (nvram_match("switch_wantag", "unifi_biz") ||
-		nvram_match("switch_wantag", "stuff_fibre") || nvram_match("switch_wantag", "spark") ||
-		nvram_match("switch_wantag", "2degrees") || nvram_match("switch_wantag", "slingshot") ||
-		nvram_match("switch_wantag", "orcon") || nvram_match("switch_wantag", "voda_nz") ||
-		nvram_match("switch_wantag", "tpg") || nvram_match("switch_wantag", "iinet") ||
-		nvram_match("switch_wantag", "aapt") || nvram_match("switch_wantag", "intronode") ||
-		nvram_match("switch_wantag", "amaysim") || nvram_match("switch_wantag", "dodo") ||
-		nvram_match("switch_wantag", "iprimus") || nvram_match("switch_wantag", "centurylink") ||
-		nvram_match("switch_wantag", "actrix") || nvram_match("switch_wantag", "jastel") ||
-		nvram_match("switch_wantag", "kpn_nl") ||
-		(nvram_match("switch_wantag", "manual") && !nvram_get_int("switch_stb_x") && nvram_get_int("switch_wan0tagid")))
+	else if (!nvram_match("switch_wantag", "") && nvram_get_int("switch_stb_x") == 0 && nvram_get_int("switch_wan0tagid") > 0)
 		fprintf(fp, "igmp-mcast-interfaces %s\n", nvram_safe_get("wan0_ifname"));
 	else if (nvram_match("switch_wantag", "free"))
 		fprintf(fp, "igmp-mcast-interfaces %s\n", "eth0.100");
@@ -14291,7 +14285,7 @@ check_ddr_done:
 #endif
 		start_firewall(wan_primary_ifunit(), 0);
 		start_webdav();
-		start_ddns();
+		start_ddns(NULL);
 		start_upnp();
 
 	}
@@ -14891,13 +14885,18 @@ check_ddr_done:
 		nvram_set("le_rc_notify", "1");
 		system("rm -f /var/cache/inadyn/*.cache");
 		if(action & RC_SERVICE_STOP) stop_ddns();
-		if(action & RC_SERVICE_START) start_ddns();
+		if(action & RC_SERVICE_START) start_ddns(NULL);
 	}
 #endif
 	else if (strcmp(script, "ddns") == 0)
 	{
 		if(action & RC_SERVICE_STOP) stop_ddns();
-		if(action & RC_SERVICE_START) start_ddns();
+		if(action & RC_SERVICE_START) {
+			if (cmd[1])
+				start_ddns(cmd[1]);
+			else
+				start_ddns(NULL);
+		}
 	}
 	else if (strcmp(script, "aidisk_asusddns_register") == 0)
 	{

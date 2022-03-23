@@ -1080,7 +1080,7 @@ enum led_id {
 	LED_5G2,
 	LED_60G,
 	LED_USB3,
-#if defined(RTCONFIG_LAN4WAN_LED) || defined(XWR3100)
+#if defined(RTCONFIG_LAN4WAN_LED)
 	LED_LAN1,
 	LED_LAN2,
 	LED_LAN3,
@@ -1088,7 +1088,7 @@ enum led_id {
 #else
 	LED_LAN,
 #endif
-#if defined(RTAX86U) || defined(RTAX5700) || defined(XWR3100)
+#if defined(RTAX86U) || defined(RTAX5700)
 	LED_LAN,
 #endif
 #ifdef RTCONFIG_LOGO_LED
@@ -1290,11 +1290,6 @@ enum led_id {
 	LED_10G_RGB_GREEN,
 	LED_10G_RGB_BLUE,
 	LED_10G_WHITE,
-#endif
-#if defined(R8500)
-	LED_LNA,
-	LED_LOGO1,
-	LED_LOGO2,
 #endif
 	LED_ID_MAX,	/* last item */
 };
@@ -1709,7 +1704,7 @@ static inline int dpsta_mode()
 	if(ret) {
 		for(unit = 0; unit < max_units; ++unit) {
 			snprintf(prefix, sizeof(prefix), "wlc%d_", unit);
-			if(!*nvram_safe_get(strcat_r(prefix, "ssid", tmp))) {
+			if(!*nvram_safe_get(strlcat_r(prefix, "ssid", tmp, sizeof(tmp)))) {
 				ret = 0;
 				break;
 			}
@@ -1738,7 +1733,7 @@ static inline int is_rp_unit(int unit)
 		return 0;
 
 	snprintf(prefix, sizeof(prefix), "wlc%d_", unit);
-	if(!*nvram_safe_get(strcat_r(prefix, "ssid", tmp)))
+	if(!*nvram_safe_get(strlcat_r(prefix, "ssid", tmp, sizeof(tmp))))
 		return 0;
 
 	return 1;
@@ -2251,6 +2246,8 @@ extern void del_led_ctrl_capability(int val);
 extern void check_mssid_prelink_reset(uint32_t sf);
 #endif
 extern void unset_selected_channel_info();
+extern int get_unit_by_wlc_bandindex(int bandindex);
+extern int get_wlc_bandindex_by_unit(int unit);
 #if defined(RTCONFIG_BCMWL6)
 extern int get_wl_sta_list(void);
 extern int get_maxassoc(char *ifname);

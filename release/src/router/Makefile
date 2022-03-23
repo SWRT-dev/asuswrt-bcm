@@ -375,7 +375,7 @@ export SRCBASE_FW := $(SRCBASE)/../../43684/src
 export SRCBASE_SYS := $(SRCBASE_DHD)
 export DHDAP_BUILD_TYPE := ram
 export CONFIG_MBO_AP=y
-ifeq ($(BUILD_NAME), $(filter $(BUILD_NAME), GT-AX11000 GT-AXE11000))
+ifeq ($(BUILD_NAME), $(filter $(BUILD_NAME), GT-AX11000 GT-AXE11000 RT-AX95Q))
 export BUILD_43684_COMBO := y
 else ifeq ($(BUILD_NAME), $(filter $(BUILD_NAME), RT-AX86U))
 export BUILD_43684b0 := y
@@ -5710,13 +5710,18 @@ endif
 
 else
 	[ -d wlexe ] || install -d wlexe
-ifneq ($(wildcard $(SRC_PRE_WLEXE)/prebuilt/$(BUILD_NAME)/wl),)
+
+ifneq ($(wildcard $(SRCBASE)/wl/exe/prebuilt/$(BUILD_NAME)/wl),)
 	install $(SRC_PRE_WLEXE)/prebuilt/$(BUILD_NAME)/wl wlexe
+	-install $(SRC_PRE_WLEXE)/prebuilt/$(BUILD_NAME)/wl_server_socket wlexe
 else
 	install $(SRC_PRE_WLEXE)/prebuilt/wl wlexe
+	-install $(SRC_PRE_WLEXE)/prebuilt/wl_server_socket wlexe
 endif
-ifeq ($(HND_ROUTER_AX_675X),y)
+ifeq ($(or $(HND_ROUTER_AX_675X),$(HND_ROUTER_AX_6710),$(BCM_502L07P2)),y)
 	install $(SRCBASE)/router-sysdep/hnd_extra/prebuilt/wl_server_socket wlexe
+else
+	-install $(SRCBASE)/router/hnd_extra/prebuilt/wl_server_socket wlexe
 endif
 
 endif
@@ -5797,15 +5802,15 @@ $(LIBNL_DIR)/Makefile:
 		--prefix=$(LIBNL_DIR)/install)
 
 libnl: $(LIBNL_DIR)/Makefile
-	+$(MAKE) -C $(LIBNL_DIR)
+	+$(MAKE) $(PARALLEL_BUILD) -C $(LIBNL_DIR)
 	+$(MAKE) -C $(LIBNL_DIR) install
 
 libnl-install:
 	install -d $(INSTALL_DIR)/lib/gpl
 	cp -rf $(LIBNL_DIR)/install/lib/* $(INSTALL_DIR)/lib/gpl/
-	find $(INSTALL_DIR)/lib/gpl -name "libnl*.la" -delete
-	find $(INSTALL_DIR)/lib/gpl -name "libnl*.pc" -delete
-	find $(INSTALL_DIR)/lib/gpl -name "libnl*.a" -delete
+	find $(INSTALL_DIR)/lib/gpl -name "*.la" -delete
+	find $(INSTALL_DIR)/lib/gpl -name "*.pc" -delete
+	find $(INSTALL_DIR)/lib/gpl -name "*.a" -delete
 
 libnl-clean:
 	+$(MAKE) -C $(LIBNL_DIR) distclean
@@ -5815,12 +5820,14 @@ $(HOSTAPD_DIR)/hostapd/.config: $(HOSTAPD_DIR)/hostapd/brcm.config
 	cp $(HOSTAPD_DIR)/hostapd/brcm.config $(HOSTAPD_DIR)/hostapd/.config;
 
 hostapd: libnl openssl $(HOSTAPD_DIR)/hostapd/.config
-	+$(MAKE) -C $(HOSTAPD_DIR)/hostapd
+	+$(MAKE) $(PARALLEL_BUILD) -C $(HOSTAPD_DIR)/hostapd
 
 hostapd-install:
 	install -d $(INSTALLDIR)/hostapd/usr/sbin
 	cp -rf $(HOSTAPD_DIR)/hostapd/hostapd $(INSTALLDIR)/hostapd/usr/sbin
 	cp -rf $(HOSTAPD_DIR)/hostapd/hostapd_cli $(INSTALLDIR)/hostapd/usr/sbin
+	$(STRIP) $(INSTALLDIR)/hostapd/usr/sbin/hostapd
+	$(STRIP) $(INSTALLDIR)/hostapd/usr/sbin/hostapd_cli
 
 hostapd-clean:
 	+$(MAKE) -C $(HOSTAPD_DIR)/hostapd clean
@@ -5830,13 +5837,15 @@ $(WPA_SUPPLICANT_DIR)/wpa_supplicant/.config: $(WPA_SUPPLICANT_DIR)/wpa_supplica
 	cp $(WPA_SUPPLICANT_DIR)/wpa_supplicant/brcm.config $(WPA_SUPPLICANT_DIR)/wpa_supplicant/.config;
 
 wpa_supplicant-2.7: libnl $(WPA_SUPPLICANT_DIR)/wpa_supplicant/.config $(if $(or $(HND_ROUTER_AX_6756),$(BCM_502L07P2)),cevent_app)
-	+$(MAKE) -C $(WPA_SUPPLICANT_DIR)/wpa_supplicant
+	+$(MAKE) $(PARALLEL_BUILD) -C $(WPA_SUPPLICANT_DIR)/wpa_supplicant
 
 wpa_supplicant-2.7-install:
 	install -d $(INSTALLDIR)/wpa_supplicant-2.7/usr/sbin
 	cp -rf $(WPA_SUPPLICANT_DIR)/wpa_supplicant/wpa_supplicant $(INSTALLDIR)/wpa_supplicant-2.7/usr/sbin/wpa_supplicant-2.7
 	cp -rf $(WPA_SUPPLICANT_DIR)/wpa_supplicant/wpa_cli $(INSTALLDIR)/wpa_supplicant-2.7/usr/sbin/wpa_cli-2.7
 	cp -rf $(WPA_SUPPLICANT_DIR)/wpa_supplicant/libwpa_client.so $(INSTALLDIR)/usr/lib
+	$(STRIP)  $(INSTALLDIR)/wpa_supplicant-2.7/usr/sbin/wpa_supplicant-2.7
+	$(STRIP)  $(INSTALLDIR)/wpa_supplicant-2.7/usr/sbin/wpa_cli-2.7
 
 wpa_supplicant-2.7-clean:
 	+$(MAKE) -C $(WPA_SUPPLICANT_DIR)/wpa_supplicant clean
@@ -5848,6 +5857,7 @@ iw: libnl
 iw-install:
 	install -d $(INSTALLDIR)/iw/usr/sbin
 	cp -rf $(IW_DIR)/iw $(INSTALLDIR)/iw/usr/sbin
+	$(STRIP) $(INSTALLDIR)/iw/usr/sbin/iw
 endif
 
 udev:
@@ -5939,7 +5949,7 @@ EBK_INC=$(TOP)/kernel_header/include
 endif
 
 ebtables: kernel_header dummy
-	$(MAKE) -C ebtables $(if $(filter 4908 4912,$(BRCM_CHIP)),CC=$(CROSS_COMPILE_64)gcc LD=$(CROSS_COMPILE_64)ld CURRENT_ARCH=aarch64,CC=$(CC) LD=$(LD)) \
+	$(MAKE) -C ebtables $(PARALLEL_BUILD) $(if $(filter 4908 4912,$(BRCM_CHIP)),CC=$(CROSS_COMPILE_64)gcc LD=$(CROSS_COMPILE_64)ld CURRENT_ARCH=aarch64,CC=$(CC) LD=$(LD)) \
 	CFLAGS="-Os -Wall -Wunused $(if $(RTCONFIG_HND_ROUTER),-DHND_ROUTER,)" \
 	BINDIR="/usr/sbin" LIBDIR="/usr/lib/ebtables" KERNEL_INCLUDES=$(EBK_INC) $(if $(RTCONFIG_IPV6),DO_IPV6=1,) $(if $(OLD_QCA),USE_ARPNAT=1,)
 
@@ -6196,6 +6206,7 @@ endif
 	@touch $@
 
 lighttpd-1.4.39: shared nvram$(BCMEX)$(EX7) libpasswd libdisk samba-3.5.8 pcre-8.31 libxml2 sqlite libexif openssl curl $(if $(RTCONFIG_PERMISSION_MANAGEMENT),PMS_DBapis) lighttpd-1.4.39/stamp-h1
+	$(MAKE) -C lighttpd-1.4.39 $(PARALLEL_BUILD)
 
 lighttpd-1.4.39-install:
 	if [ -f lighttpd-1.4.39/Makefile ] ; then \
@@ -6208,7 +6219,7 @@ lighttpd-1.4.39-install:
 		$(STRIP) -s $(INSTALLDIR)/lighttpd-1.4.39/usr/sbin/lighttpd-arpping ; \
 		install -d $(INSTALLDIR)/lighttpd-1.4.39/usr/lib/ ; \
 		install -D lighttpd-1.4.39/src/.libs/*.so $(INSTALLDIR)/lighttpd-1.4.39/usr/lib/ ; \
-		if [ -d lighttpd-1.4.39/prebuild/$(BUILD_NAME) ] ; then \
+		if [ -d lighttpd-1.4.39/prebuild ] ; then \
 			install -D lighttpd-1.4.39/prebuild/$(BUILD_NAME)/*.so $(INSTALLDIR)/lighttpd-1.4.39/usr/lib/ ; \
 		fi ; \
 		install -D samba-3.5.8/source3/bin/libsmbclient.so.0 $(INSTALLDIR)/lighttpd-1.4.39/usr/lib/libsmbclient.so.0 ; \
@@ -6562,21 +6573,22 @@ curl/Makefile: curl/configure
 		--enable-http --enable-ftp --enable-file \
 		--disable-ldap --disable-ldaps --disable-rtsp \
 		--disable-proxy --disable-dict --disable-telnet \
-		--disable-tftp --disable-pop3 --disable-imap \
-		--disable-smb --disable-smtp --disable-gopher \
+		--disable-tftp  \
+		--disable-gopher \
 		--disable-manual --disable-libcurl-option $(if $(RTCONFIG_IPV6),--enable-ipv6,--disable-ipv6) \
 		--disable-threaded-resolver --disable-ntlm-wb \
 		--disable-doh --disable-netrc --disable-dnsshuffle \
-		--disable-progress-meter \
 		$(if $(RTCONFIG_TR069),--with-libssh2=$(STAGEDIR)/usr,--without-zlib) \
-		$(if $(RTCONFIG_OPENSSL11)$(RTCONFIG_OPENSSL10),--with-ssl=$(STAGEDIR)/usr --with-ca-fallback,--without-ssl) \
+		$(if $(RTCONFIG_OPENSSL11)$(RTCONFIG_OPENSSL10),--with-ssl=$(TOP)/openssl --with-ca-fallback,--without-ssl) \
 		$(if $(RTCONFIG_MBEDTLS),--with-mbedtls=$(STAGEDIR)/usr,--without-mbedtls) \
 		$(if $(RTCONFIG_WOLFSSL),--with-wolfssl=$(STAGEDIR)/usr,--without-wolfssl) \
 		--with-ca-bundle=/etc/ssl/certs/ca-certificates.crt \
 		CFLAGS="-Os -Wall -ffunction-sections -fdata-sections" \
 		CPPFLAGS="-I$(STAGEDIR)/usr/include" \
-		LDFLAGS="-Wl$(if $(RTCONFIG_TR069),$(comma)-rpath=$(STAGEDIR)/usr/lib,),--gc-sections $(LDFLAGS) -L$(STAGEDIR)/usr/lib" \
+		LDFLAGS="-Wl$(if $(RTCONFIG_TR069),$(comma)-rpath=$(STAGEDIR)/usr/lib,),--gc-sections $(LDFLAGS) -L$(STAGEDIR)/usr/lib \
+		$(if $(RTCONFIG_OPENSSL11)$(RTCONFIG_OPENSSL10),-L$(TOP)/openssl,)" \
 		LIBS="-ldl $(if $(RTCONFIG_OPENSSL11),-lpthread,) \
+			   $(if $(RTCONFIG_OPENSSL11)$(RTCONFIG_OPENSSL10),-lcrypto -lssl,) \
 			   $(if $(RTCONFIG_MBEDTLS),-lmbedcrypto -lmbedx509 -lmbedtls,) \
 			   $(if $(RTCONFIG_WOLFSSL),-lwolfssl,)"
 
@@ -6593,11 +6605,11 @@ curl-install:
 	cd $(INSTALLDIR)/curl/usr/lib && \
 		ln -sf libcurl.so.4.7.0 libcurl.so && \
 		ln -sf libcurl.so.4.7.0 libcurl.so.4
-ifeq ($(or $(RTCONFIG_SPEEDTEST),$(RTCONFIG_LETSENCRYPT)),y)
+#ifeq ($(or $(RTCONFIG_SPEEDTEST),$(RTCONFIG_LETSENCRYPT)),y)
 	# for speedtest
 	install -D curl/src/.libs/curl $(INSTALLDIR)/curl/usr/sbin/curl
 	$(STRIP) $(INSTALLDIR)/curl/usr/sbin/curl
-endif
+#endif
 
 curl-clean:
 	[ ! -f curl/Makefile ] || $(MAKE) -C curl distclean

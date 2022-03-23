@@ -1078,7 +1078,7 @@ int ethctl_set_phy(char *ifname, int ctrl)
 		return -1;
 	}
 
-	strcpy(ifr.ifr_name, ifname);
+	strlcpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
 
 	memset(&ethctl, 0, sizeof(ethctl));
 	ifr.ifr_data = &ethctl;
@@ -1229,9 +1229,9 @@ int lanport_ctrl(int ctrl)
 	}
 
 	if (ctrl)
-		sprintf(cmd, "echo 0x%x 1 > /proc/phyPower", mask);
+		snprintf(cmd, sizeof(cmd), "echo 0x%x 1 > /proc/phyPower", mask);
 	else
-		sprintf(cmd, "echo 0x%x 0 > /proc/phyPower", mask);
+		snprintf(cmd, sizeof(cmd), "echo 0x%x 0 > /proc/phyPower", mask);
 	doSystem(cmd);
 	return 1;
 #elif defined(RTCONFIG_ALPINE)

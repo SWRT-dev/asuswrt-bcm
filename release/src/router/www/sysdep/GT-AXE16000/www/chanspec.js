@@ -175,9 +175,21 @@ if(isSupport('wifi6e')){
 	}	
 }
 
-var mesh_5g = JSON.parse('<% get_wl_channel_list_2g(); %>');
-var mesh_5g2 = JSON.parse('<% get_wl_channel_list_5g(); %>');
-var mesh_6g = JSON.parse('<% get_wl_channel_list_5g_2(); %>');
+try{
+	var mesh_5g = JSON.parse('<% get_wl_channel_list_2g(); %>');
+}catch(e){
+	var mesh_5g = {};
+}
+try{
+	var mesh_5g2 = JSON.parse('<% get_wl_channel_list_5g(); %>');
+}catch(e){
+	var mesh_5g2 = {};
+}
+try{
+	var mesh_6g = JSON.parse('<% get_wl_channel_list_5g_2(); %>');
+}catch(e){
+	var mesh_6g = {};
+}
 function wl_chanspec_list_change(){
 	var phytype = "n";
 	var band = '<% nvram_get("wl_unit"); %>';

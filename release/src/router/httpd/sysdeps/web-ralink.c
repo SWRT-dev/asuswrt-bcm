@@ -593,10 +593,10 @@ wl_status(int eid, webs_t wp, int argc, char_t **argv, int unit)
 	int r;
 
 	snprintf(prefix, sizeof(prefix), "wl%d_", unit);
-	ifname = nvram_safe_get(strcat_r(prefix, "ifname", tmp));
+	ifname = nvram_safe_get(strlcat_r(prefix, "ifname", tmp, sizeof(tmp)));
 
 #if 0
-	if (nvram_match(strcat_r(prefix, "radio", tmp), "0"))
+	if (nvram_match(strlcat_r(prefix, "radio", tmp, sizeof(tmp)), "0"))
 	{
 		ret+=websWrite(wp, "%s radio is disabled\n",
 			wl_nband_name(nvram_pf_get(prefix, "nband")));
@@ -700,7 +700,7 @@ wl_status(int eid, webs_t wp, int argc, char_t **argv, int unit)
 			return ret;
 	}
 
-	wl_mode_x = nvram_get_int(strcat_r(prefix, "mode_x", tmp));
+	wl_mode_x = nvram_get_int(strlcat_r(prefix, "mode_x", tmp, sizeof(tmp)));
 	if	(wl_mode_x == 1)
 		ret+=websWrite(wp, "OP Mode		: WDS Only\n");
 	else if (wl_mode_x == 2)
@@ -883,32 +883,32 @@ typedef struct PACKED _WSC_CONFIGURED_VALUE {
     unsigned char WscWPAKey[64 + 1];
 } WSC_CONFIGURED_VALUE;
 
-void getWPSAuthMode(WSC_CONFIGURED_VALUE *result, char *ret_str)
+void getWPSAuthMode(WSC_CONFIGURED_VALUE *result, char *ret_str, int len)
 {
 	if (result->WscAuthMode & 0x1)
-		strcat(ret_str, "Open System");
+		strlcat(ret_str, "Open System", len);
 	if (result->WscAuthMode & 0x2)
-		strcat(ret_str, "WPA-Personal");
+		strlcat(ret_str, "WPA-Personal", len);
 	if (result->WscAuthMode & 0x4)
-		strcat(ret_str, "Shared Key");
+		strlcat(ret_str, "Shared Key", len);
 	if (result->WscAuthMode & 0x8)
-		strcat(ret_str, "WPA-Enterprise");
+		strlcat(ret_str, "WPA-Enterprise", len);
 	if (result->WscAuthMode & 0x10)
-		strcat(ret_str, "WPA2-Enterprise");
+		strlcat(ret_str, "WPA2-Enterprise", len);
 	if (result->WscAuthMode & 0x20)
-		strcat(ret_str, "WPA2-Personal");
+		strlcat(ret_str, "WPA2-Personal", len);
 }
 
-void getWPSEncrypType(WSC_CONFIGURED_VALUE *result, char *ret_str)
+void getWPSEncrypType(WSC_CONFIGURED_VALUE *result, char *ret_str, int len)
 {
 	if (result->WscEncrypType & 0x1)
-		strcat(ret_str, "None");
+		strlcat(ret_str, "None", len);
 	if (result->WscEncrypType & 0x2)
-		strcat(ret_str, "WEP");
+		strlcat(ret_str, "WEP", len);
 	if (result->WscEncrypType & 0x4)
-		strcat(ret_str, "TKIP");
+		strlcat(ret_str, "TKIP", len);
 	if (result->WscEncrypType & 0x8)
-		strcat(ret_str, "AES");
+		strlcat(ret_str, "AES", len);
 }
 
 /*
@@ -1037,7 +1037,7 @@ int getWscStatus(int unit)
 	wrq.u.data.pointer = (caddr_t) &data;
 	wrq.u.data.flags = RT_OID_WSC_QUERY_STATUS;
 
-	if (wl_ioctl(nvram_safe_get(strcat_r(prefix, "ifname", tmp)), RT_PRIV_IOCTL, &wrq) < 0)
+	if (wl_ioctl(nvram_safe_get(strlcat_r(prefix, "ifname", tmp, sizeof(tmp))), RT_PRIV_IOCTL, &wrq) < 0)
 		fprintf(stderr, "errors in getting WSC status\n");
 
 	return data;
@@ -1055,7 +1055,7 @@ unsigned int getAPPIN(int unit)
 	wrq.u.data.pointer = (caddr_t) &data;
 	wrq.u.data.flags = RT_OID_WSC_PIN_CODE;
 
-	if (wl_ioctl(nvram_safe_get(strcat_r(prefix, "ifname", tmp)), RT_PRIV_IOCTL, &wrq) < 0)
+	if (wl_ioctl(nvram_safe_get(strlcat_r(prefix, "ifname", tmp, sizeof(tmp))), RT_PRIV_IOCTL, &wrq) < 0)
 		fprintf(stderr, "errors in getting AP PIN\n");
 
 	return data;
@@ -1100,11 +1100,11 @@ wl_wps_info(int eid, webs_t wp, int argc, char_t **argv, int unit)
 		strlcpy((char *)&result, "get_wsc_profile", sizeof(result));	/* FIXME */
 
 #if defined(RTCONFIG_WPSMULTIBAND)
-		if (!nvram_get(strcat_r(prefix, "ifname", tmp)))
+		if (!nvram_get(strlcat_r(prefix, "ifname", tmp, sizeof(tmp))))
 			continue;
 #endif
 
-		if (wl_ioctl(nvram_safe_get(strcat_r(prefix, "ifname", tmp)), RTPRIV_IOCTL_WSC_PROFILE, &wrq) < 0) {
+		if (wl_ioctl(nvram_safe_get(strlcat_r(prefix, "ifname", tmp, sizeof(tmp))), RTPRIV_IOCTL_WSC_PROFILE, &wrq) < 0) {
 			fprintf(stderr, "errors in getting WSC profile\n");
 			return 0;
 		}
@@ -1128,12 +1128,12 @@ wl_wps_info(int eid, webs_t wp, int argc, char_t **argv, int unit)
 
 		//3. WPSAuthMode
 		memset(tmpstr, 0, sizeof(tmpstr));
-		getWPSAuthMode(&result, tmpstr);
+		getWPSAuthMode(&result, tmpstr, sizeof(tmpstr));
 		retval += websWrite(wp, "%s%s%s\n", tag1, tmpstr, tag2);
 
 		//4. EncrypType
 		memset(tmpstr, 0, sizeof(tmpstr));
-		getWPSEncrypType(&result, tmpstr);
+		getWPSEncrypType(&result, tmpstr, sizeof(tmpstr));
 		retval += websWrite(wp, "%s%s%s\n", tag1, tmpstr, tag2);
 
 		//5. DefaultKeyIdx
@@ -1163,18 +1163,18 @@ wl_wps_info(int eid, webs_t wp, int argc, char_t **argv, int unit)
 
 		//8. Saved WPAKey
 #if 0	//hide for security
-		if (!strlen(nvram_safe_get(strcat_r(prefix, "wpa_psk", tmp))))
+		if (!strlen(nvram_safe_get(strlcat_r(prefix, "wpa_psk", tmp, sizeof(tmp)))))
 			retval += websWrite(wp, "%s%s%s\n", tag1, "None", tag2);
 		else
 		{
-			char_to_ascii(tmpstr, nvram_safe_get(strcat_r(prefix, "wpa_psk", tmp)));
+			char_to_ascii(tmpstr, nvram_safe_get(strlcat_r(prefix, "wpa_psk", tmp, sizeof(tmp))));
 			retval += websWrite(wp, "%s%s%s\n", tag1, tmpstr, tag2);
 		}
 #else
 		retval += websWrite(wp, "%s%s\n", tag1, tag2);
 #endif
 		//9. WPS enable?
-		if (!strcmp(nvram_safe_get(strcat_r(prefix, "wps_mode", tmp)), "enabled"))
+		if (!strcmp(nvram_safe_get(strlcat_r(prefix, "wps_mode", tmp, sizeof(tmp))), "enabled"))
 			retval += websWrite(wp, "%s%s%s\n", tag1, "None", tag2);
 		else
 			retval += websWrite(wp, "%s%s%s\n", tag1, nvram_safe_get("wps_enable"), tag2);
@@ -1187,10 +1187,10 @@ wl_wps_info(int eid, webs_t wp, int argc, char_t **argv, int unit)
 			retval += websWrite(wp, "%s%s%s\n", tag1, "2", tag2);
 
 		//B. current auth mode
-		if (!strlen(nvram_safe_get(strcat_r(prefix, "auth_mode_x", tmp))))
+		if (!strlen(nvram_safe_get(strlcat_r(prefix, "auth_mode_x", tmp, sizeof(tmp)))))
 			retval += websWrite(wp, "%s%s%s\n", tag1, "None", tag2);
 		else
-			retval += websWrite(wp, "%s%s%s\n", tag1, nvram_safe_get(strcat_r(prefix, "auth_mode_x", tmp)), tag2);
+			retval += websWrite(wp, "%s%s%s\n", tag1, nvram_safe_get(strlcat_r(prefix, "auth_mode_x", tmp, sizeof(tmp))), tag2);
 
 		//C. WPS band
 		retval += websWrite(wp, "%s%d%s\n", tag1, u, tag2);
@@ -1439,7 +1439,7 @@ int ej_get_wlstainfo_list(int eid, webs_t wp, int argc, char_t **argv)
 
 		SKIP_ABSENT_BAND_AND_INC_UNIT(unit);
 		snprintf(prefix, sizeof(prefix), "wl%d_", unit);
-		name = nvram_safe_get(strcat_r(prefix, "ifname", tmp));
+		name = nvram_safe_get(strlcat_r(prefix, "ifname", tmp, sizeof(tmp)));
 
 		/* query wl for authenticated sta list */
 		memset(data, 0, sizeof(data));
@@ -1690,7 +1690,7 @@ static int wl_scan(int eid, webs_t wp, int argc, char_t **argv, int unit)
 	wrq.u.data.flags = 0;
 
 	lock = file_lock("nvramcommit");
-	if (wl_ioctl(nvram_safe_get(strcat_r(prefix, "ifname", tmp)), RTPRIV_IOCTL_SET, &wrq) < 0)
+	if (wl_ioctl(nvram_safe_get(strlcat_r(prefix, "ifname", tmp, sizeof(tmp))), RTPRIV_IOCTL_SET, &wrq) < 0)
 	{
 		file_unlock(lock);
 		dbg("Site Survey fails\n");
@@ -1711,7 +1711,7 @@ static int wl_scan(int eid, webs_t wp, int argc, char_t **argv, int unit)
 	wrq.u.data.length = 8192;
 	wrq.u.data.pointer = data;
 	wrq.u.data.flags = 0;
-	if (wl_ioctl(nvram_safe_get(strcat_r(prefix, "ifname", tmp)), RTPRIV_IOCTL_GSITESURVEY, &wrq) < 0)
+	if (wl_ioctl(nvram_safe_get(strlcat_r(prefix, "ifname", tmp, sizeof(tmp))), RTPRIV_IOCTL_GSITESURVEY, &wrq) < 0)
 	{
 		dbg("errors in getting site survey result\n");
 		return 0;
@@ -1940,7 +1940,7 @@ static int ej_wl_channel_list(int eid, webs_t wp, int argc, char_t **argv, int u
 	int band;
 
 	snprintf(prefix, sizeof(prefix), "wl%d_", unit);
-	country_code = nvram_get(strcat_r(prefix, "country_code", tmp));
+	country_code = nvram_get(strlcat_r(prefix, "country_code", tmp, sizeof(tmp)));
 	band = unit;
 
 	if (country_code == NULL || strlen(country_code) != 2) return retval;
@@ -2023,7 +2023,7 @@ static int ej_wl_rate(int eid, webs_t wp, int argc, char_t **argv, int unit)
 #if 0
 		snprintf(prefix, sizeof(prefix), "wl%d_", unit);
 
-	name = nvram_safe_get(strcat_r(prefix, "ifname", tmp));
+	name = nvram_safe_get(strlcat_r(prefix, "ifname", tmp, sizeof(tmp)));
 
 	wrq.u.bitrate.value=-1;
 	if (wl_ioctl(name, SIOCGIWRATE, &wrq))
@@ -2039,7 +2039,7 @@ static int ej_wl_rate(int eid, webs_t wp, int argc, char_t **argv, int unit)
 		snprintf(rate_buf, sizeof(rate_buf), "%d Mbps", (rate / 1000000));
 #else
 		goto ERROR;
-	name = nvram_safe_get(strcat_r(prefix, "ifname", tmp));
+	name = nvram_safe_get(strlcat_r(prefix, "ifname", tmp, sizeof(tmp)));
 
 	memset(tmp, 0x00, sizeof(tmp));
 	wrq.u.data.length = sizeof(tmp);

@@ -1516,6 +1516,36 @@ void config_switch(void)
 				//VoIP Port: P1 tag
 				__setup_vlan(14, 0, 0x00000012);
 			}
+			else if (!strcmp(nvram_safe_get("switch_wantag"), "maxis_cts")) {
+				//VoIP: P1 tag. Cherry Cho added in 2012/11/6.
+				system("rtkswitch 40 1");			/* admin all frames on all ports */
+				system("rtkswitch 38 2");			/* VoIP: P1  2 = 0x10 */
+				/* Internet:	untag: P9;   port: P4, P9 */
+				__setup_vlan(41, 0, 0x02000210);
+				/* VoIP:	untag: N/A;  port: P1, P4 */
+				//VoIP Port: P1 tag
+				__setup_vlan(44, 0, 0x00000012);
+			}
+			else if (!strcmp(nvram_safe_get("switch_wantag"), "maxis_sacofa")) {
+				//VoIP: P1 tag. Cherry Cho added in 2012/11/6.
+				system("rtkswitch 40 1");			/* admin all frames on all ports */
+				system("rtkswitch 38 2");			/* VoIP: P1  2 = 0x10 */
+				/* Internet:	untag: P9;   port: P4, P9 */
+				__setup_vlan(31, 0, 0x02000210);
+				/* VoIP:	untag: N/A;  port: P1, P4 */
+				//VoIP Port: P1 tag
+				__setup_vlan(34, 0, 0x00000012);
+			}
+			else if (!strcmp(nvram_safe_get("switch_wantag"), "maxis_tnb")) {
+				//VoIP: P1 tag. Cherry Cho added in 2012/11/6.
+				system("rtkswitch 40 1");			/* admin all frames on all ports */
+				system("rtkswitch 38 2");			/* VoIP: P1  2 = 0x10 */
+				/* Internet:	untag: P9;   port: P4, P9 */
+				__setup_vlan(51, 0, 0x02000210);
+				/* VoIP:	untag: N/A;  port: P1, P4 */
+				//VoIP Port: P1 tag
+				__setup_vlan(54, 0, 0x00000012);
+			}
 #ifdef RTCONFIG_MULTICAST_IPTV
 			else if (!strcmp(nvram_safe_get("switch_wantag"), "movistar")) {
 #if defined(RTCONFIG_SOC_IPQ40XX)

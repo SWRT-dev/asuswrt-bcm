@@ -2117,18 +2117,24 @@ extern void add_ip6_lanaddr(void);
 extern void start_ipv6_tunnel(void);
 extern void stop_ipv6_tunnel(void);
 #ifdef RTCONFIG_SOFTWIRE46
+#define S46_LOG_PATH	"/jffs/s46.log"
 extern int s46_mapcalc(char *rules, char *peerbuf, size_t peerbufsz,
 	char *addr6buf, size_t addr6bufsz, char *addr4buf, size_t addr4bufsz,
 	int *poffset, int *ppsidlen, int *ppsid, char **fmrs, int draft);
 extern void start_s46_tunnel(int unit);
 extern void stop_s46_tunnel(int unit, int unload);
 // s46map_rptd.c
+extern void s46print(const char * logpath, const char * format, ...);
+#define S46_DBG(fmt, args...) \
+	do { \
+		s46print(S46_LOG_PATH, "[%s:(%d)]"fmt, __FUNCTION__, __LINE__, ##args); \
+	} while(0)
 extern int s46_jpne_hgw(void);
 extern char *s46_jpne_maprules(char *id, char *idbuf, size_t idlen, long *rsp_code);
 extern void s46_jpne_report(char *id, int act, int reason);
 extern int s46_mapcalc_chcek(char *id, char *rules, int draft);
 extern int s46map_rptd_main(int argc, char **argv);
-extern char *calc_s46_port_range(int usable, int psid, int psidlen, int offset);
+extern char *calc_s46_port_range(int usable, int psid, int psidlen, int offset, char *ret, int retsz);
 extern int check_s46map_rptd();
 extern void start_s46map_rptd(void);
 extern void stop_s46map_rptd(void);
@@ -2331,7 +2337,7 @@ extern int update_asus_ddns_token();
 extern int update_asus_ddns_token_main(int argc, char *argv[]);
 #endif
 extern void stop_ddns(void);
-extern int start_ddns(void);
+extern int start_ddns(char *caller);
 extern void refresh_ntpc(void);
 extern void start_hotplug2(void);
 extern void stop_hotplug2(void);

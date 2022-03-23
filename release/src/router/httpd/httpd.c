@@ -548,7 +548,7 @@ send_login_page(int fromapp_flag, int error_status, char* url, char* file, int l
 		snprintf(inviteCode, sizeof(inviteCode), "\"error_status\":\"%d\"", error_status);
 		if(error_status == LOGINLOCK){
 			snprintf(buf, sizeof(buf), ",\"remaining_lock_time\":\"%ld\"", LOCKTIME - login_dt);
-			strcat(inviteCode, buf);
+			strlcat(inviteCode, buf, sizeof(inviteCode));
 		}
 	}
 	send_page( 200, "OK", (char*) 0, inviteCode, fromapp_flag);
@@ -1290,11 +1290,11 @@ handle_request(void)
 #ifdef RTCONFIG_UIDEBUG
         char sysdepPath[128];
 	snprintf(sysdepPath, sizeof(sysdepPath), "sysdep/%s/www/", nvram_safe_get("productid"));
-	strcat(sysdepPath, url);
+	strlcat(sysdepPath, url, sizeof(sysdepPath));
         if(check_if_file_exist(sysdepPath)){
 // _dprintf("[httpd] ### GET ### sysdepPath: %s\n", sysdepPath);
-		snprintf(sysdepPath, 128, "sysdep/%s/www/", nvram_safe_get("productid"));
-		strcat(sysdepPath, file);
+		snprintf(sysdepPath, sizeof(sysdepPath), "sysdep/%s/www/", nvram_safe_get("productid"));
+		strlcat(sysdepPath, file, sizeof(sysdepPath));
 		file = sysdepPath;
 // _dprintf("[httpd] file: %s\n", file);
         }
@@ -1307,7 +1307,7 @@ handle_request(void)
 	{
 		if(!check_if_file_exist(file)){
 			snprintf(scPath, sizeof(scPath), "/jffs/softcenter/webs/");
-			strcat(scPath, file);
+			strlcat(scPath, file, sizeof(scPath));
 			if(check_if_file_exist(scPath)){
 				file = scPath;
 			}
@@ -1317,7 +1317,7 @@ handle_request(void)
 	{
 		if(!check_if_file_exist(file)){
 			snprintf(scPath, sizeof(scPath), "/jffs/softcenter/");
-			strcat(scPath, file);
+			strlcat(scPath, file, sizeof(scPath));
 			if(check_if_file_exist(scPath)){
 				file = scPath;
 			}
@@ -1922,11 +1922,11 @@ char *config_model_name(char *source, char *find,  char *rep){
          	return NULL;
          }else
          	result = result_t;
-       strcat(result, rep);
+       strlcat(result, rep, length);
        gap+=rep_L;
 
        former=location+find_L;
-       strcat(result, former);
+       strlcat(result, former, length);
 
        location= strstr(former, find);
    }

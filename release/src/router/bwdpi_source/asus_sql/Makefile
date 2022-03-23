@@ -13,6 +13,9 @@ CFLAGS += -I$(TOP)/bwdpi_source/include
 CFLAGS += -I$(TOP)/bwdpi_source/asus_include
 
 LDFLAGS += -L$(TOP_PLATFORM)/nvram$(BCMEX)$(EX7) -lnvram -L$(TOP)/shared -lshared
+ifeq ($(RTCONFIG_BCM_502L07P2),y)
+LDFLAGS += -L$(TOP_PLATFORM)/ethctl_lib -lethctl
+endif
 LDFLAGS += -L$(TOP)/bwdpi_source/asus -lbwdpi
 LDFLAGS += -L$(LIBDIR) -lm -L$(TOP)/sqlite/.libs -lsqlite3
 

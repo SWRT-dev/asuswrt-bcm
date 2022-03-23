@@ -590,6 +590,54 @@ void config_switch()
 					/* p3 only accept tagged packet*/
 					_set_portAcceptFrameType(3);
 				}
+				else if(!strcmp(nvram_safe_get("switch_wantag"), "maxis_cts")) {
+					system("rtkswitch 40 1");			/* admin all frames on all ports */
+					system("rtkswitch 38 8");			/* VoIP: P3  8 = 0x1000 */
+					/* Internet:	port: P0, P9 */
+					__setup_vlan(41, 1, 0x00000201);
+					/* VoIP:	untag: N/A;  port: P3, P0 */
+					//VoIP Port: P3 tag
+					__setup_vlan(44, 1, 0x00000009);
+					/* internal switch p5/6/7  add vlan id member*/
+					_set_vlan_mbr(41);
+					_set_vlan_mbr(44);
+					/* keep vlan tag for egress packet on port 5 for VoIP*/
+					eval("mtkswitch", "2", "5");
+					/* p3 only accept tagged packet*/
+					_set_portAcceptFrameType(3);
+				}
+				else if(!strcmp(nvram_safe_get("switch_wantag"), "maxis_sacofa")) {
+					system("rtkswitch 40 1");			/* admin all frames on all ports */
+					system("rtkswitch 38 8");			/* VoIP: P3  8 = 0x1000 */
+					/* Internet:	port: P0, P9 */
+					__setup_vlan(31, 1, 0x00000201);
+					/* VoIP:	untag: N/A;  port: P3, P0 */
+					//VoIP Port: P3 tag
+					__setup_vlan(34, 1, 0x00000009);
+					/* internal switch p5/6/7  add vlan id member*/
+					_set_vlan_mbr(31);
+					_set_vlan_mbr(34);
+					/* keep vlan tag for egress packet on port 5 for VoIP*/
+					eval("mtkswitch", "2", "5");
+					/* p3 only accept tagged packet*/
+					_set_portAcceptFrameType(3);
+				}
+				else if(!strcmp(nvram_safe_get("switch_wantag"), "maxis_tnb")) {
+					system("rtkswitch 40 1");			/* admin all frames on all ports */
+					system("rtkswitch 38 8");			/* VoIP: P3  8 = 0x1000 */
+					/* Internet:	port: P0, P9 */
+					__setup_vlan(51, 1, 0x00000201);
+					/* VoIP:	untag: N/A;  port: P3, P0 */
+					//VoIP Port: P3 tag
+					__setup_vlan(54, 1, 0x00000009);
+					/* internal switch p5/6/7  add vlan id member*/
+					_set_vlan_mbr(51);
+					_set_vlan_mbr(54);
+					/* keep vlan tag for egress packet on port 5 for VoIP*/
+					eval("mtkswitch", "2", "5");
+					/* p3 only accept tagged packet*/
+					_set_portAcceptFrameType(3);
+				}
 				else if (!strcmp(nvram_safe_get("switch_wantag"), "hinet")) { /* Hinet MOD */
 					eval("rtkswitch", "8", "4");			/* LAN4 with WAN */
 					/* internal switch p5/6/7  add vlan id member*/
@@ -741,6 +789,36 @@ void config_switch()
 					/* VoIP:	untag: N/A;  port: P1, P4 */
 					//VoIP Port: P1 tag
 					__setup_vlan(14, 0, 0x00000012);
+				}
+				else if(!strcmp(nvram_safe_get("switch_wantag"), "maxis_cts")) {
+					//VoIP: P1 tag. Cherry Cho added in 2012/11/6.
+					system("rtkswitch 40 1");			/* admin all frames on all ports */
+					system("rtkswitch 38 2");			/* VoIP: P1  2 = 0x10 */
+					/* Internet:	untag: P9;   port: P4, P9 */
+					__setup_vlan(41, 0, 0x02000210);
+					/* VoIP:	untag: N/A;  port: P1, P4 */
+					//VoIP Port: P1 tag
+					__setup_vlan(44, 0, 0x00000012);
+				}
+				else if(!strcmp(nvram_safe_get("switch_wantag"), "maxis_sacofa")) {
+					//VoIP: P1 tag. Cherry Cho added in 2012/11/6.
+					system("rtkswitch 40 1");			/* admin all frames on all ports */
+					system("rtkswitch 38 2");			/* VoIP: P1  2 = 0x10 */
+					/* Internet:	untag: P9;   port: P4, P9 */
+					__setup_vlan(31, 0, 0x02000210);
+					/* VoIP:	untag: N/A;  port: P1, P4 */
+					//VoIP Port: P1 tag
+					__setup_vlan(34, 0, 0x00000012);
+				}
+				else if(!strcmp(nvram_safe_get("switch_wantag"), "maxis_tnb")) {
+					//VoIP: P1 tag. Cherry Cho added in 2012/11/6.
+					system("rtkswitch 40 1");			/* admin all frames on all ports */
+					system("rtkswitch 38 2");			/* VoIP: P1  2 = 0x10 */
+					/* Internet:	untag: P9;   port: P4, P9 */
+					__setup_vlan(51, 0, 0x02000210);
+					/* VoIP:	untag: N/A;  port: P1, P4 */
+					//VoIP Port: P1 tag
+					__setup_vlan(54, 0, 0x00000012);
 				}
 #ifdef RTCONFIG_MULTICAST_IPTV
 			else if (!strcmp(nvram_safe_get("switch_wantag"), "movistar")) {

@@ -19,11 +19,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#if defined(__GLIBC__) || defined(__UCLIBC__) /* not musl */
 #include <sys/errno.h>
-#else
-#include <errno.h>
-#endif
 #include <getopt.h>
 
 #include "libbridge.h"

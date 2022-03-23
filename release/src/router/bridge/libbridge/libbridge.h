@@ -20,8 +20,6 @@
 #define _LIBBRIDGE_H
 
 #include <net/if.h>
-#include <sys/time.h>		//struct timeval
-#include <sys/types.h>		//u_int16_t
 #include <linux/version.h>
 #ifndef LINUX_KERNEL_VERSION
 #define LINUX_KERNEL_VERSION LINUX_VERSION_CODE

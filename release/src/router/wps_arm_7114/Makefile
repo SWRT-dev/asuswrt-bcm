@@ -1,4 +1,4 @@
-REBUILD = $(shell if [ -f "prebuilt/$(BUILD_NAME)/wps_monitor" ]; then echo 0; else echo 1; fi)
+REBUILD = $(shell if [ -f "prebuilt/wps_monitor" ]; then echo 0; else echo 1; fi)
 
 ifneq (true,$(parallel))
   .NOTPARALLEL:
@@ -107,7 +107,7 @@ export LIBPATH += -L$(TOP)/libbcm -L$(INSTALLDIR)/libbcm/usr/lib
 export LIBPATH += -L$(TOP)/shared -L$(INSTALLDIR)/shared/usr/lib
 export LIBPATH += -L$(TOP)/nvram${BCMEX}${EX7} -L$(INSTALLDIR)/nvram/usr/lib ${EXTRA_NV_LDFLAGS}
 export LIBPATH += -L$(SRCBASE)/router/wps${BCMEX}$(EX7)/lib
-export LIBPATH += -L$(SRCBASE)/router/wps${BCMEX}$(EX7)/prebuilt/$(BUILD_NAME)
+export LIBPATH += -L$(SRCBASE)/router/wps${BCMEX}$(EX7)/prebuilt
 ifeq ($(WPS_UPNP_DEVICE),1)
 # Always use LIBUPNP
 export LIBPATH += -L$(TOP)/libupnp${BCMEX}$(EX7) -L$(INSTALLDIR)/libupnp${BCMEX}$(EX7)/usr/lib
@@ -144,7 +144,7 @@ WPS_DIRS := $(foreach file, $(WPS_OSLOBJS), \
 WPS_DIRLIST = $(sort $(WPS_DIRS)) 
 
 
-ifneq ($(wildcard ./prebuilt/$(BUILD_NAME)),)
+ifneq ($(wildcard ./prebuilt),)
 all: osl wps_monitor
 else
 all: mkversion sta_build_check dirs variants_build osl wps_monitor
@@ -154,7 +154,7 @@ osl:
 	mkdir -p $(WPS_DIRLIST)
 	@echo "==>$(WPS_CONF_FILE)"
 
-ifneq ($(wildcard ./prebuilt/$(BUILD_NAME)),)
+ifneq ($(wildcard ./prebuilt),)
 objs: | dirs
 else
 objs: variants_build | dirs
@@ -170,7 +170,7 @@ $(patsubst %, _dir_%, $(wpssubdirs)):
 	$(if $(wildcard $(patsubst _dir_%, %, $@)),+$(MAKE) -C $(patsubst _dir_%, %, $@))
 
 # Set link libraries search path
-export LIBPATH += -L. -L./prebuilt/$(BUILD_NAME)
+export LIBPATH += -L. -L./prebuilt
 
 
 sta_build_check:
@@ -191,7 +191,7 @@ mkversion :
 
 # target
 # force compile wps_monitor in case the library changed.
-ifeq ($(wildcard ./prebuilt/$(BUILD_NAME)),)
+ifeq ($(wildcard ./prebuilt),)
 wps_monitor : objs FORCE
 	$(CC) $(LIBPATH) $(WPS_OSLOBJS) -l$(WPS_LIB_FILE) $(WPSM_LIBS) $(LDFLAGS) -o $@
 else
@@ -213,7 +213,7 @@ endif
 install: all
 	install -d $(INSTALLDIR)/wps${BCMEX}$(EX7)/bin
 ifeq ($(REBUILD),0)
-	install prebuilt/$(BUILD_NAME)/wps_monitor $(INSTALLDIR)/wps${BCMEX}$(EX7)/bin
+	install prebuilt/wps_monitor $(INSTALLDIR)/wps${BCMEX}$(EX7)/bin
 else
 	install wps_monitor $(INSTALLDIR)/wps${BCMEX}$(EX7)/bin
 endif
