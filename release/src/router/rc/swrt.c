@@ -87,6 +87,10 @@ void swrt_init()
 	nvram_set("entware_wan_sig", "0");
 	nvram_set("entware_stop_sig", "0");
 #endif
+#if defined(RTCONFIG_AMAS) && defined(RTCONFIG_SMARTDNS)
+	if(aimesh_re_node())
+		nvram_set("smartdns_enable", "0");
+#endif
 	swrt_insmod();
 	swrt_init_model();
 #if defined(RTCONFIG_ROG_UI)
