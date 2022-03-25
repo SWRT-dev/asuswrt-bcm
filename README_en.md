@@ -75,10 +75,15 @@ sudo apt-get -y install build-essential asciidoc binutils bzip2 gawk gettext git
 
 	`make gt-ac2900`
 
+	`cd asuswrt-bcm/release/src-rt-5.02axhnd.675x` 
+
+	`make rt-ax95q`
+
 	The firmware is in 
 	asuswrt-bcm/release/src-rt-6.x.4708/image 
 	asuswrt-bcm/release/src-rt-7.14.114.x/src/image
 	asuswrt-bcm/release/src-rt-5.02hnd/image
+	asuswrt-bcm/release/src-rt-5.02axhnd.675x/image
 
 ## Donate
 
