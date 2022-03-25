@@ -1,0 +1,1 @@
+cmd_drivers/misc/built-in.o :=  /opt/toolchains//crosstools-arm-gcc-5.5-linux-4.1-glibc-2.26-binutils-2.28.1/usr/bin/arm-buildroot-linux-gnueabi-ld -EL    -r -o drivers/misc/built-in.o drivers/misc/eeprom/built-in.o drivers/misc/cb710/built-in.o drivers/misc/ti-st/built-in.o drivers/misc/lis3lv02d/built-in.o drivers/misc/carma/built-in.o drivers/misc/mic/built-in.o 
