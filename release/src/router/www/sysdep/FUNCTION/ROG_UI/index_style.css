@@ -1,4 +1,4 @@
-﻿/* CSS Document */
+/* CSS Document */
 body{
 /*	background-color: rgb(31, 31, 31) !important; */
 }
@@ -870,7 +870,10 @@ width:122px;
 	background-image: url(images/New_ui/icon_menues.png);
 	background-position: -0px -144px;
 }
-
+.menu_Tools, .menu_Entware, .menu_Softcenter{
+	background-image: url(images/New_ui/icon_menues.png);
+	background-position: -0px -144px;
+}
 .menu_Dashboard{
 	background-image: url(images/New_ui/icon_Gamecenter.png);
 	background-position: -0px 0px;
@@ -1011,3 +1014,4 @@ width:122px;
 .radio_hint{
     background-color: #FA9100;
 }
+
