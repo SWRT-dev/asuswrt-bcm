@@ -79,6 +79,14 @@ sudo apt-get -y install build-essential asciidoc binutils bzip2 gawk gettext git
 
 	`make rt-ax95q`
 
+	`make rt-ax56u`
+
+	`make rt-ax58u`
+
+	`make rt-ax82u`
+
+	`make tuf-ax5400`
+
 	The firmware is in 
 	asuswrt-bcm/release/src-rt-6.x.4708/image 
 	asuswrt-bcm/release/src-rt-7.14.114.x/src/image
