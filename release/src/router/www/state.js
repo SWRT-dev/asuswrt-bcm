@@ -314,6 +314,8 @@ var bwdpi_app_rulelist = "<% nvram_get("bwdpi_app_rulelist"); %>".replace(/&#60/
 var qos_type_flag = "<% nvram_get("qos_type"); %>";
 var exist_firmver="<% nvram_get("firmver"); %>";
 var CoBrand_flag = '<% nvram_get("CoBrand"); %>';
+var SWRT_GD = '<% nvram_get("SWRT_GD"); %>';
+var SWRT_Kimetsu = '<% nvram_get("SWRT_Kimetsu"); %>';
 
 //territory_code sku
 function in_territory_code(_ptn){
@@ -332,8 +334,8 @@ var is_SG_sku = in_territory_code("SG");
 var is_EU_sku = in_territory_code("EU");
 var SG_mode = ('<% nvram_get("SG_mode"); %>' == 1);
 
-var isGundam = in_territory_code("GD") || CoBrand_flag == 1;
-var isKimetsu = (CoBrand_flag == '2');
+var isGundam = in_territory_code("GD") || CoBrand_flag == 1 || SWRT_GD == 1;
+var isKimetsu = (CoBrand_flag == '2' || SWRT_Kimetsu == 1);
 if(isGundam){
 	document.write('<link rel="stylesheet" type="text/css" href="/css/gundam.css"></link>');
 }
@@ -1318,15 +1320,6 @@ function get_Downloadlink(){
 	var getlink = "";
 	var href_lang = get_supportsite_lang();
 	var genlink = "https://nw-dlcdnet.asus.com/support/forward.html?model="+support_site_modelid+"&type=DL&lang="+href_lang+"&kw=&num=";
-
-	return genlink;
-}
-
-function get_Downloadlink(){
-
-	var getlink = "";
-	var href_lang = get_supportsite_lang();
-	var genlink = "https://nw-dlcdnet.asus.com/support/forward.html?model="+support_site_modelid+"&type=DL&lang="+href_lang;
 
 	return genlink;
 }

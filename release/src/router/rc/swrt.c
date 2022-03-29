@@ -356,7 +356,7 @@ int start_k3screen(void){
 }
 #endif
 
-#if defined(TUFAX3000) || defined(RTAX58U)
+#if defined(TUFAX3000) || defined(RTAX58U) || defined(RTAX82U)
 void enable_4t4r_ax58(void)
 {
 //ensure that the hardware support 4t4r
