@@ -4203,6 +4203,13 @@ void init_others(void)
 #if defined(RTCONFIG_BCM_MFG) && (defined(RTAX55) || defined(RTAX1800) || defined(TUFAX5400))
 	update_cfe_ax55();
 #endif
+#if defined(TUFAX3000) || defined(RTAX58U)
+    enable_4t4r();
+#elif defined(RTAX82U) || defined(RTAX86U) || defined(RTAX88U) || defined(GTAX11000) || defined(GTAXE11000)
+	swrt_patch_nvram();
+#elif defined(SWRT_VER_MAJOR_X) && defined(RTAC86U)
+    swrt_patch_nvram();
+#endif
 #if defined(DSL_AX82U)
 	update_misc1();
 	update_cfe_ax82u();

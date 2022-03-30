@@ -426,7 +426,7 @@ kernelbuild: $(KERNEL_DIR)/.pre_kernelbuild hnd_dongle rdp_link
 else
 kernelbuild: $(KERNEL_DIR)/.pre_kernelbuild
 endif
-	CURRENT_ARCH=$(KERNEL_ARCH) TOOLCHAIN_TOP= $(MAKE) -C $(BUILD_DIR)/build -f Bcmkernel.mk
+	CURRENT_ARCH=$(KERNEL_ARCH) TOOLCHAIN_TOP= $(MAKE) $(PARALLEL_BUILD) -C $(BUILD_DIR)/build -f Bcmkernel.mk
 
 
 headers_install: kernelbuild
@@ -490,7 +490,7 @@ shared_link:
 modbuild: shared_link
 	rm -rf $(HND_SRC)/targets/$(PROFILE)/modules
 	@echo "******************** Starting modbuild ********************";
-	CURRENT_ARCH=$(KERNEL_ARCH) TOOLCHAIN_TOP= $(MAKE) -C $(BUILD_DIR)/build -f Bcmkernel.mk modules && \
+	CURRENT_ARCH=$(KERNEL_ARCH) TOOLCHAIN_TOP= $(MAKE) $(PARALLEL_BUILD) -C $(BUILD_DIR)/build -f Bcmkernel.mk modules && \
 	    CURRENT_ARCH=$(KERNEL_ARCH) TOOLCHAIN_TOP= $(MAKE) -C $(BUILD_DIR)/build -f Bcmkernel.mk modules_install INSTALL_MOD_PATH=$(PROFILE_DIR)/modules
 	@echo "******************** DONE modbuild ********************";
 
@@ -1789,6 +1789,5 @@ unexport BUILD_BRCM_CMS
 ###########################################
 # End of the real part
 ###########################################
-
 
 
