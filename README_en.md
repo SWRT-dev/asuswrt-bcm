@@ -87,6 +87,12 @@ sudo apt-get -y install build-essential asciidoc binutils bzip2 gawk gettext git
 
 	`make tuf-ax5400`
 
+	`cd asuswrt-bcm/release/src-rt-5.02p1axhnd.675x` 
+
+	`make rt-ax68u`
+
+	`make rt-ax86u`
+
 	The firmware is in 
 
 	asuswrt-bcm/release/src-rt-6.x.4708/image 
@@ -96,6 +102,8 @@ sudo apt-get -y install build-essential asciidoc binutils bzip2 gawk gettext git
 	asuswrt-bcm/release/src-rt-5.02hnd/image
 
 	asuswrt-bcm/release/src-rt-5.02axhnd.675x/image
+
+	asuswrt-bcm/release/src-rt-5.02p1axhnd.675x/image
 
 ## Donate
 
