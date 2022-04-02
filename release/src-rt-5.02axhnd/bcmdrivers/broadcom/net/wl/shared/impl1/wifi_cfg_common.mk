@@ -1,0 +1,13 @@
+ifneq ($(strip $(CONFIG_BCM_KF_NBUFF)),)
+EXTRA_CFLAGS += -DBCM_NBUFF_WLMCAST
+endif
+ifeq ($(strip $(CONFIG_BCM_WLCSM_DEBUG)),y)
+EXTRA_CFLAGS += -DWLCSM_DEBUG
+endif
+
+# for binary compatible
+ifneq ($(strip $(BCA_CPEROUTER)),)
+EXTRA_CFLAGS += -DWLBIN_COMPAT
+endif
+
+EXTRA_CFLAGS += -I$(WLAN_SHARED_DIR) -DBCA_CPE_BSP_SHARED
