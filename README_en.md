@@ -93,6 +93,12 @@ sudo apt-get -y install build-essential asciidoc binutils bzip2 gawk gettext git
 
 	`make rt-ax86u`
 
+	`cd asuswrt-bcm/release/src-rt-5.02axhnd` 
+
+	`make rt-ax88u`
+
+	`make gt-ax11000`
+
 	The firmware is in 
 
 	asuswrt-bcm/release/src-rt-6.x.4708/image 
@@ -104,6 +110,8 @@ sudo apt-get -y install build-essential asciidoc binutils bzip2 gawk gettext git
 	asuswrt-bcm/release/src-rt-5.02axhnd.675x/image
 
 	asuswrt-bcm/release/src-rt-5.02p1axhnd.675x/image
+
+	asuswrt-bcm/release/src-rt-5.02axhnd/image
 
 ## Donate
 
