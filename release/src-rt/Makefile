@@ -3845,7 +3845,7 @@ define RouterOptions
 	fi; \
 	if [ "$(SWRT_LED_RGB)" = "y" ]; then \
 	sed -i "/RTCONFIG_SWRT_LED_RGB/d" $(1); \
-	echo "RTCONFIG_SWRT_KVR=y" >>$(1); \
+	echo "RTCONFIG_SWRT_LED_RGB=y" >>$(1); \
 	fi; \
 	if [ "$(ENTWARE)" = "y" ]; then \
 	sed -i "/RTCONFIG_ENTWARE/d" $(1); \

@@ -1001,7 +1001,7 @@ void set_rgbled(unsigned int mode)
 		{500,	"0 1"},		/* off:0.5s, on:0.5s */
 		{250,	"0 1 1 1"},	/* off:0.25s, on:0.75s */
 		{3000,	"0 1"},		/* off:3s, on:3s */
-		{NULL}
+		{0,		NULL}
 	};
 	int uidx = 0;
 	char *led_color[] = {
