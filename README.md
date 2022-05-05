@@ -87,6 +87,8 @@ sudo apt-get -y install build-essential asciidoc binutils bzip2 gawk gettext git
 
 	`make rt-ax82u`
 
+	`make tuf-ax3000`
+
 	`make tuf-ax5400`
 
 	`cd asuswrt-bcm/release/src-rt-5.02p1axhnd.675x` 
