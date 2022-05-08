@@ -3620,6 +3620,8 @@ int init_nvram(void)
 	}
 #endif 
 
+	swrt_init();
+
 	switch (model) {
 #ifdef RTCONFIG_RALINK
 	case MODEL_EAN66:
@@ -8193,9 +8195,6 @@ int init_nvram(void)
 		check_cfe_ac68u();
 		nvram_set("vlan1hwname", "et0");
 		nvram_set("landevs", "vlan1 wl0 wl1");
-#if defined(RTCONFIG_SWRT)
-		swrt_init();
-#endif
 #ifdef RTCONFIG_DUALWAN
 		if (is_router_mode()) {
 			if (get_wans_dualwan()&WANSCAP_WAN && get_wans_dualwan()&WANSCAP_LAN)
@@ -13111,9 +13110,6 @@ int init_nvram(void)
 	case MODEL_RTAC88U:
 	case MODEL_RTAC3100:
 		ldo_patch();
-#if defined(RTCONFIG_SWRT)
-		swrt_init();
-#endif
 		set_tcode_misc();
 #if defined(RTAC88U) || defined(RTAC3100)
 		//if(nvram_match("lazy_et", "1"))

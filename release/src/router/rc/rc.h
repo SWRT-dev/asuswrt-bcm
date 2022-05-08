@@ -415,9 +415,9 @@ extern void eth_phypower(char *port, int onoff);
 extern int setCentralLedLv(int lv);
 #endif
 extern int ate_get_fw_upgrade_state(void);
-extern void set_IpAddr_Lan(const char *);
+extern void set_IpAddr_Lan(const char *ip);
 extern void get_IpAddr_Lan();
-extern void set_MRFLAG(const char *);
+extern void set_MRFLAG(const char *flag);
 extern void get_MRFLAG();
 
 /* tcode_rc.c */
