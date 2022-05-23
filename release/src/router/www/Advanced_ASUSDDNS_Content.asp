@@ -18,6 +18,7 @@
 <script type="text/javascript" language="JavaScript" src="/validator.js"></script>
 <script type="text/javaScript" src="/js/jquery.js"></script>
 <script type="text/javascript" src="/js/httpApi.js"></script>
+<script type="text/javascript" src="/form.js"></script>
 <script language="JavaScript" type="text/javascript" src="/js/asus_eula.js"></script>
 <style type="text/css">
 *{
@@ -598,13 +599,13 @@ function change_ddns_setting(v){
 			document.form.DDNSName.parentNode.style.display = "none";
 			inputCtrl(document.form.ddns_username_x, 1);
 			inputCtrl(document.form.ddns_passwd_x, 1);
-			if(v == "WWW.TUNNELBROKER.NET" || v == "WWW.SELFHOST.DE" || v == "DOMAINS.GOOGLE.COM")
+			if(v == "WWW.TUNNELBROKER.NET" || v == "WWW.SELFHOST.DE" || v == "WWW.CLOUDFLARE.COM" || v == "DOMAINS.GOOGLE.COM")
 				var disable_wild = 1;
 			else
 				var disable_wild = 0;
 			document.form.ddns_wildcard_x[0].disabled= disable_wild;
 			document.form.ddns_wildcard_x[1].disabled= disable_wild;
-			if(v == "WWW.ZONEEDIT.COM" || v == "DOMAINS.GOOGLE.COM"){
+			if(v == "WWW.ZONEEDIT.COM" || v == "WWW.CLOUDFLARE.COM" || v == "DOMAINS.GOOGLE.COM"){
 				showhide("link", 0);
 				showhide("linkToHome", 1);
 			}
@@ -622,7 +623,23 @@ function change_ddns_setting(v){
 			else
 				inputCtrl(document.form.ddns_regular_period, 1);
 	}
+	var default_hostname_label = "<a class=\"hintstyle\" href=\"javascript:void(0);\" onClick=\"openHint(5,13);\"><#LANHostConfig_x_DDNSHostNames_itemname#></a>";
 
+	if(v == "WWW.CLOUDFLARE.COM") {
+		document.getElementById("ddns_username_th").innerHTML = "Domain Name";
+		document.getElementById("ddns_password_th").innerHTML = "API Token";
+		document.getElementById("ddns_hostname_th").innerHTML = default_hostname_label;
+	}
+	else if (v == "WWW.TUNNELBROKER.NET") {
+		document.getElementById("ddns_username_th").innerHTML = "Account Name";
+		document.getElementById("ddns_password_th").innerHTML = "Update Key";
+		document.getElementById("ddns_hostname_th").innerHTML = "Tunnel ID";
+	}
+	else {
+		document.getElementById("ddns_username_th").innerHTML = "<#LANHostConfig_x_DDNSUserName_itemname#>";
+		document.getElementById("ddns_password_th").innerHTML = "<#LANHostConfig_x_DDNSPassword_itemname#>";
+		document.getElementById("ddns_hostname_th").innerHTML = default_hostname_label;
+	}
 	if(letsencrypt_support){
 		document.getElementById("le_crypt").style.display = "";
 	}
@@ -896,6 +913,7 @@ function check_unregister_result(){
 				<td>
 					<select name="ddns_server_x"class="input_option" onchange="change_ddns_setting(this.value); change_cert_method();">
 						<option value="WWW.ASUS.COM" <% nvram_match("ddns_server_x", "WWW.ASUS.COM","selected"); %>>WWW.ASUS.COM</option>
+						<option value="WWW.CLOUDFLARE.COM" <% nvram_match("ddns_server_x", "WWW.CLOUDFLARE.COM","selected"); %>>WWW.CLOUDFLARE.COM</option>
 						<option value="DOMAINS.GOOGLE.COM" <% nvram_match("ddns_server_x", "DOMAINS.GOOGLE.COM","selected"); %>>DOMAINS.GOOGLE.COM</option>
 						<option value="WWW.DYNDNS.ORG" <% nvram_match("ddns_server_x", "WWW.DYNDNS.ORG","selected"); %>>WWW.DYNDNS.ORG</option>
 						<option value="WWW.DYNDNS.ORG(CUSTOM)" <% nvram_match("ddns_server_x", "WWW.DYNDNS.ORG(CUSTOM)","selected"); %>>WWW.DYNDNS.ORG(CUSTOM)</option>
@@ -917,7 +935,7 @@ function check_unregister_result(){
 				</td>
 			</tr>
 			<tr id="ddns_hostname_tr">
-				<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(5,13);"><#LANHostConfig_x_DDNSHostNames_itemname#></a></th>
+				<th id="ddns_hostname_th"><a class="hintstyle" href="javascript:void(0);" onClick="openHint(5,13);"><#LANHostConfig_x_DDNSHostNames_itemname#></a></th>
 				<td>
 					<div id="ddnsname_input" style="display:none;">
 						<input type="text" maxlength="63" class="input_25_table" name="ddns_hostname_x" id="ddns_hostname_x" value="<% nvram_get("ddns_hostname_x"); %>" onKeyPress="return validator.isString(this, event)" autocorrect="off" autocapitalize="off">
@@ -935,11 +953,11 @@ function check_unregister_result(){
 				<td id="ddns_hostname_x_value"><% nvram_get("ddns_hostname_x"); %></td>
 			</tr>
 			<tr>
-				<th><#LANHostConfig_x_DDNSUserName_itemname#></th>
+				<th id="ddns_username_th"><#LANHostConfig_x_DDNSUserName_itemname#></th>
 				<td><input type="text" maxlength="32" class="input_25_table" name="ddns_username_x" value="<% nvram_get("ddns_username_x"); %>" onKeyPress="return validator.isString(this, event)" autocomplete="off" autocorrect="off" autocapitalize="off"></td>
 			</tr>
 			<tr>
-				<th><#LANHostConfig_x_DDNSPassword_itemname#></th>
+				<th id="ddns_password_th"><#LANHostConfig_x_DDNSPassword_itemname#></th>
 				<td><input type="password" maxlength="64" class="input_25_table" name="ddns_passwd_x" value="<% nvram_get("ddns_passwd_x"); %>" autocomplete="off" autocorrect="off" autocapitalize="off"></td>
 			</tr>
 			<tr id="wildcard_field">
