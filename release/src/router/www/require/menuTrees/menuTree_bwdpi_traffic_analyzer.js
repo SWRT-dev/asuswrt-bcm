@@ -217,6 +217,8 @@ define(function(){
 					{url: "Advanced_WAdvanced_Content.asp", tabName: "<#menu5_1_6#>"},
 					{url: "Advanced_WProxy_Content.asp", tabName: "<#WiFi_Proxy_item#>"},
 					{url: "Advanced_Roaming_Block_Content.asp", tabName: "<#WiFi_Roaming_Block_List#>"},
+					{url: "Advanced_Wireless_Survey.asp", tabName: "Site Survey"},
+					{url: "WiFi_Insight.asp", tabName: "<#WiFi_radar#>"},
 					{url: "NULL", tabName: "__INHERIT__"}
 				] 
 			},
@@ -912,6 +914,13 @@ define(function(){
 				else if(based_modelid == "RT-N300"){
 					retArray.push("Advanced_WMode_Content.asp");
 					retArray.push("Advanced_IPTV_Content.asp");
+				}
+
+				if(hnd_support){
+					retArray.push("Advanced_Wireless_Survey.asp");
+				}
+				else{
+					retArray.push("WiFi_Insight.asp");
 				}
 
 				if(lyra_hide_support){

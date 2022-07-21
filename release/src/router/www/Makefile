@@ -102,6 +102,7 @@ endif
 
 ifeq ($(RTCONFIG_AMAS),y)
 ifneq ($(BUILD_NAME),DSL-AC68U)
+	cp $(TOP)/www/sysdep/BLUECAVE/www/Advanced_Wireless_Survey.asp $(INSTALLDIR)/www/Advanced_Wireless_Survey.asp
 	cp $(TOP)/www/sysdep/BLUECAVE/www/QIS_wizard.htm $(INSTALLDIR)/www/QIS_wizard.htm
 	cp $(TOP)/www/sysdep/BLUECAVE/www/mobile $(INSTALLDIR)/www/ -rf
 	cp $(TOP)/www/sysdep/BLUECAVE/www/require/modules/modem.js $(INSTALLDIR)/www/require/modules/ -rf

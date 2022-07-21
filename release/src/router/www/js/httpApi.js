@@ -938,17 +938,22 @@ var httpApi ={
 		return transformName;
 	},
 
-	"checkCloudModelIcon": function(model_info, callBackSuccess, callBackError){
-		if(model_info.cloudModelName == "RAX120" || model_info.cloudModelName == "RAX70" || model_info.cloudModelName == "MR60" || model_info.cloudModelName == "MS60" || model_info.cloudModelName == "R8000P" || model_info.cloudModelName == "360V6")
-			var server = "https://update.paldier.com";
+	"swrtupdateserver": function(model_info){
+		var modelName = (model_info.model_name != undefined) ? model_info.model_name : "";
+		if(modelName == "RAX120" || modelName == "RAX70" || modelName == "MR60" || modelName == "MS60" || modelName == "R8000P" || modelName == "360V6" || modelName == "RGMA2820A" || modelName == "RGMA2820B")
+			return "https://update.paldier.com";
 		else
-			var server = "https://nw-dlcdnet.asus.com";
+			return "https://nw-dlcdnet.asus.com";
+	},
+
+	"checkCloudModelIcon": function(model_info, callBackSuccess, callBackError){
+		var server = httpApi.swrtupdateserver(model_info);
 		var cloudModelName = "";
 		if(model_info.cloudModelName != undefined && model_info.cloudModelName != "")
 			cloudModelName = model_info.cloudModelName;
 		else
 			cloudModelName = httpApi.transformCloudModelName(model_info);
-
+	
 		var fileName = "/plugin/productIcons/" + cloudModelName + ".png";
 		var img_src = server + fileName;
 		if(cloudModelName != ""){

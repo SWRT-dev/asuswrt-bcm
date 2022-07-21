@@ -75,17 +75,11 @@ struct REPLACE_MODELNAME_S replace_modelname_t[] = {
 	{ "F9K1118" },
 	{ "SBRAC3200P" },
 	{ "R8500" },
-	{ "R8000P" },
 	{ "TY6201_RTK" },
 	{ "TY6201_BCM" },
-	{ "RAX120" },
+	{ "TY6202" },
 	{ "DIR868L" },
 	{ "R6300V2" },
-	{ "MR62" },
-	{ "RAX70" },
-	{ "360V6" },
-	{ "GLAX1800" },
-	//{ "RMAC2100" },move to model_list
 	{ NULL },
 };
 
@@ -510,4 +504,5 @@ ejArgs(int argc, char **argv, char *fmt, ...)
 
 	return arg;
 }
+
 
