@@ -918,6 +918,8 @@ define(function(){
 
 				if(hnd_support){
 					retArray.push("Advanced_Wireless_Survey.asp");
+					if(!wifiRadar_support)
+						retArray.push("WiFi_Insight.asp");
 				}
 				else{
 					retArray.push("WiFi_Insight.asp");

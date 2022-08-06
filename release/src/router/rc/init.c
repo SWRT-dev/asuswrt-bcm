@@ -15003,6 +15003,10 @@ NO_USB_CAP:
 	add_rc_support("rog");
 #endif
 
+#ifdef RTCONFIG_VISUALIZATION
+	add_rc_support("wifiradar");
+#endif
+
 #ifdef RTCONFIG_TCODE
 	add_rc_support("tcode");
 #endif

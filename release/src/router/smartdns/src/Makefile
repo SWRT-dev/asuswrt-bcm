@@ -36,12 +36,7 @@ CXXFLAGS +=-Iinclude
 LDFLAGS += -lssl -lcrypto -lpthread -ldl
 #endif
 
-ifeq ($(RALINK),y)
-#toolchain is too old
-all:
-	cp ./smartdns_mipsle ./smartdns
-
-else ifeq ($(BUILD_NAME), $(filter $(BUILD_NAME), RT-AC88U RT-AC3100 RT-AC3200 RT-AC68U RT-AC5300))
+ifeq ($(BUILD_NAME), $(filter $(BUILD_NAME), RT-AC88U RT-AC3100 RT-AC3200 RT-AC68U RT-AC5300))
 #toolchain is too old
 all:
 	cp ./smartdns_arm ./smartdns

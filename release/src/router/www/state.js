@@ -567,6 +567,7 @@ var adBlock_support = isSupport("adBlock");
 var keyGuard_support = isSupport("keyGuard");
 var rog_support = isSupport("rog");
 var tuf_support = isSupport("tuf");
+var wifiRadar_support = isSupport("wifiradar");
 var aura_support = isSupport("aura_rgb");
 var boostKey_support = isSupport("boostkey");
 var smart_connect_support = isSupport("smart_connect") || isSupport("bandstr");
