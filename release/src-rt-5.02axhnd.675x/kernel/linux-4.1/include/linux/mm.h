@@ -1919,11 +1919,7 @@ void task_dirty_inc(struct task_struct *tsk);
 #if (defined(CONFIG_BCM_KF_USB_STORAGE) && defined(CONFIG_MIPS_BCM963XX))
 #define VM_MAX_READAHEAD	512	/* kbytes */
 #else
-#if defined(PGB_QUICK_PATH)
-#define VM_MAX_READAHEAD	4096	/* kbytes */
-#else
 #define VM_MAX_READAHEAD	128	/* kbytes */
-#endif
 #endif
 #define VM_MIN_READAHEAD	16	/* kbytes (includes current page) */
 

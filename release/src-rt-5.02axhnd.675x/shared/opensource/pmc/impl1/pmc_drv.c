@@ -4,19 +4,25 @@
    Copyright (c) 2013 Broadcom 
    All Rights Reserved
 
-This program is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License, version 2, as published by
-the Free Software Foundation (the "GPL").
+Unless you and Broadcom execute a separate written software license
+agreement governing use of this software, this software is licensed
+to you under the terms of the GNU General Public License version 2
+(the "GPL"), available at http://www.broadcom.com/licenses/GPLv2.php,
+with the following added to such license:
 
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+   As a special exception, the copyright holders of this software give
+   you permission to link this software with independent modules, and
+   to copy and distribute the resulting executable under terms of your
+   choice, provided that you also meet, for each linked independent
+   module, the terms and conditions of the license of that module.
+   An independent module is a module which is not derived from this
+   software.  The special exception does not apply to any modifications
+   of the software.
 
-
-A copy of the GPL is available at http://www.broadcom.com/licenses/GPLv2.php, or by
-writing to the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-Boston, MA 02111-1307, USA.
+Not withstanding the above, under no circumstances may you combine
+this software in any way with any other Broadcom software provided
+under a license other than the GPL, without Broadcom's express prior
+written consent.
 
 :>
 */
@@ -65,7 +71,7 @@ static DEFINE_SPINLOCK(pmc_lock);
 #include "shared_utils.h"
 #include "pmc_spu.h"
 
-#if defined(_BCM96846_) || defined(_BCM96856_) || defined(_BCM96858_) || defined(_BCM96878_)
+#if defined(_BCM96846_) || defined(_BCM96856_) || defined(_BCM96858_) || defined(_BCM96878_) || defined(_BCM96855_) 
 #define SWREG_ADJUSTMENT_SUPPORT 
 #endif
 
@@ -1087,7 +1093,27 @@ int CloseAVS(int island, unsigned short margin_mv_slow,
 		return status;
 	}
 	else
+    {
+#if defined _BCM96855_
+    typedef union 
+    {
+        struct
+        {
+            uint32_t slow_marg : 16; //[00:15]
+            uint32_t fast_marg : 16; //[16:31]
+        } Bits;
+        uint32_t Reg32;
+    } MARGINS_TEST;
+#define MARG ((volatile MARGINS_TEST *)0xff802628)
+#define MARG_CMD ((volatile uint32_t *)0xff80262c)
+        MARG->Bits.slow_marg = margin_mv_slow;
+        MARG->Bits.fast_marg = margin_mv_fast;
+        *MARG_CMD = 0x7e57fa57;
+        return kPMC_NO_ERROR;
+#else
 		return kPMC_INVALID_COMMAND;
+#endif
+    }
 }
 
 #if defined _CFE_ && !defined(PMC_ON_HOSTCPU)
@@ -1607,18 +1633,25 @@ static void pmc_patch_4908(void)
 #endif
 
 #if defined(SWREG_ADJUSTMENT_SUPPORT)
-#if defined(_BCM96846_) || defined(_BCM96856_) || defined (_BCM96878_)
+#if defined(_BCM96846_) || defined(_BCM96856_) || defined (_BCM96878_) || defined(_BCM96855_) 
 #define SWR_CTRL ( (volatile unsigned int*) 0xffb20060)
 #define SWR_WR   ( (volatile unsigned int*) 0xffb20064)
 #define SWR_RD   ( (volatile unsigned int*) 0xffb20068)
 #define SWR_FIRST 0
+#if defined(_BCM96855_)
+#define SWR_LAST 2
+const char *swreg_names[] ={"1.8 ", "1.5 "}; 
+#else
 #define SWR_LAST 4
+const char *swreg_names[] ={"1.0D", "1.8 ", "1.5 ", "1.0A"} ;
+#endif
 #elif defined(_BCM96858_)
 #define SWR_CTRL ( (volatile unsigned int*) 0x80280060)
 #define SWR_WR   ( (volatile unsigned int*) 0x80280064)
 #define SWR_RD   ( (volatile unsigned int*) 0x80280068)
 #define SWR_FIRST 1
 #define SWR_LAST 3
+const char *swreg_names[] ={"N/A ", "1.8 ", "1.5 "}; 
 #endif
 #define SWR_READ_CMD_P 0xB800
 #define SWR_WR_CMD_P   0xB400
@@ -1730,9 +1763,7 @@ static void dump_swregs(void)
     for(i=SWR_FIRST ; i < SWR_LAST ; i++)
         for(j=0; j <10; j++)
         {
-            printf("%s, reg=0x%02x, val=0x%04x\n", 
-                (i == 0 ? "1.0D" : (i == 1 ? "1.8 " :(i == 2 ? "1.5 " : "1.0A"))),
-                j, swr_read(i,j));
+            printf("%s, reg=0x%02x, val=0x%04x\n", swreg_names[i], j, swr_read(i,j));
         }
 }
 #endif /* CFG_RAMAPP */
@@ -1759,7 +1790,7 @@ void pmc_log_dump(void)
 }
 #endif
 
-#if defined(CONFIG_BCM96878) && !defined(_CFE_)
+#if (defined(CONFIG_BCM96878) || defined(CONFIG_BCM96855)) && !defined(_CFE_)
 void pmc_tracking_init(void);
 #endif
 
@@ -1790,7 +1821,7 @@ int pmc_init(void)
 #endif
     pmc_boot();
 #endif
-#if defined(CONFIG_BCM96878) && !defined(_CFE_)
+#if (defined(CONFIG_BCM96878) || defined(CONFIG_BCM96855)) && !defined(_CFE_) && !defined(CONFIG_BRCM_IKOS)
     pmc_tracking_init();
 #endif
 
@@ -1852,7 +1883,8 @@ int pmc_convert_pvtmon(int sel, int value)
       defined(CONFIG_BCM963178) || defined(_BCM963178_) || \
       defined(CONFIG_BCM947622) || defined(_BCM947622_) || \
       defined(CONFIG_BCM96856)  || defined(_BCM96856_)  || \
-      defined(CONFIG_BCM96878)  || defined(_BCM96878_)
+      defined(CONFIG_BCM96878)  || defined(_BCM96878_)  || \
+      defined(CONFIG_BCM96855)  || defined(_BCM96855_)
 		return (41335000 - 49055 * value) / 100;
 #else
 		return (41004000 - 48705 * value) / 100;

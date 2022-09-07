@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <html xmlns:v>
 <head>
@@ -291,8 +291,17 @@ var t_sec = time.getSeconds();
 var wl0_radio = '<% nvram_get("wl0_radio"); %>';
 var wl1_radio = '<% nvram_get("wl1_radio"); %>';
 var wl2_radio = '<% nvram_get("wl2_radio"); %>';
+var wl3_radio = '<% nvram_get("wl3_radio"); %>';
+if(based_modelid === 'GT-AXE16000'){
+	var t = wl3_radio;
+	wl3_radio = wl2_radio;
+	wl2_radio = wl1_radio;
+	wl1_radio = wl0_radio;
+	wl0_radio = t;
+}
 var label_mac = <% get_label_mac(); %>;
 var CNSku = in_territory_code("CN");
+var modelname = "<% nvram_get("modelname"); %>";
 
 for(i=0;i<30;i++){
 	var temp = [];
@@ -320,23 +329,17 @@ var aurargb = "";
 var aura_settings = new Array();
 var boost_id = "";
 function initial(){
-	if(isSupport("ledg")){
-		$("#light_effect_bg").show();
-		$("#aura_rgb_bg").hide();
-	}
-	else{
-		$("#light_effect_bg").hide();
-		$("#aura_rgb_bg").show();
-	}
-
 	if(odm_support){
 		$(".banner").attr("class", "banner_COD");
 		$("#wan_state_icon").attr("class", "cod_connect");
-		$("#pingMap").show();
-		$("#aura_field").show();
-		$("#boostKey_field").show();
 	}
-	else if(rog_support){
+
+	if(isGundam || isEva){
+		$(".banner").attr("class", "banner_GD");
+		$("#wan_state_icon").attr("class", "gd_connect");
+	}
+	
+	if(rog_support){
 		$("#pingMap").show();
 		if (aura_support) {
 			if(based_modelid == 'GT-AC2900'){
@@ -345,10 +348,6 @@ function initial(){
 
 			$("#aura_field").show();
 		}
-		else {
-			$('#pingMap').height('430px');
-		}
-
 		if (boostKey_support) {
 			$("#boostKey_field").show();
 		}
@@ -356,6 +355,15 @@ function initial(){
 	else{
 		$("#wan_state_icon").attr("class", "wan_state_icon");
 	}
+
+	if(isSupport("ledg")){
+		$("#aura_field").show();
+		$("#light_effect_bg").show();
+		$("#aura_rgb_bg").hide();
+	}
+
+	if($("#aura_field").css("display") == "none")
+		$('#pingMap').height('430px');
 
 	if(uu_support && based_modelid == 'GT-AC5300'){
 		$('#uu_field').show();
@@ -366,16 +374,6 @@ function initial(){
 	check_sw_mode();
 	check_wireless();
 	updateClientsCount();
-	
-	httpApi.nvramGetAsync({
-		data: ["ping_target"],
-		success: function(nvram){
-			netoolApiDashBoard.start({
-				"type": 1, 
-				"target": (nvram.ping_target == "") ? "www.google.com" : nvram.ping_target
-			});
-		}
-	})
 
 	if(isSwMode('rt')){
 		if (ddns_enable == '0' || ddnsName == '' || ddnsName == isMD5DDNSName()) {
@@ -472,9 +470,24 @@ function initial(){
 		$('#boost_aura').show();
 	}
 
+	var boostKey = httpApi.boostKey_support();
+	$(".boost-function").hover(function(){
+		$("#boostKey_desc").html(boostKey[this.id].desc)
+	})
+
 	if(!ASUS_EULA.status("tm")){
 		ASUS_EULA.config(tm_agree, tm_disagree);
 	}
+
+	httpApi.nvramGetAsync({
+		data: ["ping_target"],
+		success: function(nvram){
+			netoolApiDashBoard.start({
+				"type": 1, 
+				"target": (nvram.ping_target == "") ? "www.google.com" : nvram.ping_target
+			});
+		}
+	})
 }
 
 function updateWANIP(){
@@ -528,36 +541,54 @@ function check_wireless(){
 			wl1_radio = '0';
 		}
 
-		temp = (wl1_radio == "1") ? "wl1_icon_on" : "wl1_icon_off"
-		if(band5g2_support){
-			if(band6g_support){
-				temp = (wl1_radio == "1") ? "wl1_icon_on" : "wl1_icon_off";
-			}
-			else{
-				temp = (wl1_radio == "1") ? "wl1_1_icon_on" : "wl1_1_icon_off";
-			}			
+		if(based_modelid === 'GT-AXE16000'){
+			temp = (wl1_radio == "1") ? "wl1_1_icon_on" : "wl1_1_icon_off";
 		}
+		else{
+			temp = (wl1_radio == "1") ? "wl1_icon_on" : "wl1_icon_off"
+			if(band5g2_support || band6g_support){
+				if(band6g_support){
+					temp = (wl1_radio == "1") ? "wl1_icon_on" : "wl1_icon_off";
+				}
+				else{
+					temp = (wl1_radio == "1") ? "wl1_1_icon_on" : "wl1_1_icon_off";
+				}			
+			}
+		}
+		
 
 		$("#wl1_icon").show();
 		$("#wl1_icon").addClass(temp);
 	}
 
 	//check 5 GHz-2
-	if(band5g2_support){
+	if(band5g2_support || band6g_support){
 		if (isSwMode('mb')) {
 			wl2_radio = '0';
 		}
 
-		if(band6g_support){
-			temp = (wl2_radio == "1") ? "wl6_icon_on" : "wl6_icon_off";
+		if(based_modelid === 'GT-AXE16000'){
+			temp = (wl2_radio == "1") ? "wl2_icon_on" : "wl2_icon_off";
+			$("#wl2_icon").show();
+			$("#wl2_icon").addClass(temp);
+
+			temp = (wl3_radio == "1") ? "wl6_icon_on" : "wl6_icon_off";
+			$("#wl3_icon").show();
+			$("#wl3_icon").addClass(temp);
 		}
 		else{
-			temp = (wl2_radio == "1") ? "wl2_icon_on" : "wl2_icon_off";
+			if(band6g_support){
+				temp = (wl2_radio == "1") ? "wl6_icon_on" : "wl6_icon_off";
+			}
+			else{
+				temp = (wl2_radio == "1") ? "wl2_icon_on" : "wl2_icon_off";
+			}
+			
+
+			$("#wl2_icon").show();
+			$("#wl2_icon").addClass(temp);
 		}
 		
-
-		$("#wl2_icon").show();
-		$("#wl2_icon").addClass(temp);
 	}
 }
 
@@ -753,15 +784,19 @@ var netoolApiDashBoard = {
 
 		$.getJSON("/netool.cgi", obj)
 			.done(function(data){
-				if(data.successful != "0") setTimeout(function(){
-					netoolApiDashBoard.check(obj, data.successful)
-				}, 2000)
+				if(data.successful != "0"){
+					setTimeout(function(){
+						netoolApiDashBoard.check(obj, data.successful)
+					}, 2000)
+				} 
 			})
 	},
 
 	check: function(obj, fileName){
 		$.getJSON("/netool.cgi", {"type":0,"target":fileName})
 			.done(function(data){
+				if(data.result.length == 0) return false;
+				
 				var thisTarget = targetData[obj.target];
 				var pingVal = (data.result[0].ping !== "") ? parseFloat(data.result[0].ping) : 0;
 				var jitterVal = (thisTarget.points.length === 0) ? 0 : Math.abs(pingVal - thisTarget.points[thisTarget.points.length-1]).toFixed(1);
@@ -1061,7 +1096,13 @@ function hideEventTriggerDesc(){
 }
 function uuRegister(mac){
 	var _mac = mac.toLowerCase();
-	window.open('https://router.uu.163.com/asus/pc.html#/acce?gwSn=' + _mac + '&type=asuswrt', '_blank');
+	if(modelname.indexOf("RTAC") != -1 || modelname.indexOf("RTAX") != -1 || modelname.indexOf("GTAC") != -1 || modelname.indexOf("GTAX") != -1 || modelname.indexOf("BLUE") != -1 || modelname.indexOf("ZEN") != -1  || modelname.indexOf("XT") != -1  )
+		window.open('https://router.uu.163.com/asus/pc.html#/acce?gwSn=' + _mac + '&type=asuswrt', '_blank');
+	else
+		window.open('https://router.uu.163.com/asus/pc.html#/acce?gwSn=' + _mac + '&type=asuswrt-merlin', '_blank');
+}
+function enableuu(){
+	window.open("http://"+window.location.hostname+"/Advanced_System_Content.asp");
 }
 </script>
 </head>
@@ -1110,10 +1151,11 @@ function uuRegister(mac){
 										<div style="display: inline-block;width:240px;vertical-align: top;text-align: center;">			
 											<div style="margin: 0 0 0 30px;">
 												<div class="rog-title"><#ROG_WIRELESS_STATE#></div>
-												<div style="text-align: right;margin:15px 20px 0 0;">
+												<div style="text-align: right;margin:15px 0 0 0;">
 													<div id="wl0_icon" class="wl_icon"></div>
 													<div id="wl1_icon" class="wl_icon" style="display:none"></div>
 													<div id="wl2_icon" class="wl_icon" style="display:none"></div>
+													<div id="wl3_icon" class="wl_icon" style="display:none"></div>
 												</div>
 											</div>
 											<div style="margin: 15px 0 0 10px;text-align: center;">
@@ -1231,11 +1273,22 @@ function uuRegister(mac){
 										<div id="light_effect_bg" style="width:100%;height:100%;">
 											<iframe id="light_effect_iframe" class="light_effect_iframe" frameborder="0"></iframe>
 											<script>
-												$("#light_effect_iframe").attr("src", "/light_effect/light_effect.html");
-												$("#light_effect_iframe").load(function(){
-													$("#light_effect_iframe").contents().find(".light_effect_bg").css("height", "160px");
-													$("#light_effect_iframe").contents().find(".light_effect_mask").css("background-size", "95vw 160px");
-												});
+												if(isSupport("ledg")){
+													setTimeout(function(){
+														$("#light_effect_iframe").attr("src", "/light_effect/light_effect.html");
+														$("#light_effect_iframe").load(function(){
+															$("#light_effect_iframe").contents().find(".light_effect_bg").css("height", "160px");
+															$("#light_effect_iframe").contents().find(".logo_container").css({"width":"18vw"});
+															if(isSupport("antled")){
+																$("#light_effect_iframe").contents().find(".switch_mode_list_bg")
+																	.css({"width":"160px", "height":"35px", "background-size":"190px 35px", "background-position":"100%"});
+																$("#light_effect_iframe").contents().find(".switch_mode_list_bg .mode_list_bg").css("width", "130px");
+																$("#light_effect_iframe").contents().find(".logo_container")
+																	.css({"width":"18vw", "background-position-y":"50%"});
+															}
+														});
+													}, 1000);
+												}
 											</script>
 										</div>
 										<div id="aura_rgb_bg">
@@ -1379,11 +1432,17 @@ function uuRegister(mac){
 										<div style="margin: 24px 0 36px 18px;">
 											<img src="/images/uu_accelerator.png" alt="">
 										</div>
-										<div style="font-size:16px;margin: 0 6px;">UU路由器插件为三大主机PS4、Switch、Xbox One提供加速。可实现多台主机同时加速，NAT类型All Open。畅享全球联机超快感！</div>
+										<div style="font-size:16px;margin: 0 6px;"><#UU_Accelerator_desc#></div>
 										<div style="margin:6px;">
 											<a href="https://uu.163.com/router/" target="_blank" style="color:#4A90E2;text-decoration: underline">FAQ</a>
 										</div>
-										<div class="content-action-container" onclick="uuRegister(label_mac);" style="margin-top:36px;">
+										<div class="content-action-container" onclick="enableuu();" style="margin-top:0px;">
+											<div class="button-container button-container-sm" style="margin: 0 auto;">
+												<div class="button-icon icon-go"></div>
+												<div class="button-text"><#CTL_Enabled#> UU</div>
+											</div>
+										</div>
+										<div class="content-action-container" onclick="uuRegister(label_mac);" style="margin-top:10px;">
 											<div class="button-container button-container-sm" style="margin: 0 auto;">
 												<div class="button-icon icon-go"></div>
 												<div class="button-text"><#btn_go#></div>
@@ -1398,7 +1457,7 @@ function uuRegister(mac){
 												<div style="width:240px;height: 150px;background: url('./images/New_ui/Img-subProd-base.png') no-repeat;background-size: 100%;"></div>
 											</div>
 											<div style="width: 350px;height:170px;">
-												<div style="font-size: 16px;font-family: Roboto;margin-bottom: 24px;height: 80px;"><#BoostKey_desc#></div>
+												<div style="font-size: 16px;font-family: Roboto;margin-bottom: 24px;"><#BoostKey_desc#></div>
 												<div id="boostKey_desc" style="font-size: 16px;font-family: Roboto;color: #BFBFBF;"></div>
 											</div>	
 										</div>
@@ -1441,3 +1500,4 @@ function uuRegister(mac){
 </form>
 </body>
 </html>
+

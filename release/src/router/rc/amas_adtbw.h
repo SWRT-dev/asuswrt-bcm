@@ -2,12 +2,15 @@
 #define AMAS_ADTBW_DFT_POLL_INTERVAL 10
 #define AMAS_ADTBW_DFT_TIMEOUT_WARM_UP 90 //sec
 #define AMAS_ADTBW_DFT_TIMEOUT_SWITCH 60 //sec
-#define AMAS_ADTBW_DFT_BW80_RSSI_THRESH_US -57
-#define AMAS_ADTBW_DFT_BW160_RSSI_THRESH_US -69
+#define AMAS_ADTBW_DFT_BW80_RSSI_THRESH_US -64
+#define AMAS_ADTBW_DFT_BW160_RSSI_THRESH_US -70
+#define AMAS_ADTBW_DFT_BW80_RSSI_THRESH_US_UNII4 -70
+#define AMAS_ADTBW_DFT_BW160_RSSI_THRESH_US_UNII4 -76
 #define AMAS_ADTBW_DFT_BW80_RSSI_THRESH_EU -60
 #define AMAS_ADTBW_DFT_BW160_RSSI_THRESH_EU -66
 #define AMAS_ADTBW_DFT_BW80_HIT_THRESH 3
 #define AMAS_ADTBW_DFT_BW160_HIT_THRESH 3
+#define AMAS_ADTBW_DFT_CH_SWITCH_SCORE_THRESH 150
 
 #define AMAS_ADTBW_DFT_CTRLCH_B3 104
 #define AMAS_ADTBW_DFT_CTRLCH_B4 149
@@ -20,6 +23,10 @@
 #define AMAS_ADTBW_SKU_UNSUPPORT 0
 #define AMAS_ADTBW_SKU_US 1
 #define AMAS_ADTBW_SKU_EU 2
+
+#define DWB_BACKHAUL_ONLY 0
+#define DWB_BACKHAUL_AUTO_FRONTHAUL 1
+#define DWB_BACKHAUL_AND_FRONTHAUL 2
 
 #define AMAS_ADTBW_DEBUG "/tmp/AMAS_ADTBW_DEBUG"
 #define MACF_UP "%02X:%02X:%02X:%02X:%02X:%02X"
@@ -53,6 +60,17 @@ typedef struct	amas_adtbw_config {
 	uint8 hit_bw80;
 	uint8 hit_bw160;
 	uint8 sku;
+	uint8 unii4_support;
+	int rssi_bw80_unii4;
+	int rssi_bw160_unii4;
+	int eu_force_bw160;
+	int ch_switch_score_diff;
+	uint dwb_mode;	// fh_ap_enabled option
+	uint acs_unii4;	// acs_unii4 opition
+	uint unii4_dwb_activate; // check for backhaul ssid "_dwb" && closed = 1
+#ifdef RTCONFIG_FRONTHAUL_AP_AUTO_OPT
+	uint8 auto_fh_mode;
+#endif
 } amas_adtbw_conf_t;
 
 typedef struct amas_adtbw_state {
@@ -63,7 +81,10 @@ typedef struct amas_adtbw_state {
 	uint8 first_re_assoc;
 	uint8 re_count;
 	uint8 stop_switch_160m;
-
+	int re_support_unii4;
+#ifdef RTCONFIG_FRONTHAUL_AP_AUTO_OPT
+	int fh_ap_up;
+#endif
 } amas_adtbw_state_t;
 
 int amas_adtbw_dbg;

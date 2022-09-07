@@ -1647,10 +1647,14 @@ void init_syspara(void)
 	}
 	else
 	{
-		if ((unsigned char)pin[0]!=0xff)
-			nvram_set("secret_code", pin);
+		if (((unsigned char)pin[0] == 0xff)
+		 || !strcmp(pin, "12345670")
+		 || !strcmp(pin, "12345678")) {
+			char devPwd[9];
+			nvram_set("secret_code", wps_gen_pin(devPwd, sizeof(devPwd)) ? devPwd : "12345670");
+		}
 		else
-			nvram_set("secret_code", "12345670");
+			nvram_set("secret_code", pin);
 	}
 
 	dst = buffer;

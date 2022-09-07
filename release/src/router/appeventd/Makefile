@@ -9,6 +9,9 @@ CFLAGS += -I$(SRCBASE)/../components/proto/include -I$(SRCBASE)/../components/wl
 endif
 LDFLAGS += -L$(TOP_PLATFORM)/nvram${BCMEX}${EX7} -L$(INSTALLDIR)/nvram/usr/lib -lnvram
 LDFLAGS += -L$(TOP)/shared -L$(INSTALLDIR)/shared/usr/lib -lshared
+ifeq ($(RTCONFIG_BCM_502L07P2),y)
+LDFLAGS += -L$(TOP_PLATFORM)/ethctl_lib -lethctl
+endif
 LDFLAGS += $(EXTRA_LDFLAGS) -L$(TOP_PLATFORM)/wlcsm$(EXHND) -lwlcsm
 
 vpath %.c $(SRCBASE)/shared/

@@ -5,19 +5,25 @@
    Copyright (c) 2009 Broadcom 
    All Rights Reserved
 
-This program is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License, version 2, as published by
-the Free Software Foundation (the "GPL").
+Unless you and Broadcom execute a separate written software license
+agreement governing use of this software, this software is licensed
+to you under the terms of the GNU General Public License version 2
+(the "GPL"), available at http://www.broadcom.com/licenses/GPLv2.php,
+with the following added to such license:
 
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+   As a special exception, the copyright holders of this software give
+   you permission to link this software with independent modules, and
+   to copy and distribute the resulting executable under terms of your
+   choice, provided that you also meet, for each linked independent
+   module, the terms and conditions of the license of that module.
+   An independent module is a module which is not derived from this
+   software.  The special exception does not apply to any modifications
+   of the software.
 
-
-A copy of the GPL is available at http://www.broadcom.com/licenses/GPLv2.php, or by
-writing to the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-Boston, MA 02111-1307, USA.
+Not withstanding the above, under no circumstances may you combine
+this software in any way with any other Broadcom software provided
+under a license other than the GPL, without Broadcom's express prior
+written consent.
 
 :>
 */
@@ -34,6 +40,8 @@ Boston, MA 02111-1307, USA.
 #include <linux/init.h>
 #include <linux/module.h>
 #include <linux/workqueue.h>
+#include <linux/skbuff.h>
+#include <linux/nbuff.h>
 #include <linux/gbpm.h>
 #include <linux/bcm_colors.h>
 #include <linux/ip.h>
@@ -44,7 +52,9 @@ Boston, MA 02111-1307, USA.
 #include <linux/bcm_log_mod.h>
 #include <linux/bcm_log.h>
 #include <linux/bcm_realtime.h>
+#include <bcm_pkt_lengths.h>
 
+extern int kerSysGetSdramSize( void );
 /* Global Buffer Pool Manager (BPM) */
 
 #undef  GBPM_DECL
@@ -151,7 +161,23 @@ void     gbpm_recycle_pNBuff_stub(void * pNBuff, unsigned long context,
 
 /* --- BPM Get Accessors --- */
 int      gbpm_get_dyn_buf_lvl_stub(void)                { return 1; }
-uint32_t gbpm_get_total_bufs_stub(void)                 { return 0; }
+// Need to initalize this stub code with correct default total_num_bufs.
+uint32_t gbpm_get_total_bufs_stub(void)
+{
+    uint32_t tot_num_bufs = 0;
+    uint32_t __attribute__((unused)) tot_mem_size = kerSysGetSdramSize();
+#if defined(CONFIG_BCM_BPM_DYNAMIC_TYPE_PRCNT) && defined(CONFIG_BCM_BPM_DYNAMIC)
+    uint32_t buf_mem_size = (tot_mem_size/100) * CONFIG_BCM_BPM_DYNAMIC_PRCNT_MAX_BUF;
+#elif !defined(CONFIG_BCM_BPM_DYNAMIC)
+    uint32_t buf_mem_size = (tot_mem_size/100) * CONFIG_BCM_BPM_BUF_MEM_PRCNT;
+#endif
+#if defined(CONFIG_BCM_BPM_DYNAMIC_TYPE_ABS) && defined(CONFIG_BCM_BPM_DYNAMIC)
+    tot_num_bufs = CONFIG_BCM_BPM_DYNAMIC_ABS_MAX_BUF;
+#else
+    tot_num_bufs = (buf_mem_size/BCM_PKTBUF_SIZE);
+#endif
+    return tot_num_bufs;
+}
 uint32_t gbpm_get_avail_bufs_stub(void)                 { return 0; }
 uint32_t gbpm_get_max_dyn_bufs_stub(void)               { return 0; }
 

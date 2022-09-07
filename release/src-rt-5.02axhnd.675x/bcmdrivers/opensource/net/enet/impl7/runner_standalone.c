@@ -4,19 +4,25 @@
       Copyright (c) 2015 Broadcom 
       All Rights Reserved
    
-   This program is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License, version 2, as published by
-   the Free Software Foundation (the "GPL").
+   Unless you and Broadcom execute a separate written software license
+   agreement governing use of this software, this software is licensed
+   to you under the terms of the GNU General Public License version 2
+   (the "GPL"), available at http://www.broadcom.com/licenses/GPLv2.php,
+   with the following added to such license:
    
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
+      As a special exception, the copyright holders of this software give
+      you permission to link this software with independent modules, and
+      to copy and distribute the resulting executable under terms of your
+      choice, provided that you also meet, for each linked independent
+      module, the terms and conditions of the license of that module.
+      An independent module is a module which is not derived from this
+      software.  The special exception does not apply to any modifications
+      of the software.
    
-   
-   A copy of the GPL is available at http://www.broadcom.com/licenses/GPLv2.php, or by
-   writing to the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-   Boston, MA 02111-1307, USA.
+   Not withstanding the above, under no circumstances may you combine
+   this software in any way with any other Broadcom software provided
+   under a license other than the GPL, without Broadcom's express prior
+   written consent.
    
    :>
  */
@@ -247,6 +253,29 @@ int port_runner_port_init(enetx_port_t *self)
     return 0;
 }
 
+#if defined(CONFIG_BCM_FTTDP_G9991) && defined(XRDP)
+void __dispatch_pkt_skb_check_bcast_mcast(dispatch_info_t *dispatch_info)
+{
+    struct sk_buff *skb = (struct sk_buff *)dispatch_info->pNBuff;
+    struct ethhdr *eth = (struct ethhdr *)skb_mac_header(skb);
+    uint8_t def_bcast[6] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+    uint8_t *bcast;
+
+    if (unlikely(*eth->h_dest & 1))
+    {
+        if (dispatch_info->port && dispatch_info->port->dev)
+            bcast = dispatch_info->port->dev->broadcast;
+        else
+            bcast = def_bcast;
+
+        if (memcmp(eth->h_dest, bcast, ETH_ALEN) == 0)
+            skb->pkt_type=PACKET_BROADCAST;
+        else
+            skb->pkt_type=PACKET_MULTICAST;
+    }
+}
+#endif
+
 int port_runner_dispatch_pkt_lan(dispatch_info_t *dispatch_info)
 {
     rdpa_cpu_tx_info_t info = {};
@@ -260,13 +289,18 @@ int port_runner_dispatch_pkt_lan(dispatch_info_t *dispatch_info)
     info.x.lan.queue_id = dispatch_info->egress_queue;
     info.drop_precedence = dispatch_info->drop_eligible;
     info.flags = 0;
+    info.bits.no_lock = dispatch_info->no_lock;
 
     enet_dbg_tx("rdpa_cpu_send: port %d queue %d\n", info.port, dispatch_info->egress_queue);
 
 #ifdef CONFIG_BCM_PTP_1588
     if (unlikely(is_pkt_ptp_1588(dispatch_info->pNBuff, &info, &ptp_offset)))
         return ptp_1588_cpu_send_sysb((bdmf_sysb)dispatch_info->pNBuff, &info, ptp_offset);
-    else
+#endif
+
+#if defined(CONFIG_BCM_FTTDP_G9991) && defined(XRDP)
+    if (IS_SKBUFF_PTR(dispatch_info->pNBuff))
+        __dispatch_pkt_skb_check_bcast_mcast(dispatch_info);
 #endif
     return _rdpa_cpu_send_sysb((bdmf_sysb)dispatch_info->pNBuff, &info);
 }
@@ -280,9 +314,14 @@ static int dispatch_pkt_gbe_wan(dispatch_info_t *dispatch_info)
     info.cpu_port = rdpa_cpu_host;
     info.x.wan.queue_id = dispatch_info->egress_queue;
     info.drop_precedence = dispatch_info->drop_eligible;
+    info.bits.no_lock = dispatch_info->no_lock;
 
     enet_dbg_tx("rdpa_cpu_send: port %d queue %d\n", info.port, dispatch_info->egress_queue);
 
+#if defined(CONFIG_BCM_FTTDP_G9991) && defined(XRDP)
+    if (IS_SKBUFF_PTR(dispatch_info->pNBuff))
+        __dispatch_pkt_skb_check_bcast_mcast(dispatch_info);
+#endif
     return _rdpa_cpu_send_sysb((bdmf_sysb)dispatch_info->pNBuff, &info);
 }
 
@@ -310,7 +349,9 @@ port_ops_t port_runner_port =
     .print_status = port_runner_print_status,
     .print_priv = port_runner_print_priv,
     .link_change = port_runner_link_change,
+#if 0   /* skip Andrew code */
     .mib_dump_us = port_runner_mib_dump_us, // add by Andrew
+#endif
 };
 
 port_ops_t port_runner_port_wan_gbe =
@@ -327,6 +368,8 @@ port_ops_t port_runner_port_wan_gbe =
     .print_status = port_runner_print_status,
     .print_priv = port_runner_print_priv,
     .link_change = port_runner_link_change,
+#if 0   /* skip Andrew code */
     .mib_dump_us = port_runner_mib_dump_us, // add by Andrew
+#endif
 };
 

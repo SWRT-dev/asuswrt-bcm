@@ -12,17 +12,9 @@ all:
 	-cp prebuild/udpclient test/udpclient
 ifeq ($(RTCONFIG_TR181),y)
 ifeq ($(RTCONFIG_DSL),y)
-ifeq ($(RTCONFIG_ISP_OPTUS),y)
-	install -D tr069/conf/ASUSWRT/tr_181.xml.dsl.optus $(INSTALLDIR)/tr069/usr/tr/tr.xml
+	-cp prebuild/tr_181.xml.dsl conf/ASUSWRT/tr_181.xml.dsl
 else
-	install -D tr069/conf/ASUSWRT/tr_181.xml.dsl $(INSTALLDIR)/tr069/usr/tr/tr.xml
-endif
-else
-ifeq ($(RTCONFIG_ISP_OPTUS),y)
-	install -D tr069/conf/ASUSWRT/tr_181.xml.dsl.optus $(INSTALLDIR)/tr069/usr/tr/tr.xml
-else
-	install -D tr069/conf/ASUSWRT/tr_181.xml $(INSTALLDIR)/tr069/usr/tr/tr.xml
-endif
+	-cp prebuild/tr_181.xml conf/ASUSWRT/tr_181.xml
 endif
 else
 ifeq ($(RTCONFIG_DSL),y)

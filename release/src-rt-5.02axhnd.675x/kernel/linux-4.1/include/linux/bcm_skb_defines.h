@@ -5,19 +5,25 @@
 *    Copyright (c) 2014 Broadcom 
 *    All Rights Reserved
 * 
-* This program is free software; you can redistribute it and/or modify
-* it under the terms of the GNU General Public License, version 2, as published by
-* the Free Software Foundation (the "GPL").
+* Unless you and Broadcom execute a separate written software license
+* agreement governing use of this software, this software is licensed
+* to you under the terms of the GNU General Public License version 2
+* (the "GPL"), available at http://www.broadcom.com/licenses/GPLv2.php,
+* with the following added to such license:
 * 
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
+*    As a special exception, the copyright holders of this software give
+*    you permission to link this software with independent modules, and
+*    to copy and distribute the resulting executable under terms of your
+*    choice, provided that you also meet, for each linked independent
+*    module, the terms and conditions of the license of that module.
+*    An independent module is a module which is not derived from this
+*    software.  The special exception does not apply to any modifications
+*    of the software.
 * 
-* 
-* A copy of the GPL is available at http://www.broadcom.com/licenses/GPLv2.php, or by
-* writing to the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-* Boston, MA 02111-1307, USA.
+* Not withstanding the above, under no circumstances may you combine
+* this software in any way with any other Broadcom software provided
+* under a license other than the GPL, without Broadcom's express prior
+* written consent.
 * 
 * :>
 */
@@ -118,10 +124,11 @@
 #define GET_WLAN_IQPRIO(VAL)   ((VAL & WLAN_IQPRIO_MASK) >> WLAN_IQPRIO_BIT_POS)
 #define SET_WLAN_IQPRIO(ENCODEVAL, IQPRIO) ((ENCODEVAL & (~WLAN_IQPRIO_MASK)) | (IQPRIO << WLAN_IQPRIO_BIT_POS))
 
-// LINUX_PRIORITY_BIT_POS_IN_MARK macro must be in sync with PRIO_LOC_NFMARK
-// defined in linux_osl_dslcpe.h
-#define LINUX_PRIORITY_BIT_POS_IN_MARK    16
-#define LINUX_PRIORITY_BIT_MASK          (0x7 << LINUX_PRIORITY_BIT_POS_IN_MARK)
+
+// LINUX_PRIORITY_BIT_POS_IN_MARK macro must be in sync with PRIO_LOC_NFMARK (=>mark[2:0])
+#define PRIO_LOC_NFMARK                  SKBMARK_Q_PRIO_S
+#define LINUX_PRIORITY_BIT_POS_IN_MARK   SKBMARK_Q_PRIO_S
+#define LINUX_PRIORITY_BIT_MASK          SKBMARK_Q_PRIO_M
 #define LINUX_GET_PRIO_MARK(MARK)        ((MARK & LINUX_PRIORITY_BIT_MASK) >> LINUX_PRIORITY_BIT_POS_IN_MARK)
 #define LINUX_SET_PRIO_MARK(MARK, PRIO)  ((MARK & (~LINUX_PRIORITY_BIT_MASK)) | (PRIO << LINUX_PRIORITY_BIT_POS_IN_MARK)) 
 

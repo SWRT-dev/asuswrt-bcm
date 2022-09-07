@@ -22,7 +22,7 @@ OBJS := wlconf.o bcmwifi_channels.o
 
 ifeq ($(wildcard $(SRCBASE)/router/wlconf$(BCMEX)$(EX7)/*.c),)
 all:
-	-cp -f $(SRCBASE)/router/wlconf$(BCMEX)$(EX7)/prebuilt/$(BUILD_NAME)/wlconf wlconf
+	-cp -f $(SRCBASE)/router/wlconf$(BCMEX)$(EX7)/prebuilt/wlconf wlconf
 else
 all: wlconf
 endif

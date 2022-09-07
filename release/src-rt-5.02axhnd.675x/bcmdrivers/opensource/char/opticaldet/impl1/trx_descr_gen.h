@@ -4,19 +4,25 @@
    Copyright (c) 2016 Broadcom 
    All Rights Reserved
 
-This program is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License, version 2, as published by
-the Free Software Foundation (the "GPL").
+Unless you and Broadcom execute a separate written software license
+agreement governing use of this software, this software is licensed
+to you under the terms of the GNU General Public License version 2
+(the "GPL"), available at http://www.broadcom.com/licenses/GPLv2.php,
+with the following added to such license:
 
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+   As a special exception, the copyright holders of this software give
+   you permission to link this software with independent modules, and
+   to copy and distribute the resulting executable under terms of your
+   choice, provided that you also meet, for each linked independent
+   module, the terms and conditions of the license of that module.
+   An independent module is a module which is not derived from this
+   software.  The special exception does not apply to any modifications
+   of the software.
 
-
-A copy of the GPL is available at http://www.broadcom.com/licenses/GPLv2.php, or by
-writing to the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-Boston, MA 02111-1307, USA.
+Not withstanding the above, under no circumstances may you combine
+this software in any way with any other Broadcom software provided
+under a license other than the GPL, without Broadcom's express prior
+written consent.
 
 :>
 */
@@ -153,6 +159,19 @@ static TRX_DESCRIPTOR trx_lst[] = {
     .wan_types_bitmap      = SUPPORTED_WAN_TYPES_BIT_NGPON2_10_10
   },
   {
+    .form_factor           = TRX_SFF,
+    .type                  = TRX_TYPE_XPON,
+    .vendor_name           = "Semtech",
+    .vendor_pn             = "GN28L96 A",
+    .lbe_polarity          = TRX_ACTIVE_HIGH, /* A2 table 0x80 0x87:6 */
+    .tx_sd_polarity        = TRX_ACTIVE_HIGH, /* A2 table 0x80 0x81:0 */
+    .tx_sd_supported       = TRX_SIGNAL_SUPPORTED,
+    .tx_pwr_down_polarity  = TRX_ACTIVE_LOW,
+    .tx_pwr_down_cfg_req   = false,
+    .activation_func       = (f_activation) NULL,
+    .wan_types_bitmap      = SUPPORTED_WAN_TYPES_BIT_EPON_10_10 | SUPPORTED_WAN_TYPES_BIT_XGSPON
+  },
+  {
     .form_factor           = TRX_SFP,
     .type                  = TRX_TYPE_XPON,
     .vendor_name           = "Ligent Photonics",
@@ -191,7 +210,7 @@ static TRX_DESCRIPTOR trx_lst[] = {
     .tx_pwr_down_cfg_req   = false,
     .tx_sd_supported       = TRX_SIGNAL_SUPPORTED,
     .activation_func       = (f_activation) NULL,
-    .wan_types_bitmap      = SUPPORTED_WAN_TYPES_BIT_EPON_10_10 | SUPPORTED_WAN_TYPES_BIT_EPON_10_1 | SUPPORTED_WAN_TYPES_BIT_XGSPON,
+    .wan_types_bitmap      = SUPPORTED_WAN_TYPES_BIT_EPON_10_10 | SUPPORTED_WAN_TYPES_BIT_XGSPON,
     .rx_wavlen             = 1577,
     .power_budget          = TRX_PB_PR30
   },  
@@ -355,6 +374,19 @@ static TRX_DESCRIPTOR trx_lst[] = {
     .tx_pwr_down_polarity  = TRX_ACTIVE_HIGH,
     .tx_pwr_down_cfg_req   = true,
     .tx_sd_supported       = TRX_SIGNAL_SUPPORTED,
+    .activation_func       = (f_activation) NULL,
+    .wan_types_bitmap      = SUPPORTED_WAN_TYPES_BIT_XGSPON
+  },
+  {
+    .form_factor           = TRX_SFP,
+    .type                  = TRX_TYPE_XPON,
+    .vendor_name           = "Hisense",
+    .vendor_pn             = "LTF7225-BH+",
+    .lbe_polarity          = TRX_ACTIVE_LOW,
+    .tx_sd_polarity        = TRX_ACTIVE_HIGH,
+    .tx_pwr_down_polarity  = TRX_ACTIVE_HIGH,
+    .tx_pwr_down_cfg_req   = true,
+    .tx_sd_supported       = TRX_SIGNAL_NOT_SUPPORTED,
     .activation_func       = (f_activation) NULL,
     .wan_types_bitmap      = SUPPORTED_WAN_TYPES_BIT_XGSPON
   },

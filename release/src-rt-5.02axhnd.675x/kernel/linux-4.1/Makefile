@@ -601,7 +601,7 @@ ifdef BCM_KF # defined(CONFIG_BCM_KF_MISC_MAKEFILE)
 -include include/config/auto.conf
 export HPATH 	:= $(TOPDIR)/include
 export CONFIG_SYSTEM := linux
-ifeq ($(strip $(CONFIG_BRCM_IKOS)),)
+ifeq ($(strip $(CONFIG_BRCM_IKOS)),$(strip $(CONFIG_BRCM_QEMU))) #both condition should be true or false 
 brcmdrivers-y	:= $(INC_BRCMBOARDPARMS_PATH)/$(BRCM_BOARD)/ $(BRCMDRIVERS_DIR_RELATIVE)/ $(INC_UTILS_PATH)/  $(INC_FLASH_PATH)/
 brcmdrivers-y	+= $(INC_SPI_PATH)/
 # Other chip specific compilations
@@ -1976,3 +1976,4 @@ FORCE:
 # Declare the contents of the .PHONY variable as phony.  We keep that
 # information in a variable so we can use it in if_changed and friends.
 .PHONY: $(PHONY)
+

@@ -125,7 +125,8 @@ var smartConnectObj = {
 }
 
 var fronthaulNetworkObj = {
-	"fh_ap_enabled": "2"
+	"fh_ap_enabled": "2",
+	"acs_unii4": "0"
 }
 
 var wlcObj = {
@@ -290,7 +291,8 @@ var systemVariable = {
 	"onboardingInfo": {},
 	"skipAiMeshOptionPage": false,
 	"amas_newWindow_addNode": false,
-	"authModePostData": {}
+	"authModePostData": {},
+	"eth_wan_list":{},
 }
 
 var aimeshObj = {

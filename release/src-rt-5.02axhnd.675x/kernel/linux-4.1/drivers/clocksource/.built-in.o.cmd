@@ -1,1 +1,0 @@
-cmd_drivers/clocksource/built-in.o :=  /opt/toolchains//crosstools-arm-gcc-5.5-linux-4.1-glibc-2.26-binutils-2.28.1/usr/bin/arm-buildroot-linux-gnueabi-ld -EL    -r -o drivers/clocksource/built-in.o drivers/clocksource/clksrc-of.o drivers/clocksource/arm_arch_timer.o drivers/clocksource/dummy_timer.o 

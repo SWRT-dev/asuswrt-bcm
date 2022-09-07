@@ -67,6 +67,14 @@
 	display: flex;
 	justify-content: center;
 }
+.renewLoadingIcon{
+	background-image: url(/images/InternetScan.gif);
+	width: 125px;
+	height: 33px;
+	background-repeat: no-repeat;
+	background-position: 50%;
+	display: none;
+}
 </style>
 <script>
 window.onresize = function() {
@@ -192,27 +200,40 @@ function initial(){
 	document.getElementById("faq_iPhone").href=faq_href_iPhone;
 	document.getElementById("faq_android").href=faq_href_android;
 
-	if(wan_proto=="v6plus" && array_ipv6_s46_ports.length > 1){
+	if(wan_proto=="v6plus" && s46_ports_check_flag && array_ipv6_s46_ports.length > 1){
 		$(".setup_info_icon.basic").click(
 			function() {				
 				if($("#s46_ports_content").is(':visible'))
 					$("#s46_ports_content").fadeOut();
 				else{
-					var position = $(".setup_info_icon.basic").position();
-					pop_s46_ports(position);
+					var position1 = $(".setup_info_icon.basic").position();
+					pop_s46_ports(position1);
 				}
+			}
+		);
+		$("#vpn_server_port_basic").focus(
+			function() {
+				var position2_text = $("#vpn_server_port_basic").position();
+				pop_s46_ports(position2_text);
 			}
 		);
 		$(".setup_info_icon.adv").click(
-			function() {				
+			function() {			
 				if($("#s46_ports_content").is(':visible'))
 					$("#s46_ports_content").fadeOut();
 				else{
-					var position = $(".setup_info_icon.adv").position();
-					pop_s46_ports(position);
+					var position2 = $(".setup_info_icon.adv").position();
+					pop_s46_ports(position2);
 				}
 			}
 		);
+		$("#vpn_server_port_adv").focus(
+			function() {
+				var position2_text = $("#vpn_server_port_adv").position();
+				pop_s46_ports(position2_text);
+			}
+		);
+
 		$(".setup_info_icon.basic").show();
 		$("#portSuggestionBasic").hide();
 		$(".setup_info_icon.adv").hide();
@@ -290,14 +311,10 @@ function formShowAndHide(server_enable, server_type) {
 		document.getElementById("trClientWillUseVPNToAccess").style.display = "";
 		document.getElementById('OpenVPN_setting').style.display = ("<% nvram_get("vpn_server_crypt"); %>" == "secret")?"none":"";
 		if(vpn_server_enable == '0') {
-			document.getElementById('openvpn_export').style.display = "none";
-			document.getElementById('openvpn_export_cert').style.display = "none";
-			document.getElementById('openvpn_import_cert').style.display = "none";
+			$('*[data-group="cert_btn"]').hide();
 		}
 		else {
-			document.getElementById('openvpn_export').style.display = "";
-			document.getElementById('openvpn_export_cert').style.display = "";
-			document.getElementById('openvpn_import_cert').style.display = "";
+			$('*[data-group="cert_btn"]').show();
 		}
 		document.getElementById("divAdvanced").style.display = "none";
 
@@ -319,9 +336,7 @@ function formShowAndHide(server_enable, server_type) {
 		document.getElementById("trServerPortBasic").style.display = "none";
 		document.getElementById("trRSAEncryptionBasic").style.display = "none";
 		document.getElementById("trClientWillUseVPNToAccess").style.display = "none";
-		document.getElementById("openvpn_export").style.display = "none";
-		document.getElementById('openvpn_export_cert').style.display = "none";
-		document.getElementById('openvpn_import_cert').style.display = "none";
+		$('*[data-group="cert_btn"]').hide();
 		document.getElementById("OpenVPN_setting").style.display = "none";
 		document.getElementById("divAdvanced").style.display = "none";
 		//if(vpn_server_mode != "openvpn") {
@@ -364,7 +379,7 @@ function applyRule(){
 				return false;
 			}
 			else{
-				if(wan_proto=="v6plus" && array_ipv6_s46_ports.length > 1){
+				if(wan_proto=="v6plus" && s46_ports_check_flag && array_ipv6_s46_ports.length > 1){
 					if (!validator.range_s46_ports(document.form.vpn_server_port_basic, "none")){
 						if(!confirm("The following port related settings may not work properly since the port is not available in current v6plus usable port range. Do you want to continue?")){
 							document.form.vpn_server_port_basic.focus();
@@ -385,7 +400,7 @@ function applyRule(){
 				return false;
 			}
 			else{
-				if(wan_proto=="v6plus" && array_ipv6_s46_ports.length > 1){
+				if(wan_proto=="v6plus" && s46_ports_check_flag && array_ipv6_s46_ports.length > 1){
 					if (!validator.range_s46_ports(document.form.vpn_server_port_adv, "none")){
 						if(!confirm("The following port related settings may not work properly since the port is not available in current v6plus usable port range. Do you want to continue?")){
 							document.form.vpn_server_port_adv.focus();
@@ -402,8 +417,59 @@ function applyRule(){
 			return false;
 		}
 		*/
-		if(!validator.numberRange(document.form.vpn_server_reneg, -1, 2147483647)) {
+		if(!validator.numberRange(document.form.vpn_server_reneg, -1, 99999)) {
 			return false;
+		}
+
+		if(isSupport("ipv6")){
+			var ipv6_service = httpApi.nvramGet(["ipv6_service"]).ipv6_service;
+			if(ipv6_service != "disabled"){
+				var vpn_server_ip6 = $('input[name="vpn_server_ip6"]:checked').val();
+				if(vpn_server_ip6 == "1"){
+					var vpn_server_if = $('select[name=vpn_server_if] option').filter(':selected').val();
+					var vpn_server_crypt = $('select[name=vpn_server_crypt] option').filter(':selected').val();
+					var ip_RegExp = {
+						"IPv6" : "^((([0-9A-Fa-f]{1,4}:){7}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){6}:[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){5}:([0-9A-Fa-f]{1,4}:)?[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){4}:([0-9A-Fa-f]{1,4}:){0,2}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){3}:([0-9A-Fa-f]{1,4}:){0,3}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){2}:([0-9A-Fa-f]{1,4}:){0,4}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){6}((\\b((25[0-5])|(1\\d{2})|(2[0-4]\\d)|(\\d{1,2}))\\b)\\.){3}(\\b((25[0-5])|(1\\d{2})|(2[0-4]\\d)|(\\d{1,2}))\\b))|(([0-9A-Fa-f]{1,4}:){0,5}:((\\b((25[0-5])|(1\\d{2})|(2[0-4]\\d)|(\\d{1,2}))\\b)\\.){3}(\\b((25[0-5])|(1\\d{2})|(2[0-4]\\d)|(\\d{1,2}))\\b))|(::([0-9A-Fa-f]{1,4}:){0,5}((\\b((25[0-5])|(1\\d{2})|(2[0-4]\\d)|(\\d{1,2}))\\b)\\.){3}(\\b((25[0-5])|(1\\d{2})|(2[0-4]\\d)|(\\d{1,2}))\\b))|([0-9A-Fa-f]{1,4}::([0-9A-Fa-f]{1,4}:){0,5}[0-9A-Fa-f]{1,4})|(::([0-9A-Fa-f]{1,4}:){0,6}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){1,7}:))$",
+						"IPv6_CIDR" : "^((([0-9A-Fa-f]{1,4}:){7}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){6}:[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){5}:([0-9A-Fa-f]{1,4}:)?[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){4}:([0-9A-Fa-f]{1,4}:){0,2}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){3}:([0-9A-Fa-f]{1,4}:){0,3}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){2}:([0-9A-Fa-f]{1,4}:){0,4}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){6}((\\b((25[0-5])|(1\\d{2})|(2[0-4]\\d)|(\\d{1,2}))\\b)\\.){3}(\\b((25[0-5])|(1\\d{2})|(2[0-4]\\d)|(\\d{1,2}))\\b))|(([0-9A-Fa-f]{1,4}:){0,5}:((\\b((25[0-5])|(1\\d{2})|(2[0-4]\\d)|(\\d{1,2}))\\b)\\.){3}(\\b((25[0-5])|(1\\d{2})|(2[0-4]\\d)|(\\d{1,2}))\\b))|(::([0-9A-Fa-f]{1,4}:){0,5}((\\b((25[0-5])|(1\\d{2})|(2[0-4]\\d)|(\\d{1,2}))\\b)\\.){3}(\\b((25[0-5])|(1\\d{2})|(2[0-4]\\d)|(\\d{1,2}))\\b))|([0-9A-Fa-f]{1,4}::([0-9A-Fa-f]{1,4}:){0,5}[0-9A-Fa-f]{1,4})|(::([0-9A-Fa-f]{1,4}:){0,6}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){1,7}:))(\/([0-9]|[1-9][0-9]|1[01][0-9]|12[0-8]))$"
+					};
+					var valid_IP_CIDR = function(addr, type, mode){
+						//mode, 0:IP, 1:IP/CIDR
+						var result = true;
+						var IP = new RegExp(ip_RegExp[type],"gi");
+						var IP_CIDR = new RegExp(ip_RegExp[type + "_CIDR"], "gi");
+						if(mode == "0"){
+							if(!IP.test(addr)){
+								result = false;
+							}
+						}
+						else if(mode == "1"){
+							if(!IP_CIDR.test(addr)){
+								result = false;
+							}
+						}
+						return result;
+					};
+					if(vpn_server_if == "tun" && vpn_server_crypt == "tls"){
+						if(!valid_IP_CIDR($("input[name='vpn_server_sn6']").val(), "IPv6", "1")){
+							alert($("input[name='vpn_server_sn6']").val() + " <#JS_validip#>");
+							$("input[name='vpn_server_sn6']").focus()
+							return false;
+						}
+					}
+					else if(vpn_server_if == "tun" && vpn_server_crypt == "secret"){
+						if(!valid_IP_CIDR($("input[name='vpn_server_local6']").val(), "IPv6", "0")){
+							alert($("input[name='vpn_server_local6']").val() + " <#JS_validip#>");
+							$("input[name='vpn_server_local6']").focus()
+							return false;
+						}
+						if(!valid_IP_CIDR($("input[name='vpn_server_remote6']").val(), "IPv6", "0")){
+							alert($("input[name='vpn_server_remote6']").val() + " <#JS_validip#>");
+							$("input[name='vpn_server_remote6']").focus()
+							return false;
+						}
+					}
+				}
+			}
 		}
 		return true;
 	};
@@ -422,7 +488,8 @@ function applyRule(){
 		var lan_ip_end = parseInt(origin_lan_ip.split(".")[3]);
 		var pool_start = '<% nvram_get("dhcp_start"); %>';
 		var pool_end = '<% nvram_get("dhcp_end"); %>';
-		var dhcp_staticlists = '<% nvram_get("dhcp_staticlist"); %>';
+		var dhcp_staticlists = '<% nvram_get("dhcp_staticlist"); %>'.replace(/&#62/g, ">").replace(/&#60/g, "<");
+		var staticclist_row = dhcp_staticlists.split('<');
 		var netmask_obj = document.form.vpn_server_nm;
 		var vpnSubnet = document.form.vpn_server_sn;
 		var pool_start = '<% nvram_get("dhcp_start"); %>';
@@ -550,9 +617,9 @@ function applyRule(){
 			//DHCP static IP
 			if(dhcp_staticlists != "") {
 				for(var i = 1; i < staticclist_row.length; i +=1 ) {
+					var static_ip = staticclist_row[i].split('>')[1];
 					var static_subnet = static_ip.split(".")[0]+"."+static_ip.split(".")[1]+"."+static_ip.split(".")[2]+".";
 					var static_end = parseInt(static_ip.split(".")[3]);					
-					var static_ip = staticclist_row[i].split('>')[1];
 					if(static_subnet != openvpn_clients_start_subnet) {
 						alert(document.form.vpn_server_r1.value + " <#JS_validip#>");
 						document.form.vpn_server_r1.focus();
@@ -671,6 +738,7 @@ function applyRule(){
 			document.form.vpn_serverx_clientlist.value = get_group_value();
 		}
 		
+		handle_ipv6_submit_settings();
 		showLoading();
 		document.form.submit();
 	}
@@ -860,7 +928,7 @@ function update_vpn_server_state() {
 				document.getElementById('openvpn_error_message').innerHTML = "<span><#vpn_openvpn_fail1#></span>";
 				document.getElementById('openvpn_error_message').style.display = "";
 			}
-			else if(vpnd_state != '2' && (vpn_server1_errno == '4' || vpn_server1_errno == '7')){
+			else if(vpnd_state != '2' && vpn_server1_errno == '4'){
 				document.getElementById('openvpn_initial').style.display = "none";
 				document.getElementById('openvpn_error_message').innerHTML = "<span><#vpn_openvpn_fail2#></span>";
 				document.getElementById('openvpn_error_message').style.display = "";
@@ -870,7 +938,7 @@ function update_vpn_server_state() {
 				document.getElementById('openvpn_error_message').innerHTML = "<span><#vpn_openvpn_fail3#></span>";
 				document.getElementById('openvpn_error_message').style.display = "";
 			}
-			else if(vpnd_state == '-1' && vpn_server1_errno == '0'){
+			else if((vpnd_state == '-1' && vpn_server1_errno == '0') || (vpnd_state != '2' && vpn_server1_errno == '7')){
 				document.getElementById('openvpn_initial').style.display = "none";
 				document.getElementById('openvpn_error_message').innerHTML = "<span><#vpn_openvpn_fail4#></span>";
 				document.getElementById('openvpn_error_message').style.display = "";
@@ -912,19 +980,15 @@ function switchMode(mode){
 		document.getElementById("trClientWillUseVPNToAccess").style.display = "";
 		document.getElementById('OpenVPN_setting').style.display = ("<% nvram_get("vpn_server_crypt"); %>" == "secret")?"none":"";		
 		if(vpn_server_enable == '0') {
-			document.getElementById('openvpn_export').style.display = "none";
-			document.getElementById('openvpn_export_cert').style.display = "none";
-			document.getElementById('openvpn_import_cert').style.display = "none";
+			$('*[data-group="cert_btn"]').hide();
 		}
 		else {
-			document.getElementById('openvpn_export').style.display = "";
-			document.getElementById('openvpn_export_cert').style.display = "";
-			document.getElementById('openvpn_import_cert').style.display = "";
+			$('*[data-group="cert_btn"]').show();
 		}
 		document.getElementById("divAdvanced").style.display = "none";
 		updateVpnServerClientAccess();
 
-		if(wan_proto=="v6plus" && array_ipv6_s46_ports.length > 1){
+		if(wan_proto=="v6plus" && s46_ports_check_flag && array_ipv6_s46_ports.length > 1){
 			if($("#s46_ports_content").is(':visible'))
 				$("#s46_ports_content").fadeOut();
 
@@ -937,12 +1001,10 @@ function switchMode(mode){
 		document.getElementById("trRSAEncryptionBasic").style.display = "none";
 		document.getElementById("trClientWillUseVPNToAccess").style.display = "none";
 		document.getElementById("OpenVPN_setting").style.display = "none";
-		document.getElementById("openvpn_export").style.display = "none";
-		document.getElementById('openvpn_export_cert').style.display = "none";
-		document.getElementById('openvpn_import_cert').style.display = "none";
+		$('*[data-group="cert_btn"]').hide();
 		document.getElementById("divAdvanced").style.display = "";
 
-		if(wan_proto=="v6plus" && array_ipv6_s46_ports.length > 1){
+		if(wan_proto=="v6plus" && s46_ports_check_flag && array_ipv6_s46_ports.length > 1){
 			if($("#s46_ports_content").is(':visible'))
 				$("#s46_ports_content").fadeOut();
 			
@@ -987,6 +1049,8 @@ function update_visibility(){
 	showhide("server_tls_crypto_text", (auth == "tls"));		//add by Viz
 	showhide("server_static_crypto_text", (auth == "secret"));		//add by Viz
 	// rm 2017/06/28 showhide("server_custom_crypto_text", (auth == "custom"));
+
+	update_visibility_ipv6();
 }
 
 function set_Keys(auth) {
@@ -1263,6 +1327,40 @@ function updateVpnServerClientAccess() {
 function exportCert() {
 	location.href = 'server_ovpn.cert';
 }
+function renewCert() {
+	$("#renewCertToLocal").hide();
+	$(".renewLoadingIcon").show();
+	httpApi.nvramSet({
+		"vpn_crt_server1_ca" : "",
+		"vpn_crt_server1_crt" : "",
+		"vpn_crt_server1_key" : "",
+		"vpn_crt_server1_dh" : "",
+		"vpn_crt_server1_crl" : "",
+		"rc_service": "restart_openvpnd",
+		"action_mode": "apply"
+	}, function(){
+		var count = 0;
+		var timer = 10;
+		var interval_check = setInterval(function(){
+			var vpn_server1_state = httpApi.nvramGet(["vpn_server1_state"], true).vpn_server1_state;
+			if(vpn_server1_state == "2"){
+				clearInterval(interval_check);
+				$("#renewCertToLocal").show();
+				$(".renewLoadingIcon").hide();
+				alert("Update certification successfully, please export new OpenVPN configuration file and install in your VPN client.");/* untranslated */
+			}
+			else{
+				count++;
+				if(count >= timer){
+					clearInterval(interval_check);
+					$("#renewCertToLocal").show();
+					$(".renewLoadingIcon").hide();
+					alert("<#vpn_ipsec_update_cert_fail#>");
+				}
+			}
+		}, 2000);
+	});
+}
 function selectImportFile() {
 	document.import_cert_form.import_cert_file.click();
 }
@@ -1281,11 +1379,77 @@ function callback_upload_cert(_flag) {
 	if(_flag) {
 		var waiting_time = parseInt(document.form.action_wait.value);
 		showLoading(waiting_time);
-		setTimeout(function(){location.href = location.href;}, waiting_time*1000);
+		setTimeout(function(){location.reload();}, waiting_time*1000);
 	}
 	else {
 		alert("<#SET_fail_desc#>");
 		hideLoading();
+	}
+}
+function update_visibility_ipv6(){
+	if(isSupport("ipv6")){
+		var ipv6_service = httpApi.nvramGet(["ipv6_service"]).ipv6_service;
+		if(ipv6_service == "disabled"){
+			$('*[data-group="ipv6_settings"]').remove();
+		}
+		else{
+			$('*[data-group="ipv6_settings"]').hide();
+			var vpn_server_if = $('select[name=vpn_server_if] option').filter(':selected').val();
+			if(vpn_server_if != "tap"){
+				$("#server_ipv6_mode").show();
+				var vpn_server_ip6 = $('input[name="vpn_server_ip6"]:checked').val();
+				if(vpn_server_ip6 == "1"){
+					$("#server_ipv6_nat").show();
+					if(isSupport("ipv6nat")){
+						$("input[name=vpn_server_nat6]").attr("disabled", false);
+						$("#ipv6nat_hint").hide();
+					}
+					else{
+						$("input[name=vpn_server_nat6][value=0]").attr("checked", "checked");
+						$("input[name=vpn_server_nat6][value=1]").attr("disabled", true);
+						$("#ipv6nat_hint").show();
+					}
+					var vpn_server_crypt = $('select[name=vpn_server_crypt] option').filter(':selected').val();
+					if(vpn_server_if == "tun" && vpn_server_crypt == "tls"){
+						$("#server_ipv6_snnm").show();
+					}
+					else if(vpn_server_if == "tun" && vpn_server_crypt == "secret"){
+						$("#server_ipv6_local").show();
+					}
+				}
+				else{
+					$("#server_ipv6_snnm, #server_ipv6_local, #server_ipv6_nat").hide();
+				}
+			}
+		}
+	}
+	else{
+		$('*[data-group="ipv6_settings"]').remove();
+	}
+}
+function handle_ipv6_submit_settings(){
+	if(isSupport("ipv6")){
+		var ipv6_service = httpApi.nvramGet(["ipv6_service"]).ipv6_service;
+		if(ipv6_service != "disabled"){
+			$('*[data-group="ipv6_settings"]').find(":input").attr("disabled", true);
+			var vpn_server_if = $('select[name=vpn_server_if] option').filter(':selected').val();
+			if(vpn_server_if != "tap"){
+				if(document.form.VPNServer_enable.value == "1"){
+					$("input[name='vpn_server_ip6']").attr("disabled", false);
+					var vpn_server_ip6 = $('input[name="vpn_server_ip6"]:checked').val();
+					if(vpn_server_ip6 == "1"){
+						$("input[name='vpn_server_nat6']").attr("disabled", false);
+						var vpn_server_crypt = $('select[name=vpn_server_crypt] option').filter(':selected').val();
+						if(vpn_server_if == "tun" && vpn_server_crypt == "tls"){
+							$("input[name='vpn_server_sn6']").attr("disabled", false);
+						}
+						else if(vpn_server_if == "tun" && vpn_server_crypt == "secret"){
+							$("input[name='vpn_server_local6'], input[name='vpn_server_remote6']").attr("disabled", false);
+						}
+					}
+				}
+			}
+		}
 	}
 }
 </script>
@@ -1504,7 +1668,7 @@ function callback_upload_cert(_flag) {
 												<div class="setup_info_icon basic" style="display:none;"></div>
 											</th>
 											<td>
-												<input type="text" maxlength="5" class="input_6_table" name="vpn_server_port_basic" onKeyPress="return validator.isNumber(this,event);" value="<% nvram_get("vpn_server_port"); %>" autocorrect="off" autocapitalize="off">
+												<input type="text" maxlength="5" class="input_6_table" id="vpn_server_port_basic" name="vpn_server_port_basic" onKeyPress="return validator.isNumber(this,event);" value="<% nvram_get("vpn_server_port"); %>" autocorrect="off" autocapitalize="off">
 												<div id="portSuggestionBasic" style="color: #FFCC00;"><#SSH_Port_Suggestion#></div>
 											</td>
 										</tr>
@@ -1528,7 +1692,7 @@ function callback_upload_cert(_flag) {
 												<label for="vpn_server_client_access_custom" class="client_access_custom"><#Custom#></label>
 											</td>
 										</tr>
-										<tr id="openvpn_export" style="display:none;">
+										<tr id="openvpn_export" style="display:none;" data-group="cert_btn">
 											<th><#vpn_export_ovpnfile#></th>
 											<td>
 												<div id="export_div">
@@ -1552,19 +1716,38 @@ function callback_upload_cert(_flag) {
               									<div id="openvpn_error_message" style="display:none;margin-left:5px;"></div>	
             								</td>
           								</tr>
-										<tr id="openvpn_export_cert" style="display:none;">
-											<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(32,27);"><#vpn_export_cert#></a></th>
+										<tr id="openvpn_re_cert" style="display:none;" data-group="cert_btn">
+											<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(33,2);"><#vpn_ipsec_re_cert#></a></th>
 											<td>
-												<input id="exportCertToLocal" class="button_gen" type="button" value="<#btn_Export#>" onClick="exportCert();"/>
-											</td>
-										</tr>
-										<tr id="openvpn_import_cert" style="display:none;">
-											<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(32,28);"><#vpn_import_cert#></a></th>
-											<td>
-												<input class="button_gen" type="button" value="<#CTL_upload#>" onClick="selectImportFile();"/>
+												<input id="renewCertToLocal" class="button_gen" type="button" value="<#CTL_renew#>" onClick="renewCert();"/>
+												<div class="renewLoadingIcon"></div>
 											</td>
 										</tr>
 									</table>
+									<div data-group="cert_btn" style="margin-top:14px;">
+										<div class="formfontdesc">
+											When you would restore or replace router, you can keep original certification of OpenVPN server via Export Current Certification and import it to new router.<!--untranslated-->
+										</div>
+										<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">
+											<thead>
+											<tr>
+												<td colspan="2">Certification Tranfer</td><!--untranslated-->
+											</tr>
+											</thead>
+											<tr id="openvpn_export_cert" style="display:none;" data-group="cert_btn">
+												<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(32,27);"><#vpn_export_cert#></a></th>
+												<td>
+													<input id="exportCertToLocal" class="button_gen" type="button" value="<#btn_Export#>" onClick="exportCert();"/>
+												</td>
+											</tr>
+											<tr id="openvpn_import_cert" style="display:none;" data-group="cert_btn">
+												<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(32,28);"><#vpn_import_cert#></a></th>
+												<td>
+													<input class="button_gen" type="button" value="<#CTL_upload#>" onClick="selectImportFile();"/>
+												</td>
+											</tr>
+										</table>
+									</div>
 									<div id="OpenVPN_setting" style="display:none;margin-top:8px;">
 										<div class="formfontdesc">
 											<#vpn_openvpn_desc1#>&nbsp;<#vpn_openvpn_desc3#>&nbsp;<#vpn_openvpn_desc4#>&nbsp;<#vpn_openvpn_desc2#><br>
@@ -1687,7 +1870,7 @@ function callback_upload_cert(_flag) {
 													<div class="setup_info_icon adv" style="display:none;"></div>
 												</th>
 												<td>
-													<input type="text" maxlength="5" class="input_6_table" name="vpn_server_port_adv" onKeyPress="return validator.isNumber(this,event);" value="<% nvram_get("vpn_server_port"); %>" autocorrect="off" autocapitalize="off">
+													<input type="text" maxlength="5" class="input_6_table" id="vpn_server_port_adv" name="vpn_server_port_adv" onKeyPress="return validator.isNumber(this,event);" value="<% nvram_get("vpn_server_port"); %>" autocorrect="off" autocapitalize="off">
 													<div id="portSuggestionAdvanced" style="color: #FFCC00;"><#SSH_Port_Suggestion#></div>
 												</td>
 											</tr>
@@ -1793,6 +1976,28 @@ function callback_upload_cert(_flag) {
 													<input type="text" maxlength="15" class="input_15_table" name="vpn_server_nm" onkeypress="return validator.isIPAddr(this, event);" value="<% nvram_get("vpn_server_nm"); %>" autocorrect="off" autocapitalize="off">
 												</td>
 											</tr>
+											<tr id="server_ipv6_mode" data-group="ipv6_settings">
+												<th>Enable IPv6 Server mode</th><!--untranslated-->
+												<td>
+													<input type="radio" name="vpn_server_ip6" class="input" value="1" onclick="update_visibility_ipv6();" <% nvram_match_x("", "vpn_server_ip6", "1", "checked"); %>><#checkbox_Yes#>
+													<input type="radio" name="vpn_server_ip6" class="input" value="0" onclick="update_visibility_ipv6();" <% nvram_match_x("", "vpn_server_ip6", "0", "checked"); %>><#checkbox_No#>
+												</td>
+											</tr>
+											<tr id="server_ipv6_nat" data-group="ipv6_settings">
+												<th>Enable NAT IPv6</th><!--untranslated-->
+												<td>
+													<input type="radio" name="vpn_server_nat6" class="input" value="1" <% nvram_match_x("", "vpn_server_nat6", "1", "checked"); %>><#checkbox_Yes#>
+													<input type="radio" name="vpn_server_nat6" class="input" value="0" <% nvram_match_x("", "vpn_server_nat6", "0", "checked"); %>><#checkbox_No#>
+													<br>
+													<span id="ipv6nat_hint" class="hint-color">The router does not support NAT IPv6 and all your VPN clients would get a global IPv6 allocated address.</span>
+												</td>
+											</tr>
+											<tr id="server_ipv6_snnm" data-group="ipv6_settings">
+												<th>IPv6 <#vpn_openvpn_SubnetMsak#></th>
+												<td>
+													<input type="text" maxlength="43" class="input_22_table" name="vpn_server_sn6" value="<% nvram_get("vpn_server_sn6"); %>" autocorrect="off" autocapitalize="off">
+												</td>
+											</tr>
 											<tr id="server_dhcp">
 												<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(32,13);"><#vpn_openvpn_dhcp#></a></th>
 												<td>
@@ -1812,6 +2017,13 @@ function callback_upload_cert(_flag) {
 												<td>
 													<input type="text" maxlength="15" class="input_15_table" name="vpn_server_local" onkeypress="return validator.isIPAddr(this, event);" value="<% nvram_get("vpn_server_local"); %>" autocorrect="off" autocapitalize="off">
 													<input type="text" maxlength="15" class="input_15_table" name="vpn_server_remote" onkeypress="return validator.isIPAddr(this, event);" value="<% nvram_get("vpn_server_remote"); %>" autocorrect="off" autocapitalize="off">
+												</td>
+											</tr>
+											<tr id="server_ipv6_local" data-group="ipv6_settings">
+												<th>IPv6 <#vpn_openvpn_LocalRemote_IP#></th>
+												<td>
+													<input type="text" maxlength="39" class="input_22_table" name="vpn_server_local6" value="<% nvram_get("vpn_server_local6"); %>" autocorrect="off" autocapitalize="off">
+													<input type="text" maxlength="39" class="input_22_table" name="vpn_server_remote6" value="<% nvram_get("vpn_server_remote6"); %>" autocorrect="off" autocapitalize="off">
 												</td>
 											</tr>
 											<!-- rm 2017/06/28 tr>

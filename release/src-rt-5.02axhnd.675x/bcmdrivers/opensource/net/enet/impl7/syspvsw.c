@@ -1,23 +1,29 @@
 /*
    <:copyright-BRCM:2018:DUAL/GPL:standard
-   
-      Copyright (c) 2018 Broadcom 
+
+      Copyright (c) 2018 Broadcom
       All Rights Reserved
-   
-   This program is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License, version 2, as published by
-   the Free Software Foundation (the "GPL").
-   
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
-   
-   
-   A copy of the GPL is available at http://www.broadcom.com/licenses/GPLv2.php, or by
-   writing to the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-   Boston, MA 02111-1307, USA.
-   
+
+   Unless you and Broadcom execute a separate written software license
+   agreement governing use of this software, this software is licensed
+   to you under the terms of the GNU General Public License version 2
+   (the "GPL"), available at http://www.broadcom.com/licenses/GPLv2.php,
+   with the following added to such license:
+
+      As a special exception, the copyright holders of this software give
+      you permission to link this software with independent modules, and
+      to copy and distribute the resulting executable under terms of your
+      choice, provided that you also meet, for each linked independent
+      module, the terms and conditions of the license of that module.
+      An independent module is a module which is not derived from this
+      software.  The special exception does not apply to any modifications
+      of the software.
+
+   Not withstanding the above, under no circumstances may you combine
+   this software in any way with any other Broadcom software provided
+   under a license other than the GPL, without Broadcom's express prior
+   written consent.
+
    :>
  */
 
@@ -27,6 +33,7 @@
  */
 
 #include "bcmenet_common.h"
+#include "bcmenet.h"
 #include "syspvsw.h"
 #include "crossbar_dev.h"
 #include "mux_index.h"
@@ -65,29 +72,6 @@ int port_sysp_port_init(enetx_port_t *self)
     }
     return 0;
 }
-
-extern void link_change_handler(enetx_port_t *port, int linkstatus, int speed, int duplex);
-extern int speed_macro_2_mbps(phy_speed_t spd);
-
-void port_sysp_port_open(enetx_port_t *self)
-{
-    // if connect to external switch, set link up and enable mac
-    if (self->p.phy && self->p.phy->phy_drv->phy_type == PHY_TYPE_MAC2MAC)
-    {
-        self->p.phy->link = 1;
-       if (IsPortConnectedToExternalSwitch(self->p.phy->meta_id))
-            mac_dev_enable(self->p.mac);
-        else
-            link_change_handler(self, self->p.phy->link, speed_macro_2_mbps(self->p.phy->speed), self->p.phy->duplex == PHY_DUPLEX_FULL);
-    }
-    else if (self->p.phy && IsPortConnectedToExternalSwitch(self->p.phy->meta_id))
-    {
-        mac_dev_enable(self->p.mac);
-    }
-    else
-        port_generic_open(self);
-}
-
 
 int port_sysp_mib_dump(enetx_port_t *self, int all)
 {
@@ -197,6 +181,7 @@ int port_sysp_mib_dump(enetx_port_t *self, int all)
     return 0;
 }
 
+#if 0   /* skip Andrew code */
 // add by Andrew
 int port_sysp_mib_dump_us(enetx_port_t *self, void *ethswctl)
 {
@@ -225,6 +210,7 @@ int port_sysp_mib_dump_us(enetx_port_t *self, void *ethswctl)
     return 0;
 }
 // end of add
+#endif
 
 int port_sysp_port_role_set(enetx_port_t *self, port_netdev_role_t role)
 {
@@ -236,6 +222,7 @@ int port_sysp_port_role_set(enetx_port_t *self, port_netdev_role_t role)
         BCM_EnetPortRole_t port_role;
 
         port_role.sysport = self->p.mac->mac_id;
+        port_role.switch_id = 0;
         port_role.port = 0;
         port_role.is_wan = (role == PORT_NETDEV_ROLE_WAN);
 
@@ -273,5 +260,7 @@ port_ops_t port_sysp_port_mac =
     .pause_set = port_generic_pause_set,
     .mtu_set = port_generic_mtu_set,
     .mib_dump = port_sysp_mib_dump,
+#if 0   /* skip Andrew code */
     .mib_dump_us = port_sysp_mib_dump_us, // add by Andrew
+#endif
 };

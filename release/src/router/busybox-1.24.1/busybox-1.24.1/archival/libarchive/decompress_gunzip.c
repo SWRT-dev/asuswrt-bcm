@@ -224,9 +224,19 @@ static const uint8_t border[] ALIGN1 = {
  * each table.
  * t: table to free
  */
+#define BAD_HUFT(p) ((uintptr_t)(p) & 1)
+#define ERR_RET     ((huft_t*)(uintptr_t)1)
 static void huft_free(huft_t *p)
 {
 	huft_t *q;
+
+	/*
+	 * If 'p' has the error bit set we have to clear it, otherwise we might run
+	 * into a segmentation fault or an invalid pointer to free(p)
+	 */
+	if (BAD_HUFT(p)) {
+		p = (huft_t*)((uintptr_t)(p) ^ (uintptr_t)(ERR_RET));
+	}
 
 	/* Go through linked list, freeing from the malloced (t[-1]) address. */
 	while (p) {
@@ -1201,7 +1211,7 @@ unpack_gz_stream(transformer_state_t *xstate)
 	if (check_signature16(xstate, GZIP_MAGIC))
 		return -1;
 #else
-	if (xstate->check_signature) {
+	if (!xstate->signature_skipped) {
 		uint16_t magic2;
 
 		if (full_read(xstate->src_fd, &magic2, 2) != 2) {
@@ -1210,7 +1220,7 @@ unpack_gz_stream(transformer_state_t *xstate)
 			return -1;
 		}
 		if (magic2 == COMPRESS_MAGIC) {
-			xstate->check_signature = 0;
+			xstate->signature_skipped = 2;
 			return unpack_Z_stream(xstate);
 		}
 		if (magic2 != GZIP_MAGIC)

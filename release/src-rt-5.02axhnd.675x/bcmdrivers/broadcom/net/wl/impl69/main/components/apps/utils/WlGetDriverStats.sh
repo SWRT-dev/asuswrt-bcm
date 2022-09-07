@@ -2,7 +2,7 @@
 #
 # WlGetDriverStats.sh <ucast|mcast> <WiFi interface name> <NrRetries> <enable|disable>
 #
-# Copyright (C) 2020, Broadcom. All Rights Reserved.
+# Copyright (C) 2021, Broadcom. All Rights Reserved.
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -207,7 +207,7 @@ wl_stats () {
     display_cmd_op "LAST ADJ EST POWER: wl -i $IFNAME txpwr_adj_est" "$WLCMD -i $IFNAME txpwr_adj_est"
     display_cmd_op "CEVENT: ceventc -i $IFNAME dump" "ceventc -i $IFNAME dump"
     ## Flush ceventc log
-    ceventc -i $IFNAME flush > /dev/NULL 2>&1
+    #ceventc -i $IFNAME flush > /dev/NULL 2>&1
 }
 
 dhd_stats () {

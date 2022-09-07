@@ -1,7 +1,7 @@
 *~
 *.log
 key/*
-buildtools/*
+buildtools/privkey.pem
 release/src/router/httpd/pwenc.c
 release/src/router/httpd/web_hook.c
 release/src/router/httpd/sysdeps/*_private.c
@@ -40,8 +40,6 @@ release/src/router/u2ec/*.c
 release/src/router/u2ec/*.h
 release/src-rt-6.x.4708/linux/linux-2.6.36/net/swrt_fastpath/*.c
 release/src-rt-7.14.114.x/src/linux/linux-2.6.36/net/swrt_fastpath/*.c
-release/src-rt-5.02hnd/kernel/linux-4.1/net/swrt_fastpath/*.c
-release/src-rt-5.02axhnd.675x/kernel/linux-4.1/net/swrt_fastpath/*.c
-release/src-rt-5.02p1axhnd.675x/kernel/linux-4.1/net/swrt_fastpath/*.c
+release/src-rt-*/kernel/linux-*/net/swrt_fastpath/*.c
 
 

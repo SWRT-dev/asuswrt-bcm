@@ -647,6 +647,12 @@ function srConfirm() {
 			return false;
 		}
 	}
+
+	var lan_ipaddr = httpApi.nvramGet(["lan_ipaddr"]).lan_ipaddr;
+	if(pptpd_sr_ipaddr == lan_ipaddr){
+		alert("<#vpn_conflict_LANIP#> " + lan_ipaddr);
+		return false;
+	}
 	
 	var usernameFlag = false;
 	var pptpd_sr_rulelist_row = pptpd_sr_rulelist_array.split("<");

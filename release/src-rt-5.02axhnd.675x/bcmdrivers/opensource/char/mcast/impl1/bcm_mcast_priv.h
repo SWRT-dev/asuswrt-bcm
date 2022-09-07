@@ -4,19 +4,25 @@
 *
 <:label-BRCM:2015:DUAL/GPL:standard
 
-This program is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License, version 2, as published by
-the Free Software Foundation (the "GPL").
+Unless you and Broadcom execute a separate written software license
+agreement governing use of this software, this software is licensed
+to you under the terms of the GNU General Public License version 2
+(the "GPL"), available at http://www.broadcom.com/licenses/GPLv2.php,
+with the following added to such license:
 
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+   As a special exception, the copyright holders of this software give
+   you permission to link this software with independent modules, and
+   to copy and distribute the resulting executable under terms of your
+   choice, provided that you also meet, for each linked independent
+   module, the terms and conditions of the license of that module.
+   An independent module is a module which is not derived from this
+   software.  The special exception does not apply to any modifications
+   of the software.
 
-
-A copy of the GPL is available at http://www.broadcom.com/licenses/GPLv2.php, or by
-writing to the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-Boston, MA 02111-1307, USA.
+Not withstanding the above, under no circumstances may you combine
+this software in any way with any other Broadcom software provided
+under a license other than the GPL, without Broadcom's express prior
+written consent.
 
 :>
 */
@@ -114,5 +120,10 @@ int bcm_mcast_get_lan2lan_snooping(int proto, bcm_mcast_ifdata *pif);
 void bcm_mcast_process_blog_enable(int enable);
 #endif
 
+void bcm_mcast_sysfs_create_file(struct net_device *dev);
+void bcm_mcast_sysfs_remove_file(struct net_device *dev);
+#define netdev_mcastrouter_set(_dev)        ((_dev)->bcm_mcastrouter = 1)
+#define netdev_mcastrouter_unset(_dev)      ((_dev)->bcm_mcastrouter = 0)
+#define is_netdev_mcastrouter(_dev)         ((_dev)->bcm_mcastrouter)
 #endif /* _BCM_MCAST_PRIV_H_ */
 

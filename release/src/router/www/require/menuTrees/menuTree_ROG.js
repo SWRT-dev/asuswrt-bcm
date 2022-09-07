@@ -850,7 +850,7 @@ define(function(){
 					retArray.push("AdaptiveQoS_InternetSpeed.asp");
 				}
 
-				if(outfox_support)
+				if(outfox_support || !wtfast_support)
 					retArray.push("Advanced_WTFast_Content.asp");
 
 				return retArray;
@@ -860,3 +860,4 @@ define(function(){
 
 	return menuTree;
 });
+

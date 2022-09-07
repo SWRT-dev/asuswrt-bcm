@@ -101,6 +101,7 @@ typedef struct _WPS_CONFIGURED_VALUE {
 extern u_int ieee80211_mhz2ieee(u_int freq);
 extern int get_channel_list_via_driver(int unit, char *buffer, int len);
 extern int get_channel_list_via_country(int unit, const char *country_code, char *buffer, int len);
+extern int get_channel(const char *ifname);
 
 #define WL_A		(1U << 0)
 #define WL_B		(1U << 1)
@@ -376,55 +377,6 @@ char *getAPPhyMode(int unit)
 	return r;
 }
 
-static unsigned int getAPChannelbyIface(const char *ifname)
-{
-	char buf[8192];
-	FILE *fp;
-	int len, i = 0;
-	char *pt1, *pt2, ch_mhz[10], ch_mhz_t[10];
-
-	if (!ifname || *ifname == '\0') {
-		dbg("%S: got invalid ifname %p\n", __func__, ifname);
-		return 0;
-	}
-
-	snprintf(buf, sizeof(buf), "iwconfig %s", ifname);
-	fp = popen(buf, "r");
-	if (fp) {
-		memset(buf, 0, sizeof(buf));
-		len = fread(buf, 1, sizeof(buf), fp);
-		pclose(fp);
-		if (len > 1) {
-			buf[len-1] = '\0';
-			pt1 = strstr(buf, "Frequency:");
-			if (pt1) {
-				pt2 = pt1 + strlen("Frequency:");
-				pt1 = strstr(pt2, " GHz");
-				if (pt1) {
-					*pt1 = '\0';
-					memset(ch_mhz, 0, sizeof(ch_mhz));
-					len = strlen(pt2);
-					for (i = 0; i < 5; i++) {
-						if (i < len) {
-							if (pt2[i] == '.')
-								continue;
-							snprintf(ch_mhz_t, sizeof(ch_mhz), "%s%c", ch_mhz, pt2[i]);
-							strlcpy(ch_mhz, ch_mhz_t, sizeof(ch_mhz));
-						}
-						else{
-							snprintf(ch_mhz_t, sizeof(ch_mhz), "%s0", ch_mhz);
-							strlcpy(ch_mhz, ch_mhz_t, sizeof(ch_mhz));
-						}
-					}
-					//dbg("Frequency:%s MHz\n", ch_mhz);
-					return ieee80211_mhz2ieee((unsigned int)safe_atoi(ch_mhz));
-				}
-			}
-		}
-	}
-	return 0;
-}
-
 static unsigned int getAPChannelbyIWInfo(const char *ifname)
 {
 	int r;
@@ -463,7 +415,7 @@ unsigned int getAPChannel(int unit)
 	case WL_2G_BAND:	/* fall-through */
 	case WL_5G_BAND:	/* fall-through */
 	case WL_5G_2_BAND:
-		r = getAPChannelbyIface(get_wifname(unit));
+		r = get_channel(get_wifname(unit));
 		break;
 	case WL_60G_BAND:
 		/* FIXME */
@@ -1295,11 +1247,12 @@ show_wliface_info(webs_t wp, int unit, char *ifname, char *op_mode)
 #if defined(GTAXY16000)
 	unsigned int edmg_channel;
 #endif
-	int ret = 0, cac = 0;
+	int i, ret = 0, cac = 0, radar_cnt = 0, radar_list[32];
+	uint64_t m = 0;
 	FILE *fp;
 	unsigned char mac_addr[ETHER_ADDR_LEN];
 	char tmpstr[1024], cmd[] = "iwconfig staXYYYYYY";
-	char *p, ap_bssid[] = "00:00:00:00:00:00XXX";
+	char *p, ap_bssid[] = "00:00:00:00:00:00XXX", vphy[IFNAMSIZ];
 
 	if (unit < 0 || !ifname || !op_mode)
 		return 0;
@@ -1344,13 +1297,22 @@ show_wliface_info(webs_t wp, int unit, char *ifname, char *op_mode)
 	getVAPBitRate(unit, ifname, tmpstr, sizeof(tmpstr));
 	if (unit == WL_5G_BAND || unit == WL_5G_2_BAND) {
 		cac = safe_atoi(iwpriv_get(ifname, "get_cac_state"));
+		strcpy(vphy, get_vphyifname(swap_5g_band(unit)));
+		radar_cnt = get_radar_channel_list(vphy, radar_list, ARRAY_SIZE(radar_list));
+		for (i = 0; i < radar_cnt; ++i) {
+			m |= ch5g2bitmask(radar_list[i]);
+		}
 	}
 	ret += websWrite(wp, "Bit Rate	: %s%s", tmpstr, cac? " (CAC scan)" : "");
 	getVAPBandwidth(unit, ifname, tmpstr, sizeof(tmpstr));
 	if (*tmpstr != '\0')
 		ret += websWrite(wp, ", %sMHz", tmpstr);
 	ret += websWrite(wp, "\n");
-	ret += websWrite(wp, "Channel		: %u\n", getAPChannel(unit));
+	ret += websWrite(wp, "Channel		: %u", getAPChannel(unit));
+	if (radar_cnt > 0) {
+		ret += websWrite(wp, " (Radar: %s)", bitmask2chlist5g(m, ","));
+	}
+	ret += websWrite(wp, "\n");
 #if defined(GTAXY16000)
 	if (unit == WL_60G_BAND) {
 		edmg_channel = getEDMGChannel();
@@ -2375,6 +2337,15 @@ ej_wl_rate_5g_2(int eid, webs_t wp, int argc, char_t **argv)
 		return 0;
 }
 
+int
+ej_wl_rate_6g(int eid, webs_t wp, int argc, char_t **argv)
+{
+	if(sw_mode() == SW_MODE_REPEATER)
+		return ej_wl_rate(eid, wp, argc, argv, 3);
+	else
+		return 0;
+}
+
 /* Check necessary kernel module only. */
 static struct nat_accel_kmod_s {
 	char *kmod_name;
@@ -2469,10 +2440,11 @@ const char *syslog_msg_filter[] = {
 	"net_ratelimit",
 #if defined(RTCONFIG_SOC_IPQ8074)
 	"[AUTH] vap", "[MLME] vap", "[ASSOC] vap", "[INACT] vap", "LBDR ", "npu_corner", "apc_corner", "Sync active EEPROM set",
-	"wlan_send_mgmt", "hapdevent_proc_event", "HAPD:", "WSUP:",
+	"wlan_send_mgmt", "hapdevent_proc_event", "HAPD:", "WSUP:", "APSTATS:", "THERMAL:", "skb recycler",
 #elif defined(RTCONFIG_SOC_IPQ8064)
 	"[AUTH] vap", "[MLME] vap", "[ASSOC] vap", "[INACT] vap",
 #endif
-	"exist in UDB, can't", "is used by someone else, can't use it", "not mesh client, can't update it",
+	"exist in UDB, can't", "is used by someone else, can't use it", "not mesh client, can't update it", "not mesh client, can't delete it",
+	"ERROR: [send_redir_page",
 	NULL
 };

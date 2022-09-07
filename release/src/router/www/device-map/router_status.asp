@@ -76,7 +76,7 @@ function getVariable(){
 		_array.push.apply(_array, _element);
 	}
 
-	if(system.band60gSupport){
+	if(system.band60gSupport || system.modelName === 'GT-AXE16000'){
 		_element = ['wl3_hwaddr'];
 		_array.push.apply(_array, _element);
 	}
@@ -123,7 +123,12 @@ function genElement(){
 	// MAC Address
 	code += '<div class="info-block"><div class="info-title">LAN <#MAC_Address#></div><div class="info-content">'+ variable.lan_hwaddr +'</div></div>';
 	if(system.band2gSupport){
-		code += '<div class="info-block"><div class="info-title">2.4 GHz <#MAC_Address#></div><div class="info-content">'+ variable.wl0_hwaddr +'</div></div>';
+		if(system.modelName === 'GT-AXE16000'){
+			code += '<div class="info-block"><div class="info-title">2.4 GHz <#MAC_Address#></div><div class="info-content">'+ variable.wl3_hwaddr +'</div></div>';
+		}
+		else{
+			code += '<div class="info-block"><div class="info-title">2.4 GHz <#MAC_Address#></div><div class="info-content">'+ variable.wl0_hwaddr +'</div></div>';
+		}		
 	}
 
 	if(system.triBandSupport){
@@ -143,6 +148,11 @@ function genElement(){
 				code += '<div class="info-block"><div class="info-title">5 GHz-2 <#MAC_Address#></div><div class="info-content">'+ variable.wl2_hwaddr +'</div></div>';
 			}
 		}	
+	}
+	else if(system.modelName === 'GT-AXE16000'){
+		code += '<div class="info-block"><div class="info-title">5 GHz-1 <#MAC_Address#></div><div class="info-content">'+ variable.wl0_hwaddr +'</div></div>';
+		code += '<div class="info-block"><div class="info-title">5 GHz-2 <#MAC_Address#></div><div class="info-content">'+ variable.wl1_hwaddr +'</div></div>';
+		code += '<div class="info-block"><div class="info-title">6 GHz <#MAC_Address#></div><div class="info-content">'+ variable.wl2_hwaddr +'</div></div>';
 	}
 	else{
 		code += '<div class="info-block"><div class="info-title">5 GHz <#MAC_Address#></div><div class="info-content">'+ variable.wl1_hwaddr +'</div></div>';

@@ -23,7 +23,7 @@ endif
 ifeq ($(HND_ROUTER),y)
 CFLAGS += -idirafter$(LINUXDIR)/include
 CFLAGS += -I$(HND_SRC)/userspace/public/include -I$(HND_SRC)/userspace/public/include/linux -I$(HND_SRC)/userspace/private/include
-ifeq ($(or $(HND_ROUTER_AX_675X),$(HND_ROUTER_AX_6756)),y)
+ifeq ($(or $(HND_ROUTER_AX_675X),$(HND_ROUTER_AX_6756),$(HND_ROUTER_AX_6710),$(BCM_502L07P2)),y)
 LDFLAGS += -L$(TOP_PLATFORM)/wlcsm -lwlcsm -L$(TOP_PLATFORM)/bcm_flashutil -lbcm_flashutil -L$(TOP_PLATFORM)/gen_util -lgen_util -L$(TOP_PLATFORM)/sys_util -lsys_util -L$(TOP_PLATFORM)/bcm_util -lbcm_util -L$(TOP_PLATFORM)/bcm_boardctl -lbcm_boardctl
 else
 LDFLAGS += -L$(TOP_PLATFORM)/wlcsm -lwlcsm -L$(TOP_PLATFORM)/bcm_flashutil -lbcm_flashutil -L$(TOP_PLATFORM)/bcm_util -lbcm_crc -L$(TOP_PLATFORM)/bcm_boardctl -lbcm_boardctl
@@ -45,44 +45,6 @@ CFLAGS += -I$(TOP)/openssl/include/openssl
 LDFLAGS += -L$(TOP)/openssl -lcrypto -lssl
 LDFLAGS += -L $(TOP)/sqlCipher/.libs -lsqlcipher
 LDFLAGS += -L$(TOP)/PMS_DBapis -lpms_sql
-endif
-
-# add rule for ProgControl3 new mechanism
-ifeq ($(RTCONFIG_SOC_IPQ8064),y)
-	# ipq806x
-else ifeq ($(RTCONFIG_SOC_IPQ8074),y)
-CFLAGS += -DPGCONTROL3
-else ifeq ($(RTCONFIG_SOC_IPQ40XX),y)
-	# ipq40xx
-CFLAGS += -DPGCONTROL3
-else ifeq ($(or $(RTCONFIG_QCA956X),$(RTCONFIG_QCN550X)),y)
-	# qca956x / qcn550x
-else ifeq ($(RTCONFIG_SOC_IPQ60XX),y)
-CFLAGS += -DPGCONTROL3
-else ifeq ($(RTCONFIG_RALINK),y)
-ifeq ($(RTCONFIG_RALINK_MT7622),y)
-	# mtk7622
-CFLAGS += -DPGCONTROL3
-else
-	# mtk
-endif
-else ifeq ($(RTCONFIG_LANTIQ),y)
-	# lantiq
-else ifeq ($(RTCONFIG_BCMARM),y)
-ifeq ($(RTCONFIG_BCM7),y)
-	# bcm7
-else ifeq ($(HND_ROUTER),y)
-	# hnd / axhnd
-CFLAGS += -DPGCONTROL3
-else ifeq ($(RTCONFIG_BCM_7114),y)
-	# bcm7114
-CFLAGS += -DPGCONTROL3
-else
-ifeq ($(RTCONFIG_BCMSMP),y)
-	# bcm6_smp
-CFLAGS += -DPGCONTROL3
-endif
-endif
 endif
 
 # BUILD_NAME
@@ -169,3 +131,4 @@ dpi_support.prep: dpi_support.c
 
 clean:
 	rm -f *.so *.o *.prep hwinfo bwdpi_cmd dbg_dpi_support
+

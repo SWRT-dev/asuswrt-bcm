@@ -595,6 +595,9 @@ extern int arpcache(char *tgmac, char *tgip);
 extern int ether_inc(unsigned char *e, const unsigned char n);
 extern char *ether_cal(const char *e, char *a, int i);
 extern char *ether_cal_b(const unsigned char *e, char *a, int i);
+#ifdef RTCONFIG_AMAS
+extern int check_if_exist_ifnames(char *need_check_ifname, char *ifname);
+#endif
 
 #endif /* _shutils_h_ */
 

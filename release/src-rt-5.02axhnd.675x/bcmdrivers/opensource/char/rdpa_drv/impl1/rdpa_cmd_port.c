@@ -1,24 +1,30 @@
 
 /*
 * <:copyright-BRCM:2013:DUAL/GPL:standard
-* 
-*    Copyright (c) 2013 Broadcom 
+*
+*    Copyright (c) 2013 Broadcom
 *    All Rights Reserved
-* 
-* This program is free software; you can redistribute it and/or modify
-* it under the terms of the GNU General Public License, version 2, as published by
-* the Free Software Foundation (the "GPL").
-* 
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-* 
-* 
-* A copy of the GPL is available at http://www.broadcom.com/licenses/GPLv2.php, or by
-* writing to the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-* Boston, MA 02111-1307, USA.
-* 
+*
+* Unless you and Broadcom execute a separate written software license
+* agreement governing use of this software, this software is licensed
+* to you under the terms of the GNU General Public License version 2
+* (the "GPL"), available at http://www.broadcom.com/licenses/GPLv2.php,
+* with the following added to such license:
+*
+*    As a special exception, the copyright holders of this software give
+*    you permission to link this software with independent modules, and
+*    to copy and distribute the resulting executable under terms of your
+*    choice, provided that you also meet, for each linked independent
+*    module, the terms and conditions of the license of that module.
+*    An independent module is a module which is not derived from this
+*    software.  The special exception does not apply to any modifications
+*    of the software.
+*
+* Not withstanding the above, under no circumstances may you combine
+* this software in any way with any other Broadcom software provided
+* under a license other than the GPL, without Broadcom's express prior
+* written consent.
+*
 * :>
 */
 
@@ -35,6 +41,7 @@
 #include <linux/jiffies.h>
 #include <linux/delay.h>
 #include <linux/bcm_log.h>
+#include <bdmf_dev.h>
 #include "bcmenet.h"
 #include "bcmtypes.h"
 #include "bcmnet.h"
@@ -119,6 +126,22 @@ int rdpa_cmd_port_ioctl(unsigned long arg)
 
         case RDPA_IOCTL_PORT_CMD_SA_LIMIT_SET:
         {
+            bdmf_link_handle us_link = NULL;
+            rdpa_bridge_cfg_t br_config;
+
+            /* sa_limit is not for bridge port links to a Q bridge */
+            while ((us_link = bdmf_get_next_us_link(port_obj, us_link)))
+            {
+                if (bdmf_us_link_to_object(us_link)->drv == rdpa_bridge_drv())
+                    break;
+            }
+            if (!us_link)
+                break;
+
+            rdpa_bridge_config_get(bdmf_us_link_to_object(us_link), &br_config);
+            if (br_config.type == rdpa_bridge_802_1q)
+                break;
+
             rc = rdpa_port_sa_limit_get(port_obj, &sa_limit);
             if (!rc)
             {

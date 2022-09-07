@@ -407,7 +407,7 @@ var tableApi = {
 					//$(".createNewRule").children().find(".inputText").first().focus();
 
 
-					if(wan_proto=="v6plus" && array_ipv6_s46_ports.length > 1){
+					if(wan_proto=="v6plus" && s46_ports_check_flag && array_ipv6_s46_ports.length > 1){
 						if($(".setup_info_icon").length >= 1){
 							$(".setup_info_icon").show();
 							$(".setup_info_icon").click(
@@ -418,6 +418,12 @@ var tableApi = {
 										var position = $(".setup_info_icon").position();
 										pop_s46_ports(position, "table");
 									}
+								}
+							);
+							$(".setup_info_icon").parent().siblings().focus(
+								function() {
+									var position_text = $(".setup_info_icon").parent().siblings().position();
+									pop_s46_ports(position_text, "game");
 								}
 							);
 						}

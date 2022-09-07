@@ -4,19 +4,25 @@
 *    Copyright (c) 2013 Broadcom 
 *    All Rights Reserved
 * 
-* This program is free software; you can redistribute it and/or modify
-* it under the terms of the GNU General Public License, version 2, as published by
-* the Free Software Foundation (the "GPL").
+* Unless you and Broadcom execute a separate written software license
+* agreement governing use of this software, this software is licensed
+* to you under the terms of the GNU General Public License version 2
+* (the "GPL"), available at http://www.broadcom.com/licenses/GPLv2.php,
+* with the following added to such license:
 * 
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
+*    As a special exception, the copyright holders of this software give
+*    you permission to link this software with independent modules, and
+*    to copy and distribute the resulting executable under terms of your
+*    choice, provided that you also meet, for each linked independent
+*    module, the terms and conditions of the license of that module.
+*    An independent module is a module which is not derived from this
+*    software.  The special exception does not apply to any modifications
+*    of the software.
 * 
-* 
-* A copy of the GPL is available at http://www.broadcom.com/licenses/GPLv2.php, or by
-* writing to the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-* Boston, MA 02111-1307, USA.
+* Not withstanding the above, under no circumstances may you combine
+* this software in any way with any other Broadcom software provided
+* under a license other than the GPL, without Broadcom's express prior
+* written consent.
 * 
 * :> 
 */
@@ -33,7 +39,7 @@
 #define RDPA_IC_GPON_RX_IRQ   INTERRUPT_ID_WAN_GPON_RX   /**< GPON rx IRQ in IC */
 #define RDPA_IC_GPON_TX_IRQ   INTERRUPT_ID_WAN_GPON_TX   /**< GPON tx IRQ in IC */
 
-#if defined(CONFIG_BCM96858) || defined(CONFIG_BCM96856)
+#if defined(CONFIG_BCM96858) || defined(CONFIG_BCM96856) || defined(CONFIG_BCM96855)
 #define RDPA_IC_NGPON_RX_IRQ     INTERRUPT_ID_WAN_XGRX         /**< XGPON/NGPON rx IRQ in IC */
 #define RDPA_IC_NGPON_TX_1_IRQ   INTERRUPT_ID_WAN_XGTX_INTR1   /**< XGPON/NGPON tx IRQ #1 in IC */
 #define RDPA_IC_NGPON_TX_0_IRQ   INTERRUPT_ID_WAN_XGTX_INTR0   /**< XGPON/NGPON tx IRQ #0 in IC */
@@ -92,6 +98,8 @@ typedef enum
     rdpa_indication_rogue_onu,                      /**< Rogue ONU indication */
     rdpa_indication_pmd_alarm,                      /**< PMD alarm indication */
     rdpa_indication_reboot_msg,                     /**< Reboot Message */
+    rdpa_indication_save_o_state,
+    rdpa_indication_save_act_dbg_ploam,
     rdpa_indication_none = 0xffff
 }rdpa_pon_indication;
 
@@ -269,7 +277,11 @@ typedef struct
     bdmf_boolean esc_alarm;
 }rdpa_pmd_alarm_param;
 
-/** GPON Callback Indication */
+typedef UINT32 PON_SAVE_O_STATE_VAL;
+
+typedef UINT32 PON_SAVE_ACT_DBG_PLOAM_VAL;
+
+/* GPON Callback Indication */
 typedef union
 {
     rdpa_pon_status_indication lof_status;                      /* LOF status */
@@ -291,6 +303,8 @@ typedef union
     rdpa_rogue_onu_param rogue_onu;                             /* Rogue ONU parameters */
     rdpa_pmd_alarm_param pmd_alarm;                             /* PMD Alarm parameters */
     PON_REBOOT_PLOAM_FLAGS reboot_ploam_flags;                  /* reboot ploam flags */
+    PON_SAVE_O_STATE_VAL o_state_val;
+    PON_SAVE_ACT_DBG_PLOAM_VAL act_dbg_ploam_val;
 } rdpa_callback_indication;
 
 /** PON-level counters.

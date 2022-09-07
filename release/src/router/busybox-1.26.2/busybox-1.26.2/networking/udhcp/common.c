@@ -263,6 +263,15 @@ uint8_t* FAST_FUNC udhcp_get_option(struct dhcp_packet *packet, int code)
 			goto complain; /* complain and return NULL */
 
 		if (optionptr[OPT_CODE] == code) {
+			if (optionptr[OPT_LEN] == 0) {
+				/* So far no valid option with length 0 known.
+				 * Having this check means that searching
+				 * for DHCP_MESSAGE_TYPE need not worry
+				 * that returned pointer might be unsafe
+				 * to dereference.
+				 */
+				goto complain; /* complain and return NULL */
+			}
 			log_option("option found", optionptr);
 			return optionptr + OPT_DATA;
 		}
@@ -291,6 +300,16 @@ int FAST_FUNC udhcp_end_option(uint8_t *optionptr)
 		i++;
 	}
 	return i;
+}
+
+uint8_t* FAST_FUNC udhcp_get_option32(struct dhcp_packet *packet, int code)
+{
+	uint8_t *r = udhcp_get_option(packet, code);
+	if (r) {
+		if (r[-OPT_DATA + OPT_LEN] != 4)
+			r = NULL;
+	}
+	return r;
 }
 
 /* Add an option (supplied in binary form) to the options.

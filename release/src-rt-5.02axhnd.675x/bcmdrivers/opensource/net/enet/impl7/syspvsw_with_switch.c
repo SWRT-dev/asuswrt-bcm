@@ -1,23 +1,29 @@
 /*
    <:copyright-BRCM:2018:DUAL/GPL:standard
-   
-      Copyright (c) 2018 Broadcom 
+
+      Copyright (c) 2018 Broadcom
       All Rights Reserved
-   
-   This program is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License, version 2, as published by
-   the Free Software Foundation (the "GPL").
-   
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
-   
-   
-   A copy of the GPL is available at http://www.broadcom.com/licenses/GPLv2.php, or by
-   writing to the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-   Boston, MA 02111-1307, USA.
-   
+
+   Unless you and Broadcom execute a separate written software license
+   agreement governing use of this software, this software is licensed
+   to you under the terms of the GNU General Public License version 2
+   (the "GPL"), available at http://www.broadcom.com/licenses/GPLv2.php,
+   with the following added to such license:
+
+      As a special exception, the copyright holders of this software give
+      you permission to link this software with independent modules, and
+      to copy and distribute the resulting executable under terms of your
+      choice, provided that you also meet, for each linked independent
+      module, the terms and conditions of the license of that module.
+      An independent module is a module which is not derived from this
+      software.  The special exception does not apply to any modifications
+      of the software.
+
+   Not withstanding the above, under no circumstances may you combine
+   this software in any way with any other Broadcom software provided
+   under a license other than the GPL, without Broadcom's express prior
+   written consent.
+
    :>
  */
 
@@ -85,12 +91,14 @@ port_ops_t port_sysp_port =
     .stats_get = port_generic_stats_get,
     .pause_get = port_generic_pause_get,
     .pause_set = port_generic_pause_set,
-    .open = port_sysp_port_open,
+    .open = port_sf2_generic_open,
     .mtu_set = port_sysp_mtu_set,
     .mib_dump = port_sysp_mib_dump,
     .print_status = port_sf2_print_status,
     .role_set = port_sysp_port_role_set,
+#if 0   /* skip Andrew code */
     .mib_dump_us = port_sysp_mib_dump_us, // add by Andrew
+#endif
 };
 
 // =========== sf2 port ops =============================
@@ -113,14 +121,6 @@ static int port_sf2_port_init(enetx_port_t *self)
     enet_dbg("Initialized %s role %s\n", self->obj_name, (self->n.port_netdev_role==PORT_NETDEV_ROLE_WAN)?"wan":"lan" );
 
     return 0;
-}
-
-static void port_sf2_port_open(enetx_port_t *self)
-{
-    PORT_SET_EXT_SW(self);
-    // port is on external switch, also enable connected sysp port
-    port_open(sf2_sw->s.parent_port);
-    port_generic_open(self);
 }
 
 // based on impl5\bcmenet_runner_inline.h:bcmeapi_pkt_xmt_dispatch()
@@ -183,7 +183,7 @@ port_ops_t port_sf2_port =
     .stats_get = port_generic_stats_get,
     .pause_get = port_generic_pause_get,
     .pause_set = port_generic_pause_set,
-    .open = port_sf2_port_open,
+    .open = port_sf2_generic_open,
     .mtu_set = port_generic_mtu_set,
     .tx_q_remap = port_sf2_tx_q_remap,
     .mib_dump = port_sf2_mib_dump,
@@ -198,7 +198,9 @@ port_ops_t port_sf2_port =
         .switchdev_port_attr_set = sf2_switchdev_port_attr_set, 
     }
 #endif
+#if 0   /* skip Andrew code */
     .mib_dump_us = port_sf2_mib_dump_us, // add by Andrew
+#endif
 };
 
 port_ops_t port_sf2_port_mac =
@@ -210,7 +212,9 @@ port_ops_t port_sf2_port_mac =
     .mtu_set = port_generic_mtu_set,
     .mib_dump = port_sf2_mib_dump,
     .print_status = port_sf2_print_status,
-    .mib_dump_us = port_sf2_mib_dump_us,
+#if 0   /* skip Andrew code */
+    .mib_dump_us = port_sf2_mib_dump_us, // add by Andrew
+#endif
 };
 
 int enetxapi_post_config(void)

@@ -4,19 +4,25 @@
     Copyright (c) 2011 Broadcom 
     All Rights Reserved
  
- This program is free software; you can redistribute it and/or modify
- it under the terms of the GNU General Public License, version 2, as published by
- the Free Software Foundation (the "GPL").
+ Unless you and Broadcom execute a separate written software license
+ agreement governing use of this software, this software is licensed
+ to you under the terms of the GNU General Public License version 2
+ (the "GPL"), available at http://www.broadcom.com/licenses/GPLv2.php,
+ with the following added to such license:
  
- This program is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
+    As a special exception, the copyright holders of this software give
+    you permission to link this software with independent modules, and
+    to copy and distribute the resulting executable under terms of your
+    choice, provided that you also meet, for each linked independent
+    module, the terms and conditions of the license of that module.
+    An independent module is a module which is not derived from this
+    software.  The special exception does not apply to any modifications
+    of the software.
  
- 
- A copy of the GPL is available at http://www.broadcom.com/licenses/GPLv2.php, or by
- writing to the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
- Boston, MA 02111-1307, USA.
+ Not withstanding the above, under no circumstances may you combine
+ this software in any way with any other Broadcom software provided
+ under a license other than the GPL, without Broadcom's express prior
+ written consent.
  
  :>
 */
@@ -1673,6 +1679,7 @@ int bcmeapi_ioctl_ethsw_phy_mode(struct ethswctl_data *e, int phy_id)
         {
             unsigned short bmcr = 0;
             unsigned short nway_advert, gig_ctrl, gig_cap = 0;
+            int flags = 0;
 
             switch (e->speed) 
             {
@@ -1700,8 +1707,11 @@ int bcmeapi_ioctl_ethsw_phy_mode(struct ethswctl_data *e, int phy_id)
                 bmcr |= (e->duplex == 1) ? BMCR_FULLDPLX : 0;
             }
 
-            ethsw_phyport_rreg2(phy_id, MII_ADVERTISE, &nway_advert, 0);
-            ethsw_phyport_rreg2(phy_id, MII_CTRL1000, &gig_ctrl, 0);
+            if(phy_id & CONNECTED_TO_EXTERN_SW)
+                flags = ETHCTL_FLAG_ACCESS_EXTSW_PHY;
+
+            ethsw_phyport_rreg2(phy_id, MII_ADVERTISE, &nway_advert, flags);
+            ethsw_phyport_rreg2(phy_id, MII_CTRL1000, &gig_ctrl, flags);
             gig_ctrl |= (ADVERTISE_1000FULL | ADVERTISE_1000HALF);
 
             if (e->speed == 1000)
@@ -1722,9 +1732,9 @@ int bcmeapi_ioctl_ethsw_phy_mode(struct ethswctl_data *e, int phy_id)
                             ADVERTISE_10HALF );
             }
 
-            ethsw_phyport_wreg2(phy_id, MII_ADVERTISE, &nway_advert, 0);
-            ethsw_phyport_wreg2(phy_id, MII_CTRL1000, &gig_ctrl, 0);
-            ethsw_phyport_wreg2(phy_id, MII_BMCR, &bmcr, 0);
+            ethsw_phyport_wreg2(phy_id, MII_ADVERTISE, &nway_advert, flags);
+            ethsw_phyport_wreg2(phy_id, MII_CTRL1000, &gig_ctrl, flags);
+            ethsw_phyport_wreg2(phy_id, MII_BMCR, &bmcr, flags);
         }
     }
 

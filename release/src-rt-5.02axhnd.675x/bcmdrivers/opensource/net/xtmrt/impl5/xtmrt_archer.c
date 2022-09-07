@@ -4,19 +4,25 @@
    Copyright (c) 2018 Broadcom 
    All Rights Reserved
 
-This program is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License, version 2, as published by
-the Free Software Foundation (the "GPL").
+Unless you and Broadcom execute a separate written software license
+agreement governing use of this software, this software is licensed
+to you under the terms of the GNU General Public License version 2
+(the "GPL"), available at http://www.broadcom.com/licenses/GPLv2.php,
+with the following added to such license:
 
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+   As a special exception, the copyright holders of this software give
+   you permission to link this software with independent modules, and
+   to copy and distribute the resulting executable under terms of your
+   choice, provided that you also meet, for each linked independent
+   module, the terms and conditions of the license of that module.
+   An independent module is a module which is not derived from this
+   software.  The special exception does not apply to any modifications
+   of the software.
 
-
-A copy of the GPL is available at http://www.broadcom.com/licenses/GPLv2.php, or by
-writing to the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-Boston, MA 02111-1307, USA.
+Not withstanding the above, under no circumstances may you combine
+this software in any way with any other Broadcom software provided
+under a license other than the GPL, without Broadcom's express prior
+written consent.
 
 :>
 */
@@ -1080,12 +1086,30 @@ void bcmxapi_SetPtmBonding(UINT32 bonding)
  * Returns: void
  *---------------------------------------------------------------------------
  */
-void bcmxapi_XtmGetStats(UINT8 vport, UINT32 *rxDropped, UINT32 *txDropped)
+void bcmxapi_XtmGetStats(PBCMXTMRT_DEV_CONTEXT pDevCtx, UINT8 vport, UINT32 *rxDropped, UINT32 *txDropped)
 {
-    //FIXME: This Will be fixed in the future releases as this logic needs to
-    //be added to map the netdevice to corresponding queues.
+    int rc;
+    uint32_t index;
+    archer_txq_stats_t egress_tm_stat = {};
+    rc = -1;
     *rxDropped = 0;
     *txDropped = 0;
+    BCM_LOG_INFO(BCM_LOG_ID_XTM, "num queues:%u", pDevCtx->ulTxQInfosSize);
+
+    for (index=0;index < pDevCtx->ulTxQInfosSize; index++)
+    {
+        egress_tm_stat.droppedPackets = 0;
+        if (archer_xtm_hooks.txdmaGetQStats)
+            rc = archer_xtm_hooks.txdmaGetQStats(pDevCtx->pTxQids[index]->ulDmaIndex,&egress_tm_stat);
+        if(!rc)
+        {
+           *txDropped += egress_tm_stat.droppedPackets;
+        }
+        else 
+        {
+           BCM_XTM_ERROR("rdpa_egress_tm_queue_stat_get failed rc %d", rc);
+        }
+    }
 
 }  /* bcmxapi_XtmGetStats() */
 
@@ -1234,7 +1258,7 @@ int archer_xtm_tx_queue_not_empty (int q_id)
     return bcm_async_queue_not_empty (&xtm_cpu_queues->txq);
 }
 
-int archer_xtm_rx_queue_write (int q_id, uint8_t **pData, int data_len, int ingress_port, int desc_status)
+int archer_xtm_rx_queue_write (int q_id, uint8_t *pData, int data_len, int ingress_port, int desc_status)
 {
     int rc = 0;
     /* assume this is received from queue 0 for now */
@@ -1244,7 +1268,7 @@ int archer_xtm_rx_queue_write (int q_id, uint8_t **pData, int data_len, int ingr
         xtm_queue_rx_info_t *rx_info = (xtm_queue_rx_info_t *)
             bcm_async_queue_entry_write (&xtm_cpu_queues->rxq[q_id]);
 
-        WRITE_ONCE(rx_info->pData, *pData);
+        WRITE_ONCE(rx_info->pData, pData);
         WRITE_ONCE(rx_info->length, data_len);
         WRITE_ONCE(rx_info->ingress_port, ingress_port);
         WRITE_ONCE(rx_info->desc_status, desc_status);

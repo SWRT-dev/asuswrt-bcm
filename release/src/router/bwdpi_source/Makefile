@@ -19,13 +19,14 @@ ifeq ($(BUILD_NAME),$(filter $(BUILD_NAME),ET12 XT12 GT-AX6000 GT-AX11000_PRO GT
 export BWDPI_BCM4912 := y
 endif
 
+# BCM6753 : seperate bin / header / modules from bcm6756
+ifeq ($(BUILD_NAME),$(filter $(BUILD_NAME),GT10))
+export BWDPI_BCM6753 := y
+endif
+
 # MTK7621A + RTCONFIG_WLMODULE_MT7915D_AP
 ifeq ($(RTCONFIG_WLMODULE_MT7915D_AP),y)
 export BWDPI_MTK7621_NEW := y
-endif
-
-ifeq ($(BUILD_NAME),$(filter $(BUILD_NAME),RT-AX53U))
-export BWDPI_MTK7621_AX53U := y
 endif
 
 # signature version
@@ -34,7 +35,11 @@ export LITE_VERSION := y
 else ifeq ($(or $(RTCONFIG_QCA956X),$(RTCONFIG_QCN550X)),y)
 export LITE_VERSION := y
 else ifeq ($(or $(BWDPI_MTK7621_NEW)),y)
+ifeq ($(BUILD_NAME),$(filter $(BUILD_NAME),TUF-AX4200 TX-AX4200))
+export FULL_VERSION := y
+else
 export LITE_VERSION := y
+endif
 else ifeq ($(BUILD_NAME),$(filter $(BUILD_NAME),RT-AC85U RT-AC65U RT-AC56S RT-N18U))
 export PART_VERSION := y
 else
@@ -100,6 +105,10 @@ ifeq ($(BWDPI_BCM4912), y)
 	@cp include/tdts/sysdeps/bcm4912-tmcfg.h include/tdts/tmcfg.h -f                     # bcm4912
 	@cp include/udb/sysdeps/bcm4912-tmcfg_udb.h include/udb/tmcfg_udb.h -f               # bcm4912
 	@cp bin/bcm4912/* bin/ -rf                                                           # bcm4912
+else ifeq ($(BWDPI_BCM6753), y)
+	@cp include/tdts/sysdeps/bcm6753-tmcfg.h include/tdts/tmcfg.h -f                     # bcm6753
+	@cp include/udb/sysdeps/bcm6753-tmcfg_udb.h include/udb/tmcfg_udb.h -f               # bcm6753
+	@cp bin/bcm6753/* bin/ -rf                                                           # bcm6753
 else
 	@cp include/tdts/sysdeps/bcm6756-tmcfg.h include/tdts/tmcfg.h -f                     # bcm6756
 	@cp include/udb/sysdeps/bcm6756-tmcfg_udb.h include/udb/tmcfg_udb.h -f               # bcm6756
@@ -193,6 +202,9 @@ ifeq ($(RTCONFIG_HND_ROUTER_AX_6756),y)
 ifeq ($(BWDPI_BCM4912), y)
 	@cp include/tdts/sysdeps/bcm4912-tmcfg.h include/tdts/tmcfg.h -f                     # bcm4912
 	@cp include/udb/sysdeps/bcm4912-tmcfg_udb.h include/udb/tmcfg_udb.h -f               # bcm4912
+else ifeq ($(BWDPI_BCM6753), y)
+	@cp include/tdts/sysdeps/bcm6753-tmcfg.h include/tdts/tmcfg.h -f                     # bcm6753
+	@cp include/udb/sysdeps/bcm6753-tmcfg_udb.h include/udb/tmcfg_udb.h -f               # bcm6753
 else
 	@cp include/tdts/sysdeps/bcm6756-tmcfg.h include/tdts/tmcfg.h -f                     # bcm6756
 	@cp include/udb/sysdeps/bcm6756-tmcfg_udb.h include/udb/tmcfg_udb.h -f               # bcm6756
@@ -264,6 +276,7 @@ else ifeq ($(RTCONFIG_SOC_IPQ8074),y)
 	@$(if $(RTCONFIG_SPF8_QSDK),cp -f modules/ipq807x/* RC_INDEP/)				# SPF8
 	@$(if $(RTCONFIG_SPF11_QSDK),cp -f modules/ipq807x_spf11/* RC_INDEP/)			# SPF11.0
 	@$(if $(RTCONFIG_SPF11_1_QSDK),cp -f modules/ipq807x_spf11.1/* RC_INDEP/)		# SPF11.1
+	@$(if $(RTCONFIG_SPF11_4_QSDK),cp -f modules/ipq807x_spf11.4/* RC_INDEP/)		# SPF11.4
 else ifeq ($(RTCONFIG_SOC_IPQ40XX),y)
 	@cp -f modules/dakota/* RC_INDEP/
 else ifeq ($(or $(RTCONFIG_QCA956X),$(RTCONFIG_QCN550X)),y)
@@ -294,6 +307,8 @@ ifeq ($(HND_ROUTER_AX),y)
 ifeq ($(RTCONFIG_HND_ROUTER_AX_6756),y)
 ifeq ($(BWDPI_BCM4912), y)
 	@cp -f modules/bcm4912/* RC_INDEP/
+else ifeq ($(BWDPI_BCM6753), y)
+	@cp -f modules/bcm6753/* RC_INDEP/
 else
 	@cp -f modules/bcm6756/* RC_INDEP/
 endif

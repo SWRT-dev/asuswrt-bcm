@@ -9,6 +9,9 @@ CFLAGS  += -s -O2 -DNO_PARALLEL
 ifeq ($(HND_ROUTER),y)
 LDFLAGS += -L$(TOP)/wlcsm$(EXHND) -lwlcsm
 LDFLAGS += -lm -L$(TOP)/shared -lshared -L$(TOP_PLATFORM)/nvram${BCMEX}${EX7} -lnvram 
+ifeq ($(RTCONFIG_BCM_502L07P2),y)
+LDFLAGS += -L$(TOP_PLATFORM)/ethctl_lib -lethctl
+endif
 LDFLAGS += -L$(TOP_PLATFORM)/wlcsm$(EXHND) -lwlcsm
 else
 LDFLAGS += -lm -L$(TOP)/shared -lshared -L$(TOP)/nvram${BCMEX}${EX7} -lnvram
@@ -19,7 +22,7 @@ include $(SRCBASE)/router/.config
 
 ifeq ($(wildcard $(SRCBASE)/router/aura_sw/*.c),)
 all: 
-	-cp -f prebuild/$(BUILD_NAME)/sb_flash_update sb_flash_update
+	-cp -f prebuild/sb_flash_update sb_flash_update
 else
 all: sb_flash_update
 endif

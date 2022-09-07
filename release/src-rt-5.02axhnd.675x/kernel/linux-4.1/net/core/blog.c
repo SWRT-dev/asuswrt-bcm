@@ -6,19 +6,25 @@
 *
 <:label-BRCM:2012:DUAL/GPL:standard
 
-This program is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License, version 2, as published by
-the Free Software Foundation (the "GPL").
+Unless you and Broadcom execute a separate written software license
+agreement governing use of this software, this software is licensed
+to you under the terms of the GNU General Public License version 2
+(the "GPL"), available at http://www.broadcom.com/licenses/GPLv2.php,
+with the following added to such license:
 
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+   As a special exception, the copyright holders of this software give
+   you permission to link this software with independent modules, and
+   to copy and distribute the resulting executable under terms of your
+   choice, provided that you also meet, for each linked independent
+   module, the terms and conditions of the license of that module.
+   An independent module is a module which is not derived from this
+   software.  The special exception does not apply to any modifications
+   of the software.
 
-
-A copy of the GPL is available at http://www.broadcom.com/licenses/GPLv2.php, or by
-writing to the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-Boston, MA 02111-1307, USA.
+Not withstanding the above, under no circumstances may you combine
+this software in any way with any other Broadcom software provided
+under a license other than the GPL, without Broadcom's express prior
+written consent.
 
 :>
 */
@@ -51,12 +57,13 @@ Boston, MA 02111-1307, USA.
 
 #include <linux/netdevice.h>
 #include <linux/slab.h>
-#if defined(CONFIG_NF_CONNTRACK) || defined(CONFIG_NF_CONNTRACK_MODULE)   
+#if IS_ENABLED(CONFIG_NF_CONNTRACK)
 #define BLOG_NF_CONNTRACK
 #include <net/netfilter/nf_nat.h>
 #include <net/netfilter/nf_conntrack.h>
 #include <net/netfilter/nf_conntrack_helper.h>
-#endif /* defined(CONFIG_NF_CONNTRACK) || defined(CONFIG_NF_CONNTRACK_MODULE) */
+#include <net/netfilter/nf_conntrack_zones.h>
+#endif /* IS_ENABLED(CONFIG_NF_CONNTRACK) */
 
 #include "../bridge/br_private.h"
 
@@ -240,6 +247,10 @@ static ATOMIC_NOTIFIER_HEAD(blog_flowevent_chain);
 
 
 /*----- Forward declarations -----*/
+#if IS_ENABLED(CONFIG_NF_CONNTRACK)
+void blog_nfct_dump( struct nf_conn * ct, uint32_t dir );
+#endif
+
 static long blog_drv_ioctl(struct file *filep, unsigned int command, 
                            unsigned long arg);
 
@@ -329,6 +340,26 @@ void blog_support_set_tcp_ack_mflows(int enable)
 #endif
 }
 
+int (*blog_netdev_register_dummy_fn)(void *dev_p) = NULL;
+EXPORT_SYMBOL(blog_netdev_register_dummy_fn);
+int (*blog_netdev_unregister_dummy_fn)(void *dev_p) = NULL;
+EXPORT_SYMBOL(blog_netdev_unregister_dummy_fn);
+
+void blog_netdev_register_dummy(void *dev)
+{
+	if(blog_netdev_register_dummy_fn)
+		blog_netdev_register_dummy_fn(dev);
+
+}
+EXPORT_SYMBOL(blog_netdev_register_dummy);
+
+void blog_netdev_unregister_dummy(void *dev)
+{
+	if(blog_netdev_unregister_dummy_fn)
+		blog_netdev_unregister_dummy_fn(dev);
+}
+EXPORT_SYMBOL(blog_netdev_unregister_dummy);
+
 /*
  * blog_support_mcast_g inherits the default value from CC_BLOG_SUPPORT_MCAST
  * Exported blog_support_mcast() may be used to set blog_support_mcast_g.
@@ -400,10 +431,7 @@ void blog_support_l2tp(int config)
             blog_l2tp_tunnel_accelerated_g = BLOG_L2TP_DISABLE; 
         else if ( blog_support_l2tp_g == BLOG_L2TP_TUNNEL )
             blog_l2tp_tunnel_accelerated_g = BLOG_L2TP_TUNNEL; 
-        else if ( blog_support_l2tp_g == BLOG_L2TP_TUNNEL_WITHCHKSUM )
-            blog_l2tp_tunnel_accelerated_g = BLOG_L2TP_TUNNEL_WITHCHKSUM;        
     }   
-
 }
 
 /*
@@ -521,7 +549,6 @@ const char * strBlogRequest[BLOG_REQUEST_MAX] =
     BLOG_ARY_INIT(BRIDGEFDB_KEY_SET)
     BLOG_ARY_INIT(BRIDGEFDB_KEY_GET)
     BLOG_ARY_INIT(BRIDGEFDB_TIME_SET)
-    BLOG_ARY_INIT(BRIDGEFDB_IFIDX_GET)
     BLOG_ARY_INIT(SYS_TIME_GET) 
     BLOG_ARY_INIT(GRE_TUNL_XMIT)
     BLOG_ARY_INIT(GRE6_TUNL_XMIT)
@@ -561,6 +588,11 @@ const char * strBlogEncap[PROTO_MAX] =
     BLOG_ARY_INIT(GREoESP_type)
     BLOG_ARY_INIT(GREoESP_type_resvd)
     BLOG_ARY_INIT(GREoESP)
+    BLOG_ARY_INIT(NPT6)
+    BLOG_ARY_INIT(PASS_THRU)
+    BLOG_ARY_INIT(MAPE)
+    BLOG_ARY_INIT(LLC_SNAP)
+    BLOG_ARY_INIT(unused)
 };
 
 /*
@@ -630,7 +662,7 @@ const char * strIpctDir[] = {   /* in reference to enum ip_conntrack_dir */
     BLOG_DECL(DIR_UNKN)
 };
 
-#if defined(CONFIG_NF_CONNTRACK) || defined(CONFIG_NF_CONNTRACK_MODULE)
+#if IS_ENABLED(CONFIG_NF_CONNTRACK)
 const char * strIpctStatus[] =  /* in reference to enum ip_conntrack_status */
 {
     BLOG_ARY_INIT(IPS_EXPECTED_BIT)
@@ -709,6 +741,10 @@ const char *str_blog_skip_reason[blog_skip_reason_max] =
     BLOG_ARY_INIT(blog_skip_reason_map_tcp)
     BLOG_ARY_INIT(blog_skip_reason_blog)
     BLOG_ARY_INIT(blog_skip_reason_l2_local_termination)
+    BLOG_ARY_INIT(blog_skip_reason_local_tcp_termination)
+    BLOG_ARY_INIT(blog_skip_reason_blog_xfer)
+    BLOG_ARY_INIT(blog_skip_reason_skb_segment)
+    BLOG_ARY_INIT(blog_skip_reason_skb_morph)
     BLOG_ARY_INIT(blog_skip_reason_mega_multi_output_ports)
     BLOG_ARY_INIT(blog_skip_reason_mega_attr_mismatch)
     BLOG_ARY_INIT(blog_skip_reason_mega_field_mismatch)
@@ -1258,6 +1294,10 @@ void blog_put( Blog_t * blog_p )
         dst_release(blog_p->esptx.dst_p);
         secpath_put(blog_p->esptx.secPath_p);
     }
+    if (RX_ESP(blog_p))
+    {
+        secpath_put(blog_p->esprx.secPath_p);        
+    }
 #endif
 
     blog_clr( blog_p );
@@ -1269,9 +1309,10 @@ void blog_put( Blog_t * blog_p )
     blog_p->blog_p = blog_list_gp;  /* clear pointer to skb_p */
     blog_list_gp = blog_p;          /* link into free pool */
 
+    blog_ctx_p->info_stats.blog_put++;;
+
     BLOG_POOL_UNLOCK();/* May use blog_assertv() now onwards */
 
-    blog_ctx_p->info_stats.blog_put++;;
     blog_print( "blog<%p>", blog_p );
 }
 
@@ -1428,11 +1469,12 @@ void blog_skip( struct sk_buff * skb_p, blog_skip_reason_t reason )
     blog_print( "skb<%p> [<%p>]",
                 skb_p, __builtin_return_address(0) );
 
-    if ( likely(skb_p->blog_p != BLOG_NULL) )
-        blog_ctx_p->blog_skip_stats_table[reason]++; 
-
     blog_assertv( (skb_p != (struct sk_buff *)NULL) );
-    _blog_free( skb_p );
+
+	if ( likely(skb_p->blog_p != BLOG_NULL) ){
+		blog_ctx_p->blog_skip_stats_table[reason]++; 
+		_blog_free( skb_p );
+	}
 }
 
 /*
@@ -1453,6 +1495,10 @@ void blog_xfer( struct sk_buff * skb_p, const struct sk_buff * prev_p )
 
     mod_prev_p = (struct sk_buff *) prev_p; /* const removal without warning */
     blog_p = _blog_snull( mod_prev_p );
+
+	/* free existing blog */
+	blog_skip(skb_p, blog_skip_reason_blog_xfer);
+
     skb_p->blog_p = blog_p;
 
     if ( likely(blog_p != BLOG_NULL) )
@@ -1509,8 +1555,22 @@ void blog_clone( struct sk_buff * skb_p, const struct blog_t * prev_p )
             CPY(vtag_num);
             CPY(tupleV6);
             CPY(tuple_offset);
+            CPY(tx.pktlen);
             CPY(mega_p);
             CPY(map_p);
+            CPY(grerx);
+#if defined(CONFIG_XFRM)
+            if (TX_ESP(prev_p))
+            {
+                secpath_get(prev_p->esptx.secPath_p);
+                CPY(esptx.secPath_p);
+            }
+            if (RX_ESP(prev_p))
+            {
+                secpath_get(prev_p->esprx.secPath_p);    
+                CPY(esprx.secPath_p);
+            }
+#endif
 
             if(!prev_p->nf_ct_skip_ref_dec)
             {
@@ -1556,6 +1616,16 @@ void blog_copy(struct blog_t * new_p, const struct blog_t * prev_p)
     if ( likely(prev_p != BLOG_NULL) )
     {
         blog_ctx_p->info_stats.blog_copy++;
+#if defined(CONFIG_XFRM)
+        if (TX_ESP(prev_p))
+        {
+            secpath_get(prev_p->esptx.secPath_p);
+        }
+        if (RX_ESP(prev_p))
+        {
+            secpath_get(prev_p->esprx.secPath_p);    
+        }
+#endif
         memcpy( new_p, prev_p, sizeof(Blog_t) );
 
         if(!prev_p->nf_ct_skip_ref_dec)
@@ -1674,7 +1744,8 @@ void blog_link( BlogNetEntity_t entity_type, Blog_t * blog_p,
                            (param1 == BLOG_PARAM1_DIR_REPLY)||
                            (param2 == BLOG_PARAM2_IPV4)     ||
                            (param2 == BLOG_PARAM2_IPV6)     ||
-                           (param2 == BLOG_PARAM2_GRE_IPV4)) );
+                           (param2 == BLOG_PARAM2_GRE_IPV4) ||
+                           (param2 == BLOG_PARAM2_VXLAN_IPV4)) );
 
             if ( unlikely(blog_p->rx.multicast) )
                 return;
@@ -1731,17 +1802,33 @@ void blog_link( BlogNetEntity_t entity_type, Blog_t * blog_p,
                             idx = BLOG_CT_DEL;												
                     }
                     break;
+
+                case BLOG_PARAM2_VXLAN_IPV4:
+                        idx = BLOG_CT_DEL;
+                    break;
+
                 default:
                     blog_print( "unknown param2 %u", param2 );
                     return;
             }
 
-            if(blog_p->ct_p[idx])
+            if(blog_p->ct_p[idx]) 
             {
+                if(nf_ct_zone(blog_p->ct_p[idx]) == nf_ct_zone(net_p) &&
+                        (blog_p->rx_tunl_p == NULL || blog_p->tx_tunl_p == NULL))
+                {
+                    static DEFINE_RATELIMIT_STATE(_rs, 10*HZ, 3);
+                    if (__ratelimit(&_rs))
+                    {
+                        printk(KERN_WARNING "blog_link:overwriting ct_p=%px, new_ct=%px idx=%d\n",
+                                blog_p->ct_p[idx], net_p, idx);
+                        blog_nfct_dump(blog_p->ct_p[idx], 0);
+                        blog_nfct_dump(net_p, 0);
+                    }
+                }
+
                 /*ct already exists decrement it's ref count */
                 nf_conntrack_put(&((struct nf_conn *)blog_p->ct_p[idx])->ct_general);
-                printk(KERN_WARNING "blog_link: overwriting ct_p=%px, new_ct=%px at idx=%d\n",
-                        blog_p->ct_p[idx], net_p, idx);
             }
 
             blog_p->ct_p[idx] = net_p; /* Pointer to conntrack */
@@ -1790,6 +1877,7 @@ void blog_link( BlogNetEntity_t entity_type, Blog_t * blog_p,
             }
 
             blog_p->fdb[param1] = net_p;
+            blog_p->ifidx[param1] = param2;
             break;
         }
 
@@ -2308,16 +2396,6 @@ unsigned long blog_request( BlogRequest_t request, void * net_p,
             ((struct net_bridge_fdb_entry *)net_p)->updated = param2;
             return 0;
 
-        case BRIDGEFDB_IFIDX_GET:
-        {
-            struct net_bridge_fdb_entry *fdb_p = (struct net_bridge_fdb_entry *)net_p;
-            if (fdb_p && fdb_p->dst && fdb_p->dst->dev)
-                ret = fdb_p->dst->dev->ifindex;
-            else
-                ret = 0;
-            break;
-        }
-
         case NETIF_PUT_STATS:
         {
             struct net_device * dev_p = (struct net_device *)net_p;
@@ -2468,6 +2546,8 @@ unsigned long blog_request( BlogRequest_t request, void * net_p,
                 info.is_downstream = (rx_dev_p->priv_flags & IFF_WANDEV) ? 1 : 0;
                 info.skb_mark_flow_id = SKBMARK_GET_FLOW_ID(blog_p->mark);
                 info.ct_pld_p = _blog_get_nwe(blog_p, BLOG_NPE_PLD);
+                if (blog_p->tx_dev_p)
+                    info.is_upstream = (((struct net_device *)blog_p->tx_dev_p)->priv_flags & IFF_WANDEV) ? 1 : 0;
 
                 /*TODO check if any extra checks are neeeded to ensure ct_del_p is 
                  * a valid nf_conn*/
@@ -2725,8 +2805,12 @@ BlogAction_t _blog_finit( struct fkbuff * fkb_p, void * dev_p,
         int gre_status;
         void *tunl_p = NULL;
         uint32_t pkt_seqno;
+
+        /* Take rcu lock to protect dev and tunnel pointer access */
+        rcu_read_lock();
         gre_status = blog_gre_rcv( fkb_p, (void *)dev_p, encap, &tunl_p,
             &pkt_seqno );
+        rcu_read_unlock();
 
         switch (gre_status)
         {
@@ -3394,6 +3478,24 @@ skip:   /* Discontinue further logging by dis-associating Blog_t object */
     /* DO NOT ACCESS blog_p !!! */
 }
 
+#if IS_ENABLED(CONFIG_NF_CONNTRACK)
+static inline void blog_nf_ct_dump_tuple(const struct nf_conntrack_tuple *t)
+{
+	switch (t->src.l3num) {
+		case AF_INET:
+			printk("tuple %p: %u %pI4:%hu -> %pI4:%hu\n",
+					t, t->dst.protonum,
+					&t->src.u3.ip, ntohs(t->src.u.all),
+					&t->dst.u3.ip, ntohs(t->dst.u.all));
+			break;
+		case AF_INET6:
+			printk("tuple %p: %u %pI6 %hu -> %pI6 %hu\n",
+					t, t->dst.protonum,
+					t->src.u3.all, ntohs(t->src.u.all),
+					t->dst.u3.all, ntohs(t->dst.u.all));
+			break;
+	}
+}
 
 /*
  *------------------------------------------------------------------------------
@@ -3403,7 +3505,6 @@ skip:   /* Discontinue further logging by dis-associating Blog_t object */
  * CAUTION      : nf_conn is not held !!!
  *------------------------------------------------------------------------------
  */
-#if defined(CONFIG_NF_CONNTRACK) || defined(CONFIG_NF_CONNTRACK_MODULE)
 void blog_nfct_dump( struct nf_conn * ct, uint32_t dir )
 {
 #if defined(BLOG_NF_CONNTRACK)
@@ -3425,7 +3526,7 @@ void blog_nfct_dump( struct nf_conn * ct, uint32_t dir )
     help_p = nfct_help(ct);
     printk("\tNFCT: ct<0x%p>, master<0x%p>\n"
            "\t\tF_NAT<%p> keys[0x%08x 0x%08x] dir<%s>\n"
-           "\t\thelp<0x%p> helper<%s>\n",
+           "\t\thelp<0x%p> helper<%s> status=%lx refcnt=%d zone=%d\n",
             ct, 
             ct->master,
             nat_p, 
@@ -3433,7 +3534,11 @@ void blog_nfct_dump( struct nf_conn * ct, uint32_t dir )
             ct->blog_key[IP_CT_DIR_REPLY],
             (dir<IP_CT_DIR_MAX)?strIpctDir[dir]:strIpctDir[IP_CT_DIR_MAX],
             help_p,
-            (help_p && help_p->helper) ? help_p->helper->name : "NONE" );
+            (help_p && help_p->helper) ? help_p->helper->name : "NONE",
+ 			ct->status, atomic_read(&ct->ct_general.use), nf_ct_zone(ct));
+
+	blog_nf_ct_dump_tuple(&ct->tuplehash[IP_CT_DIR_ORIGINAL].tuple);
+	blog_nf_ct_dump_tuple(&ct->tuplehash[IP_CT_DIR_REPLY].tuple);
 
     printk( "\t\tSTATUS[ " );
     for ( bitix = 0; bitix <= IPS_BLOG_BIT; bitix++ )
@@ -3527,6 +3632,7 @@ void blog_l2_dump( BlogHeader_t * bHdr_p )
             case PPPoE_2516 : length = BLOG_PPPOE_HDR_LEN;  break;
             case VLAN_8021Q : length = BLOG_VLAN_HDR_LEN;   break;
             case ETH_802x   : length = BLOG_ETH_HDR_LEN;    break;
+            case LLC_SNAP   : length = BLOG_LLC_SNAP_8023_LEN;    break;
             case BCM_SWC    : 
                               if ( *((uint16_t *)(bHdr_p->l2hdr + 12) ) 
                                    == htons(BLOG_ETH_P_BRCM4TAG))
@@ -3671,7 +3777,7 @@ void blog_fdb_dump(Blog_t *blog_p)
 
 void blog_ct_dump(Blog_t *blog_p)
 {
-#if defined(CONFIG_NF_CONNTRACK) || defined(CONFIG_NF_CONNTRACK_MODULE)
+#if IS_ENABLED(CONFIG_NF_CONNTRACK)
     blog_npe_t *npe_pld_p = (blog_npe_t *)blog_p->npe_p[BLOG_NPE_PLD];
     blog_npe_t *npe_del_p = (blog_npe_t *)blog_p->npe_p[BLOG_NPE_DEL];
     struct nf_conn *nwe_pld_p;
@@ -3775,14 +3881,16 @@ void blog_dump( Blog_t * blog_p )
 
     printk( "  RX count<%u> channel<%02u> bmap<0x%08x> phyLen<%u> "
             "phyHdr<%u> %s\n"
-            "     wan_qdisc<%u> multicast<%u> fkbInSkb<%u>\n",
+            "     wan_qdisc<%u> multicast<%u> fkbInSkb<%u> llc_snap<%d:%d>\n",
             blog_p->rx.count, blog_p->rx.info.channel,
             blog_p->rx.info.hdrs,
             rfc2684HdrLength[blog_p->rx.info.phyHdrLen],
             blog_p->rx.info.phyHdr, 
             strBlogPhy[blog_p->rx.info.phyHdrType],
             blog_p->rx.wan_qdisc,
-            blog_p->rx.multicast, blog_p->rx.fkbInSkb );
+            blog_p->rx.multicast, blog_p->rx.fkbInSkb,
+            blog_p->rx.llc_snap.len_offset,
+            blog_p->rx.llc_snap.frame_len);
 
     blog_l2_dump( &blog_p->rx );
 
@@ -3816,12 +3924,14 @@ void blog_dump( Blog_t * blog_p )
         blog_grerx_dump( blog_p );
 
     printk("  TX count<%u> channel<%02u> bmap<0x%08x> phyLen<%u> "
-           "phyHdr<%u> %s\n",
+           "phyHdr<%u> %s llc_snap<%d:%d>\n",
             blog_p->tx.count, blog_p->tx.info.channel,
             blog_p->tx.info.hdrs, 
             rfc2684HdrLength[blog_p->tx.info.phyHdrLen],
             blog_p->tx.info.phyHdr, 
-            strBlogPhy[blog_p->tx.info.phyHdrType] );
+            strBlogPhy[blog_p->tx.info.phyHdrType],
+            blog_p->tx.llc_snap.len_offset,
+            blog_p->tx.llc_snap.len_delta);
     if ( blog_p->tx_dev_p )
         blog_netdev_dump( blog_p->tx_dev_p );
 

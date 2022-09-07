@@ -1183,6 +1183,9 @@ void __post_config_switch(void)
 	_eval(ipq807x_p1_8023az, DBGOUT, 0, NULL);
 #endif
 #endif
+#if defined(PLAX56_XP4)
+	eval("devmem", "0x0009b794", "w", "0x7c7d"); // improve switch voltage (011 to 111) to avoid packet loss
+#endif
 }
 
 void __post_start_lan(void)

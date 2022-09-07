@@ -1,3 +1,5 @@
+include ../common.mak
+
 MAKE = make
 
 CFLAGS = -Wall -O2 -g  $(EXTRACFLAGS)
@@ -6,6 +8,9 @@ CFLAGS += -I$(SRCBASE) -I$(SRCBASE)/include -I. -I$(TOP)/nuc029ctrl/include/
 
 LDFLAGS += -L$(TOP_PLATFORM)/nvram$(BCMEX)${EX7} -lnvram
 LDFLAGS += -L$(TOP)/shared -lshared
+ifeq ($(RTCONFIG_BCM_502L07P2),y)
+LDFLAGS += -L$(TOP_PLATFORM)/ethctl_lib -lethctl
+endif
 LDFLAGS += -L$(TOP)/nuc029ctrl/lib/ -lnuc029
 
 LIBS = -lpthread -lm -lgcc_s

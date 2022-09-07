@@ -8,19 +8,25 @@
    Copyright (c) 2003 Broadcom 
    All Rights Reserved
 
-This program is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License, version 2, as published by
-the Free Software Foundation (the "GPL").
+Unless you and Broadcom execute a separate written software license
+agreement governing use of this software, this software is licensed
+to you under the terms of the GNU General Public License version 2
+(the "GPL"), available at http://www.broadcom.com/licenses/GPLv2.php,
+with the following added to such license:
 
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+   As a special exception, the copyright holders of this software give
+   you permission to link this software with independent modules, and
+   to copy and distribute the resulting executable under terms of your
+   choice, provided that you also meet, for each linked independent
+   module, the terms and conditions of the license of that module.
+   An independent module is a module which is not derived from this
+   software.  The special exception does not apply to any modifications
+   of the software.
 
-
-A copy of the GPL is available at http://www.broadcom.com/licenses/GPLv2.php, or by
-writing to the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-Boston, MA 02111-1307, USA.
+Not withstanding the above, under no circumstances may you combine
+this software in any way with any other Broadcom software provided
+under a license other than the GPL, without Broadcom's express prior
+written consent.
 
 :>
 */
@@ -207,7 +213,7 @@ typedef enum {
 #define BLOG_LLC_SNAP_8023_DSAP (BLOG_LLC_SAP_SNAP)
 #define BLOG_LLC_SNAP_8023_SSAP (BLOG_LLC_SAP_SNAP)
 #define BLOG_LLC_SNAP_8023_Ctrl (0x3)
-#define BLOG_LLC_SNAP_8023_LEN  6
+#define BLOG_LLC_SNAP_8023_LEN  8
 
 #define BLOG_ETH_ADDR_LEN       6
 #define BLOG_ETH_TYPE_LEN       sizeof(uint16_t)
@@ -721,6 +727,22 @@ typedef struct BlogGreHdr {
     };
 } BlogGreHdr_t;
 
+/*----- VXLAN: RFC 7348 definitions --------------------------------------------------*/
+#define BLOG_VXLAN_PORT     4789
+#define BLOG_VXLAN_HDR_LEN  8
+#define BLOG_VXLAN_HF_VNI (1UL << 27)
+#define BLOG_VXLAN_VNI_OFFSET 8
+typedef struct BlogVxlanHdr {
+    union {
+        uint8_t      u8[BLOG_VXLAN_HDR_LEN];
+        uint16_t    u16[BLOG_VXLAN_HDR_LEN/sizeof(uint16_t)];
+        uint32_t    u32[BLOG_VXLAN_HDR_LEN/sizeof(uint32_t)];
+        struct {
+            uint32_t flags;
+            uint32_t vni;
+        };
+    };
+} BlogVxlanHdr_t;
 /*
  *------------------------------------------------------------------------------
  *  Assert that headers are properly packed (without using attribute packed) 
@@ -757,6 +779,7 @@ static inline int blog_net_audit_hdrs(void)
     BLOG_NET_AUDIT( BLOG_UDP_HDR_LEN, BlogUdpHdr_t );
     BLOG_NET_AUDIT( BLOG_L2TP_HDR_LEN, BlogL2tpHdr_t );
     BLOG_NET_AUDIT( BLOG_GRE_HDR_LEN, BlogGreHdr_t );
+    BLOG_NET_AUDIT( BLOG_VXLAN_HDR_LEN, BlogVxlanHdr_t);
 
     return 0;
 }

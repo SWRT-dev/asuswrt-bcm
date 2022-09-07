@@ -38,6 +38,27 @@ $(function () {
 wl_channel_list_2g = <% channel_list_2g(); %>;
 wl_channel_list_5g = <% channel_list_5g(); %>;
 wl_channel_list_5g_2 = JSON.parse('<% channel_list_5g_2(); %>');
+//var meshBackhaulAutoSupport = based_modelid === 'XT8PRO' ? true : false;
+var meshBackhaulAutoSupport = false;
+var unii4Support = (function(){
+	if(wl_nband_array[1] == '1'){
+		for(item of wl_channel_list_5g){
+			if(parseInt(item) > 165){
+				return true;
+			}
+		}
+	}
+	
+	if(wl_nband_array[2] == '1'){
+		for(item of wl_channel_list_5g_2){
+			if(parseInt(item) > 165){
+				return true;
+			}
+		}
+	}
+
+	return false;
+})();
 var current_control_channel = [<% wl_control_channel(); %>][0];
 var reboot_needed_time = eval("<% get_default_reboot_time(); %>");
 var wl_unit = <% nvram_get("wl_unit"); %>;
@@ -88,6 +109,29 @@ function initial(){
 	if(re_count > 1){
 		$(".select_auth_mode option[value='wpa2']").remove();
 		$(".select_auth_mode option[value='wpawpa2']").remove();
+	}
+
+	controlHideSSIDHint();
+	ajax_wl_channel();
+
+	if(meshBackhaulAutoSupport){
+		if(document.form.fh_ap_enabled.value === '1'){
+			document.form.fh_ap_enabled.value = '0';
+			document.querySelector('#fh_connection_hint').style.display = '';
+			document.querySelector('#fh_connection_hint_checkbox').checked = true;
+		}
+		else if(document.form.fh_ap_enabled.value === '0'){
+			document.querySelector('#fh_connection_hint').style.display = '';
+			document.querySelector('#fh_connection_hint_checkbox').checked = false;
+		}
+		else if(document.form.fh_ap_enabled.value === '2'){
+			document.querySelector('#fh_connection_hint').style.display = 'none';
+			document.querySelector('#fh_connection_hint_checkbox').checked = false;
+		}
+	}
+
+	if(unii4Support){
+		document.querySelector('#acs_unii4_field').style.display = '';
 	}
 }
 
@@ -226,7 +270,7 @@ function genBWTable(_unit){
 				based_modelid == "RT-AC66U" || 
 				based_modelid == "RT-AC3200" || 
 				based_modelid == "RT-AC3100" || based_modelid == "RT-AC88U" || based_modelid == "RT-AX88U" || based_modelid == "RT-AC86U" || based_modelid == "GT-AC2900" ||
-				based_modelid == "RT-AC5300" || based_modelid == "GT-AC5300" || based_modelid == "GT-AX11000" || based_modelid == "RT-AX92U" || based_modelid == "RT-AX95Q" || based_modelid == "XT8PRO" || based_modelid == "RT-AX56_XD4" || based_modelid == "XD4PRO" || based_modelid == "CT-AX56_XD4" || based_modelid == "RT-AX58U" || based_modelid == "RT-AX58U_V2" || based_modelid == "TUF-AX3000" || based_modelid == "DSL-AX82U" || based_modelid == "RT-AX82U" || based_modelid == "RT-AX56U" || based_modelid == "GT-AXE11000" || based_modelid == "GS-AX3000" || based_modelid == "GS-AX5400" || based_modelid == "GT-AX6000" || based_modelid == "GT-AX11000_PRO" || based_modelid == "ET12" || based_modelid == "XT12" || based_modelid == "GT-AXE16000" ||
+				based_modelid == "RT-AC5300" || based_modelid == "GT-AC5300" || based_modelid == "GT-AX11000" || based_modelid == "RT-AX92U" || based_modelid == "RT-AX95Q" || based_modelid == "XT8PRO" || based_modelid == "XT8_V2" || based_modelid == "RT-AX56_XD4" || based_modelid == "XD4PRO" || based_modelid == "CT-AX56_XD4" || based_modelid == "RT-AX58U" || based_modelid == "RT-AX58U_V2" || based_modelid == "RT-AX3000N" || based_modelid == "TUF-AX3000" || based_modelid == "TUF-AX3000_V2" || based_modelid == "RT-AXE7800" || based_modelid == "DSL-AX82U" || based_modelid == "RT-AX82U" || based_modelid == "RT-AX82U_V2" || based_modelid == "RT-AX56U" || based_modelid == "GT-AXE11000" || based_modelid == "GS-AX3000" || based_modelid == "GS-AX5400" || based_modelid == "GT-AX6000" || based_modelid == "GT10" || based_modelid == "GT-AX11000_PRO" || based_modelid == "ET12" || based_modelid == "XT12" || based_modelid == "GT-AXE16000" ||
 				based_modelid == "RT-AC53U") && document.form.wl_nmode_x.value == 1){		//N only
 				bws = [0, 1, 2];
 				bwsDesc = ["20/40 MHz", "20 MHz", "40 MHz"];
@@ -556,7 +600,8 @@ function applyRule(){var postObj = new Object();
 		if(_smart_connect_enable == "1" && document.form.smart_connect_t.value == "1"){
 			dwb_ssid = httpApi.nvramGet(["wl" + dwb_info.band + "_ssid"])["wl" + dwb_info.band + "_ssid"];
 			delete variable["wl" + dwb_info.band + "_ssid"];
-			variable["wl" + dwb_info.band + "_closed"] = "1";
+			if(isSupport("amas_fronthaul_network"))
+				variable["wl" + dwb_info.band + "_closed"] = "1";
 		}
 		else
 			dwb_ssid = variable["wl" + dwb_info.band + "_ssid"];
@@ -578,11 +623,26 @@ function applyRule(){var postObj = new Object();
 		}
 	}
 
+	if(meshBackhaulAutoSupport){
+		if(document.form.fh_ap_enabled.value === '0' && document.querySelector('#fh_connection_hint_checkbox').checked){
+			variable['fh_ap_enabled'] = '1';
+		}
+	}
+
+	if(unii4Support){
+		if(document.querySelector('#acs_unii4_checkbox').checked){
+			variable['acs_unii4'] = '1';
+		}
+		else{
+			variable['acs_unii4'] = '0';
+		}		
+	}
+
 	postObj = Object.assign(postObj, variable);
 	httpApi.nvramSet(postObj, function(){
 		showLoading(rc_time);
 		setTimeout(function(){
-			location.href = location.href;
+			location.reload();
 		}, rc_time*1000);
 	});
 }
@@ -1182,7 +1242,7 @@ function enableSmartCon(val){
 		if(wl_unit != 0){
 			if(wl_info[wl_unit].bw_160_support){
 				$("#enable_160_field").show();
-				if((based_modelid == 'GT-AX11000' || based_modelid == 'RT-AX92U' || based_modelid == 'RT-AX95Q' || based_modelid == 'XT8PRO' || based_modelid == 'GT-AXE11000' || based_modelid == "GT-AX11000_PRO" || based_modelid == "ET12" || based_modelid == "XT12" || based_modelid == "GT-AXE16000") && wl2.channel_160m == '' && wl_unit == '2'){
+				if((based_modelid == 'GT-AX11000' || based_modelid == 'RT-AX92U' || based_modelid == 'RT-AX95Q' || based_modelid == 'XT8PRO' || based_modelid == 'XT8_V2' || based_modelid == 'GT-AXE11000' || based_modelid == "GT-AX11000_PRO" || based_modelid == "ET12" || based_modelid == "XT12" || based_modelid == "GT-AXE16000") && wl2.channel_160m == '' && wl_unit == '2'){
 					$("#enable_160_field").hide();
 				}
 			}
@@ -1229,7 +1289,7 @@ function enableSmartCon(val){
 		document.getElementById("smart_connect_field").style.display = "";
 		document.getElementById("smartcon_rule_link").style.display = "table-cell";
 		$("#enable_160_field").hide();
-		if ((wl_unit == '0' && val == '2') || based_modelid == "RT-AC3200" || ((based_modelid == "RT-AX92U" || based_modelid == "RT-AX95Q" || based_modelid == "XT8PRO") && country != "EU" && wl_unit == "1")) {
+		if ((wl_unit == '0' && val == '2') || based_modelid == "RT-AC3200" || ((based_modelid == "RT-AX92U" || based_modelid == "RT-AX95Q" || based_modelid == "XT8PRO" || based_modelid == "XT8_V2") && country != "EU" && wl_unit == "1")) {
 			$("#dfs_checkbox").hide();
 		}
 		else {
@@ -1246,7 +1306,7 @@ function enableSmartCon(val){
 		
 		if(dwb_info.mode && wl_unit == dwb_info.band && wl_unit != 0 && bw_160_support) {
 			$("#enable_160_field").show();
-			if((based_modelid == 'GT-AX11000' || based_modelid == 'RT-AX92U' || based_modelid == 'RT-AX95Q' || based_modelid == 'XT8PRO' || based_modelid == 'GT-AXE11000' || based_modelid == "GT-AX11000_PRO" || based_modelid == "ET12" || based_modelid == "XT12" || based_modelid == "GT-AXE16000") && wl2.channel_160m == '' && wl_unit == '2'){
+			if((based_modelid == 'GT-AX11000' || based_modelid == 'RT-AX92U' || based_modelid == 'RT-AX95Q' || based_modelid == 'XT8PRO' || based_modelid == 'XT8_V2' || based_modelid == 'GT-AXE11000' || based_modelid == "GT-AX11000_PRO" || based_modelid == "ET12" || based_modelid == "XT12" || based_modelid == "GT-AXE16000") && wl2.channel_160m == '' && wl_unit == '2'){
 				$("#enable_160_field").hide();
 			}
 		}
@@ -1663,96 +1723,142 @@ function separateGenChannel(unit, channel, bandwidth){
 	else if(unit == '1'){
 		if(curBandwidth == '0'){
 			$('#band1_extChannel_field').show();
-			loop_auto: for (i = 0; i < channel_5g_1.length; i++) {
-				var _cur_channel = parseInt(channel_5g_1[i]);
-				
-				if (band1_enable_bw_160 == '1') {
-					for (j = 0; j < wl1.channel_160m.length; j++) {
-						if (wl1.channel_160m[j].indexOf(_cur_channel) != -1) {
-							channel_5g_1_val[i] = _cur_channel + "/160";
+			if(amesh_support && httpApi.hasAiMeshNode() && !wl_info.band5g_2_support){
+				var _wl_channel = new Array();
+				channel_5g_1 = [];
+				for(j=1; j<mesh_5g.auto.chanspec.length; j++){
+					channel_5g_1.push(mesh_5g.auto.chanlist[j]);
+					channel_5g_1_val.push(mesh_5g.auto.chanspec[j]);
+				}
+			}
+			else{
+				loop_auto: for (i = 0; i < channel_5g_1.length; i++) {
+					var _cur_channel = parseInt(channel_5g_1[i]);
+					
+					if (band1_enable_bw_160 == '1') {
+						for (j = 0; j < wl1.channel_160m.length; j++) {
+							if (wl1.channel_160m[j].indexOf(_cur_channel) != -1) {
+								channel_5g_1_val[i] = _cur_channel + "/160";
+								continue loop_auto;
+							}
+						}
+					}
+
+					for (j = 0; j < wl1.channel_80m.length; j++) {
+						if (wl1.channel_80m[j].indexOf(_cur_channel) != -1) {
+							channel_5g_1_val[i] = _cur_channel + "/80";
+							continue loop_auto;
+						}
+					}
+
+					for (j = 0; j < wl1.channel_40m.length; j++) {
+						if (wl1.channel_40m[j].indexOf(_cur_channel) != -1) {
+							channel_5g_1_val[i] = wlextchannel_fourty(_cur_channel);
+							continue loop_auto;
+						}
+					}
+
+					for (j = 0; j < wl1.channel_20m.length; j++) {
+						if (wl1.channel_20m[j].indexOf(_cur_channel) != -1) {
+							channel_5g_1_val[i] = _cur_channel.toString();
 							continue loop_auto;
 						}
 					}
 				}
-
-				for (j = 0; j < wl1.channel_80m.length; j++) {
-					if (wl1.channel_80m[j].indexOf(_cur_channel) != -1) {
-						channel_5g_1_val[i] = _cur_channel + "/80";
-						continue loop_auto;
-					}
-				}
-
-				for (j = 0; j < wl1.channel_40m.length; j++) {
-					if (wl1.channel_40m[j].indexOf(_cur_channel) != -1) {
-						channel_5g_1_val[i] = wlextchannel_fourty(_cur_channel);
-						continue loop_auto;
-					}
-				}
-
-				for (j = 0; j < wl1.channel_20m.length; j++) {
-					if (wl1.channel_20m[j].indexOf(_cur_channel) != -1) {
-						channel_5g_1_val[i] = _cur_channel.toString();
-						continue loop_auto;
-					}
-				}
-			}
+			}			
 		}
 		else if(curBandwidth == '5'){
 			$('#band1_extChannel_field').show();
 			var _wl_channel = new Array();
-			for (i = 0; i < channel_5g_1.length; i++) {
-				var _cur_channel = parseInt(channel_5g_1[i]);
-				var _reg = new RegExp("^" + _cur_channel);
-				for (j = 0; j < wl1.channel_160m.length; j++) {
-					if (wl1.channel_160m[j].match(_reg) != null) {
-						_wl_channel.push(_cur_channel.toString());
-						channel_5g_1_val.push(_cur_channel + "/160");
-					}
+			if(amesh_support && httpApi.hasAiMeshNode() && !wl_info.band5g_2_support){
+				channel_5g_1 = [];
+				for(j=1; j<mesh_5g.chan_160m.chanspec.length; j++){
+					channel_5g_1.push(mesh_5g.chan_160m.chanlist[j]);
+					channel_5g_1_val.push(mesh_5g.chan_160m.chanspec[j]);					
 				}
 			}
+			else{
+				for (i = 0; i < channel_5g_1.length; i++) {
+					var _cur_channel = parseInt(channel_5g_1[i]);
+					var _reg = new RegExp("^" + _cur_channel);
+					for (j = 0; j < wl1.channel_160m.length; j++) {
+						if (wl1.channel_160m[j].match(_reg) != null) {
+							_wl_channel.push(_cur_channel.toString());
+							channel_5g_1_val.push(_cur_channel + "/160");
+						}
+					}
+				}
 
-			channel_5g_1 = _wl_channel;
+				channel_5g_1 = _wl_channel;
+			}			
 		}
 		else if(curBandwidth == '3'){
 			$('#band1_extChannel_field').show();
 			var _wl_channel = new Array();
-			for (i = 0; i < channel_5g_1.length; i++) {
-				var _cur_channel = parseInt(channel_5g_1[i]);
-				var _reg = new RegExp("^" + _cur_channel);
-				for (j = 0; j < wl1.channel_80m.length; j++) {
-					if (wl1.channel_80m[j].match(_reg) != null) {
-						_wl_channel.push(_cur_channel.toString());
-						channel_5g_1_val.push(_cur_channel + "/80");
-					}
+			if(amesh_support && httpApi.hasAiMeshNode() && !wl_info.band5g_2_support){
+				channel_5g_1 = [];
+				for(j=1; j<mesh_5g.chan_80m.chanspec.length; j++){
+					channel_5g_1.push(mesh_5g.chan_80m.chanlist[j]);
+					channel_5g_1_val.push(mesh_5g.chan_80m.chanspec[j]);					
 				}
 			}
+			else{
+				for (i = 0; i < channel_5g_1.length; i++) {
+					var _cur_channel = parseInt(channel_5g_1[i]);
+					var _reg = new RegExp("^" + _cur_channel);
+					for (j = 0; j < wl1.channel_80m.length; j++) {
+						if (wl1.channel_80m[j].match(_reg) != null) {
+							_wl_channel.push(_cur_channel.toString());
+							channel_5g_1_val.push(_cur_channel + "/80");
+						}
+					}
+				}
 
-			channel_5g_1 = _wl_channel;
+				channel_5g_1 = _wl_channel;
+			}			
 		}
 		else if(curBandwidth == '2'){
 			$('#band1_extChannel_field').show();
 			_wl_channel = new Array();
-			for (i = 0; i < channel_5g_1.length; i++) {
-				var _cur_channel = parseInt(channel_5g_1[i]);
-				var _reg = new RegExp("^" + _cur_channel);
-				for (j = 0; j < wl1.channel_40m.length; j++) {
-					if (wl1.channel_40m[j].match(_reg) != null) {
-						_wl_channel.push(_cur_channel.toString());
-						channel_5g_1_val.push(wlextchannel_fourty(_cur_channel));
-					}
+			if(amesh_support && httpApi.hasAiMeshNode() && !wl_info.band5g_2_support){
+				channel_5g_1 = [];
+				for(j=1; j<mesh_5g.chan_40m.chanspec.length; j++){
+					channel_5g_1.push(mesh_5g.chan_40m.chanlist[j]);
+					channel_5g_1_val.push(mesh_5g.chan_40m.chanspec[j]);					
 				}
 			}
+			else{
+				for (i = 0; i < channel_5g_1.length; i++) {
+					var _cur_channel = parseInt(channel_5g_1[i]);
+					var _reg = new RegExp("^" + _cur_channel);
+					for (j = 0; j < wl1.channel_40m.length; j++) {
+						if (wl1.channel_40m[j].match(_reg) != null) {
+							_wl_channel.push(_cur_channel.toString());
+							channel_5g_1_val.push(wlextchannel_fourty(_cur_channel));
+						}
+					}
+				}
 
-			channel_5g_1 = _wl_channel;
+				channel_5g_1 = _wl_channel;
+			}			
 		}
 		else {
 			$('#band1_extChannel_field').hide();
 			_wl_channel = new Array();
-			for (i = 0; i < channel_5g_1.length; i++) {
-				var _cur_channel = parseInt(channel_5g_1[i]);
-				_wl_channel.push(_cur_channel.toString());
-				channel_5g_1_val.push(_cur_channel);;
+			if(amesh_support && httpApi.hasAiMeshNode() && !wl_info.band5g_2_support){
+				channel_5g_1 = [];
+				for(j=1; j<mesh_5g.chan_20m.chanspec.length; j++){
+					channel_5g_1.push(mesh_5g.chan_20m.chanlist[j]);
+					channel_5g_1_val.push(mesh_5g.chan_20m.chanspec[j]);					
+				}
 			}
+			else{
+				for (i = 0; i < channel_5g_1.length; i++) {
+					var _cur_channel = parseInt(channel_5g_1[i]);
+					_wl_channel.push(_cur_channel.toString());
+					channel_5g_1_val.push(_cur_channel);;
+				}
+			}			
 		}
 		
 		channel_5g_1.unshift('<#Auto#>');
@@ -1782,7 +1888,7 @@ function separateGenChannel(unit, channel, bandwidth){
 			if(document.getElementById('band2_psc6g_checkbox').checked){
 				channel_5g_2 = ['37', '53', '69', '85', '101', '117', '133', '149', '165', '181', '197', '213'];
 				if(is_EU_sku){
-					channel_5g_2 = ['5', '21', '37', '53', '69', '85', '101', '117', '133', '149', '165', '181', '197', '213'];
+					channel_5g_2 = ['5', '21', '37', '53', '69', '85'];
 				}
 			}
 
@@ -1803,148 +1909,194 @@ function separateGenChannel(unit, channel, bandwidth){
 
 		if (curBandwidth == '0') {
 			$('#band2_extChannel_field').show();
-			loop_auto: for (i = 0; i < channel_5g_2.length; i++) {
-				var _cur_channel = parseInt(channel_5g_2[i]);
-				if (band2_enable_bw_160 == '1') {
-					for (j = 0; j < wl2.channel_160m.length; j++) {
-						if (wl2.channel_160m[j].indexOf(_cur_channel) != -1) {
+			if(amesh_support && httpApi.hasAiMeshNode()){
+				var _wl_channel = new Array();
+				channel_5g_2 = [];
+				for(j=1; j<mesh_5g2.auto.chanspec.length; j++){
+					channel_5g_2.push(mesh_5g2.auto.chanlist[j]);
+					channel_5g_2_val.push(mesh_5g2.auto.chanspec[j]);
+				}
+			}
+			else{
+				loop_auto: for (i = 0; i < channel_5g_2.length; i++) {
+					var _cur_channel = parseInt(channel_5g_2[i]);
+					if (band2_enable_bw_160 == '1') {
+						for (j = 0; j < wl2.channel_160m.length; j++) {
+							if (wl2.channel_160m[j].indexOf(_cur_channel) != -1) {
+								if(band6g_support){
+									channel_5g_2_val[i] = "6g" + _cur_channel + "/160";
+								}
+								else{
+									channel_5g_2_val[i] = _cur_channel + "/160";
+								}
+								
+								continue loop_auto;
+							}
+						}
+					}
+
+					for (j = 0; j < wl2.channel_80m.length; j++) {
+						if (wl2.channel_80m[j].indexOf(_cur_channel) != -1) {
 							if(band6g_support){
-								channel_5g_2_val[i] = "6g" + _cur_channel + "/160";
+								channel_5g_2_val[i] = "6g" + _cur_channel + "/80";
 							}
 							else{
-								channel_5g_2_val[i] = _cur_channel + "/160";
+								channel_5g_2_val[i] = _cur_channel + "/80";
+							}
+							
+							continue loop_auto;
+						}
+					}
+
+					for (j = 0; j < wl2.channel_40m.length; j++) {
+						if (wl2.channel_40m[j].indexOf(_cur_channel) != -1) {
+							if(band6g_support){
+								channel_5g_2_val[i] = "6g" + _cur_channel + "/40";
+							}
+							else{
+								channel_5g_2_val[i] = wlextchannel_fourty(_cur_channel);
+							}
+							
+							continue loop_auto;
+						}
+					}
+
+					for (j = 0; j < wl2.channel_20m.length; j++) {
+						if (wl2.channel_20m[j].indexOf(_cur_channel) != -1) {
+							if(band6g_support){
+								channel_5g_2_val[i] = "6g" + _cur_channel.toString();
+							}
+							else{
+								channel_5g_2_val[i] = _cur_channel.toString();
 							}
 							
 							continue loop_auto;
 						}
 					}
 				}
-
-				for (j = 0; j < wl2.channel_80m.length; j++) {
-					if (wl2.channel_80m[j].indexOf(_cur_channel) != -1) {
-						if(band6g_support){
-							channel_5g_2_val[i] = "6g" + _cur_channel + "/80";
-						}
-						else{
-							channel_5g_2_val[i] = _cur_channel + "/80";
-						}
-						
-						continue loop_auto;
-					}
-				}
-
-				for (j = 0; j < wl2.channel_40m.length; j++) {
-					if (wl2.channel_40m[j].indexOf(_cur_channel) != -1) {
-						if(band6g_support){
-							channel_5g_2_val[i] = "6g" + _cur_channel + "/40";
-						}
-						else{
-							channel_5g_2_val[i] = wlextchannel_fourty(_cur_channel);
-						}
-						
-						continue loop_auto;
-					}
-				}
-
-				for (j = 0; j < wl2.channel_20m.length; j++) {
-					if (wl2.channel_20m[j].indexOf(_cur_channel) != -1) {
-						if(band6g_support){
-							channel_5g_2_val[i] = "6g" + _cur_channel.toString();
-						}
-						else{
-							channel_5g_2_val[i] = _cur_channel.toString();
-						}
-						
-						continue loop_auto;
-					}
-				}
-			}
+			}			
 		}
 		else if (curBandwidth == '5') {
 			$('#band2_extChannel_field').show();
 			var _wl_channel = new Array();
-			for (i = 0; i < channel_5g_2.length; i++) {
-				var _cur_channel = parseInt(channel_5g_2[i]);
-				var _reg = new RegExp("^" + _cur_channel);					
-				for (j = 0; j < wl2.channel_160m.length; j++) {
-					if(band6g_support){
-						if (wl2.channel_160m[j].includes('6g' + _cur_channel + '/160')) {
-							_wl_channel.push(_cur_channel.toString());		
-							channel_5g_2_val.push("6g" + _cur_channel + "/160");											
-						}
-					}
-					else{
-						if (wl2.channel_160m[j].match(_reg) != null) {
-							_wl_channel.push(_cur_channel.toString());		
-							channel_5g_2_val.push(_cur_channel + "/160");											
-						}	
-					}													
+			if(amesh_support && httpApi.hasAiMeshNode()){
+				channel_5g_2 = [];
+				for(j=1; j<mesh_5g2.chan_160m.chanspec.length; j++){
+					channel_5g_2.push(mesh_5g2.chan_160m.chanlist[j]);
+					channel_5g_2_val.push(mesh_5g2.chan_160m.chanspec[j]);
 				}
 			}
+			else{
+				for (i = 0; i < channel_5g_2.length; i++) {
+					var _cur_channel = parseInt(channel_5g_2[i]);
+					var _reg = new RegExp("^" + _cur_channel);					
+					for (j = 0; j < wl2.channel_160m.length; j++) {
+						if(band6g_support){
+							if (wl2.channel_160m[j].includes('6g' + _cur_channel + '/160')) {
+								_wl_channel.push(_cur_channel.toString());		
+								channel_5g_2_val.push("6g" + _cur_channel + "/160");											
+							}
+						}
+						else{
+							if (wl2.channel_160m[j].match(_reg) != null) {
+								_wl_channel.push(_cur_channel.toString());		
+								channel_5g_2_val.push(_cur_channel + "/160");											
+							}	
+						}													
+					}
+				}
 
-			channel_5g_2 = _wl_channel;
+				channel_5g_2 = _wl_channel;
+			}			
 		}
 		else if (curBandwidth == '3') {
 			$('#band2_extChannel_field').show();
 			var _wl_channel = new Array();
-			for (i = 0; i < channel_5g_2.length; i++) {
-				var _cur_channel = parseInt(channel_5g_2[i]);
-				var _reg = new RegExp("^" + _cur_channel);
-				for (j = 0; j < wl2.channel_80m.length; j++) {
-					if(band6g_support){
-						if (wl2.channel_80m[j].includes('6g' + _cur_channel + '/80')) {
-							_wl_channel.push(_cur_channel.toString());		
-							channel_5g_2_val.push("6g" + _cur_channel + "/80");
-						}						
-					}
-					else{
-						if (wl2.channel_80m[j].match(_reg) != null) {
-							_wl_channel.push(_cur_channel.toString());					
-							channel_5g_2_val.push(_cur_channel + "/80");											
-						}
-					}					
+			if(amesh_support && httpApi.hasAiMeshNode()){
+				channel_5g_2 = [];
+				for(j=1; j<mesh_5g2.chan_80m.chanspec.length; j++){
+					channel_5g_2.push(mesh_5g2.chan_80m.chanlist[j]);
+					channel_5g_2_val.push(mesh_5g2.chan_80m.chanspec[j]);
 				}
 			}
+			else{
+				for (i = 0; i < channel_5g_2.length; i++) {
+					var _cur_channel = parseInt(channel_5g_2[i]);
+					var _reg = new RegExp("^" + _cur_channel);
+					for (j = 0; j < wl2.channel_80m.length; j++) {
+						if(band6g_support){
+							if (wl2.channel_80m[j].includes('6g' + _cur_channel + '/80')) {
+								_wl_channel.push(_cur_channel.toString());		
+								channel_5g_2_val.push("6g" + _cur_channel + "/80");
+							}						
+						}
+						else{
+							if (wl2.channel_80m[j].match(_reg) != null) {
+								_wl_channel.push(_cur_channel.toString());					
+								channel_5g_2_val.push(_cur_channel + "/80");											
+							}
+						}					
+					}
+				}
 
-			channel_5g_2 = _wl_channel;
+				channel_5g_2 = _wl_channel;
+			}			
 		}
 		else if (curBandwidth == '2') {
 			$('#band2_extChannel_field').show();
 			_wl_channel = new Array();
-			for (i = 0; i < channel_5g_2.length; i++) {
-				var _cur_channel = parseInt(channel_5g_2[i]);
-				var _reg = new RegExp("^" + _cur_channel);
-				for (j = 0; j < wl2.channel_40m.length; j++) {
-					if(band6g_support){
-						if (wl2.channel_40m[j].includes('6g' + _cur_channel + '/40')) {
-							_wl_channel.push(_cur_channel.toString());		
-							channel_5g_2_val.push("6g" + _cur_channel + "/40");
-						}						
-					}
-					else{
-						if (wl2.channel_40m[j].match(_reg) != null) {
-							_wl_channel.push(_cur_channel.toString());		
-							channel_5g_2_val.push(wlextchannel_fourty(_cur_channel));												
-						}
-					}				
+			if(amesh_support && httpApi.hasAiMeshNode()){
+				channel_5g_2 = [];
+				for(j=1; j<mesh_5g2.chan_40m.chanspec.length; j++){
+					channel_5g_2.push(mesh_5g2.chan_40m.chanlist[j]);
+					channel_5g_2_val.push(mesh_5g2.chan_40m.chanspec[j]);
 				}
 			}
+			else{
+				for (i = 0; i < channel_5g_2.length; i++) {
+					var _cur_channel = parseInt(channel_5g_2[i]);
+					var _reg = new RegExp("^" + _cur_channel);
+					for (j = 0; j < wl2.channel_40m.length; j++) {
+						if(band6g_support){
+							if (wl2.channel_40m[j].includes('6g' + _cur_channel + '/40')) {
+								_wl_channel.push(_cur_channel.toString());		
+								channel_5g_2_val.push("6g" + _cur_channel + "/40");
+							}						
+						}
+						else{
+							if (wl2.channel_40m[j].match(_reg) != null) {
+								_wl_channel.push(_cur_channel.toString());		
+								channel_5g_2_val.push(wlextchannel_fourty(_cur_channel));												
+							}
+						}				
+					}
+				}
 
-			channel_5g_2 = _wl_channel;
+				channel_5g_2 = _wl_channel;
+			}			
 		}
 		else{
 			$('#band2_extChannel_field').hide();
 			_wl_channel = new Array();
-			for (i = 0; i < channel_5g_2.length; i++) {
-				var _cur_channel = parseInt(channel_5g_2[i]);
-				_wl_channel.push(_cur_channel.toString());
-				if(band6g_support){
-					channel_5g_2_val.push("6g" + _cur_channel);
+			if(amesh_support && httpApi.hasAiMeshNode()){
+				channel_5g_2 = [];
+				for(j=1; j<mesh_5g2.chan_20m.chanspec.length; j++){
+					channel_5g_2.push(mesh_5g2.chan_20m.chanlist[j]);
+					channel_5g_2_val.push(mesh_5g2.chan_20m.chanspec[j]);
 				}
-				else{
-					channel_5g_2_val.push(_cur_channel.toString());
-				}				
 			}
+			else{
+				for (i = 0; i < channel_5g_2.length; i++) {
+					var _cur_channel = parseInt(channel_5g_2[i]);
+					_wl_channel.push(_cur_channel.toString());
+					if(band6g_support){
+						channel_5g_2_val.push("6g" + _cur_channel);
+					}
+					else{
+						channel_5g_2_val.push(_cur_channel.toString());
+					}				
+				}
+			}			
 		}
 		
 		channel_5g_2.unshift('<#Auto#>');
@@ -2097,9 +2249,14 @@ function separateChannelHandler(unit, channel){
 	}
 }
 function controlHideSSIDHint() {
-	$("#dwb_band_hide_hint").hide();
-	if(dwb_info.mode && (dwb_info.band == wl_unit) && document.form.smart_connect_x.value == "1" && (based_modelid == "RT-AX92U" || based_modelid == "RT-AX95Q" || based_modelid == "XT8PRO"))
-		$("#dwb_band_hide_hint").show();
+	var $hide_ssid_field = $('input:radio[name=wl' + dwb_info.band + '_closed]').closest("tr");
+	$hide_ssid_field.find("#dwb_band_hide_hint").remove();
+	if(dwb_info.mode){
+		var sc_mode = ((_smart_connect_enable == "0") ? "0" : document.form.smart_connect_t.value);
+		var is_hide_ssid = ($('input:radio[name=wl' + dwb_info.band + '_closed]:checked').val() == "1") ? true : false;
+		if(sc_mode != "1" && is_hide_ssid)
+			$hide_ssid_field.find("td").append($("<div>").attr({"id":"dwb_band_hide_hint"}).append($("<span>").html('<#AiMesh_dedicated_backhaul_band_hide_SSID#>')));
+	}
 }
 function controlAXOnlyHint() {
 	if(document.form.wl_nmode_x.value == "9")
@@ -2116,7 +2273,10 @@ function ajax_wl_channel(){
 			setTimeout("ajax_wl_channel();", 1000);
 		},
 		success: function(response){
-			$("#auto_channel").html("<#wireless_control_channel#>: " + cur_control_channel[wl_unit]);
+			// $("#auto_channel").html("<#wireless_control_channel#>: " + cur_control_channel[wl_unit]);
+			$('#band0_autoChannel').html('Current Control Channel: ' + cur_control_channel[0]);
+			$('#band1_autoChannel').html('Current Control Channel: ' + cur_control_channel[1]);
+			$('#band2_autoChannel').html('Current Control Channel: ' + cur_control_channel[2]);
 			setTimeout("ajax_wl_channel();", 5000);
 		}
 	});
@@ -2172,8 +2332,8 @@ function auth_method_change(unit, value, flag){
 				add_options_x2(document.form.band0_crypto, _temp, _temp_value, _crypto);
 
 				var _mfp = '<% nvram_get("wl0_mfp"); %>';
-				_temp = ['<#WLANConfig11b_WirelessCtrl_buttonname#>', '<#WLANConfig11b_x_mfp_opt1#>', '<#WLANConfig11b_x_mfp_opt2#>'];
-				_temp_value = ['0', '1', '2'];
+				_temp = ['<#WLANConfig11b_WirelessCtrl_buttonname#>', '<#WLANConfig11b_x_mfp_opt1#>'];
+				_temp_value = ['0', '1'];
 				add_options_x2(document.form.band0_mfp, _temp, _temp_value, _mfp);
 			}
 			else if(value == 'psk2'){
@@ -2181,10 +2341,10 @@ function auth_method_change(unit, value, flag){
 				_temp_value = ['aes'];
 				add_options_x2(document.form.band0_crypto, _temp, _temp_value, 'aes');
 
-				//var _mfp = '<% nvram_get("wl0_mfp"); %>';
+				var _mfp = '<% nvram_get("wl0_mfp"); %>';
 				_temp = ['<#WLANConfig11b_WirelessCtrl_buttonname#>', '<#WLANConfig11b_x_mfp_opt1#>', '<#WLANConfig11b_x_mfp_opt2#>'];
 				_temp_value = ['0', '1', '2'];
-				add_options_x2(document.form.band0_mfp, _temp, _temp_value, '0');
+				add_options_x2(document.form.band0_mfp, _temp, _temp_value, _mfp);
 			}
 			else if(value == 'sae'){
 				_temp = ['AES'];
@@ -2233,8 +2393,8 @@ function auth_method_change(unit, value, flag){
 				add_options_x2(document.form.band0_crypto, _temp, _temp_value, _crypto);
 
 				var _mfp = '<% nvram_get("wl0_mfp"); %>';
-				_temp = ['<#WLANConfig11b_WirelessCtrl_buttonname#>', '<#WLANConfig11b_x_mfp_opt1#>', '<#WLANConfig11b_x_mfp_opt2#>'];
-				_temp_value = ['0', '1', '2'];
+				_temp = ['<#WLANConfig11b_WirelessCtrl_buttonname#>', '<#WLANConfig11b_x_mfp_opt1#>'];
+				_temp_value = ['0', '1'];
 				add_options_x2(document.form.band0_mfp, _temp, _temp_value, _mfp);
 			}	
 		}
@@ -2276,8 +2436,8 @@ function auth_method_change(unit, value, flag){
 				add_options_x2(document.form.band1_crypto, _temp, _temp_value, _crypto);
 
 				var _mfp = '<% nvram_get("wl1_mfp"); %>';
-				_temp = ['<#WLANConfig11b_WirelessCtrl_buttonname#>', '<#WLANConfig11b_x_mfp_opt1#>', '<#WLANConfig11b_x_mfp_opt2#>'];
-				_temp_value = ['0', '1', '2'];
+				_temp = ['<#WLANConfig11b_WirelessCtrl_buttonname#>', '<#WLANConfig11b_x_mfp_opt1#>'];
+				_temp_value = ['0', '1'];
 				add_options_x2(document.form.band1_mfp, _temp, _temp_value, _mfp);
 			}
 			else if(value == 'psk2'){
@@ -2285,7 +2445,7 @@ function auth_method_change(unit, value, flag){
 				_temp_value = ['aes'];
 				add_options_x2(document.form.band1_crypto, _temp, _temp_value, 'aes');
 
-				//var _mfp = '<% nvram_get("wl1_mfp"); %>';
+				var _mfp = '<% nvram_get("wl1_mfp"); %>';
 				_temp = ['<#WLANConfig11b_WirelessCtrl_buttonname#>', '<#WLANConfig11b_x_mfp_opt1#>', '<#WLANConfig11b_x_mfp_opt2#>'];
 				_temp_value = ['0', '1', '2'];
 				add_options_x2(document.form.band1_mfp, _temp, _temp_value, _mfp);
@@ -2336,8 +2496,8 @@ function auth_method_change(unit, value, flag){
 				add_options_x2(document.form.band1_crypto, _temp, _temp_value, _crypto);
 
 				var _mfp = '<% nvram_get("wl1_mfp"); %>';
-				_temp = ['<#WLANConfig11b_WirelessCtrl_buttonname#>', '<#WLANConfig11b_x_mfp_opt1#>', '<#WLANConfig11b_x_mfp_opt2#>'];
-				_temp_value = ['0', '1', '2'];
+				_temp = ['<#WLANConfig11b_WirelessCtrl_buttonname#>', '<#WLANConfig11b_x_mfp_opt1#>'];
+				_temp_value = ['0', '1'];
 				add_options_x2(document.form.band1_mfp, _temp, _temp_value, _mfp);
 			}
 		}
@@ -2422,8 +2582,8 @@ function auth_method_change(unit, value, flag){
 				add_options_x2(document.form.band01_crypto, _temp, _temp_value, _crypto);
 
 				var _mfp = '<% nvram_get("wl0_mfp"); %>';
-				_temp = ['<#WLANConfig11b_WirelessCtrl_buttonname#>', '<#WLANConfig11b_x_mfp_opt1#>', '<#WLANConfig11b_x_mfp_opt2#>'];
-				_temp_value = ['0', '1', '2'];
+				_temp = ['<#WLANConfig11b_WirelessCtrl_buttonname#>', '<#WLANConfig11b_x_mfp_opt1#>'];
+				_temp_value = ['0', '1'];
 				add_options_x2(document.form.band01_mfp, _temp, _temp_value, _mfp);
 			}
 			else if(value == 'psk2'){
@@ -2431,7 +2591,7 @@ function auth_method_change(unit, value, flag){
 				_temp_value = ['aes'];
 				add_options_x2(document.form.band01_crypto, _temp, _temp_value, 'aes');
 
-				//var _mfp = '<% nvram_get("wl0_mfp"); %>';
+				var _mfp = '<% nvram_get("wl0_mfp"); %>';
 				_temp = ['<#WLANConfig11b_WirelessCtrl_buttonname#>', '<#WLANConfig11b_x_mfp_opt1#>', '<#WLANConfig11b_x_mfp_opt2#>'];
 				_temp_value = ['0', '1', '2'];
 				add_options_x2(document.form.band01_mfp, _temp, _temp_value, _mfp);
@@ -2494,8 +2654,8 @@ function auth_method_change(unit, value, flag){
 				add_options_x2(document.form.band01_crypto, _temp, _temp_value, _crypto);
 
 				var _mfp = '<% nvram_get("wl0_mfp"); %>';
-				_temp = ['<#WLANConfig11b_WirelessCtrl_buttonname#>', '<#WLANConfig11b_x_mfp_opt1#>', '<#WLANConfig11b_x_mfp_opt2#>'];
-				_temp_value = ['0', '1', '2'];
+				_temp = ['<#WLANConfig11b_WirelessCtrl_buttonname#>', '<#WLANConfig11b_x_mfp_opt1#>'];
+				_temp_value = ['0', '1'];
 				add_options_x2(document.form.band01_mfp, _temp, _temp_value, _mfp);
 			}	
 		}
@@ -2943,7 +3103,7 @@ function channel_6g(bw){
 		for(i=0;i<wl_channel_list_5g_2.length; i++){
 			var _cur_channel = parseInt(wl_channel_list_5g_2[i]);
 			for(j=0;j<wl2.channel_40m.length;j++){
-				if(wl2.channel_40m[j].indexOf("6g" + _cur_channel) != -1){
+				if((wl2.channel_20m[j].indexOf("6g" + _cur_channel) != -1) && wl2.channel_20m[j].length === ("6g" + _cur_channel).length){
 					_wl_channel.push("6g" + _cur_channel);
 				}
 			}	
@@ -3077,7 +3237,7 @@ function handle_smart_connect(value, flag){
 			}
 		}
 		else if(value == '3'){
-			if(flag == 'init'){
+			if(flag != 'init'){
 				document.form.band01_auth_mode_x.value = 'psk2';
 				document.form.band01_mfp.value = '0';
 				auth_method_change('01', document.form.band01_auth_mode_x.value);
@@ -3147,6 +3307,62 @@ function handle_smart_connect(value, flag){
 				$("#fh_ap_enabled").val(0);
 		}
 	}
+	controlHideSSIDHint();
+}
+
+function handleAiMeshBackhaul(value){
+	var fh_ap_enabled = '<% nvram_get("fh_ap_enabled"); %>';
+	if(value === '2'){
+		if(meshBackhaulAutoSupport){
+			document.querySelector('#fh_connection_hint').style.display = 'none';
+			document.querySelector('#fh_ap_enabled').value = '2';
+		}
+		
+		if(unii4Support){
+			document.querySelector('#acs_unii4_checkbox').checked =  false;
+		}
+	}
+	else if(value === '0'){
+		if(meshBackhaulAutoSupport){
+			document.querySelector('#fh_connection_hint').style.display = '';
+		}
+		
+		if(unii4Support){
+			if(fh_ap_enabled === '1'){
+				document.querySelector('#acs_unii4_checkbox').checked =  false;
+				if(meshBackhaulAutoSupport){
+					document.querySelector('#fh_connection_hint_checkbox').checked = true;
+				}
+			}
+			else{
+				document.querySelector('#acs_unii4_checkbox').checked =  true;
+				if(meshBackhaulAutoSupport){
+					document.querySelector('#fh_connection_hint_checkbox').checked = false;
+				}				
+			}
+		}	
+	}
+}
+
+function handleFhConnectionHint(value){
+	if(value){
+		document.querySelector('#fh_ap_enabled').value = '0';
+		if(unii4Support){
+			document.querySelector('#acs_unii4_checkbox').checked =  false;
+		}
+	}
+	else{
+		document.querySelector('#fh_ap_enabled').value = '0';
+		if(unii4Support){
+			document.querySelector('#acs_unii4_checkbox').checked =  true;
+		}
+	}
+}
+
+function handleUNII4Hint(value){
+	if(value){
+		alert("<#WLANConfig11b_EChannel_U-NII-4_alert#>");
+	}
 }
 
 function gen_fronthaul_ap(value){
@@ -3155,6 +3371,10 @@ function gen_fronthaul_ap(value){
 		var get_cfg_clientlist = httpApi.hookGet("get_cfg_clientlist");
 		if(get_cfg_clientlist[0] != undefined){
 			var $selectObj = $("<select/>").attr("id","fh_ap_enabled").addClass("input_option");
+			if(meshBackhaulAutoSupport || unii4Support) {
+				$selectObj.attr('onChange', 'handleAiMeshBackhaul(this.value)');
+			}
+
 			var select_node_capability = httpApi.aimesh_get_node_capability(get_cfg_clientlist[0]);
 			if(select_node_capability.fronthaul_ap_option_on)
 				$selectObj.append($('<option>', {value: "2", text: "<#AiMesh_WiFi_Backhaul_both#>"}));
@@ -3162,11 +3382,21 @@ function gen_fronthaul_ap(value){
 				$selectObj.append($('<option>', {value: "1", text: "<#Auto#>"}));
 			if(select_node_capability.fronthaul_ap_option_off)
 				$selectObj.append($('<option>', {value: "0", text: "<#AiMesh_WiFi_Backhaul_dedicated_backhaul#>"}));
+
+			if(meshBackhaulAutoSupport ){
+				$selectObj.append($('<option>', {value: "1", text: "", hidden: true}));			
+			}
+
 			if($selectObj.find("option").length > 0){
 				var $trObj = $("<tr>").addClass("fronthaul_ap");
 				var $thObj = $("<th>").html("<#AiMesh_WiFi_Backhaul#>");
 				var $tdObj = $("<td>");
 				$trObj.append($thObj).append($tdObj.append($selectObj));
+				if(meshBackhaulAutoSupport ){
+					var fh_connect_obj ='<div id="fh_connection_hint" style="color:#FC0;"><input id="fh_connection_hint_checkbox" type="checkbox" onchange="handleFhConnectionHint(this.checked)"><#AiMesh_WiFi_Backhaul_release_fronthaul#></div>';
+					$trObj.append($thObj).append($tdObj.append(fh_connect_obj));
+				}
+
 				$("#band" + dwb_info.band + "_ssid_field").after($trObj);
 				var fh_ap_enabled = httpApi.nvramGet(["fh_ap_enabled"]).fh_ap_enabled;
 				if(fh_ap_enabled != "" && $selectObj.children("option[value=" + fh_ap_enabled + "]").length > 0)
@@ -3260,7 +3490,6 @@ function handle_auth(obj){
 <input type="hidden" name="wl_gmode_protection" value="<% nvram_get("wl_gmode_protection"); %>">
 <input type="hidden" name="wl_wme" value="<% nvram_get("wl_wme"); %>">
 <input type="hidden" name="wl_mode_x" value="<% nvram_get("wl_mode_x"); %>">
-<input type="hidden" name="wl_nmode" value="<% nvram_get("wl_nmode"); %>">
 <input type="hidden" name="wl_nmode_x_orig" value="<% nvram_get("wl_nmode_x"); %>">
 <input type="hidden" name="wl_nctrlsb_old" value="<% nvram_get("wl_nctrlsb"); %>">
 <input type="hidden" name="wl_key_type" value='<% nvram_get("wl_key_type"); %>'> <!--Lock Add 2009.03.10 for ralink platform-->
@@ -3291,6 +3520,7 @@ function handle_auth(obj){
 <input type="hidden" name="acs_band3" value='<% nvram_get("acs_band3"); %>'>
 <input type="hidden" name="acs_ch13" value='<% nvram_get("acs_ch13"); %>'>
 <input type="hidden" name="psc6g" value='<% nvram_get("psc6g"); %>'>
+<input type="hidden" name="acs_unii4" value='<% nvram_get("acs_unii4"); %>'>
 <input type="hidden" name="wps_enable" value="<% nvram_get("wps_enable"); %>">
 <input type="hidden" name="wps_band" value="<% nvram_get("wps_band_x"); %>">
 <input type="hidden" name="wps_dualband" value="<% nvram_get("wps_dualband"); %>">
@@ -3683,6 +3913,7 @@ function handle_auth(obj){
 						<select name="band1_channel" class="input_option" onChange="handle_channel('1', this.value);"></select>
 						<span id="band1_autoChannel" style="display:none;margin-left:10px;">Current Control Channel</span><br>
 						<span id="band1_acsDFS"><input id="band1_acsDFS_checkbox" type="checkbox" <% nvram_match("acs_dfs", "1" , "checked" ); %>><#WLANConfig11b_EChannel_dfs#></span>
+						<div><span id="acs_unii4_field" style="display:none;"><input id="acs_unii4_checkbox" type="checkbox" onClick="handleUNII4Hint(this.checked)" <% nvram_match("acs_unii4", "1", "checked"); %>><#WLANConfig11b_EChannel_U-NII-4#></span></div>
 					</td>
 				</tr>
 				<tr id="band1_extChannel_field">
@@ -3810,7 +4041,7 @@ function handle_auth(obj){
 						<span id="band2_autoChannel" style="display:none;margin-left:10px;">Current Control Channel</span><br>
 						<span id="band2_psc6g" style="">
 							<input id="band2_psc6g_checkbox" type="checkbox" onclick="separateGenChannel('2', document.form.band2_channel.value, document.form.band2_bw.value);" <% nvram_match("psc6g", "1" , "checked" ); %>><#Enable_PSC_Hint#> <#PSC_Faq#>
-						</span>
+						</span>						
 					</td>
 				</tr>
 				<tr id="band2_extChannel_field" style="">
@@ -3903,7 +4134,7 @@ function handle_auth(obj){
 				'wl_unit': '0',
 				'wl_subunit': '-1'
 			}, function(){
-				location.href = location.href;
+				location.reload();
 			});
 		}
 

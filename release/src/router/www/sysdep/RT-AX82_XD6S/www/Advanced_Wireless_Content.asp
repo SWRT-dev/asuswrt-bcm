@@ -1,0 +1,1 @@
+../../RT-AX82_XD6/www/Advanced_Wireless_Content.asp

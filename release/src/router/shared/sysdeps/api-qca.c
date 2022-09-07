@@ -35,8 +35,8 @@ typedef uint32_t __u32;
 #define IEEE80211_IOCTL_GETCHANINFO     (SIOCIWFIRSTPRIV+7)
 typedef unsigned int	u_int;
 
-#if defined(RTCONFIG_SPF11_4_QSDK)
-/* SPF11.4 or above */
+#if defined(RTCONFIG_SOC_IPQ50XX) || defined(RTCONFIG_SPF11_4_QSDK)
+/* SPF11.4 or above, sync with qca-wifi's struct ieee80211_channel_info */
 struct ieee80211_channel {
     uint8_t ieee;
     uint16_t ic_freq;
@@ -46,6 +46,7 @@ struct ieee80211_channel {
     uint8_t vhtop_ch_num_seg2;
 };
 #else
+/* sync with qca-wifi's struct ieee80211_ath_channel */
 struct ieee80211_channel {
     u_int16_t       ic_freq;        /* setting in Mhz */
 #if defined(RTCONFIG_WIFI_QCN5024_QCN5054) || defined(RTCONFIG_QCA_AXCHIP) || defined(RTCONFIG_QSDK10CS)
@@ -64,9 +65,14 @@ struct ieee80211_channel {
     int8_t          ic_minpower;    /* minimum tx power in dBm */
     u_int8_t        ic_regClassId;  /* regClassId of this channel */ 
     u_int8_t        ic_antennamax;  /* antenna gain max from regulatory */
-    u_int8_t        ic_vhtop_ch_freq_seg1;         /* Channel Center frequency */
-    u_int8_t        ic_vhtop_ch_freq_seg2;         /* Channel Center frequency applicable
-                                                  * for 80+80MHz mode of operation */ 
+#if defined(RTCONFIG_SPF11_1_QSDK) || defined(RTCONFIG_SPF11_3_QSDK)
+    u_int8_t        ic_vhtop_ch_num_seg1;         /* Seg1 center Channel index */
+    u_int8_t        ic_vhtop_ch_num_seg2;         /* Seg2 center Channel index for 80+80MHz mode or
+						   * center Channel index of operating span for 160Mhz mode */
+    uint16_t        ic_vhtop_freq_seg1;           /* seg1 Center Channel frequency */
+    uint16_t        ic_vhtop_freq_seg2;           /* Seg2 center Channel frequency index for 80+80MHz mode or
+						   * center Channel frequency of operating span for 160Mhz mode */
+#endif
 };
 #endif
 
@@ -79,7 +85,9 @@ u_int
 ieee80211_mhz2ieee(u_int freq)
 {
 #define IS_CHAN_IN_PUBLIC_SAFETY_BAND(_c) ((_c) > 4940 && (_c) < 4990)
-	if (freq == 2484)
+    if (freq < 2412)
+        return 0;
+    if (freq == 2484)
         return 14;
     if (freq < 2484)
         return (freq - 2407) / 5;
@@ -1538,7 +1546,7 @@ char *get_wlifname(int unit, int subunit, int subunit_x, char *buf)
 #if 1
 	char wifbuf[32];
 	char prefix[] = "wlXXXXXX_", tmp[100];
-	int wlc_band = nvram_get_int("wlc_band");
+	int wlc_band __attribute__((unused)) = nvram_get_int("wlc_band");
 #if defined(RTCONFIG_WIRELESSREPEATER)
 	if (sw_mode() == SW_MODE_REPEATER
 #if !defined(RTCONFIG_CONCURRENTREPEATER)
@@ -2183,28 +2191,6 @@ int destroy_vap(char *ifname)
 	return 0;
 }
 
-int get_ch(int freq)
-{
-#define IS_CHAN_IN_PUBLIC_SAFETY_BAND(_c) ((_c) > 4940 && (_c) < 4990)
-	if (freq < 2412)
-		return 0;
-	if (freq == 2484)
-		return 14;
-	if (freq < 2484)
-		return (freq - 2407) / 5;
-	if (freq < 5000) {
-		if (IS_CHAN_IN_PUBLIC_SAFETY_BAND(freq)) {
-			return ((freq * 10) +
-				(((freq % 5) == 2) ? 5 : 0) - 49400)/5;
-		} else if (freq > 4900) {
-			return (freq - 4000) / 5;
-		} else {
-			return 15 + ((freq - 2512) / 20);
-		}
-	}
-	return (freq - 5000) / 5;
-}
-
 #ifndef pow
 #define pow(v,e) ({double d=1; int i; for(i=0;i<e;i++) d*=v; d;})
 #endif
@@ -2221,7 +2207,7 @@ int iwfreq_to_ch(const iwfreq *fr)
 		return -2;
 
 	freq = (int)(frd / 1e6);
-	return get_ch(freq);
+	return (int)ieee80211_mhz2ieee((u_int)freq);
 }
 
 int get_channel(const char *ifname)
@@ -2379,7 +2365,7 @@ int get_radar_channel_list(const char *vphy, int radar_list[], int size)
 	fclose(fp);
 
 	for(cnt = 0; cnt < nol->ic_nchans; cnt++) {
-		radar_list[cnt] = get_ch(nol->dfs_nol[cnt].nol_freq);
+		radar_list[cnt] = (int)ieee80211_mhz2ieee((u_int)nol->dfs_nol[cnt].nol_freq);
 #if 0
 		nol->nol_chwidth
 		nol->nol_start_ticks

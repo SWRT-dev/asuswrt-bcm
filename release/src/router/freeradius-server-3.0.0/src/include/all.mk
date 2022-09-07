@@ -1,5 +1,5 @@
 #
-# Version:	$Id: a2c4ec5b8ca80fa22befe12ef6bda706d135e841 $
+# Version:	$Id: 5abf0bcf02f7e886e2578e1a96eda03f743d22f5 $
 #
 
 HEADERS	= conf.h conffile.h detail.h event.h features.h hash.h heap.h \
@@ -50,7 +50,7 @@ src/include/radpaths.h: src/include/build-radpaths-h
 	@$(ECHO) HEADER $@
 	@cd src/include && /bin/sh build-radpaths-h
 
-${BUILD_DIR}/make/jlibtool: $(HEADERS_DY)
+${FRBUILD_DIR}/make/jlibtool: $(HEADERS_DY)
 
 #
 #  Installation

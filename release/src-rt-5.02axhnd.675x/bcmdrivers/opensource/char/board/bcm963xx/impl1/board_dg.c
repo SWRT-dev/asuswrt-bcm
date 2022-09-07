@@ -4,19 +4,25 @@
 *    Copyright (c) 2016 Broadcom 
 *    All Rights Reserved
 * 
-* This program is free software; you can redistribute it and/or modify
-* it under the terms of the GNU General Public License, version 2, as published by
-* the Free Software Foundation (the "GPL").
+* Unless you and Broadcom execute a separate written software license
+* agreement governing use of this software, this software is licensed
+* to you under the terms of the GNU General Public License version 2
+* (the "GPL"), available at http://www.broadcom.com/licenses/GPLv2.php,
+* with the following added to such license:
 * 
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
+*    As a special exception, the copyright holders of this software give
+*    you permission to link this software with independent modules, and
+*    to copy and distribute the resulting executable under terms of your
+*    choice, provided that you also meet, for each linked independent
+*    module, the terms and conditions of the license of that module.
+*    An independent module is a module which is not derived from this
+*    software.  The special exception does not apply to any modifications
+*    of the software.
 * 
-* 
-* A copy of the GPL is available at http://www.broadcom.com/licenses/GPLv2.php, or by
-* writing to the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-* Boston, MA 02111-1307, USA.
+* Not withstanding the above, under no circumstances may you combine
+* this software in any way with any other Broadcom software provided
+* under a license other than the GPL, without Broadcom's express prior
+* written consent.
 * 
 * :> 
 */
@@ -83,8 +89,9 @@ static irqreturn_t kerSysDyingGaspIsr(int irq, void * dev_id)
 {
     struct list_head *pos;
     CB_DGASP_LIST *tmp = NULL, *dslCallBack = NULL;
+#if defined (PASS_DYING_GASP_GPIO)
     unsigned short usPassDyingGaspGpio;        // The GPIO pin to propogate a dying gasp signal
-
+#endif
     isDyingGaspTriggered = 1;
 #if defined(CONFIG_BCM947189)
 #else
@@ -101,6 +108,16 @@ static irqreturn_t kerSysDyingGaspIsr(int irq, void * dev_id)
 #if defined (WIRELESS)
     kerSetWirelessPD(WLAN_OFF);
 #endif
+
+#if defined (PASS_DYING_GASP_GPIO)
+    // If configured, propogate dying gasp to other processors on the board
+    if(BpGetPassDyingGaspGpio(&usPassDyingGaspGpio) == BP_SUCCESS)
+    {
+        // Dying gasp configured - set GPIO
+        kerSysSetGpioState(usPassDyingGaspGpio, kGpioInactive);
+    }
+#endif /* PASS_DYING_GASP_GPIO */
+
     /* first to turn off everything other than dsl */
     list_for_each(pos, &g_cb_dgasp_list_head->list) {
         tmp = list_entry(pos, CB_DGASP_LIST, list);
@@ -124,13 +141,6 @@ static irqreturn_t kerSysDyingGaspIsr(int irq, void * dev_id)
     bcm_suspend_watchdog();
 #endif
     start_watchdog(1000000, 1);
-
-    // If configured, propogate dying gasp to other processors on the board
-    if(BpGetPassDyingGaspGpio(&usPassDyingGaspGpio) == BP_SUCCESS)
-    {
-        // Dying gasp configured - set GPIO
-        kerSysSetGpioState(usPassDyingGaspGpio, kGpioInactive);
-    }
 
     // If power is going down, nothing should continue!
     while (1);
@@ -162,7 +172,7 @@ static int isDGActiveOnBoot(void)
 
     /* Check if DG is already active */
 #if defined(CONFIG_BCM96838) || defined(CONFIG_BCM96848) || defined(CONFIG_BCM96858) || defined(CONFIG_BCM94908) || \
-    defined(CONFIG_BCM96846) || defined(CONFIG_BCM96856) || defined (CONFIG_BCM947622) || defined (CONFIG_BCM963178) || defined(CONFIG_BCM96878)
+    defined(CONFIG_BCM96846) || defined(CONFIG_BCM96856) || defined (CONFIG_BCM947622) || defined (CONFIG_BCM963178) || defined(CONFIG_BCM96878) || defined(CONFIG_BCM96855)
     dg_active = 0;
 #elif defined(CONFIG_BCM963158)
     dg_active =  INTSET->IrqStatus0[0] & (1 << (INTERRUPT_DYING_GASP_IRQ - SPI_TABLE_OFFSET));
@@ -278,7 +288,7 @@ void __init kerSysInitDyingGaspHandler( void )
 #elif defined(CONFIG_BCM963158) || defined(CONFIG_BCM963178)
     /* Set BgBias and Afe regs via BPCM */
     pmc_dgasp_init();
-#elif defined(CONFIG_BCM96846) || defined(CONFIG_BCM96856) || defined(CONFIG_BCM947622) || defined(CONFIG_BCM963178) || defined(CONFIG_BCM96878)
+#elif defined(CONFIG_BCM96846) || defined(CONFIG_BCM96856) || defined(CONFIG_BCM947622) || defined(CONFIG_BCM963178) || defined(CONFIG_BCM96878) || defined(CONFIG_BCM96855)
     TOP->DgSensePadCtl |= (1 << DG_EN_SHIFT);
 #elif defined(CONFIG_BCM94908) 
     TOPCTRL->DgSensePadCtrl |= (1 << DG_EN_SHIFT);

@@ -4,7 +4,7 @@
 #		NOTE: This top-level Makefile must not
 #		use GNU-make extensions. The lower ones can.
 #
-# Version:	$Id: f143483e6a306d53d4ef701b5067ef7cd1301cd8 $
+# Version:	$Id: 318b7d89ae8bf51ee36d0373eceb30abaf658cf7 $
 #
 
 $(if $(wildcard Make.inc),,$(error Missing 'Make.inc' Run './configure [options]' and retry")) 
@@ -24,7 +24,7 @@ export DESTDIR := $(R)
 # And over-ride all of the other magic.
 include scripts/boiler.mk
 
-test: build.raddb ${BUILD_DIR}/bin/radiusd ${BUILD_DIR}/bin/radclient
+test: build.raddb ${FRBUILD_DIR}/bin/radiusd ${FRBUILD_DIR}/bin/radclient
 	@$(MAKE) -C raddb/certs
 	@./build/make/jlibtool --mode=execute ./build/bin/radiusd -XCMd ./raddb -n debug -D ./share
 	@$(MAKE) -C src/tests tests

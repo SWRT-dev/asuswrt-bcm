@@ -5,19 +5,25 @@
 *    Copyright (c) 2013 Broadcom 
 *    All Rights Reserved
 * 
-* This program is free software; you can redistribute it and/or modify
-* it under the terms of the GNU General Public License, version 2, as published by
-* the Free Software Foundation (the "GPL").
+* Unless you and Broadcom execute a separate written software license
+* agreement governing use of this software, this software is licensed
+* to you under the terms of the GNU General Public License version 2
+* (the "GPL"), available at http://www.broadcom.com/licenses/GPLv2.php,
+* with the following added to such license:
 * 
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
+*    As a special exception, the copyright holders of this software give
+*    you permission to link this software with independent modules, and
+*    to copy and distribute the resulting executable under terms of your
+*    choice, provided that you also meet, for each linked independent
+*    module, the terms and conditions of the license of that module.
+*    An independent module is a module which is not derived from this
+*    software.  The special exception does not apply to any modifications
+*    of the software.
 * 
-* 
-* A copy of the GPL is available at http://www.broadcom.com/licenses/GPLv2.php, or by
-* writing to the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-* Boston, MA 02111-1307, USA.
+* Not withstanding the above, under no circumstances may you combine
+* this software in any way with any other Broadcom software provided
+* under a license other than the GPL, without Broadcom's express prior
+* written consent.
 * 
 * :>
 */
@@ -1003,7 +1009,7 @@ static int get_xtm_channel_q_cfg(
     }
     q_info->tm_id = tm_idx;
     q_info->index = 0;
-    q_info->qsize = q_cfg.drop_threshold;
+    q_info->qsize  = getUsrQueueSize(q_cfg.drop_threshold);
     q_info->weight = q_cfg.weight;
     q_info->minBufs = q_cfg.reserved_packet_buffers;
     q_info->found = TRUE;
@@ -2916,7 +2922,7 @@ static int set_q_drop_alg(rdpa_drv_ioctl_tm_t *ptm)
             goto q_cfg_exit;
         }
         qinfo.weight = queue_cfg.weight;
-        qinfo.qsize = queue_cfg.drop_threshold;
+        qinfo.qsize = getUsrQueueSize(queue_cfg.drop_threshold) ;
         qinfo.index = 0;
 #else
         return RDPA_DRV_PORT_GET;
@@ -3166,7 +3172,7 @@ int rdpa_cmd_drv_get_q_size(
         return RDPA_DRV_Q_CFG_GET;
     }
    
-    *pqsize  = q_cfg.drop_threshold;
+    *pqsize  = getUsrQueueSize(q_cfg.drop_threshold);
 
     bdmf_put(sched);
     return ret;

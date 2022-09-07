@@ -78,6 +78,3 @@ obj-$(CONFIG_HSR)		+= hsr/
 ifneq ($(CONFIG_NET_SWITCHDEV),)
 obj-y				+= switchdev/
 endif
-ifeq ($(PGB_QUICK_PATH),y)
-obj-y		+= swrt_fastpath/
-endif

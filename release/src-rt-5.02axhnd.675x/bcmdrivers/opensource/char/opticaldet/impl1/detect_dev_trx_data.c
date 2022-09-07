@@ -4,19 +4,25 @@
    Copyright (c) 2015 Broadcom 
    All Rights Reserved
 
-This program is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License, version 2, as published by
-the Free Software Foundation (the "GPL").
+Unless you and Broadcom execute a separate written software license
+agreement governing use of this software, this software is licensed
+to you under the terms of the GNU General Public License version 2
+(the "GPL"), available at http://www.broadcom.com/licenses/GPLv2.php,
+with the following added to such license:
 
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+   As a special exception, the copyright holders of this software give
+   you permission to link this software with independent modules, and
+   to copy and distribute the resulting executable under terms of your
+   choice, provided that you also meet, for each linked independent
+   module, the terms and conditions of the license of that module.
+   An independent module is a module which is not derived from this
+   software.  The special exception does not apply to any modifications
+   of the software.
 
-
-A copy of the GPL is available at http://www.broadcom.com/licenses/GPLv2.php, or by
-writing to the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-Boston, MA 02111-1307, USA.
+Not withstanding the above, under no circumstances may you combine
+this software in any way with any other Broadcom software provided
+under a license other than the GPL, without Broadcom's express prior
+written consent.
 
 :>
 */
@@ -131,7 +137,7 @@ static TRX_DESCRIPTOR default_pluggable_trx = {
     .tx_sd_polarity        = TRX_ACTIVE_HIGH,
     .tx_sd_supported       = TRX_SIGNAL_NOT_SUPPORTED,
     .tx_pwr_down_polarity  = TRX_ACTIVE_LOW,
-    .tx_pwr_down_cfg_req   = false
+    .tx_pwr_down_cfg_req   = false,
 } ;
 
 
@@ -144,7 +150,7 @@ static TRX_DESCRIPTOR default_on_board_trx = {
     .tx_sd_polarity        = TRX_ACTIVE_HIGH,
     .tx_sd_supported       = TRX_SIGNAL_NOT_SUPPORTED,
     .tx_pwr_down_polarity  = TRX_ACTIVE_LOW,
-    .tx_pwr_down_cfg_req   = false
+    .tx_pwr_down_cfg_req   = false,
 } ;
 
 static TRX_DESCRIPTOR default_pmd_trx = {
@@ -157,8 +163,8 @@ static TRX_DESCRIPTOR default_pmd_trx = {
     .tx_sd_supported       = TRX_SIGNAL_NOT_SUPPORTED,
     .tx_pwr_down_polarity  = TRX_ACTIVE_LOW,
     .tx_pwr_down_cfg_req   = false,
-    .wan_types_bitmap      = SUPPORTED_WAN_TYPES_BIT_GPON | SUPPORTED_WAN_TYPES_BIT_EPON_1_1 | SUPPORTED_WAN_TYPES_BIT_TURBO_EPON_2_1 \
-        | SUPPORTED_WAN_TYPES_BIT_EPON_10_1 | SUPPORTED_WAN_TYPES_BIT_XGPON
+    .wan_types_bitmap      = SUPPORTED_WAN_TYPES_BIT_GPON | SUPPORTED_WAN_TYPES_BIT_EPON_1_1 | SUPPORTED_WAN_TYPES_BIT_TURBO_EPON_2_1
+        | SUPPORTED_WAN_TYPES_BIT_EPON_10_1 | SUPPORTED_WAN_TYPES_BIT_XGPON,
 } ;
 
 static int check_pluggable_module(int bus, TRX_TYPE type)
@@ -535,10 +541,7 @@ int i2c_read_trx_data(int bus)
 
                 default:
                     printk(KERN_ALERT "Opticaldet: Illegal TRX type %d\n", trx_ff);
-                    if( trx_ff == TRX_SFF )
-                        memcpy(trx_curr_p, &default_on_board_trx, sizeof(TRX_DESCRIPTOR));
-                    else
-                        memcpy(trx_curr_p, &default_pluggable_trx, sizeof(TRX_DESCRIPTOR));
+                    memcpy(trx_curr_p, &default_pluggable_trx, sizeof(TRX_DESCRIPTOR));
                     set_trx_desc_init_state(bus, 1);
             }
         }

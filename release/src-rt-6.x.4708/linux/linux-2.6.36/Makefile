@@ -355,7 +355,11 @@ KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
 		   -Wno-format-security \
 		   -fno-delete-null-pointer-checks
 
+ifneq ($(findstring 4G-,$(BUILD_NAME)),)
+MODEL = RT$(subst -,,$(BUILD_NAME))
+else
 MODEL = $(subst -,,$(BUILD_NAME))
+endif
 KBUILD_CFLAGS += -D$(MODEL)
 KBUILD_CFLAGS += -D$(SWRT_NAME)
 ifneq ($(wildcard ./net/swrt_fastpath/*.c),)
@@ -1603,3 +1607,4 @@ FORCE:
 # Declare the contents of the .PHONY variable as phony.  We keep that
 # information in a variable so we can use it in if_changed and friends.
 .PHONY: $(PHONY)
+

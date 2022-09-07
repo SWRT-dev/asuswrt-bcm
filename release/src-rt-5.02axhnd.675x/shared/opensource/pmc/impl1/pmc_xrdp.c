@@ -4,19 +4,25 @@
    Copyright (c) 2013 Broadcom 
    All Rights Reserved
 
-This program is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License, version 2, as published by
-the Free Software Foundation (the "GPL").
+Unless you and Broadcom execute a separate written software license
+agreement governing use of this software, this software is licensed
+to you under the terms of the GNU General Public License version 2
+(the "GPL"), available at http://www.broadcom.com/licenses/GPLv2.php,
+with the following added to such license:
 
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+   As a special exception, the copyright holders of this software give
+   you permission to link this software with independent modules, and
+   to copy and distribute the resulting executable under terms of your
+   choice, provided that you also meet, for each linked independent
+   module, the terms and conditions of the license of that module.
+   An independent module is a module which is not derived from this
+   software.  The special exception does not apply to any modifications
+   of the software.
 
-
-A copy of the GPL is available at http://www.broadcom.com/licenses/GPLv2.php, or by
-writing to the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-Boston, MA 02111-1307, USA.
+Not withstanding the above, under no circumstances may you combine
+this software in any way with any other Broadcom software provided
+under a license other than the GPL, without Broadcom's express prior
+written consent.
 
 :>
 */
@@ -39,6 +45,17 @@ Boston, MA 02111-1307, USA.
 #include "clk_rst.h"
 #include "bcm_map_part.h"
 #include "bcm_ubus4.h"
+
+#if defined(_CFE_) && defined(_BCM96855_)
+extern void cfe_usleep(int);
+void pmc_xrdp_reset(void)
+{
+   /* Reset PMB XRDP block */
+    WriteBPCMRegister(PMB_ADDR_XRDP, BPCMRegOffset(sr_control), 0x7);
+    cfe_usleep(5000);
+    WriteBPCMRegister(PMB_ADDR_XRDP, BPCMRegOffset(sr_control), 0xfffffff);
+}
+#endif // #if defined(_CFE_) && defined(_BCM96855_)
 
 int pmc_xrdp_init(void)
 {
@@ -365,7 +382,7 @@ int pmc_xrdp_init(void)
         PRINTK("failed Toggle reset of XRDP core to 0xffffffff...\n");
         return status;
     }
-#elif defined(_BCM96878_) || defined(CONFIG_BCM96878)
+#elif defined(_BCM96878_) || defined(CONFIG_BCM96878) || defined(_BCM96855_) || defined(CONFIG_BCM96855)
     status = PowerOnDevice(PMB_ADDR_XRDP);
     if(status)
     {

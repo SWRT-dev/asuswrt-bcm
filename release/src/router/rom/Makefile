@@ -85,7 +85,7 @@ certs-install: certs/ca-bundle.crt
 
 install:
 	mkdir -p $(INSTALLDIR)
-	( tar --exclude=.svn --exclude=*.bak -cpf - rom ) | ( cd $(INSTALLDIR) && tar -xpf - )
+	( tar --exclude=.svn --exclude=*.bak -cpf - rom bin ) | ( cd $(INSTALLDIR) && tar -xpf - )
 
 	$(MAKE) certs-install
 ifeq ($(RTCONFIG_LETSENCRYPT),y)
@@ -214,6 +214,10 @@ endif
 ifeq ($(RTCONFIG_URLFW),y)
 	cp -f webs_scripts/urlfw_webs_upgrade.sh $(INSTALLDIR)/usr/sbin/webs_upgrade.sh
 endif
+ifeq ($(RTCONFIG_SINGLEIMG_B),y)
+	cp -f webs_scripts/fwupg_flashing2.sh $(INSTALLDIR)/usr/sbin/fwupg_flashing2.sh
+	cp -f webs_scripts/fwupg_create_tmprootfs.sh $(INSTALLDIR)/usr/sbin/fwupg_create_tmprootfs.sh
+endif
 
 ifeq ($(RTAC68U),y)
 	cp -f webs_scripts/ssl_webs_upgrade_enc.sh $(INSTALLDIR)/usr/sbin/webs_upgrade_enc.sh
@@ -303,6 +307,18 @@ ifeq ($(BUILD_NAME), RT-AX82U)
 	install -m 0755 dlna/icon_lrg.rt-ax82u_gd.jpg $(INSTALLDIR)/rom/dlna/icon_gd_lrg.jpg
 	install -m 0755 dlna/icon_lrg.rt-ax82u_gd.png $(INSTALLDIR)/rom/dlna/icon_gd_lrg.png
 endif
+ifeq ($(BUILD_NAME), RT-AX82U_V2)
+	install -m 0755 dlna/icon_sm.rt-ax82u_v2_gd.jpg $(INSTALLDIR)/rom/dlna/icon_gd_sm.jpg
+	install -m 0755 dlna/icon_sm.rt-ax82u_v2_gd.png $(INSTALLDIR)/rom/dlna/icon_gd_sm.png
+	install -m 0755 dlna/icon_lrg.rt-ax82u_v2_gd.jpg $(INSTALLDIR)/rom/dlna/icon_gd_lrg.jpg
+	install -m 0755 dlna/icon_lrg.rt-ax82u_v2_gd.png $(INSTALLDIR)/rom/dlna/icon_gd_lrg.png
+endif
+ifeq ($(BUILD_NAME), GTAX6000)
+	install -m 0755 dlna/icon_sm.gt-ax6000_eva.jpg $(INSTALLDIR)/rom/dlna/icon_eva_sm.jpg
+	install -m 0755 dlna/icon_sm.gt-ax6000_eva.png $(INSTALLDIR)/rom/dlna/icon_eva_sm.png
+	install -m 0755 dlna/icon_lrg.gt-ax6000_eva.jpg $(INSTALLDIR)/rom/dlna/icon_eva_lrg.jpg
+	install -m 0755 dlna/icon_lrg.gt-ax6000_eva.png $(INSTALLDIR)/rom/dlna/icon_eva_lrg.png
+endif
 ifeq ($(and $(LJPG),$(SJPG),$(LPNG),$(SPNG)),)
 	$(warning Add media server icon for $(BUILD_NAME) !!!!!!!!!!!!)
 else
@@ -344,6 +360,25 @@ endif
 
 ifeq ($(RTCONFIG_HND_ROUTER_AX_6756), y)
 	install -m 0755 apps_scripts/brcm_cled.sh $(INSTALLDIR)/usr/sbin
+endif
+
+ifeq ($(RTCONFIG_BCM_MFG), y)
+ifeq ($(BUILD_NAME), GT10)
+	mkdir -p $(INSTALLDIR)/rom/dhd/6715b0_mfg
+	install -m 0644 dhd/6715b0_mfg/GT10/rtecdc_17.10.188.6401.bin $(INSTALLDIR)/rom/dhd/6715b0_mfg/rtecdc.bin
+endif
+ifeq ($(BUILD_NAME), RT-AXE7800)
+	mkdir -p $(INSTALLDIR)/rom/dhd/6715b0_mfg
+	install -m 0644 dhd/6715b0_mfg/RT-AXE7800/rtecdc_17.10.188.6401.bin $(INSTALLDIR)/rom/dhd/6715b0_mfg/rtecdc.bin
+endif
+ifeq ($(BUILD_NAME), RT-AX82U_V2)
+	mkdir -p $(INSTALLDIR)/rom/dhd/6715b0_mfg
+	install -m 0644 dhd/6715b0_mfg/RT-AX82U_V2/rtecdc_17.10.188.6401.bin $(INSTALLDIR)/rom/dhd/6715b0_mfg/rtecdc.bin
+endif
+endif
+
+ifeq ($(RTAX86U), y)
+	install -m 0755 9873w_b0-b4.bin $(INSTALLDIR)/rom
 endif
 
 .PHONY: dummy

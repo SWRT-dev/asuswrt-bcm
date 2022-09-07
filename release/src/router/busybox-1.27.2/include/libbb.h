@@ -629,6 +629,11 @@ int setsockopt_broadcast(int fd) FAST_FUNC;
 int setsockopt_bindtodevice(int fd, const char *iface) FAST_FUNC;
 /* NB: returns port in host byte order */
 unsigned bb_lookup_port(const char *port, const char *protocol, unsigned default_port) FAST_FUNC;
+#if ENABLE_FEATURE_ETC_SERVICES
+# define bb_lookup_std_port(portstr, protocol, portnum) bb_lookup_port(portstr, protocol, portnum)
+#else
+# define bb_lookup_std_port(portstr, protocol, portnum) (portnum)
+#endif
 typedef struct len_and_sockaddr {
 	socklen_t len;
 	union {
@@ -715,7 +720,6 @@ struct hostent *xgethostbyname(const char *name) FAST_FUNC;
 // Also mount.c and inetd.c are using gethostbyname(),
 // + inet_common.c has additional IPv4-only stuff
 
-
 #define TLS_MAX_MAC_SIZE 32
 #define TLS_MAX_KEY_SIZE 32
 struct tls_handshake_data; /* opaque */
@@ -777,6 +781,7 @@ ssize_t recv_from_to(int fd, void *buf, size_t len, int flags,
 		socklen_t sa_size) FAST_FUNC;
 
 uint16_t inet_cksum(uint16_t *addr, int len) FAST_FUNC;
+int parse_pasv_epsv(char *buf) FAST_FUNC;
 
 /* 0 if argv[0] is NULL: */
 unsigned string_array_len(char **argv) FAST_FUNC;
@@ -2137,6 +2142,8 @@ struct bbunit_listelem {
 void bbunit_registertest(struct bbunit_listelem* test);
 void bbunit_settestfailed(void);
 
+
+int asus_check_caller(void);
 #define BBUNIT_DEFINE_TEST(NAME) \
 	static void bbunit_##NAME##_test(void); \
 	static struct bbunit_listelem bbunit_##NAME##_elem = { \

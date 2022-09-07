@@ -5,19 +5,25 @@
 *    Copyright (c) 2010 Broadcom 
 *    All Rights Reserved
 * 
-* This program is free software; you can redistribute it and/or modify
-* it under the terms of the GNU General Public License, version 2, as published by
-* the Free Software Foundation (the "GPL").
+* Unless you and Broadcom execute a separate written software license
+* agreement governing use of this software, this software is licensed
+* to you under the terms of the GNU General Public License version 2
+* (the "GPL"), available at http://www.broadcom.com/licenses/GPLv2.php,
+* with the following added to such license:
 * 
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
+*    As a special exception, the copyright holders of this software give
+*    you permission to link this software with independent modules, and
+*    to copy and distribute the resulting executable under terms of your
+*    choice, provided that you also meet, for each linked independent
+*    module, the terms and conditions of the license of that module.
+*    An independent module is a module which is not derived from this
+*    software.  The special exception does not apply to any modifications
+*    of the software.
 * 
-* 
-* A copy of the GPL is available at http://www.broadcom.com/licenses/GPLv2.php, or by
-* writing to the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-* Boston, MA 02111-1307, USA.
+* Not withstanding the above, under no circumstances may you combine
+* this software in any way with any other Broadcom software provided
+* under a license other than the GPL, without Broadcom's express prior
+* written consent.
 * 
 * :>
 
@@ -255,6 +261,7 @@ typedef struct {
 
 typedef struct {
     unsigned int sysport;
+    unsigned int switch_id;
     unsigned int port;
     unsigned int is_wan;
 } BCM_EnetPortRole_t;
@@ -267,6 +274,7 @@ typedef enum {
     BCM_ENET_SYSPORT_MODE_PORT,
     BCM_ENET_SYSPORT_MODE_INTERNAL_BRCM_SW,
     BCM_ENET_SYSPORT_MODE_EXTERNAL_BRCM_SW,
+    BCM_ENET_SYSPORT_MODE_STACKED_BRCM_SW,
     BCM_ENET_SYSPORT_MODE_MAX
 } bcmSysport_Mode_t;
 
@@ -277,6 +285,7 @@ typedef struct {
 typedef struct {
     struct net_device *dev;
     int sysport;
+    int switch_id;
     int port;
     int nbr_of_queues;
 } bcmSysport_BlogChnl_t;
@@ -286,6 +295,8 @@ typedef struct {
     bcmSysport_Sysport_t sysport[BCM_ENET_SYSPORT_INTF_MAX];
     int nbr_of_blog_channels;
     bcmSysport_BlogChnl_t blog_chnl[BCM_ENET_SYSPORT_BLOG_CHNL_MAX];
+    int switch_parent_port; /* parent port number if external switch exists, otherwise NO_EXT_SWITCH */
+#define         NO_EXT_SWITCH           -1
 } bcmSysport_Config_t;
 
 #define BCM_ENET_SYSPORT_QUEUE_MAP_PRIORITY_MAX  8

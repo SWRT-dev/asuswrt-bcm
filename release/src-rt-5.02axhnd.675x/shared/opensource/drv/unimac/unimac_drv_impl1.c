@@ -3,21 +3,27 @@
    All Rights Reserved
 
     <:label-BRCM:2013:DUAL/GPL:standard
-    
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License, version 2, as published by
-    the Free Software Foundation (the "GPL").
-    
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-    
-    
-    A copy of the GPL is available at http://www.broadcom.com/licenses/GPLv2.php, or by
-    writing to the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-    Boston, MA 02111-1307, USA.
-    
+
+    Unless you and Broadcom execute a separate written software license
+    agreement governing use of this software, this software is licensed
+    to you under the terms of the GNU General Public License version 2
+    (the "GPL"), available at http://www.broadcom.com/licenses/GPLv2.php,
+    with the following added to such license:
+
+       As a special exception, the copyright holders of this software give
+       you permission to link this software with independent modules, and
+       to copy and distribute the resulting executable under terms of your
+       choice, provided that you also meet, for each linked independent
+       module, the terms and conditions of the license of that module.
+       An independent module is a module which is not derived from this
+       software.  The special exception does not apply to any modifications
+       of the software.
+
+    Not withstanding the above, under no circumstances may you combine
+    this software in any way with any other Broadcom software provided
+    under a license other than the GPL, without Broadcom's express prior
+    written consent.
+
     :>
 */
 
@@ -39,7 +45,7 @@
 /*                                                                           */
 /*****************************************************************************/
 #include "unimac_drv.h"
-#if defined(_CFE_) && !defined(CONFIG_BCM96856) && !defined(CONFIG_BCM96878)
+#if defined(_CFE_) && !defined(CONFIG_BCM96856) && !defined(CONFIG_BCM96878) && !defined(CONFIG_BCM96855)
 static void get_rdp_freq(uint32_t *rdp_freq) { }
 #else
 #include "clk_rst.h"
@@ -1415,8 +1421,15 @@ void mac_hwapi_init_emac(rdpa_emac emacNum)
 
     UNIMAC_READ32_REG(emacNum,CMD,mCfgReg);
     /* Do the initialization */
-    mCfgReg.tx_ena			=	0;
-    mCfgReg.rx_ena			=	0;
+#ifndef CONFIG_BRCM_QEMU    
+    mCfgReg.tx_ena          =   0;
+    mCfgReg.rx_ena          =   0;
+#else 
+    printk("%s RX TX Enable no PHY EXIST\n",__FUNCTION__);
+    mCfgReg.tx_ena      =   1;
+    mCfgReg.rx_ena      =   1;
+
+#endif 
     /* for 63138 - even though the EMAC_1 is connected to SF2 @ 2Gbps, we still set the link to 1G.
      * Actual speed of the link is derived from SF2 based on the speed set for IMP port#8.  */
     mCfgReg.eth_speed		=	UNIMAC_SPEED_1000;
@@ -1569,7 +1582,7 @@ void mac_hwapi_set_loopback(rdpa_emac emacNum,MAC_LPBK loopback)
 }
 EXPORT_SYMBOL(mac_hwapi_set_loopback);
 
-#if !defined(CONFIG_BCM947622)
+#if !defined(CONFIG_BCM947622) && !defined (CONFIG_BCM96855)
 void mac_hwapi_set_unimac_cfg(rdpa_emac emacNum, int32_t enabled)
 {
     S_UNIMAC_CFG_REG cfgreg;
@@ -1583,7 +1596,7 @@ void mac_hwapi_set_unimac_cfg(rdpa_emac emacNum, int32_t enabled)
     WRITE_32(address,cfgreg);
 }
 EXPORT_SYMBOL(mac_hwapi_set_unimac_cfg);
-#endif //!47622
+#endif //!47622 && !defined BCM96855
 
 void mac_hwapi_modify_flow_control_pause_pkt_addr ( rdpa_emac emacNum,bdmf_mac_t mac)
 {
@@ -1631,7 +1644,7 @@ void mac_hwapi_set_eee(rdpa_emac emacNum, int32_t enable)
     /* Determine EEE timers only when EEE is enabled */
     if (enable)
     {
-#if defined(CONFIG_BCM963158) || defined(CONFIG_BCM96856) || defined(CONFIG_BCM947622) || defined(CONFIG_BCM96878)
+#if defined(CONFIG_BCM963158) || defined(CONFIG_BCM96856) || defined(CONFIG_BCM947622) || defined(CONFIG_BCM96878) || defined(CONFIG_BCM96855)
         eee_ref_count = 0xfa; /* 250 Mhz */;
 #else
         get_rdp_freq(&eee_ref_count);
@@ -1670,7 +1683,7 @@ void mac_hwapi_set_eee(rdpa_emac emacNum, int32_t enable)
     UNIMAC_WRITE32_REG(emacNum, EEE_CTRL, eee_ctrl);
     UNIMAC_WRITE32_REG(emacNum, EEE_REF_COUNT, eee_ref_count);
 
-#if defined(CONFIG_BCM96856) || defined(CONFIG_BCM947622)
+#if !(defined(CONFIG_BCM96838) || defined(CONFIG_BCM96848))
     if (mac_mode.mac_speed == rdpa_emac_rate_100m)
     {
         UNIMAC_WRITE32_REG(emacNum, EEE_MII_LPI_TIMER, eee_lpi_timer);

@@ -8,19 +8,25 @@
        Copyright (c) 2011 Broadcom 
        All Rights Reserved
     
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License, version 2, as published by
-    the Free Software Foundation (the "GPL").
+    Unless you and Broadcom execute a separate written software license
+    agreement governing use of this software, this software is licensed
+    to you under the terms of the GNU General Public License version 2
+    (the "GPL"), available at http://www.broadcom.com/licenses/GPLv2.php,
+    with the following added to such license:
     
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+       As a special exception, the copyright holders of this software give
+       you permission to link this software with independent modules, and
+       to copy and distribute the resulting executable under terms of your
+       choice, provided that you also meet, for each linked independent
+       module, the terms and conditions of the license of that module.
+       An independent module is a module which is not derived from this
+       software.  The special exception does not apply to any modifications
+       of the software.
     
-    
-    A copy of the GPL is available at http://www.broadcom.com/licenses/GPLv2.php, or by
-    writing to the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-    Boston, MA 02111-1307, USA.
+    Not withstanding the above, under no circumstances may you combine
+    this software in any way with any other Broadcom software provided
+    under a license other than the GPL, without Broadcom's express prior
+    written consent.
     
     :> 
 
@@ -731,9 +737,9 @@ static struct SpiNandChip SpiDevInfo[] =
         .chip_num_planes = 1,
         .chip_die_sel = 0,
         .chip_total_size = 64 * 2048 * 1024, // chip_block_size x chip_num_blocks
-        .ecclayout = &spinand_oob_etron,
-        .chip_ecc = 4, // ECC bits
-        .chip_ecc_corr = 3, // threshold to fix correctable bits (3/4)
+        .ecclayout = &spinand_oob_toshiba_micron_ab,
+        .chip_ecc = 1, // ECC bits
+        .chip_ecc_corr = 1, // threshold to fix correctable bits (1/1)
         .chip_ecc_enh = 0, // enhanced bad bit detection by chip
         .chip_subpage_shift = 2, // 2^ shift amount based on number of subpages (4)
         .chip_clock_speed = 104000000,
@@ -2058,7 +2064,7 @@ void bcmspinand_probe(struct mtd_info * mtd)
 
     spi_nand_device_reset(); // reset and set configuration information
 
-#if !defined(CONFIG_BCM96878)
+#if !defined(CONFIG_BCM96878) && !defined(CONFIG_BCM96855)
     spi_flash_clock = pchip->chip_clock_speed; /* switch to the max supported clock speed */
 #endif
 
