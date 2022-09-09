@@ -16,6 +16,9 @@ release/src/router/eapd/*.h
 release/src/router/emf*/*.c
 release/src/router/emf*/*.h
 release/src/router/libasc/*.c
+release/src/router/libvpn/openvpn_config.c
+release/src/router/libvpn/openvpn_control.c
+release/src/router/libvpn/openvpn_utils.c
 release/src/router/nas*/*.c
 release/src/router/nas*/*.h
 release/src/router/i2cled/driver/*.c

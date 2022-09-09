@@ -879,7 +879,7 @@ void stop_entware(void)
 
 void init_entware(void)
 {
-	if(strlen(nvram_safe_get("apps_state_install")) || strlen(nvram_safe_get("webdav_aidisk"))){
+	if(strlen(nvram_safe_get("apps_state_install")) || nvram_match("webdav_aidisk", "1")){
 		logmessage("[Entware]", "Downloadmaster/Aicloud is installed already! Entware can't install!\n");
 		return;
 	}
@@ -995,7 +995,7 @@ void gen_arch_conf(void)
 	struct utsname uts;
 	if(nvram_match("entware_arch", "") && uname(&uts) == 0){
 		if(!strcmp(uts.machine, "armv7l")){
-			if(!strcmp(uts.release, "2.6.36.4brcmarm")
+			if(!strcmp(uts.release, "2.6.36.4brcmarm"))
 				nvram_set("entware_arch", "armv7sf-k2.6");
 			else
 				nvram_set("entware_arch", "armv7sf-k3.2");
