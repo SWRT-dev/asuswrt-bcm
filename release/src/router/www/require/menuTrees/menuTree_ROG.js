@@ -124,6 +124,8 @@ define(function(){
 					{url: "Advanced_VPNClient_Content.asp", tabName: (vpn_fusion_support) ? "<#VPN_Fusion#>" : "<#vpnc_title#>"},
 					{url: "Advanced_TOR_Content.asp", tabName: "TOR"},
 					{url: "Advanced_Instant_Guard.asp", tabName: "<#Instant_Guard_title#>"},
+					{url: "Advanced_WireguardServer_Content.asp", tabName: "WireGuard Server"},/*untranslated*/
+					{url: "Advanced_WireguardClient_Content.asp", tabName: "WireGuard Client"},/*untranslated*/
 					{url: "NULL", tabName: "__INHERIT__"}
 				]
 			},
@@ -344,7 +346,7 @@ define(function(){
 					{url: "Entware_installed.asp", tabName: "<#Entware_installed#>"},
 					{url: "Entware_list.asp", tabName: "<#Entware_list#>"},
 					{url: "NULL", tabName: "__INHERIT__"}
-				] 
+				]
 			},
 			{
 				menuName: "<#Softcenter#>",
@@ -358,7 +360,7 @@ define(function(){
 				index: "menu_Softcenter",
 				tab: [
 					{url: "Main_Soft_center.asp", tabName: "<#Softcenter#>"},
-					{url: "Main_Soft_setting.asp", tabName: "ManualInstall"},
+					{url: "Main_Soft_setting.asp", tabName: "Offline Mode"},
 					{url: "NULL", tabName: "__INHERIT__"}
 				]
 			}
@@ -760,6 +762,11 @@ define(function(){
 
 				if(!dnsfilter_support)
 					retArray.push("DNSFilter.asp");
+
+				if(!wireguard_support) {
+					retArray.push("Advanced_WireguardServer_Content.asp");
+					retArray.push("Advanced_WireguardClient_Content.asp");
+				}
 
 				/* Operation Mode */
 				if(isSwMode("re")){
