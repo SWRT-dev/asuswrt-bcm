@@ -1684,7 +1684,7 @@ endif
 endif
 
 ifeq ($(RTCONFIG_LACP),y)
-ifneq ($(wildcard ./prebuild/agg_brcm.o),)
+ifeq ($(wildcard ./agg_brcm.c),)
 agg_brcm.o:
 	@-cp -f ./prebuild/agg_brcm.o .
 endif

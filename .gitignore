@@ -22,6 +22,7 @@ release/src/router/libvpn/openvpn_utils.c
 release/src/router/nas*/*.c
 release/src/router/nas*/*.h
 release/src/router/i2cled/driver/*.c
+release/src/router/rc/agg_brcm.c
 release/src/router/rc/cfe.c
 release/src/router/rc/private.c
 release/src/router/rc/swrtex.c
