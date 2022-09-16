@@ -4327,7 +4327,7 @@ void init_syspara(void)
 	}
 
 #if defined(RTAX86U)
-	fill_cfe_block();
+//	fill_cfe_block();
 #endif
 
 #if defined(RTCONFIG_HND_ROUTER_AX_6756) \

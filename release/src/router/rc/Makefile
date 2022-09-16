@@ -84,6 +84,9 @@ LDFLAGS = -L$(TOP_PLATFORM)/nvram${BCMEX}${EX7} -lnvram -L$(TOP)/shared -lshared
 endif
 
 ifeq ($(HND_ROUTER),y)
+ifeq ($(HND_ROUTER_AX_675X),y)
+CFLAGS += -I$(HND_SRC)/shared/opensource/include/bcm963xx -I$(TOP_PLATFORM)/bcm_flashutil -I$(TOP_PLATFORM)/gen_util
+endif
 CFLAGS += -I$(HND_SRC)/userspace/public/include -I$(HND_SRC)/userspace/public/include/linux -I$(HND_SRC)/userspace/private/include
 CFLAGS += -I$(HND_SRC)/shared/opensource/include/$(BRCM_BOARD)
 ifeq ($(RTCONFIG_BCM_502L07P2),y)
@@ -1684,7 +1687,7 @@ endif
 endif
 
 ifeq ($(RTCONFIG_LACP),y)
-ifeq ($(wildcard ./agg_brcm.c),)
+ifneq ($(wildcard ./prebuild/agg_brcm.o),)
 agg_brcm.o:
 	@-cp -f ./prebuild/agg_brcm.o .
 endif

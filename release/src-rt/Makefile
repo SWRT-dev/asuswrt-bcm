@@ -5656,7 +5656,7 @@ endif
 	@cp $(LINUXDIR)/.config $(LINUXDIR)/config_base ; \
 	cp $(LINUXDIR)/config_base $(LINUXDIR)/config_$(lowercase_B)
 else ifeq ($(BCMWL6A),y)
-ifeq ($(or $(HND_ROUTER_AX_675X),$(HND_ROUTER_AX_6756)),y)
+ifeq ($(or $(HND_ROUTER_AX_675X),$(HND_ROUTER_AX_6756),$(HND_ROUTER_AX_6710)),y)
 	@cp $(LINUXDIR)/config_base.6a.$(CUR_CHIP_PROFILE) $(LINUXDIR)/config_$(lowercase_B)
 ifneq (,$(wildcard $(LINUXDIR)/../dts/$(BCM_CHIP)/9$(BCM_CHIP).dts.$(BUILD_NAME)))
 	-cp -f $(LINUXDIR)/../dts/$(BCM_CHIP)/9$(BCM_CHIP).dts.$(BUILD_NAME) $(LINUXDIR)/../dts/$(BCM_CHIP)/9$(BCM_CHIP).dts
