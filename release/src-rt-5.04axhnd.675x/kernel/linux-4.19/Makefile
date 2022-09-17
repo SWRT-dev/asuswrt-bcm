@@ -443,6 +443,7 @@ KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
 
 MODEL = $(subst -,,$(BUILD_NAME))
 KBUILD_CFLAGS += -D$(MODEL)
+KBUILD_CFLAGS += -D$(SWRT_NAME)
 
 ifeq ($(BCM_MFG),y)
 KBUILD_CFLAGS	+= -DWLTEST

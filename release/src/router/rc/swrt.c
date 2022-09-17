@@ -208,6 +208,8 @@ void swrt_init_pre()
 		nvram_set("modelname", "RTAX82U");
 #elif defined(RTAX86U)
 		nvram_set("modelname", "RTAX86U");
+#elif defined(RTAX86U_PRO)
+		nvram_set("modelname", "RTAX86UPRO");
 #elif defined(RTAX88U)
 		nvram_set("modelname", "RTAX88U");
 #elif defined(GTAX6000)
@@ -264,6 +266,8 @@ void swrt_init_pre()
 		nvram_set("modelname", "ZENWIFIXP4");
 #elif defined(ETJ)
 		nvram_set("modelname", "ZENWIFIETJ");
+#elif defined(XT12)
+		nvram_set("modelname", "XT12");
 #endif
 	if(!nvram_get("swrt_beta"))
 		nvram_set("swrt_beta", "0");

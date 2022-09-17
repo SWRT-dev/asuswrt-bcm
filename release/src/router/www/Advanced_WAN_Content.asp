@@ -31,7 +31,7 @@
 	max-width:330px;
 }
 #dns_list_Block{
-	font-family: Arial, Helvetica, MS UI Gothic, MS P Gothic, Microsoft Yahei UI, sans-serif;
+	font-family: Microsoft Yahei UI, Arial, Helvetica, MS UI Gothic, MS P Gothic, sans-serif;
 	width:825px;
 }
 

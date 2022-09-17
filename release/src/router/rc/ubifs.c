@@ -154,7 +154,7 @@ void start_ubifs(void)
 	int mtd_part = 0, mtd_size = 0;
 	char dev_mtd[] = "/dev/mtdXXX";
 #endif
-#if (defined(RTCONFIG_BCMARM) || defined(RTCONFIG_HND_ROUTER)) && !defined(BCM4912) && !defined(RTCONFIG_HND_ROUTER_AX_6756)
+#if (defined(RTCONFIG_BCMARM) || defined(RTCONFIG_HND_ROUTER)) && !defined(RTCONFIG_HND_ROUTER_AX_6756)
 	int mtd_part = 0, mtd_size = 0;
 	char dev_mtd[] = "/dev/mtdXXX";
 #endif
@@ -216,7 +216,7 @@ void start_ubifs(void)
 		}
 	}
 #endif
-#if (defined(RTCONFIG_BCMARM) || defined(RTCONFIG_HND_ROUTER)) && !defined(BCM4912) && !defined(RTCONFIG_HND_ROUTER_AX_6756)
+#if (defined(RTCONFIG_BCMARM) || defined(RTCONFIG_HND_ROUTER)) && !defined(RTCONFIG_HND_ROUTER_AX_6756)
 	if (!mtd_getinfo(JFFS2_MTD_NAME, &mtd_part, &mtd_size)) return;
 	snprintf(dev_mtd, sizeof(dev_mtd), "/dev/mtd%d", mtd_part);
 	_dprintf("*** ubifs: %s (%d, %d)\n", JFFS2_MTD_NAME, mtd_part, mtd_size);

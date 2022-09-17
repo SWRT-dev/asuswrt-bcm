@@ -24,9 +24,9 @@ build_link(){
 	[ ! -d RT-AX86U ] && ln -sf BCM490X_AX RT-AX86U
 	[ ! -d GT-AXE11000 ] && ln -sf BCM490X_AX GT-AXE11000
 	[ ! -d GT-AX6000 ] && ln -sf BCM491X GT-AX6000
-	[ ! -d GT-AXE16000 ] && ln -sf BCM490X_AX GT-AXE16000
-	[ ! -d GT-AX11000_PRO ] && ln -sf BCM490X_AX GT-AX11000_PRO
-	[ ! -d XT12 ] && ln -sf BCM490X_AX XT12
+	[ ! -d GT-AXE16000 ] && ln -sf BCM491X GT-AXE16000
+	[ ! -d GT-AX11000_PRO ] && ln -sf BCM491X GT-AX11000_PRO
+	[ ! -d XT12 ] && ln -sf BCM491X XT12
 }
 
 cd $REPO/release/src/router/aaews/prebuild/ && build_link
@@ -59,6 +59,7 @@ cd $REPO/release/src/router/wlc_nt/prebuild/ && build_link
 cd $REPO/release/src/router/dblog/commands/prebuild/ && build_link
 cd $REPO/release/src/router/dblog/daemon/prebuild/ && build_link
 cd $REPO/release/src/router/libasuslog/prebuild/ && build_link
+cd $REPO/release/src/router/wlceventd/prebuilt/ && build_link
 
 
 

@@ -2906,7 +2906,7 @@ endif
 ifneq ($(strip $(BUILD_RDKWIFI)),)
 CMN_WLAN_FLAGS += -DWLAN_BCG_CM_RDKB -DBUILD_RDKWIFI
 else
-CMN_WLAN_FLAGS +=  -I$(BUILD_DIR)/userspace/private/libs/wlcsm/include
+#CMN_WLAN_FLAGS +=  -I$(BUILD_DIR)/userspace/private/libs/wlcsm/include
 endif
 
 
