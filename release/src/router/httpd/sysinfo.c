@@ -136,7 +136,7 @@ int ej_show_sysinfo(int eid, webs_t wp, int argc, char_t ** argv)
 				char model[64];
 #if defined(BCM4912)
 					strcpy(model, "BCM4912 - Cortex A53 ARMv8");
-#elif defined(RTCONFIG_BCMARM) || defined(RTCONFIG_HND_ROUTER) || defined(RTCONFIG_QCA) || defined(RTCONFIG_RALINK_MT7622)
+#elif defined(RTCONFIG_BCMARM) || defined(RTCONFIG_HND_ROUTER) || defined(RTCONFIG_QCA) || defined(RTCONFIG_RALINK_MT7622) || defined(RTCONFIG_MT798X)
 					char impl[8], arch[8], variant[8], part[10], revision[4];
 					impl[0]='\0'; arch[0]='\0'; variant[0]='\0'; part[0]='\0';
 					strcpy(revision,"0");
@@ -176,12 +176,28 @@ int ej_show_sysinfo(int eid, webs_t wp, int argc, char_t ** argv)
 					    && !strcmp(part, "0xd03")
 					    && !strcmp(arch, "7"))
 						sprintf(model, "IPQ806x - Cortex A15 ARMv7 revision %s", revision);
-#elif defined(RTCONFIG_RALINK_MT7622)
+#elif defined(RTCONFIG_RALINK_MT7622) || defined(RTCONFIG_MT798X)
 					if (!strcmp(impl, "0x41")//kernel:32/64
 					    && !strcmp(variant, "0x0")
 					    && !strcmp(part, "0xd03")
-					    && (!strcmp(arch, "7") || !strcmp(arch, "8")))
+					    && (!strcmp(arch, "7") || !strcmp(arch, "8"))){
+#if defined(RTCONFIG_RALINK_MT7622)
 						sprintf(model, "MT7622 - Cortex A53 ARMv8 revision %s", revision);
+#elif defined(RTCONFIG_MT798X)
+						char *buffer;
+						doSystem("devmem 0x8000000 16 > /tmp/mtk_chip");
+						buffer = read_whole_file("/tmp/mtk_chip");
+						if(buffer){
+							if(strstr(buffer, "7986"))
+								sprintf(model, "MT7986X - Cortex A53 ARMv8 revision %s", revision);
+							else if(strstr(buffer, "7981"))
+								sprintf(model, "MT7981 - Cortex A53 ARMv8 revision %s", revision);
+							else
+								sprintf(model, "MT%s - Cortex A53 ARMv8 revision %s", buffer + 2, revision);
+							free(buffer);
+						}
+#endif
+					}
 #else
 					if (!strcmp(impl, "0x42")
 					    && !strcmp(variant, "0x0")
@@ -270,6 +286,8 @@ int ej_show_sysinfo(int eid, webs_t wp, int argc, char_t ** argv)
 			}
 			else
 				strcpy(result, "0");//bug?
+#elif defined(RTCONFIG_MT798X)
+			strcpy(result, "2000");
 #elif defined(RTCONFIG_RALINK)
 			int freq = 0;
 			char *buffer = read_whole_file("/sys/kernel/debug/clk/cpuclock/clk_rate");
@@ -331,7 +349,7 @@ int ej_show_sysinfo(int eid, webs_t wp, int argc, char_t ** argv)
 
 			buf = malloc(MAX_NVRAM_SPACE);
 			if (buf) {
-#ifdef HND_ROUTER
+#if defined(RTCONFIG_HND_ROUTER) || defined(RTCONFIG_LANTIQ) || defined(RTCONFIG_QCA) || defined(RTCONFIG_RALINK)
 				nvram_getall(buf, MAX_NVRAM_SPACE);
 #else
 				dev_nvram_getall(buf, MAX_NVRAM_SPACE);
@@ -380,7 +398,7 @@ int ej_show_sysinfo(int eid, webs_t wp, int argc, char_t ** argv)
 
 		} else if(strcmp(type,"conn.total") == 0) {
 			FILE* fp;
-#if defined(RTCONFIG_HND_ROUTER_AX_6756)
+#if defined(RTCONFIG_HND_ROUTER_AX_6756) || defined(RTCONFIG_MT798X)
 			fp = fopen("/proc/sys/net/netfilter/nf_conntrack_count", "r");
 #else
 			fp = fopen("/proc/sys/net/ipv4/netfilter/ip_conntrack_count", "r");
@@ -409,7 +427,7 @@ int ej_show_sysinfo(int eid, webs_t wp, int argc, char_t ** argv)
 
 		} else if(strcmp(type,"conn.max") == 0) {
 			FILE* fp;
-#if defined(RTCONFIG_HND_ROUTER_AX_6756)
+#if defined(RTCONFIG_HND_ROUTER_AX_6756) || defined(RTCONFIG_MT798X)
 			fp = fopen("/proc/sys/net/netfilter/nf_conntrack_max", "r");
 #else
 			fp = fopen("/proc/sys/net/ipv4/netfilter/ip_conntrack_max", "r");
@@ -576,7 +594,6 @@ int ej_show_sysinfo(int eid, webs_t wp, int argc, char_t ** argv)
 					}
 				}
 			}
-#if defined(RTCONFIG_BCMARM) || defined(RTCONFIG_HND_ROUTER)
 		} else if(strcmp(type,"ethernet.rtk") == 0 ) {
 #ifdef RTCONFIG_EXT_RTL8365MB
 			int states[4];
@@ -595,7 +612,6 @@ int ej_show_sysinfo(int eid, webs_t wp, int argc, char_t ** argv)
 			                                 8, states[3]);
 #else
 			strcpy(result, "[]");
-#endif
 #endif
 		} else if(strcmp(type,"ethernet") == 0 ) {
 #if defined(RTCONFIG_BCMARM) || defined(RTCONFIG_HND_ROUTER)
@@ -733,7 +749,7 @@ unsigned int get_phy_temperature(int radio)
 		interface = nvram_safe_get("wl0_ifname");
 	} else if (radio == 1) {
 		interface = nvram_safe_get("wl1_ifname");
-#if defined(RTCONFIG_HAS_5G_2) || defined (RTCONFIG_WIFI6E)
+#if defined(RTCONFIG_HAS_5G_2) || defined(RTCONFIG_WIFI6E)
 	} else if (radio == 2) {
 		interface = nvram_safe_get("wl2_ifname");
 #endif
@@ -759,10 +775,10 @@ unsigned int get_phy_temperature(int radio)
 		char buffer[99];
 		char iw[]="iwpriv wlan0 gTemperature";
 		char s[]="wlan0     gTemperature:%%d %%*[0-9 ]";
-		if (radio == 2) {
+		if (radio == 0) {
 			snprintf(iw, sizeof(iw), "iwpriv wlan0 gTemperature");
 			snprintf(s, sizeof(s), "wlan0     gTemperature:%%d %%*[0-9 ]");
-		} else if (radio == 5) {
+		} else if (radio == 1) {
 			snprintf(iw, sizeof(iw), "iwpriv wlan2 gTemperature");
 			snprintf(s, sizeof(s), "wlan2     gTemperature:%%d %%*[0-9 ]");
 		}
@@ -772,12 +788,6 @@ unsigned int get_phy_temperature(int radio)
 			}
 			pclose(fp);
 			retval = temp;
-		}
-	} else if (radio == 7) {
-		if ((fp = fopen("/sys/kernel/debug/ltq_tempsensor/allsensors", "r")) != NULL) {
-			fscanf(fp, "TS_CODE= %*[0-9]; TEMP   = %d; CH_SEL = %*[0-9]", &temp);
-			fclose(fp);
-			retval = (temp/1000);
 		}
 	}
 	return retval;
@@ -794,9 +804,11 @@ unsigned int get_phy_temperature(int radio)
         case 1:
             band = 1;
             break;
+#if defined(RTCONFIG_HAS_5G_2) || defined(RTCONFIG_WIFI6E)
         case 2:
             band = 2;
             break;
+#endif
         default:
             band = 0;
             break;
@@ -815,13 +827,17 @@ unsigned int get_phy_temperature(int radio)
 	char temp[18];
 	char *interface = NULL;
 
-	if (radio == 0) {
-		interface = nvram_safe_get("wl0_ifname");
-	} else if (radio == 1) {
-		interface = nvram_safe_get("wl1_ifname");
-	} else if (radio == 2) {
-		interface = nvram_safe_get("wl2_ifname");
-	}
+	if (radio == 0)
+		interface = nvram_get("wl0_ifname");
+	else if (radio == 1)
+		interface = nvram_get("wl1_ifname");
+#if defined(RTCONFIG_HAS_5G_2) || defined(RTCONFIG_WIFI6E)
+	else if (radio == 2)
+		interface = nvram_get("wl2_ifname");
+#endif
+
+	if(interface == NULL || *interface == 0)
+		return 0;
 	memset(temp, 0, 18);
 	memset(&wrq, 0, sizeof(wrq));
 	wrq.u.data.pointer = &temp;

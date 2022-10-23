@@ -167,6 +167,8 @@ void swrt_init_pre()
 		nvram_set("modelname", "GLAX1800");
 #elif defined(JDCAX1800)
 		nvram_set("modelname", "JDCAX1800");
+#elif defined(RMAX6000)
+		nvram_set("modelname", "RMAX6000");
 //asus
 #elif defined(RTAC68U)
 		nvram_set("modelname", "RTAC68U");
@@ -474,6 +476,11 @@ void swrt_init_post(){
 #endif
 #if defined(RTCONFIG_ENTWARE)
 	gen_arch_conf();
+#endif
+#if defined(MS60)
+	if(aimesh_re_node() && !d_exists("/sys/class/net/br0/brif/eth0")){
+		eval("brctl", "addif", "br0", "eth0");
+	}
 #endif
 }
 
