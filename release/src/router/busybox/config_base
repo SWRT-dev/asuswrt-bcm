@@ -944,7 +944,7 @@ CONFIG_FEATURE_MIME_CHARSET=""
 #
 # Process Utilities
 #
-# CONFIG_IOSTAT is not set
+CONFIG_IOSTAT=y
 # CONFIG_LSOF is not set
 # CONFIG_MPSTAT is not set
 # CONFIG_NMETER is not set

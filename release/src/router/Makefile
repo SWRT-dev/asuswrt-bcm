@@ -66,7 +66,8 @@ include $(HND_SRC)/make.common
 endif
 ifneq ($(or $(HND_ROUTER_AX_6710),$(BCM_502L07P2)),y)
 ifneq ($(and $(HND_ROUTER_AX_675X),$(HND_ROUTER_AX_6756)),y)
-include $(HND_SRC)/targets/$(PROFILE)/$(PROFILE).$(BUILD_NAME)
+#fix for ty6201
+include $(HND_SRC)/targets/$(PROFILE)/$(PROFILE)
 endif
 endif
 BUILD_DIR:=$(HND_SRC)
@@ -940,6 +941,7 @@ obj-$(RTCONFIG_OPENVPN) += libvpn
 obj-y += rc
 obj-y += rom
 obj-y += others
+obj-y += ncurses-6.0 htop
 ifeq ($(RTCONFIG_SMARTDNS),y)
 obj-y += smartdns
 endif
@@ -9128,6 +9130,34 @@ dhcpfwd-clean:
 dhcpfwd-install:
 	install -D dhcpfwd/dhcpfwd $(INSTALLDIR)/dhcpfwd/usr/sbin/dhcpfwd
 	$(STRIP) $(INSTALLDIR)/dhcpfwd/usr/sbin/dhcpfwd
+
+htop/Makefile:ncurses-6.0
+	cd htop && ./autogen.sh && $(CONFIGURE) \
+		--prefix=/usr \
+		--bindir=/usr/sbin \
+		--libdir=/usr/lib \
+		--disable-sensors \
+		--enable-affinity \
+		--disable-capabilities \
+		--disable-delayacct \
+		--disable-unicode \
+		--disable-unwind \
+		--disable-hwloc \
+		ac_cv_header_ncurses_ncurses_h=yes \
+		LDFLAGS="-L$(TOP)/ncurses-6.0/lib/" \
+		CFLAGS="-I$(TOP)/ncurses-6.0/include/"
+
+htop:htop/Makefile
+	$(MAKE) -C htop
+
+htop-clean:
+	$(MAKE) -C htop clean
+
+htop-install:
+	install -d $(INSTALLDIR)/htop/usr/share/terminfo
+	install -D htop/htop $(INSTALLDIR)/htop/usr/sbin/htop
+	$(STRIP) $(INSTALLDIR)/htop/usr/sbin/htop
+	cp -rf $(STAGEDIR)/usr/share/terminfo/* $(INSTALLDIR)/htop/usr/share/terminfo/
 
 #
 # Generic rules
