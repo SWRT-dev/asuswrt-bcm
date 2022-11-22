@@ -1,3 +1,9 @@
+[ENGLISH](README_en.md)
+=======
+
+AC系列:[https://github.com/SWRT-dev/asuswrt-bcm-ac](https://github.com/SWRT-dev/asuswrt-bcm-ac)
+AX系列:[https://github.com/SWRT-dev/asuswrt-bcm](https://github.com/SWRT-dev/asuswrt-bcm)
+
 
 注意：
 =
@@ -57,24 +63,6 @@ sudo apt-get -y install build-essential asciidoc binutils bzip2 gawk gettext git
 
 6. 编译固件
 
-	`cd asuswrt-bcm/release/src-rt-6.x.4708` 
-
-	`make rt-ac68u`
-
-	`cd asuswrt-bcm/release/src-rt-7.14.114.x/src` 
-
-	`make rt-ac88u`
-
-	`make rt-ac3100`
-
-	`make rt-ac5300`
-
-	`cd asuswrt-bcm/release/src-rt-5.02hnd` 
-
-	`make rt-ac86u`
-
-	`make gt-ac2900`
-
 	`cd asuswrt-bcm/release/src-rt-5.02axhnd.675x` 
 
 	`make rt-ax95q`
@@ -93,7 +81,7 @@ sudo apt-get -y install build-essential asciidoc binutils bzip2 gawk gettext git
 
 	`make tuf-ax5400`
 
-	`cd asuswrt-bcm/release/src-rt-5.02p1axhnd.675x` 
+	`cd asuswrt-bcm/release/src-rt-5.02L.07p2axhnd` 
 
 	`make rt-ax68u`
 
@@ -107,18 +95,13 @@ sudo apt-get -y install build-essential asciidoc binutils bzip2 gawk gettext git
 
 	编译完成后输出固件路径：
 
-	asuswrt-bcm/release/src-rt-6.x.4708/image 
-
-	asuswrt-bcm/release/src-rt-7.14.114.x/src/image
-
-	asuswrt-bcm/release/src-rt-5.02hnd/image
-
 	asuswrt-bcm/release/src-rt-5.02axhnd.675x/image
 
-	asuswrt-bcm/release/src-rt-5.02p1axhnd.675x/image
+	asuswrt-bcm/release/src-rt-5.02L.07p2axhnd/image
 
 	asuswrt-bcm/release/src-rt-5.02axhnd/image
 
+	asuswrt-bcm/release/src-rt-5.04axhnd.675x/image
 
 ## Donate
 

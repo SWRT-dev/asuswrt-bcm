@@ -1,3 +1,8 @@
+[中文](README.md)
+=======
+
+AC series:[https://github.com/SWRT-dev/asuswrt-bcm-ac](https://github.com/SWRT-dev/asuswrt-bcm-ac)
+AX series:[https://github.com/SWRT-dev/asuswrt-bcm](https://github.com/SWRT-dev/asuswrt-bcm)
 
 NOTE：
 =
@@ -6,18 +11,18 @@ NOTE：
 
 ## Compilation
 
-1. Install Ubuntu 64bit，recommend Ubuntu 18 LTS x64 / Mint 19.1
+1. Install Ubuntu 64bit，Ubuntu 18 LTS x64 and Mint 19.1 are recommended
 
-2. Enter `sudo apt-get update` in terminal, then enter
+2. Run `sudo apt-get update` in terminal, and then run
 `
 sudo apt-get -y install build-essential asciidoc binutils bzip2 gawk gettext git libncurses5-dev libz-dev patch python3.5 python2.7 unzip zlib1g-dev lib32gcc1 libc6-dev-i386 subversion flex uglifyjs git-core gcc-multilib p7zip p7zip-full msmtp libssl-dev texinfo libglib2.0-dev xmlto qemu-utils upx libelf-dev autoconf automake libtool autopoint device-tree-compiler g++-multilib antlr3 gperf wget libncurses5:i386 libelf1:i386 lib32z1 lib32stdc++6 gtk-doc-tools intltool binutils-dev cmake lzma liblzma-dev lzma-dev uuid-dev liblzo2-dev xsltproc dos2unix libstdc++5 docbook-xsl-* sharutils autogen shtool gengetopt libltdl-dev libtool-bin
 `
 
-3. Enter `git clone https://github.com/SWRT-dev/asuswrt-bcm` to download source code 
+3. Run `git clone https://github.com/SWRT-dev/asuswrt-bcm` to clone the source code 
 
-4. Enter `git clone https://github.com/SWRT-dev/bcmhnd-toolchains` to download toolchains
+4. Run `git clone https://github.com/SWRT-dev/bcmhnd-toolchains` to clone the toolchains
 
-5. Enter the following commands step by step `cd bcmhnd-toolchains`
+5. Run `cd bcmhnd-toolchains` to enter the directory, and follow commands step by step 
 
     `sudo mkdir -p /opt/toolchains/`
 
@@ -57,24 +62,6 @@ sudo apt-get -y install build-essential asciidoc binutils bzip2 gawk gettext git
 
 6. Build firmware
 
-	`cd asuswrt-bcm/release/src-rt-6.x.4708`
-
-	`make rt-ac68u`
-
-	`cd asuswrt-bcm/release/src-rt-7.14.114.x/src` 
-
-	`make rt-ac88u`
-
-	`make rt-ac3100`
-
-	`make rt-ac5300`
-
-	`cd asuswrt-bcm/release/src-rt-5.02hnd` 
-
-	`make rt-ac86u`
-
-	`make gt-ac2900`
-
 	`cd asuswrt-bcm/release/src-rt-5.02axhnd.675x` 
 
 	`make rt-ax95q`
@@ -93,7 +80,7 @@ sudo apt-get -y install build-essential asciidoc binutils bzip2 gawk gettext git
 
 	`make tuf-ax5400`
 
-	`cd asuswrt-bcm/release/src-rt-5.02p1axhnd.675x` 
+	`cd asuswrt-bcm/release/src-rt-5.02L.07p2axhnd` 
 
 	`make rt-ax68u`
 
@@ -105,23 +92,23 @@ sudo apt-get -y install build-essential asciidoc binutils bzip2 gawk gettext git
 
 	`make gt-ax11000`
 
-	The firmware is in 
+	Build result will be produced to `asuswrt-bcm/release/src-rt-xxxxx/image` directory
 
-	asuswrt-bcm/release/src-rt-6.x.4708/image 
+	`asuswrt-bcm/release/src-rt-5.02axhnd.675x/image`
 
-	asuswrt-bcm/release/src-rt-7.14.114.x/src/image
+	`asuswrt-bcm/release/src-rt-5.02L.07p2axhnd/image`
 
-	asuswrt-bcm/release/src-rt-5.02hnd/image
+	`asuswrt-bcm/release/src-rt-5.02axhnd/image`
 
-	asuswrt-bcm/release/src-rt-5.02axhnd.675x/image
+	`asuswrt-bcm/release/src-rt-5.04axhnd.675x/image`
 
-	asuswrt-bcm/release/src-rt-5.02p1axhnd.675x/image
+This source code is promised to be compiled successfully.
 
-	asuswrt-bcm/release/src-rt-5.02axhnd/image
+You can use this source code freely, but please link this GitHub repository when redistributing. Thank you for your cooperation!
 
 ## Donate
 
-If you think this project is helpful to you, please donate to us so that the project can continue to develop and become more complete. 
+If this project does help you, please consider donating to support the development of this project.
 
 ### PayPal
 
