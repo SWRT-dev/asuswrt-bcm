@@ -106,6 +106,9 @@ ifeq ($(RTCONFIG_CAPTCHA),y)
 CFLAGS += -DCAPTCHA
 endif
 
+#Tencent download
+CFLAGS += -D _FILE_OFFSET_BITS=64
+
 ifneq ($(findstring CONFIG_BCM_KF_NETFILTER=, $(shell cat $(LINUXDIR)/.config)),)
 export CFLAGS += -DBCM_KF_NETFILTER
 endif
@@ -306,6 +309,10 @@ LIBS += -L$(TOP)/libqcsapi_client_10g -lqcsapi_client
 endif
 
 ifeq ($(RTCONFIG_CONNDIAG),y)
+ifeq ($(RTCONFIG_LIB_CODB),y)
+CFLAGS += -I$(TOP)/libcodb
+LIBS += -L$(TOP)/libcodb -lcodb
+endif
 CFLAGS += -I$(TOP)/rc
 LIBS += -L$(TOP)/rc -lconn_diag
 endif
@@ -368,6 +375,12 @@ pwenc.o:
 endif
 web_hook.o:
 	@-cp -f ./prebuild/$(BUILD_NAME)/web_hook.o .
+endif
+
+ifeq ($(filter $(BUILD_NAME), GT-AX11000 RT-AX88U), $(BUILD_NAME))
+prebuild/web-broadcom.o:
+	@echo " [httpd] CC $@"
+	@$(CC) $(CFLAGS) ./sysdeps/web-broadcom2.c -o prebuild/web-broadcom.o -c $<
 endif
 
 %.o: %.c .%.depend

@@ -238,7 +238,7 @@ add_routes(char *prefix, char *var, char *ifname)
 	char word[80], *next;
 	char *ipaddr, *netmask, *gateway, *metric;
 	char tmp[100], *buf;
-#if defined(RTCONFIG_IPV6) && (defined(RTAX82_XD6) || defined(RTAX82_XD6S))
+#if defined(RTCONFIG_IPV6) && (defined(RTAX82_XD6) || defined(RTAX82_XD6S) || defined(XD6_V2))
 	if (!strncmp(nvram_safe_get("territory_code"), "CH", 2) &&
 		ipv6_enabled() &&
 		nvram_match(ipv6_nvname("ipv6_only"), "1"))
@@ -1584,16 +1584,16 @@ TRACE_PT("3g begin with %s.\n", wan_ifname);
 			return;
 		}
 #if defined(TUFAX3000_V2) || defined(RTAXE7800)
-		if (!strcmp(wan_ifname, "eth1"))
+		if (!strcmp(wan_ifname, "eth1") || !strcmp(wan_ifname, "eth2") || !strcmp(wan_ifname, "eth3") || !strcmp(wan_ifname, "eth4"))
 			doSystem("ethswctl -c wan -i %s -o %s", wan_ifname, "enable");
 #endif
-#if defined(XT8PRO) || defined(ET8PRO) || defined(XT8_V2)
+#if defined(XT8PRO) || defined(BM68) || defined(ET8PRO) || defined(ET8_V2) || defined(XT8_V2)
 		if (!strcmp(wan_ifname, "eth3")){
 			doSystem("ethswctl -c wan -i %s -o %s", wan_ifname, "enable");
 		}
 #endif
 #ifdef RTCONFIG_IPV6
-#if (defined(RTAX82_XD6) || defined(RTAX82_XD6S))
+#if (defined(RTAX82_XD6) || defined(RTAX82_XD6S) || defined(XD6_V2))
 		if ((wan_proto == WAN_STATIC) &&
 			!strncmp(nvram_safe_get("territory_code"), "CH", 2) &&
 			ipv6_enabled() &&
@@ -2082,6 +2082,7 @@ TRACE_PT("3g begin with %s.\n", wan_ifname);
 		 || nvram_get_int("ipsec_ig_enable")
 #endif
 		) {
+		wait_ntp_repeat(WAIT_FOR_NTP_READY_TIME, WAIT_FOR_NTP_READY_LOOP); //wait for ntp_ready, for rc_ipsec_config_init().
 		rc_ipsec_config_init();
 		start_dnsmasq();
 	}
@@ -2420,7 +2421,7 @@ int update_resolvconf(void)
 	start_smartdns();
 #endif
 
-#if defined(RTCONFIG_IPV6) && (defined(RTAX82_XD6) || defined(RTAX82_XD6S))
+#if defined(RTCONFIG_IPV6) && (defined(RTAX82_XD6) || defined(RTAX82_XD6S) || defined(XD6_V2))
 	if (!strncmp(nvram_safe_get("territory_code"), "CH", 2) &&
 		ipv6_enabled() &&
 		nvram_match(ipv6_nvname("ipv6_only"), "1"))
@@ -2469,6 +2470,10 @@ int update_resolvconf(void)
 #endif
 #if defined(RTCONFIG_WIREGUARD) && !defined(RTCONFIG_VPN_FUSION)
 				if (write_wgc_resolv_dnsmasq(fp_servers))
+					break;
+#endif
+#if defined(RTCONFIG_IPSEC) && !defined(RTCONFIG_VPN_FUSION)
+				if (write_ipc_resolv_dnsmasq(fp_servers))
 					break;
 #endif
 #ifdef RTCONFIG_DUALWAN
@@ -2543,7 +2548,7 @@ int update_resolvconf(void)
 		fprintf(fp_servers, "server=%s\n", "127.0.1.1");
 	}
 #endif
-#if (defined(RTAX82_XD6) || defined(RTAX82_XD6S))
+#if (defined(RTAX82_XD6) || defined(RTAX82_XD6S) || defined(XD6_V2))
 NOIP:
 #endif
 #ifdef RTCONFIG_IPV6
@@ -2678,7 +2683,7 @@ void wan6_up(const char *pwan_ifname)
 	char wan_ifname[16];
 	char gateway[INET6_ADDRSTRLEN];
 	int mtu, service, accept_defrtr;
-#if defined(RTCONFIG_SOFTWIRE46) || (defined(RTAX82_XD6) || defined(RTAX82_XD6S))
+#if defined(RTCONFIG_SOFTWIRE46) || (defined(RTAX82_XD6) || defined(RTAX82_XD6S) || defined(XD6_V2))
 	char prefix[sizeof("wanXXXXXXXXXX_")];
 	int wan_unit;
 #endif
@@ -2901,7 +2906,7 @@ void wan6_up(const char *pwan_ifname)
 		sleep(2);
 		break;
 	}
-#if (defined(RTAX82_XD6) || defined(RTAX82_XD6S))
+#if (defined(RTAX82_XD6) || defined(RTAX82_XD6S) || defined(XD6_V2))
 	if ((wan_unit = wan_ifunit(wan_ifname)) != -1) {
 		if (!strncmp(nvram_safe_get("territory_code"), "CH", 2) &&
 			ipv6_enabled() &&
@@ -3115,7 +3120,7 @@ wan_up(const char *pwan_ifname)
 #endif
 
 		start_firewall(wan_unit, 0);
-#if defined(RTCONFIG_IPV6) && (defined(RTAX82_XD6) || defined(RTAX82_XD6S))
+#if defined(RTCONFIG_IPV6) && (defined(RTAX82_XD6) || defined(RTAX82_XD6S) || defined(XD6_V2))
 		if (!strncmp(nvram_safe_get("territory_code"), "CH", 2) &&
 			ipv6_enabled() &&
 			nvram_match(ipv6_nvname("ipv6_only"), "1"))
@@ -3173,7 +3178,7 @@ wan_up(const char *pwan_ifname)
 
 	snprintf(prefix, sizeof(prefix), "wan%d_", wan_unit);
 	wan_proto = get_wan_proto(prefix);
-#if defined(RTCONFIG_IPV6) && (defined(RTAX82_XD6) || defined(RTAX82_XD6S))
+#if defined(RTCONFIG_IPV6) && (defined(RTAX82_XD6) || defined(RTAX82_XD6S) || defined(XD6_V2))
 	if (!strncmp(nvram_safe_get("territory_code"), "CH", 2) &&
 		ipv6_enabled() &&
 		nvram_match(ipv6_nvname("ipv6_only"), "1"))
@@ -3262,7 +3267,7 @@ wan_up(const char *pwan_ifname)
 		)
 			route_add(wan_ifname, is_private_dns?0:2, word, gateway, "255.255.255.255");
 	}
-#if (defined(RTAX82_XD6) || defined(RTAX82_XD6S))
+#if (defined(RTAX82_XD6) || defined(RTAX82_XD6S) || defined(XD6_V2))
 NOIP:
 #endif
 #ifdef RTCONFIG_IPV6
@@ -3490,13 +3495,17 @@ NOIP:
 		 || nvram_get_int("ipsec_ig_enable")
 #endif
 		) {
+		wait_ntp_repeat(WAIT_FOR_NTP_READY_TIME, WAIT_FOR_NTP_READY_LOOP); //wait for ntp_ready, for rc_ipsec_config_init().
 		rc_ipsec_config_init();
 		start_dnsmasq();
 	}
 #endif
 
 #ifdef RTCONFIG_OPENVPN
-	start_ovpn_eas();
+#ifndef RTCONFIG_VPN_FUSION
+	start_ovpn_clientall();
+#endif
+	start_ovpn_serverall();
 #endif
 	if(nvram_get_int("ntp_ready") == 1) {
 		stop_ddns();
@@ -3676,6 +3685,13 @@ NOIP:
 		eval("fc", "config", "--tcp-ack-mflows", nvram_get_int("fc_tcp_ack_mflows_disable_force") ? "0" : "1");
 #endif
 
+#if defined(RTCONFIG_SAMBASRV)
+	if (nvram_match("enable_samba", "1"))
+	{
+		stop_samba(0);
+		start_samba();
+	}
+#endif
 _dprintf("%s(%s): done.\n", __FUNCTION__, wan_ifname);
 }
 
@@ -4437,7 +4453,11 @@ void convert_wan_nvram(char *prefix, int unit)
 		}
 	}
 #else
+#if defined(SBRAC1900P)
+	else nvram_set(strcat_r(prefix, "hwaddr", tmp), nvram_safe_get("et2macaddr"));
+#else
 	else nvram_set(strcat_r(prefix, "hwaddr", tmp), nvram_safe_get("et0macaddr"));
+#endif
 #endif	/* RTCONFIG_RGMII_BRCM5301X */
 #else
 	else nvram_set(strcat_r(prefix, "hwaddr", tmp), get_wan_hwaddr());

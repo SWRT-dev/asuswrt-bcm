@@ -9,7 +9,7 @@ MODELS_HAVE_USB3 = GT-AC2900 \
 	DSL-AC68U DSL-AX82U \
 	RT-AC5300 GT-AC5300 GT-AC9600 RT-AC95U RT-AC3100 RT-AC3200 GT-AX11000\
 	RT-AC55U RT-AC55UHP RT-AC58U 4G-AC53U RT-AC82U RT-AC88Q RT-AX89U \
-	RT-AC86U RT-AC88U RT-AX88U RT-AC87U RT-AC85U RT-AC68U RT-AC68A 4G-AC68U RT-AC65U RT-AC56S RT-AC56U RT-AX92U RT-AX95Q XT8PRO XT8_V2 RT-AXE95Q ET8PRO RT-AX56_XD4 XD4PRO CT-AX56_XD4 RT-AX58U RT-AX58U_V2 TUF-AX3000 TUF-AX3000_V2 TUF-AX5400 RT-AX82U RT-AX82U_V2 RT-AX56U GS-AX3000 GS-AX5400 \
+	RT-AC86U RT-AC88U RT-AX88U RT-AC87U RT-AC85U RT-AC68U RT-AC68A 4G-AC68U RT-AC65U RT-AC56S RT-AC56U RT-AX92U RT-AX95Q XT8PRO BM68 XT8_V2 RT-AXE95Q ET8PRO ET8_V2 RT-AX56_XD4 XD4PRO CT-AX56_XD4 RT-AX58U RT-AX58U_V2 TUF-AX3000 TUF-AX3000_V2 TUF-AX5400 TUF-AX5400_V2 RT-AX5400 RT-AX82U RT-AX82U_V2 RT-AX56U GS-AX3000 GS-AX5400 \
 	RT-AX86U RT-AX68U RT-AC68U_V4 \
 	RT-AX86U_PRO \
 	RT-N65U \
@@ -17,15 +17,15 @@ MODELS_HAVE_USB3 = GT-AC2900 \
 	RP-AC68U \
 	RT-AXE7800 GT10 \
 	GT-AXE11000 \
-	GT-AX6000 GT-AX11000_PRO GT-AXE16000
+	GT-AX6000 GT-AX11000_PRO GT-AXE16000 RT-AX88U_PRO
 
 MODELS_HAVE_TRAFFIC_ANALYZER = RT-AC3200 RT-AC87U RT-AC88U RT-AX88U RT-AC86U GT-AC2900 RT-AC3100 RT-AC5300 GT-AC5300 GT-AXY16000 RT-AX89U GT-AC9600 DSL-AC68U \
-	RT-AC68U 4G-AC68U RT-AC68R RT-AC68W RT-AC68RW GT-AX11000 RT-AC1900P RT-AC67U RT-AC56U RT-AC56R RT-AC85U RT-AC85P RT-AC65U BRT-AC828 BLUECAVE RT-AX92U RT-AX95Q XT8PRO XT8_V2 RT-AXE95Q ET8PRO RT-AX56_XD4 XD4PRO CT-AX56_XD4 RT-AX58U RT-AX58U_V2 TUF-AX3000 TUF-AX3000_V2 TUF-AX5400 RT-AX82U RT-AX82U_V2 RT-AX82_XD6 RT-AX82_XD6S GS-AX3000 GS-AX5400 RT-AX56U MAP-AC1300 \
+	RT-AC68U 4G-AC68U RT-AC68R RT-AC68W RT-AC68RW GT-AX11000 RT-AC1900P RT-AC67U RT-AC56U RT-AC56R RT-AC85U RT-AC85P RT-AC65U BRT-AC828 BLUECAVE RT-AX92U RT-AX95Q XT8PRO BM68 XT8_V2 RT-AXE95Q ET8PRO ET8_V2 RT-AX56_XD4 XD4PRO CT-AX56_XD4 RT-AX58U RT-AX58U_V2 TUF-AX3000 TUF-AX3000_V2 TUF-AX5400 TUF-AX5400_V2 RT-AX5400 RT-AX82U RT-AX82U_V2 RT-AX82_XD6 RT-AX82_XD6S XD6_V2 GS-AX3000 GS-AX5400 RT-AX56U MAP-AC1300 \
 	RT-AX86U RT-AX68U RT-AC68U_V4 DSL-AX82U \
 	RT-AX86U_PRO \
 	MAP-AC2200 MAP-AC2200V RT-AC95U \
 	RT-AXE7800 GT10 \
-	GT-AXE11000 GT-AX6000 GT-AX11000_PRO GT-AXE16000 ET12 XT12
+	GT-AXE11000 GT-AX6000 GT-AX11000_PRO GT-AXE16000 ET12 XT12 RT-AX88U_PRO
 
 MODELS_QIS_SLIDER = GT-AX11000 GT-AXY16000 RT-AX89U GT-AXE11000 GT-AX11000_PRO
 
@@ -101,6 +101,7 @@ endif
 #ifeq ($(BUILD_NAME), GT-AC2900)
 ifeq ($(RTCONFIG_ROG_UI), y)
 	cp -r $(TOP)/www/sysdep/FUNCTION/ROG_UI/* $(INSTALLDIR)/www/
+	cp -rf $(TOP)/www/sysdep/$(SWRT_NAME)/www/* $(INSTALLDIR)/www/ || true
 endif
 #endif
 
@@ -116,8 +117,6 @@ ifneq ($(RTCONFIG_WIFI_SON),y)
 endif
 	rm -rf $(INSTALLDIR)/www/images/rog_feature*
 	rm -rf $(INSTALLDIR)/www/qis
-	rm -rf $(INSTALLDIR)/www/qis_m
-	rm -rf $(INSTALLDIR)/www/QIS_wizard_m.htm
 endif
 endif
 
@@ -141,12 +140,10 @@ ifeq ($(BUILD_NAME),$(filter $(BUILD_NAME), $(MODELS_QIS_SLIDER)))
 	rm -rf $(INSTALLDIR)/www/images/qis
 	rm -rf $(INSTALLDIR)/www/images/rog_feature*
 	rm -rf $(INSTALLDIR)/www/qis
-	rm -rf $(INSTALLDIR)/www/qis_m
-	rm -rf $(INSTALLDIR)/www/QIS_wizard_m.htm
 endif
 
 ifeq ($(RTCONFIG_WL_SCHED_V2), y)
-ifneq ($(BUILD_NAME),$(filter $(BUILD_NAME), GT-AXE11000 RT-AXE95Q ET8PRO GT-AXE16000 ET12))
+ifneq ($(BUILD_NAME),$(filter $(BUILD_NAME), GT-AXE11000 RT-AXE95Q ET8PRO ET8_V2 GT-AXE16000 ET12))
 		cp $(TOP)/www/sysdep/FUNCTION/WL_SCHED_V2/Advanced_WAdvanced_Content.asp $(INSTALLDIR)/www/Advanced_WAdvanced_Content.asp
 endif
 endif
@@ -158,7 +155,47 @@ ifneq ($(or $(RTCONFIG_WL_SCHED_V2),$(RTCONFIG_PC_SCHED_V3)),y)
 	rm -rf $(INSTALLDIR)/www/images/New_ui/weekSchedule
 endif
 
-ifneq ($(BUILD_NAME),$(filter $(BUILD_NAME), RT-AX82U RT-AX82U_V2 DSL-AX82U GT-AXE11000 GT-AC2900 GT-AX11000 GS-AX3000 GS-AX5400 TUF-AX5400 GT-AX11000_PRO GT-AXE16000 GS-AX6000 GT-AX6000))
+	rm -rf $(INSTALLDIR)/www/images/vpn_illustration.png
+	rm -rf $(INSTALLDIR)/www/ajax_vpn_fusion.asp
+	rm -rf $(INSTALLDIR)/www/Advanced_VPNClientFusion_Content.asp
+	cp $(TOP)/www/sysdep/FUNCTION/VPNC_V2/Advanced_VPNClient_Content.asp $(INSTALLDIR)/www/Advanced_VPNClient_Content.asp
+	cp $(TOP)/www/sysdep/FUNCTION/VPNC_V2/VPN $(INSTALLDIR)/www/VPN -rf
+	cp $(TOP)/www/sysdep/FUNCTION/VPNC_V2/images/New_ui/VPN $(INSTALLDIR)/www/images/New_ui/VPN -rf
+	cp $(TOP)/www/sysdep/FUNCTION/VPNS_V2/Advanced_VPNServer_Content.asp $(INSTALLDIR)/www/Advanced_VPNServer_Content.asp
+	cp $(TOP)/www/sysdep/FUNCTION/VPNS_V2/VPN/* $(INSTALLDIR)/www/VPN/ -rf
+	cp $(TOP)/www/sysdep/FUNCTION/VPNS_V2/images/New_ui/VPN/* $(INSTALLDIR)/www/images/New_ui/VPN/ -rf
+
+ifneq ($(or $(RTCONFIG_PPTPD),$(RTCONFIG_ACCEL_PPTPD)),y)
+	rm -rf $(INSTALLDIR)/www/VPN/vpns_pptp.js
+endif
+ifneq ($(RTCONFIG_OPENVPN),y)
+	rm -rf $(INSTALLDIR)/www/VPN/vpns_openvpn.js
+endif
+ifneq ($(RTCONFIG_IPSEC),y)
+ifneq ($(RTCONFIG_IPSEC_SERVER),y)
+	rm -rf $(INSTALLDIR)/www/VPN/vpns_ipsec.js
+endif
+endif
+ifneq ($(RTCONFIG_WIREGUARD),y)
+	rm -rf $(INSTALLDIR)/www/VPN/vpns_wireguard.js
+endif
+ifneq ($(or $(RTCONFIG_PPTPD),$(RTCONFIG_ACCEL_PPTPD),$(RTCONFIG_OPENVPN),$(RTCONFIG_IPSEC),$(RTCONFIG_IPSEC_SERVER)),y)
+	rm -rf $(INSTALLDIR)/www/VPN/vpns*
+	rm -rf $(INSTALLDIR)/www/Advanced_VPNServer_Content.asp
+	rm -rf $(INSTALLDIR)/www/images/New_ui/VPN/ic_push_pin.svg
+endif
+ifneq ($(RTCONFIG_VPNC), y)
+	rm -rf $(INSTALLDIR)/www/VPN/vpnc*
+	rm -rf $(INSTALLDIR)/www/Advanced_VPNClient_Content.asp
+	rm -rf $(INSTALLDIR)/www/images/New_ui/VPN/cards_usage.svg
+	rm -rf $(INSTALLDIR)/www/images/New_ui/VPN/get_start.svg
+endif
+ifneq ($(or $(RTCONFIG_PPTPD),$(RTCONFIG_ACCEL_PPTPD),$(RTCONFIG_OPENVPN),$(RTCONFIG_IPSEC),$(RTCONFIG_IPSEC_SERVER),$(RTCONFIG_VPNC)),y)
+	rm -rf $(INSTALLDIR)/www/VPN
+	rm -rf $(INSTALLDIR)/www/images/New_ui/VPN
+endif
+
+ifneq ($(BUILD_NAME),$(filter $(BUILD_NAME), RT-AX82U RT-AX82U_V2 DSL-AX82U GT-AXE11000 GT-AC2900 GT-AX11000 GS-AX3000 GS-AX5400 TUF-AX5400 TUF-AX5400_V2 GT-AX11000_PRO GT-AXE16000 GS-AX6000 GT-AX6000 GT10))
 	rm -rf $(INSTALLDIR)/www/images/New_ui/light_effect
 	rm -rf $(INSTALLDIR)/www/device-map/router_light_effect.asp
 else
@@ -171,6 +208,9 @@ ifeq ($(BUILD_NAME),GT-AX6000)
 endif
 ifeq ($(BUILD_NAME),GT-AXE16000)
 	cd $(INSTALLDIR)/www/light_effect && mv sysdep_css/light_effect_GT-AXE16000.css light_effect_sysdep.css
+endif
+ifeq ($(BUILD_NAME),GT10)
+	cd $(INSTALLDIR)/www/light_effect && mv sysdep_css/light_effect_GT10.css light_effect_sysdep.css
 endif
 	rm -rf $(INSTALLDIR)/www/light_effect/sysdep_css
 endif
@@ -554,7 +594,7 @@ ifneq ($(RTCONFIG_SNMPD), y)
 	rm -rf $(INSTALLDIR)/www/Advanced_SNMP_Content.asp
 endif
 
-ifneq ($(BUILD_NAME),$(filter $(BUILD_NAME), RT-AC68U RT-AC3200 RT-AC5300 GT-AC5300 GT-AC9600 RT-AC86U GT-AC2900 RT-AC88U RT-AX88U RT-AC3100 GT-AX11000 RT-AX92U RT-AX95Q XT8PRO XT8_V2 RT-AXE95Q ET8PRO RT-AX56_XD4 XD4PRO CT-AX56_XD4 RT-AX58U RT-AX58U_V2 TUF-AX3000 TUF-AX3000_V2 TUF-AX5400 DSL-AX82U RT-AX82U RT-AX82U_V2 RT-AX82_XD6 RT-AX82_XD6S RT-AX56U RP-AX56 RP-AX58 RT-AX86U RT-AX68U RT-AC68U_V4 RT-AXE7800 GT10 GT-AXE11000 RT-AX55 RT-AX3000N GS-AX3000 GS-AX5400 GT-AX6000 GT-AX11000_PRO ET12 XT12 GT-AXE16000 PL-AX56_XP4 RT-AX86U_PRO))
+ifneq ($(BUILD_NAME),$(filter $(BUILD_NAME), RT-AC68U RT-AC3200 RT-AC5300 GT-AC5300 GT-AC9600 RT-AC86U GT-AC2900 RT-AC88U RT-AX88U RT-AC3100 GT-AX11000 RT-AX92U RT-AX95Q XT8PRO BM68 XT8_V2 RT-AXE95Q ET8PRO ET8_V2 RT-AX56_XD4 XD4PRO CT-AX56_XD4 RT-AX58U RT-AX58U_V2 TUF-AX3000 TUF-AX3000_V2 TUF-AX5400 TUF-AX5400_V2 RT-AX5400 DSL-AX82U RT-AX82U RT-AX82U_V2 RT-AX82_XD6 RT-AX82_XD6S XD6_V2 RT-AX56U RP-AX56 RP-AX58 RT-AX86U RT-AX68U RT-AC68U_V4 RT-AXE7800 GT10 GT-AXE11000 RT-AX55 RT-AX3000N GS-AX3000 GS-AX5400 GT-AX6000 GT-AX11000_PRO ET12 XT12 GT-AXE16000 PL-AX56_XP4 RT-AX86U_PRO RT-AX88U_PRO))
 	rm -rf $(INSTALLDIR)/www/Advanced_Smart_Connect.asp
 	rm -rf $(INSTALLDIR)/www/images/New_ui/smart_connect.png
 	rm -rf $(INSTALLDIR)/www/images/New_ui/smart_connect_concept.gif
@@ -593,10 +633,9 @@ ifeq ($(BUILD_NAME),$(filter $(BUILD_NAME), 4G-AC53U 4G-AC55U 4G-AC68U))
 	rm -rf $(INSTALLDIR)/www/Advanced_Modem_Content.asp
 endif
 
-ifneq ($(BUILD_NAME),$(filter $(BUILD_NAME), RT-AC88U RT-AX88U RT-AC3100 RT-AC5300 GT-AC5300 GT-AC9600 RT-AC86U GT-AC2900 RT-AC3200 GT-AX11000 RT-AX92U RT-AX95Q XT8PRO XT8_V2 RT-AXE95Q ET8PRO RT-AX56_XD4 XD4PRO CT-AX56_XD4 RT-AX58U RT-AX58U_V2 RT-AX3000N TUF-AX3000 TUF-AX3000_V2 TUF-AX5400 DSL-AX82U RT-AX82U RT-AX82U_V2 RT-AX82_XD6 RT-AX82_XD6S RT-AX56U RT-AX86U RT-AX68U RT-AC68U_V4 RT-AXE7800 GT10 GT-AXE11000 GS-AX3000 GS-AX5400 GT-AX6000 GT-AX11000_PRO ET12 XT12 GT-AXE16000 RT-AX86U_PRO))
+ifneq ($(BUILD_NAME),$(filter $(BUILD_NAME), RT-AC88U RT-AX88U RT-AC3100 RT-AC5300 GT-AC5300 GT-AC9600 RT-AC86U GT-AC2900 RT-AC3200 GT-AX11000 RT-AX92U RT-AX95Q XT8PRO BM68 XT8_V2 RT-AXE95Q ET8PRO ET8_V2 RT-AX56_XD4 XD4PRO CT-AX56_XD4 RT-AX58U RT-AX58U_V2 RT-AX3000N TUF-AX3000 TUF-AX3000_V2 TUF-AX5400 TUF-AX5400_V2 RT-AX5400 DSL-AX82U RT-AX82U RT-AX82U_V2 RT-AX82_XD6 RT-AX82_XD6S XD6_V2 RT-AX56U RT-AX86U RT-AX68U RT-AC68U_V4 RT-AXE7800 GT10 GT-AXE11000 GS-AX3000 GS-AX5400 GT-AX6000 GT-AX11000_PRO ET12 XT12 GT-AXE16000 RT-AX86U_PRO RT-AX88U_PRO))
 	rm -rf $(INSTALLDIR)/www/QIS_wizard_m.htm
 	rm -rf $(INSTALLDIR)/www/css/effect.css
-	rm -rf $(INSTALLDIR)/www/qis_m
 	rm -rf $(INSTALLDIR)/www/images/qis/icon_MAC_clone.svg
 	rm -rf $(INSTALLDIR)/www/images/qis/logo.png
 ifneq ($(BUILD_NAME),$(filter $(BUILD_NAME), RP-AC66 RP-AC68U RP-AC51 MAP-AC1300 MAP-AC2200 VZW-AC1300 MAP-AC1750))
@@ -653,6 +692,10 @@ endif
 	rm -rf $(INSTALLDIR)/www/images/tencent
 	rm -f $(INSTALLDIR)/www/GameBoost_Tencent.asp
 	rm -f $(INSTALLDIR)/www/game_accelerator_tencent.html
+
+ifneq ($(RTCONFIG_TC_GAME_ACC), y)
+	rm -f $(INSTALLDIR)/www/Advanced_TencentDownloadAcceleration.asp
+endif
 
 ifneq ($(RTCONFIG_IPSEC), y)
 	rm -rf $(INSTALLDIR)/www/Advanced_VPN_IPSec.asp
@@ -777,20 +820,10 @@ endif
 ifeq ($(BUILD_NAME),BLUECAVE)
 	rm -rf $(INSTALLDIR)/www/images/qis
 	rm -rf $(INSTALLDIR)/www/qis
-	rm -rf $(INSTALLDIR)/www/qis_m
-	rm -rf $(INSTALLDIR)/www/QIS_wizard_m.htm
 endif
 
 ifeq ($(BUILD_NAME),$(filter $(BUILD_NAME), GT-AC2900 GT-AC5300 GT-AC9600 GT-AXY16000 GT-AX11000 TUF-AX3000 TUF-AX3000_V2 TUF-AX5400 GT-AXE11000 GT-AX6000 GT10 GT-AX11000_PRO GT-AXE16000))
 	rm -rf $(INSTALLDIR)/www/images/New_ui/networkmap/white_04.gif
-endif
-
-ifneq ($(RTCONFIG_VPN_FUSION), y)
-	rm -rf $(INSTALLDIR)/www/images/vpn_illustration.png
-	rm -rf $(INSTALLDIR)/www/ajax_vpn_fusion.asp
-	rm -rf $(INSTALLDIR)/www/Advanced_VPNClientFusion_Content.asp
-else
-	cd $(INSTALLDIR)/www/ && mv Advanced_VPNClientFusion_Content.asp Advanced_VPNClient_Content.asp
 endif
 
 	ln -sf /tmp/fb_data.tgz.gz $(INSTALLDIR)/www/fb_data.tgz.gz
@@ -809,6 +842,13 @@ ifneq ($(RTCONFIG_AMAS), y)
 	rm -rf $(INSTALLDIR)/www/chcap.json
 	rm -rf $(INSTALLDIR)/www/message.htm
 	rm -rf $(INSTALLDIR)/www/AiMesh_Node_FirmwareUpgrade.asp
+ifneq ($(RTCONFIG_REVERTFW), y)
+	rm -rf $(INSTALLDIR)/www/AiMesh_Node_RevertFirmware.asp
+	rm -rf $(INSTALLDIR)/www/get_release_note_revertfw.asp
+endif
+ifneq ($(RTCONFIG_ROLLBACKFW), y)
+	rm -rf $(INSTALLDIR)/www/AiMesh_Node_RbkFirmware.asp
+endif
 	rm -rf $(INSTALLDIR)/www/Advanced_Roaming_Block_Content.asp
 	rm -rf $(INSTALLDIR)/www/js/jstree/jstree.js
 	rm -rf $(INSTALLDIR)/www/AiMesh.asp
@@ -946,7 +986,7 @@ endif
 	rm -rf $(INSTALLDIR)/www/images/New_ui/new_qis
 endif
 
-ifneq ($(BUILD_NAME),$(filter $(BUILD_NAME), GT-AC2900 GT-AC5300 GT-AX11000 GT-AXE11000 GT-AXY16000 RT-AX82U RT-AX82U_V2 DSL-AX82U GS-AX3000 GS-AX5400 TUF-AX5400 GT-AX11000_PRO GT-AXE16000 GT-AX6000))
+ifneq ($(BUILD_NAME),$(filter $(BUILD_NAME), GT-AC2900 GT-AC5300 GT-AX11000 GT-AXE11000 GT-AXY16000 RT-AX82U RT-AX82U_V2 DSL-AX82U GS-AX3000 GS-AX5400 TUF-AX5400 TUF-AX5400_V2 GT-AX11000_PRO GT-AXE16000 GT-AX6000 GT10))
 ifneq ($(RTCONFIG_AMAS),y)
 	rm -rf $(INSTALLDIR)/www/fonts
 endif
@@ -979,6 +1019,10 @@ ifeq ($(BUILD_NAME),$(filter $(BUILD_NAME), TUF-AX3000 TUF-AX3000_V2 TUF-AX5400)
 	rm -rf $(INSTALLDIR)/www/css/TUF
 endif
 
+ifneq ($(RTCONFIG_UIDEBUG), y)
+	rm -rf $(INSTALLDIR)/www/diskmon_test.asp
+endif
+
 ifneq ($(RTCONFIG_DNSPRIVACY), y)
 	rm -rf $(INSTALLDIR)/www/dot-servers.json
 endif
@@ -990,5 +1034,113 @@ ifneq ($(RTCONFIG_ENTWARE), y)
 endif
 ifneq ($(RTCONFIG_SMARTDNS),y)
 	rm -rf $(INSTALLDIR)/www/Advanced_SmartDNS_Content.asp
+endif
+ifeq ($(SWRT_NAME),F9K1118)
+	rm -rf $(INSTALLDIR)/www/aidisk/*
+	rm -rf $(INSTALLDIR)/www/aimesh/*
+	rm -rf $(INSTALLDIR)/www/images/RP-AC1900/*
+	rm -rf $(INSTALLDIR)/www/images/RT-AC66U_V2/*
+	rm -rf $(INSTALLDIR)/www/images/gameprofile/*
+	rm -rf $(INSTALLDIR)/www/images/speedtest/*
+	rm -rf $(INSTALLDIR)/www/images/New_ui/aidisk/*
+	rm -rf $(INSTALLDIR)/www/images/New_ui/amesh/*
+	rm -rf $(INSTALLDIR)/www/images/New_ui/USBExt/*
+	rm -rf $(INSTALLDIR)/www/images/New_ui/app_icons/*
+	rm -rf $(INSTALLDIR)/www/images/New_ui/networkmap/*
+	rm -rf $(INSTALLDIR)/www/images/New_ui/QoS_quick/*
+	rm -rf $(INSTALLDIR)/www/images/New_ui/weekSchedule/*
+	rm -rf $(INSTALLDIR)/www/AdaptiveQoS_*
+	rm -rf $(INSTALLDIR)/www/Advanced_ACL_Content.asp
+	rm -rf $(INSTALLDIR)/www/Advanced_AiDisk_ftp.asp
+	rm -rf $(INSTALLDIR)/www/Advanced_AiDisk_samba.asp
+	rm -rf $(INSTALLDIR)/www/Advanced_AiDisk_webdav.asp
+	rm -rf $(INSTALLDIR)/www/Advanced_APPList_Content.asp
+	rm -rf $(INSTALLDIR)/www/Advanced_ASUSDDNS_Content.asp
+	rm -rf $(INSTALLDIR)/www/Advanced_BasicFirewall_Content.asp
+	rm -rf $(INSTALLDIR)/www/Advanced_DHCP_Content.asp
+	rm -rf $(INSTALLDIR)/www/Advanced_Exposed_Content.asp
+	rm -rf $(INSTALLDIR)/www/Advanced_Feedback.asp
+	rm -rf $(INSTALLDIR)/www/Advanced_Firewall_Content.asp
+	rm -rf $(INSTALLDIR)/www/Advanced_FirmwareUpgrade_Content.asp
+	rm -rf $(INSTALLDIR)/www/Advanced_GWStaticRoute_Content.asp
+	rm -rf $(INSTALLDIR)/www/Advanced_IPTV_Content.asp
+	rm -rf $(INSTALLDIR)/www/Advanced_IPv6_Content.asp
+	rm -rf $(INSTALLDIR)/www/Advanced_IPv61_Content.asp
+	rm -rf $(INSTALLDIR)/www/Advanced_KeywordFilter_Content.asp
+	rm -rf $(INSTALLDIR)/www/Advanced_LAN_Content.asp
+	rm -rf $(INSTALLDIR)/www/Advanced_Modem_Content.asp
+	rm -rf $(INSTALLDIR)/www/Captive_Portal_Advanced_template.js.new
+	rm -rf $(INSTALLDIR)/www/internet_speed.html
+	rm -rf $(INSTALLDIR)/www/APP_Installation.asp
+	rm -rf $(INSTALLDIR)/www/mediaserver.asp
+	rm -rf $(INSTALLDIR)/www/GameProfile.asp
+	rm -rf $(INSTALLDIR)/www/GameBoost.asp
+	rm -rf $(INSTALLDIR)/www/YandexDNS.asp
+	rm -rf $(INSTALLDIR)/www/Main_WOL_Content.asp
+	rm -rf $(INSTALLDIR)/www/wcdma_list.js
+	rm -rf $(INSTALLDIR)/www/Feedback_Info.asp
+	rm -rf $(INSTALLDIR)/www/Main_Netstat_Content.asp
+	rm -rf $(INSTALLDIR)/www/Main_Analysis_Content.asp
+	rm -rf $(INSTALLDIR)/www/aidisk.asp
+	rm -rf $(INSTALLDIR)/www/Main_LogStatus_Content.asp
+	rm -rf $(INSTALLDIR)/www/ajax_qos_default.xml
+	rm -rf $(INSTALLDIR)/www/Main_AdmStatus_Content.asp
+	rm -rf $(INSTALLDIR)/www/Main_WStatus_Content.asp
+	rm -rf $(INSTALLDIR)/www/UUAccelerator.asp
+	rm -rf $(INSTALLDIR)/www/Main_IPV6Status_Content.asp
+	rm -rf $(INSTALLDIR)/www/Advanced_MultiSubnet_Content.asp
+	rm -rf $(INSTALLDIR)/www/Advanced_NATPassThrough_Content.asp
+	rm -rf $(INSTALLDIR)/www/Advanced_Notification_Content.asp
+	rm -rf $(INSTALLDIR)/www/Advanced_OperationMode_Content.asp
+	rm -rf $(INSTALLDIR)/www/Advanced_PortTrigger_Content.asp
+	rm -rf $(INSTALLDIR)/www/Advanced_Privacy.asp
+	rm -rf $(INSTALLDIR)/www/Advanced_QOSUserPrio_Content.asp
+	rm -rf $(INSTALLDIR)/www/Advanced_QOSUserRules_Content.asp
+	rm -rf $(INSTALLDIR)/www/Advanced_Roaming_Block_Content.asp
+	rm -rf $(INSTALLDIR)/www/Advanced_SettingBackup_Content.asp
+	rm -rf $(INSTALLDIR)/www/Advanced_S*
+	rm -rf $(INSTALLDIR)/www/Advanced_URLFilter_Content.asp
+	rm -rf $(INSTALLDIR)/www/Advanced_VirtualServer_Content.asp
+	rm -rf $(INSTALLDIR)/www/Advanced_W*
+	rm -rf $(INSTALLDIR)/www/AiProtection_*
+	rm -rf $(INSTALLDIR)/www/ParentalControl.asp
+	rm -rf $(INSTALLDIR)/www/PrinterServer.asp
+	rm -rf $(INSTALLDIR)/www/QoS_EZQoS.asp
+	rm -rf $(INSTALLDIR)/www/QIS_wizard.htm
+	rm -rf $(INSTALLDIR)/www/TrafficAnalyzer_Statistic.asp
+	rm -rf $(INSTALLDIR)/www/TrafficAnalyzer_Statistic.asp
+	rm -rf $(INSTALLDIR)/www/AiMesh.asp
+	rm -rf $(INSTALLDIR)/www/Guest_network.asp
+	rm -rf $(INSTALLDIR)/www/Guest_network.css
+	rm -rf $(INSTALLDIR)/www/Main_TrafficMonitor_daily.asp
+	rm -rf $(INSTALLDIR)/www/Main_TrafficMonitor_last24.asp
+	rm -rf $(INSTALLDIR)/www/Main_TrafficMonitor_realtime.asp
+	rm -rf $(INSTALLDIR)/www/ParentalControl.css
+	# System Log
+	rm -rf $(INSTALLDIR)/www/Main_DHCPStatus_Content.asp
+	rm -rf $(INSTALLDIR)/www/Main_RouteStatus_Content.asp
+	rm -rf $(INSTALLDIR)/www/Main_IPTStatus_Content.asp
+	rm -rf $(INSTALLDIR)/www/Main_ConnStatus_Content.asp
+	# images
+	rm -rf $(INSTALLDIR)/www/images/checked_parentctrl.png
+	rm -rf $(INSTALLDIR)/www/images/modem_plug.png
+	rm -rf $(INSTALLDIR)/www/images/modem_unplug.png
+	rm -rf $(INSTALLDIR)/www/images/setup.jpg
+	rm -rf $(INSTALLDIR)/www/images/WANunplug_eth.png
+	rm -rf $(INSTALLDIR)/www/images/WANunplug.png
+	rm -rf $(INSTALLDIR)/www/images/mobile
+	rm -rf $(INSTALLDIR)/www/images/New_ui/ap.jpg
+	rm -rf $(INSTALLDIR)/www/images/New_ui/icon_close.svg
+	rm -rf $(INSTALLDIR)/www/images/New_ui/icon_CopySetting_hover.svg
+	rm -rf $(INSTALLDIR)/www/images/New_ui/icon_CopySetting.svg
+	rm -rf $(INSTALLDIR)/www/images/New_ui/icon_GuestNetwork_New_hover.svg
+	rm -rf $(INSTALLDIR)/www/images/New_ui/icon_GuestNetwork_New.svg
+	rm -rf $(INSTALLDIR)/www/images/New_ui/game.png
+	rm -rf $(INSTALLDIR)/www/images/New_ui/parental-control.png
+	rm -rf $(INSTALLDIR)/www/images/New_ui/QoS.png
+	rm -rf $(INSTALLDIR)/www/images/New_ui/rt.jpg
+	rm -rf $(INSTALLDIR)/www/images/New_ui/TimeLimitsSmall.png
+	rm -rf $(INSTALLDIR)/www/images/New_ui/new_qis
+	rm -rf $(INSTALLDIR)/www/Tools_Sysinfo.asp
 endif
 

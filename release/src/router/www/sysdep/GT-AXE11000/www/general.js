@@ -1,4 +1,4 @@
-
+﻿
 var keyPressed;
 var wItem;
 var ip = "";
@@ -463,14 +463,6 @@ function openLink(s){
 			tourl = "http://www.no-ip.com/newUser.php";
 		else if (document.form.ddns_server_x.value == 'WWW.ORAY.COM')
 			tourl = "http://www.oray.com/";
-		else if (document.form.ddns_server_x.value == '3322')
-			tourl = "http://www.pubyun.com/";
-		else if (document.form.ddns_server_x.value == 'oray')
-			tourl = "http://www.oray.com/";
-		else if (document.form.ddns_server_x.value == 'changeip')
-			tourl = "https://www.changeip.com/";
-		else if (document.form.ddns_server_x.value == 'WWW.CLOUDFLARE.COM')
-			tourl = "https://www.cloudflare.com/";
 		else if (document.form.ddns_server_x.value == 'DOMAINS.GOOGLE.COM')
 			tourl = "https://domains.google/";
 		else	tourl = "";
@@ -2066,11 +2058,43 @@ function gen_tab_menu(_tab_list_array, _currentItem) {
 	}
 }
 
-function check_is_merlin_fw(_fw) {
-	var fw_array = _fw.match(/(\d+)\.(\d+)\.(\d+)\.(\d+)\.([^_]+)_(\w+)/);
-	if (fw_array && (fw_array[5].indexOf('.') > 0) )
-		return true;
-	else
-		return false;
+function is_unit_24g(_unit) {
+	if (based_modelid == "GT-AXE16000") {
+		if (_unit == 3) return true;
+	} else {
+		if (_unit == 0) return true;
+	}
+	return false;
 }
 
+function is_unit_5g(_unit) {
+	if (based_modelid == "GT-AXE16000") {
+		if (_unit == 0) return true;
+	} else if (wl_info.band5g_support) {
+		if (_unit == 1) return true;
+	}
+	return false;
+}
+
+function is_unit_5g_2(_unit) {
+	if (based_modelid == "GT-AXE16000") {
+		if (_unit == 1) return true;
+	} else if (wl_info.band5g_2_support) {
+		if (_unit == 2) return true;
+	}
+	return false;
+}
+
+function is_unit_6g(_unit) {
+	if (band6g_support) {
+		if (_unit == 2) return true;
+	}
+	return false;
+}
+
+function is_unit_60g(_unit){
+	if (band60g_support) {
+		if (_unit == 3) return true;
+	}
+	return false;
+}

@@ -66,6 +66,10 @@
 #include "sched_v2.h"
 #endif /* RTCONFIG_SCHED_V2 */
 
+#if defined(RTCONFIG_VPN_FUSION) || defined(RTCONFIG_TPVPN) || defined(RTCONFIG_IG_SITE2SITE) || defined(RTCONFIG_WIREGUARD)
+#include "vpn_utils.h"
+#endif
+
 #if defined(RTCONFIG_PTHSAFE_POPEN)
 #if defined(RTCONFIG_QCA)
 #define	popen	PS_popen
@@ -82,7 +86,7 @@ extern int PS_pclose(FILE *);
 
 #if defined(RTCONFIG_EXTPHY_BCM84880)
 // BCM84880, BCM54991, BCM50991, BCM84891L
-#ifdef GTAX6000
+#if defined(GTAX6000) || defined(RTAX88U_PRO)
 #define EXTPHY_ADDR 0x13
 #define EXTPHY_ADDR_STR "0x13"
 #elif defined(GTAXE16000)
@@ -101,7 +105,7 @@ extern int PS_pclose(FILE *);
 #define EXTPHY_RTL_ADDR 0x03
 #define EXTPHY_RTL_ADDR_STR "0x03"
 
-#if defined(GTAX11000)
+#if defined(GTAX11000) || defined(RTAX88U_PRO)
 #define PHY_ID_54991E "3590:5099"
 #elif defined(RTAX86U) || defined(GTAXE11000)
 #define PHY_ID_54991EL "3590:5089"
@@ -497,7 +501,7 @@ enum {
 #define GIF_PREFIXLEN  0x0002  /* return prefix length */
 #define GIF_PREFIX     0x0004  /* return prefix, not addr */
 
-#define EXTEND_AIHOME_API_LEVEL		21
+#define EXTEND_AIHOME_API_LEVEL		22
 
 #define EXTEND_HTTPD_AIHOME_VER		0
 
@@ -542,17 +546,23 @@ enum conndiagEvent {
 	EID_CD_PS_CHANGE,
 	EID_CD_CFG_ALIVE,
 	EID_CD_CFG_RADAR_ALL,
+	EID_CD_PS_CD_RET,
+	EID_CD_PS_USB_CHANGE,
 	EID_CD_MAX
 };
 #define RAST_IPC_MAX_CONNECTION		5
 #define RAST_IPC_SOCKET_PATH		"/var/run/rast_ipc_socket"
-#define BSD_IPC_SOCKET_PATH		"/var/run/bsd_ipc_socket"
+#define BSD_IPC_SOCKET_PATH			"/var/run/bsd_ipc_socket"
+#define NBR_IPC_SOCKET_PATH			"/var/run/nbr_ipc_socket"
 #define RAST_INTERNAL_IPC_SOCKET_PATH	"/var/run/rast_internal_ipc_socket"
 #define CONNDIAG_IPC_SOCKET_PATH	"/var/run/conndiag_ipc_socket"
+#define CABLEDIAG_IPC_SOCKET_PATH	"/var/run/cablediag_ipc_socket"
 #define RAST_PREFIX     "RAST"
 #define CHKSTA_PREFIX   "CHKSTA"
+#define EXT_DATA   "EXT_DATA"
 /* key name of json from rast */
 #define RAST_EVENT_ID   "EID"
+#define NBR_EVENT_ID	"NBREID"
 #define RAST_STA        "STA"
 #define RAST_STA_2G	"STA_2G"
 #define RAST_STA_5G	"STA_5G"
@@ -563,6 +573,7 @@ enum conndiagEvent {
 #define RAST_STATUS     "STATUS"
 #define RAST_CANDIDATE_AP "CANDIDATE"
 #define RAST_STA_RSSI	"STA_RSSI"
+#define RAST_STA_RSSI_FROM_AP	"STA_RSSI_FROM_AP"
 #define RAST_CANDIDATE_AP_RSSI	"AP_RSSI"
 #define RAST_CANDIDATE_AP_RSSI_CRITERIA  "AP_RSSI_CRITERIA"
 #define RAST_ENABLE	"ENABLE"
@@ -578,6 +589,7 @@ enum conndiagEvent {
 #define RAST_STA_RCPI	"STA_RCPI"
 #define RAST_CANDIDATE_AP_RCPI	"AP_RCPI"
 #define RAST_AP_TARGET_MAC "AP_TARGET_MAC"
+#define RAST_AP_TARGET_CH "AP_TARGET_CH"
 #ifdef RTCONFIG_CONN_EVENT_TO_EX_AP
 #define RAST_STA_EX_AP_IP	"STA_EX_AP_IP"
 #endif
@@ -590,6 +602,11 @@ enum conndiagEvent {
 #define RAST_DEF_BLOCK_TIME	3
 
 #endif	//END RTCONFIG_ADV_RAST
+
+#define CD_CHANNEL_CHANGE "CHANNEL_CHANGE"
+#define CD_PS_CHANGE "PORTSTATUS_CHANGE"
+#define CD_PS_CD_RET "CABLEDIAG_RET"
+#define CD_PS_USB_CHANGE "PORTSTATUS_USB_CHANGE"
 
 #ifdef RTCONFIG_HND_ROUTER_AX
 #define RMD_IPC_SOCKET_PATH    "/etc/rmd_ipc_socket"
@@ -883,6 +900,7 @@ extern int nvram_split_set(const char *key, char *value, int size, int maxinst);
 extern int nvram_contains_word(const char *key, const char *word);
 extern int nvram_is_empty(const char *key);
 extern void nvram_commit_x(void);
+extern void nvram_pf_restore_default(const char *prefix_default, const char *prefix_target);
 extern int connect_timeout(int fd, const struct sockaddr *addr, socklen_t len, int timeout);
 extern int mtd_getinfo(const char *mtdname, int *part, int *size);
 #if defined(RTCONFIG_UBIFS)
@@ -893,6 +911,7 @@ extern int foreach_wif(int include_vifs, void *param,
 
 //shutils.c
 #define modprobe(mod, args...) ({ char *argv[] = { "modprobe", "-s", mod, ## args, NULL }; _eval(argv, NULL, 0, NULL); })
+extern int modprobe_q(const char *mod);
 extern int modprobe_r(const char *mod);
 extern void dbgprintf (const char * format, ...); //Ren
 extern void cprintf(const char *format, ...);
@@ -988,6 +1007,8 @@ extern int pidof(const char *name);
 extern int killall(const char *name, int sig);
 extern int process_exists(pid_t pid);
 extern int module_loaded(const char *module);
+extern int process_mem_used(int pid);
+extern void suicide_by_mem_limit(int limit);
 
 // files.c
 extern int check_if_dir_empty(const char *dirpath);
@@ -1255,7 +1276,7 @@ enum led_id {
  && (defined(RTAX89U) || defined(GTAXY16000))
 	PWR_USB2,
 #endif
-#if defined(RTAX95Q) || defined(XT8PRO) || defined(XT8_V2) || defined(RTAXE95Q) || defined(ET8PRO) || defined(RTAX56_XD4) || defined(XD4PRO) || defined(RTAX82_XD6) || defined(RTAX82_XD6S) || defined(ET12) || defined(XT12)
+#if defined(RTAX95Q) || defined(XT8PRO) || defined(BM68) || defined(XT8_V2) || defined(RTAXE95Q) || defined(ET8PRO) || defined(ET8_V2) || defined(RTAX56_XD4) || defined(XD4PRO) || defined(RTAX82_XD6) || defined(RTAX82_XD6S) || defined(ET12) || defined(XT12) || defined(XD6_V2)
 	BT_RESET,
 	BT_DISABLE,
 	LED_RGB1_RED,
@@ -1290,11 +1311,11 @@ enum led_id {
 	IND_BT,
 	IND_PA,
 #endif
-#if defined(RTAX82U) || defined(DSL_AX82U) || defined(GSAX3000) || defined(GSAX5400) || defined(TUFAX5400) || defined(GTAX11000_PRO) || defined(GTAXE16000) || defined(GTAX6000) || defined(GT10) || defined(RTAX82U_V2)
+#if defined(RTAX82U) || defined(DSL_AX82U) || defined(GSAX3000) || defined(GSAX5400) || defined(TUFAX5400) || defined(GTAX11000_PRO) || defined(GTAXE16000) || defined(GTAX6000) || defined(GT10) || defined(RTAX82U_V2) || defined(TUFAX5400_V2)
 	LED_GROUP1_RED,
 	LED_GROUP1_GREEN,
 	LED_GROUP1_BLUE,
-#ifndef TUFAX5400
+#if !defined(TUFAX5400) && !defined(TUFAX5400_V2)
 	LED_GROUP2_RED,
 	LED_GROUP2_GREEN,
 	LED_GROUP2_BLUE,
@@ -1563,7 +1584,7 @@ static inline int lacp_enabled(void) { return 0; }
  */
 static inline int __absent_band(enum wl_band_id band)
 {
-	if (band < WL_2G_BAND || band >= WL_NR_BANDS)
+	if (band < 0 || band >= WL_NR_BANDS)
 		return 1;
 #if defined(RTCONFIG_RALINK) || defined(RTCONFIG_QCA)
 	if (band >= MAX_NR_WL_IF)
@@ -1794,8 +1815,7 @@ static inline int dpsta_mode()
 
 static inline int rp_mode()
 {
-	return ((sw_mode() == SW_MODE_AP) && (nvram_get_int("wlc_psta") == 2) && 
-		(nvram_get_int("wlc_dpsta") == 1 || nvram_get("wlc_dpsta") == NULL));
+	return ((sw_mode() == SW_MODE_AP) && (nvram_get_int("wlc_psta") == 2) && (nvram_get_int("wlc_dpsta") == 1));
 }
 
 static inline int is_rp_unit(int unit)
@@ -2104,56 +2124,67 @@ extern int led_control(int which, int mode);
 extern uint32_t gpio_dir(uint32_t gpio, int dir);
 extern uint32_t set_gpio(uint32_t gpio, uint32_t value);
 extern uint32_t get_gpio(uint32_t gpio);
-#if defined(RTCONFIG_HND_ROUTER_AX_6710) || defined(BCM6750) || defined(BCM6756) || defined(GTAX6000) || defined(RTAX86U_PRO) || defined(BCM6855)
+#if defined(RTCONFIG_HND_ROUTER_AX_6710) || defined(BCM6750) || defined(BCM6756) || defined(GTAX6000) || defined(RTAX86U_PRO) || defined(BCM6855) || defined(RTAX88U_PRO)
 extern uint32_t get_gpio2(uint32_t gpio);
 #endif
 extern int get_switch_model(void);
+
 /* phy port related start */
 #define MAX_PHY_PORT 16
-#ifdef RTCONFIG_NEW_PHYMAP
-#define PHY_PORT_CAP_WAN 0x01
-#define PHY_PORT_CAP_LAN 0x02
-#define PHY_PORT_CAP_GAME 0x04
-#define PHY_PORT_CAP_PLC 0x08
+// Hardware capability
+#define PHY_PORT_CAP_WAN					(1U << 0)
+#define PHY_PORT_CAP_LAN					(1U << 1)
+#define PHY_PORT_CAP_GAME					(1U << 2)
+#define PHY_PORT_CAP_PLC					(1U << 3)
+#define PHY_PORT_CAP_WAN2					(1U << 4)
+#define PHY_PORT_CAP_WAN3					(1U << 5)
+#define PHY_PORT_CAP_SFPP					(1U << 6)
+#define PHY_PORT_CAP_USB					(1U << 7)
+#define PHY_PORT_CAP_MOBILE					(1U << 8)
+#define PHY_PORT_CAP_WANLAN					(1U << 9)
 
-static inline char *get_phy_port_cap_name(int cap, char *buf, int buf_len)
-{
-	int len = 0;
+// Software capability
+#define PHY_PORT_CAP_IPTV_BRIDGE			(1U << 26)
+#define PHY_PORT_CAP_IPTV_VOIP				(1U << 27)
+#define PHY_PORT_CAP_IPTV_STB				(1U << 28)
+#define PHY_PORT_CAP_DUALWAN_SECONDARY_WAN	(1U << 29)
+#define PHY_PORT_CAP_DUALWAN_PRIMARY_WAN	(1U << 30)
+typedef struct _usb_device_info usb_device_info_t;
 
-	if (!buf || !buf_len)
-		return NULL;
-
-	memset(buf, 0, buf_len);
-	if (cap & PHY_PORT_CAP_WAN)
-		len = snprintf(buf+len, buf_len-len, len ? ",%s" : "%s", "wan");
-	if (cap & PHY_PORT_CAP_LAN)
-		len = snprintf(buf+len, buf_len-len, len ? ",%s" : "%s", "lan");
-	if (cap & PHY_PORT_CAP_GAME)
-		len = snprintf(buf+len, buf_len-len, len ? ",%s" : "%s", "game");
-	if (cap & PHY_PORT_CAP_PLC)
-		len = snprintf(buf+len, buf_len-len, len ? ",%s" : "%s", "plc");
-
-	return buf;
-}
-
-typedef struct _phy_port {
-	int phy_port_id;     // port id for driver
-	char *label_name;    // could be W0, L1, ..., L8
-	uint8_t cap;         // WAN : 0x1, LAN : 0x2, GAME : 0x4, PLC : 0x8
-	int max_rate;        // max support link rate (ex. 10, 100, 1000, 2500, 10000)
-	char *ifname;        // the mapping interface name
-} phy_port;
-typedef struct _phy_port_mapping {
-	int count;           // the amount of phy port
-	int extsw_count;     // the amount of external switch port, like RTL8365MB
-	phy_port port[MAX_PHY_PORT]; 
-} phy_port_mapping;
-extern phy_port_mapping get_phy_port_mapping(void); // for capability use
+#if 1
+struct _usb_device_info {
+	char usb_path[8];
+	char node[8];
+	char type[8]; // could be modem, storage or printer.
+	char manufacturer[32];
+	char product[32];
+	char serial[32];
+	char device_name[32];
+	int speed;
+	uint64_t storage_size_in_kilobytes;
+	uint64_t storage_used_in_kilobytes;
+};
+#else
+struct _usb_device_info {
+	char *usb_path;
+	char *node;
+	char *type; // could be modem, storage or printer.
+	char *manufacturer;
+	char *product;
+	char *serial;
+	char *device_name;
+	int speed;
+	uint64_t storage_size_in_kilobytes;
+	uint64_t storage_used_in_kilobytes;
+	usb_device_info_t *next;
+};
 #endif
+
 typedef struct _phy_info {
 	int phy_port_id;     // port id for driver
 	char label_name[8];  // could be W0, L1, ..., L8
-	char cap_name[64];   // could be wan, lan, game or plc
+	uint32_t cap;
+	char cap_name[64];   // hardware or software capability name. because multiple capabilities are supported, mutliple capability names will be set.
 	char state[8];       // could be up, down
 	int link_rate;       // could be 10, 100, 1000, 2500, 10000
 	char duplex[8];      // could be half, fulll
@@ -2162,12 +2193,22 @@ typedef struct _phy_info {
 	uint64_t tx_bytes;
 	uint64_t rx_bytes;
 	uint32_t crc_errors;
+#ifdef RTCONFIG_USB
+	usb_device_info_t usb_devices[MAX_USB_HUB_PORT];
+#endif
 } phy_info;
+
+#define PHY_INFO_GET_STATUS 1 << 0
+#define PHY_INFO_GET_LINKRATE 1 << 1
+#define PHY_INFO_GET_ALL 0xFFFFFFFF
+
 typedef struct _phy_info_list {
 	int count;           // the amount of phy port
 	phy_info phy_info[MAX_PHY_PORT];
+	int status_and_speed_only;
 } phy_info_list;
 /* phy port related end.*/
+
 #if defined(RTCONFIG_ALPINE) || defined(RTCONFIG_LANTIQ)
 extern uint32_t get_phy_status(int wan_unit);
 extern uint32_t get_phy_speed(int wan_unit);
@@ -2363,6 +2404,8 @@ extern int get_psta_status(int unit);
 extern int get_psta_status(int unit);
 #endif
 
+extern void create_amas_sys_folder();
+
 #define WLSTA_JSON_FILE 				"/tmp/wl_sta_list.json"
 #define MAX_STA_COUNT 128
 #if (defined(RTCONFIG_HND_ROUTER_AX_675X) || defined(RTCONFIG_HND_ROUTER_AX_6710)) && !defined(RTCONFIG_SDK502L07P1_121_37)
@@ -2477,7 +2520,7 @@ extern unsigned int rtkswitch_Port_phyLinkRate(unsigned int port_mask);
 extern int get_channel_list_via_driver(int unit, char *buffer, int len);
 extern int get_channel_list_via_country(int unit, const char *country_code, char *buffer, int len);
 extern unsigned int __rtkswitch_WanPort_phySpeed(int wan_unit);
-extern void ATE_port_status(phy_info_list *list);
+extern void ATE_port_status(int verbose, phy_info_list *list);
 #elif defined(RTCONFIG_ALPINE)
 extern char *wl_vifname_qtn(int unit, int subunit);
 extern char *wif_to_vif(char *wif);
@@ -2608,12 +2651,12 @@ typedef struct rtk_stat_port_cntr_s
 } rtk_stat_port_cntr_t;
 #endif
 #ifdef HND_ROUTER
-#if defined(RTCONFIG_HND_ROUTER_AX_6710) || defined(BCM4912)
+#if defined(RTCONFIG_HND_ROUTER_AX_6710) || defined(BCM4912) || defined(BCM6756)
 extern uint32_t hnd_get_phy_status(char *ifname);
 extern uint32_t hnd_get_phy_speed(char *ifname);
 extern uint32_t hnd_get_phy_duplex(char *ifname);
 extern uint64_t hnd_get_phy_mib(char *ifname, char *type);
-#elif defined(RTCONFIG_HND_ROUTER_AX_675X) || defined(BCM6756) || defined(BCM6855) || defined(BCM6750)
+#elif defined(RTCONFIG_HND_ROUTER_AX_675X) || defined(BCM6855) || defined(BCM6750)
 extern uint32_t hnd_get_phy_status(int port);
 extern uint32_t hnd_get_phy_speed(int port);
 extern uint32_t hnd_get_phy_duplex(int port);
@@ -2699,8 +2742,7 @@ extern int discover_interface(const char *current_wan_ifname, int dhcp_det);
 extern int discover_all(int wan_unit);
 
 // strings.c
-extern int replace_char(char *str, const char from, const char to);
-extern int str_escape_quotes(const char *output, const char *input, int outsize);
+extern int all_char_to_ascii(const char *output, const char *input, int outsize);
 extern int char_to_ascii_safe(const char *output, const char *input, int outsize);
 extern void char_to_ascii(const char *output, const char *input);
 #if defined(RTCONFIG_UTF8_SSID)
@@ -2712,6 +2754,8 @@ extern void ascii_to_char(const char *output, const char *input);
 extern const char *find_word(const char *buffer, const char *word);
 extern int remove_word(char *buffer, const char *word);
 extern void trim_space(char *str);
+extern void replace_char(char *str, char find, char replace);
+extern int str_escape_quotes(const char *output, const char *input, int outsize);
 extern void toLowerCase(char *str);
 extern void toUpperCase(char *str);
 extern void trim_colon(char *str);
@@ -2824,6 +2868,13 @@ extern int psta_exist(void);
 extern int psta_exist_except(int unit);
 extern int psr_exist(void);
 extern int psr_exist_except(int unit);
+#endif
+
+#if defined(RTCONFIG_VPN_FUSION)
+#define VPNC_LOAD_CLIENT_LIST          0x01
+#define VPNC_LOAD_PPTP_OPT                     0x02
+extern int _get_new_vpnc_index(void);
+extern int vpnc_load_profile(VPNC_PROFILE *list, const int list_size, const int load_flag);
 #endif
 
 struct ifino_s {
@@ -2995,6 +3046,8 @@ extern char *get_ddns_hostname(void);
 extern int get_ispctrl();
 extern unsigned short get_extend_cap();
 extern void wl_vif_to_subnet(const char *ifname, char *net, int len);
+extern int get_string_in_62(char *in_list, int idx, char *out, int out_len);
+extern int vpnc_use_tunnel(void);
 
 #ifdef RTCONFIG_TOR
 /* scripts.c */
@@ -3003,6 +3056,12 @@ extern void run_postconf(char *name, char *config);
 extern void use_custom_config(char *config, char *target);
 extern void append_custom_config(char *config, FILE *fp);
 #endif
+
+/* scripts.c */
+extern void run_custom_script(char *name, int timeout, char *arg1, char *arg2);
+extern void run_postconf(char *name, char *config);
+extern void use_custom_config(char *config, char *target);
+extern void append_custom_config(char *config, FILE *fp);
 
 /* mt7620.c */
 #if defined(RTCONFIG_RALINK_MT7620)
@@ -3025,8 +3084,8 @@ extern int notify_rc_and_period_wait(const char *event_name, int wait);
 
 /* wl.c */
 #ifdef CONFIG_BCMWL5
-#ifdef __CONFIG_DHDAP__
 extern int dhd_probe(char *name);
+#ifdef __CONFIG_DHDAP__
 extern int dhd_ioctl(char *name, int cmd, void *buf, int len);
 extern int dhd_iovar_setbuf(char *ifname, char *iovar, void *param, int paramlen, void *bufptr, int buflen);
 extern int dhd_iovar_setint(char *ifname, char *iovar, int val);
@@ -3043,6 +3102,262 @@ extern char *get_usb_xhci_port(int port);
 #ifdef RTCONFIG_DUALWAN
 extern int get_nr_wan_unit(void);
 #endif // RTCONFIG_DUALWAN
+
+#ifdef RTCONFIG_NEW_PHYMAP
+typedef struct _phy_port {
+	int phy_port_id;     // port id for driver
+	char *label_name;    // could be W0, L1, ..., L8
+	uint32_t cap;        // hardware or software capability. because multiple capabilities are supported, mutliple bits will be set.
+	int max_rate;        // max support link rate (ex. 10, 100, 1000, 2500, 10000)
+	char *ifname;        // the mapping interface name
+} phy_port;
+typedef struct _phy_port_mapping {
+	int count;           // the amount of phy port
+	int extsw_count;     // the amount of external switch, like RTL8365MB
+	int usb_count;       // the amount of usb port. Currently this value is only set when the model has external Realtek switch.
+	int is_mobile_router;
+	phy_port port[MAX_PHY_PORT];
+} phy_port_mapping;
+
+extern int get_trunk_port_mapping(int trunk_port_value);
+extern void get_usb_modem_status(phy_info_list *list);
+
+static inline char *get_phy_port_cap_name(uint32_t cap, char *buf, int buf_len)
+{
+	int len = 0;
+
+	if (!buf || !buf_len)
+		return NULL;
+
+	memset(buf, 0, buf_len);
+	if (cap & PHY_PORT_CAP_WAN)
+		len += snprintf(buf+len, buf_len-len, len ? ",%s" : "%s", "wan");
+	if (cap & PHY_PORT_CAP_LAN)
+		len += snprintf(buf+len, buf_len-len, len ? ",%s" : "%s", "lan");
+	if (cap & PHY_PORT_CAP_GAME)
+		len += snprintf(buf+len, buf_len-len, len ? ",%s" : "%s", "game");
+	if (cap & PHY_PORT_CAP_PLC)
+		len += snprintf(buf+len, buf_len-len, len ? ",%s" : "%s", "plc");
+	if (cap & PHY_PORT_CAP_WAN2)
+		len += snprintf(buf+len, buf_len-len, len ? ",%s" : "%s", "wan2");
+	if (cap & PHY_PORT_CAP_WAN3)
+		len += snprintf(buf+len, buf_len-len, len ? ",%s" : "%s", "wan3");
+	if (cap & PHY_PORT_CAP_SFPP)
+		len += snprintf(buf+len, buf_len-len, len ? ",%s" : "%s", "sfp+");
+	if (cap & PHY_PORT_CAP_USB)
+		len += snprintf(buf+len, buf_len-len, len ? ",%s" : "%s", "usb");
+	if (cap & PHY_PORT_CAP_MOBILE)
+		len += snprintf(buf+len, buf_len-len, len ? ",%s" : "%s", "mobile");
+	if (cap & PHY_PORT_CAP_WANLAN)
+		len += snprintf(buf+len, buf_len-len, len ? ",%s" : "%s", "wanlan");
+
+	// Software configure capability
+	if (cap & PHY_PORT_CAP_DUALWAN_PRIMARY_WAN)
+		len += snprintf(buf+len, buf_len-len, len ? ",%s" : "%s", "dualwan_primary_wan");
+	if (cap & PHY_PORT_CAP_DUALWAN_SECONDARY_WAN)
+		len += snprintf(buf+len, buf_len-len, len ? ",%s" : "%s", "dualwan_secondary_wan");
+	if (cap & PHY_PORT_CAP_IPTV_STB)
+		len += snprintf(buf+len, buf_len-len, len ? ",%s" : "%s", "iptv_stb");
+	if (cap & PHY_PORT_CAP_IPTV_VOIP)
+		len += snprintf(buf+len, buf_len-len, len ? ",%s" : "%s", "iptv_voip");
+	if (cap & PHY_PORT_CAP_IPTV_BRIDGE)
+		len += snprintf(buf+len, buf_len-len, len ? ",%s" : "%s", "iptv_bridge");
+
+	return buf;
+}
+
+static inline void clear_all_sw_cap(phy_port_mapping *port_mapping)
+{
+	int i;
+	for(i = 0; i < port_mapping->count; i++) {
+		port_mapping->port[i].cap &= ~PHY_PORT_CAP_DUALWAN_PRIMARY_WAN;
+		port_mapping->port[i].cap &= ~PHY_PORT_CAP_DUALWAN_SECONDARY_WAN;
+		port_mapping->port[i].cap &= ~PHY_PORT_CAP_IPTV_STB;
+		port_mapping->port[i].cap &= ~PHY_PORT_CAP_IPTV_VOIP;
+		port_mapping->port[i].cap &= ~PHY_PORT_CAP_IPTV_BRIDGE;
+	}
+}
+
+static inline void add_sw_wan_cap(phy_port_mapping *port_mapping, int wan, uint32_t cap)
+{
+	int i;
+	int wans_lanport = nvram_get_int("wans_lanport");
+	for(i = 0; i < port_mapping->count; i++) {
+		if (wan == WANS_DUALWAN_IF_WAN && (
+			(port_mapping->port[i].cap & PHY_PORT_CAP_WAN) > 0 || 
+			(port_mapping->port[i].cap & PHY_PORT_CAP_LAN) > 0)
+		) {
+			//_dprintf("%s WANS_DUALWAN_IF_WAN is wan. cap1=%u, cap2=%u\n", port_mapping->port[i].label_name, cap, port_mapping->port[i].cap);
+			if (!port_mapping->port[i].ifname || !strlen(port_mapping->port[i].ifname)) {
+				if ((port_mapping->port[i].cap & PHY_PORT_CAP_WAN)) {
+					port_mapping->port[i].cap |= cap;
+				//_dprintf("%s 1WANS_DUALWAN_IF_WAN is wan. cap1=%u, cap2=%u\n", port_mapping->port[i].label_name, cap, port_mapping->port[i].cap);
+					break;
+				}
+			} else {
+#if defined(RTCONFIG_DUALWAN)
+				int unit = (cap == PHY_PORT_CAP_DUALWAN_PRIMARY_WAN) ? WAN_UNIT_FIRST : WAN_UNIT_SECOND;
+#else
+				int unit = WAN_UNIT_FIRST ;
+#endif
+				if (!strcmp(port_mapping->port[i].ifname, get_wanx_ifname(unit))) {
+					port_mapping->port[i].cap |= cap;
+				//_dprintf("%s 2WANS_DUALWAN_IF_WAN is wan. cap1=%u, cap2=%u\n", port_mapping->port[i].label_name, cap, port_mapping->port[i].cap);
+					break;
+				}
+			}
+		}
+		else if (wan == WANS_DUALWAN_IF_LAN && (port_mapping->port[i].cap & PHY_PORT_CAP_LAN) > 0) {
+			if (i == get_trunk_port_mapping(wans_lanport)) {
+				//_dprintf("%s WANS_DUALWAN_IF_LAN is wan. cap1=%u, cap2=%u\n", port_mapping->port[i].label_name, cap, port_mapping->port[i].cap);
+				port_mapping->port[i].cap |= cap;
+				//_dprintf("%s WANS_DUALWAN_IF_LAN is wan. cap1=%u, cap2=%u\n", port_mapping->port[i].label_name, cap, port_mapping->port[i].cap);
+				break;
+			}
+		}
+		else if (wan == WANS_DUALWAN_IF_USB) {
+			if (port_mapping->is_mobile_router && (port_mapping->port[i].cap & PHY_PORT_CAP_MOBILE) > 0) {
+				//_dprintf("%s WANS_DUALWAN_IF_LAN is wan. cap1=%u, cap2=%u\n", port_mapping->port[i].label_name, cap, port_mapping->port[i].cap);
+				port_mapping->port[i].cap |= cap;
+				//_dprintf("%s WANS_DUALWAN_IF_LAN is wan. cap1=%u, cap2=%u\n", port_mapping->port[i].label_name, cap, port_mapping->port[i].cap);
+				//break; // Don't break for usb type wan.
+			} else if (!port_mapping->is_mobile_router && (port_mapping->port[i].cap & PHY_PORT_CAP_USB) > 0) {
+				//_dprintf("%s WANS_DUALWAN_IF_LAN is wan. cap1=%u, cap2=%u\n", port_mapping->port[i].label_name, cap, port_mapping->port[i].cap);
+				port_mapping->port[i].cap |= cap;
+				//_dprintf("%s WANS_DUALWAN_IF_LAN is wan. cap1=%u, cap2=%u\n", port_mapping->port[i].label_name, cap, port_mapping->port[i].cap);
+				//break; // Don't break for usb type wan.
+			}
+		}
+		else if (wan == WANS_DUALWAN_IF_WAN2 && (port_mapping->port[i].cap & PHY_PORT_CAP_WAN2) > 0) {
+			//_dprintf("%s WANS_DUALWAN_IF_WAN2 is wan. cap1=%u, cap2=%u\n", port_mapping->port[i].label_name, cap, port_mapping->port[i].cap);
+			port_mapping->port[i].cap |= cap;
+			//_dprintf("%s WANS_DUALWAN_IF_WAN2 is wan. cap1=%u, cap2=%u\n", port_mapping->port[i].label_name, cap, port_mapping->port[i].cap);
+			break;
+		}
+		else if (wan == WANS_DUALWAN_IF_SFPP && (port_mapping->port[i].cap & PHY_PORT_CAP_SFPP) > 0) {
+			//_dprintf("%s WANS_DUALWAN_IF_SFPP is wan. cap1=%u, cap2=%u\n", port_mapping->port[i].label_name, cap, port_mapping->port[i].cap);
+			port_mapping->port[i].cap |= cap;
+			//_dprintf("%s WANS_DUALWAN_IF_SFPP is wan. cap1=%u, cap2=%u\n", port_mapping->port[i].label_name, cap, port_mapping->port[i].cap);
+			break;
+		}
+	}
+}
+
+static inline void add_sw_iptv_cap(phy_port_mapping *port_mapping, char *ports, uint32_t cap)
+{
+	int i;
+	int lan_idx;
+	char port[8], lan_label[8], *next;
+	if (!strlen(ports))
+		return;
+	foreach_38(port, ports, next) {
+		if (sscanf(port, " LAN%d%*s", &lan_idx)) {
+			snprintf(lan_label, sizeof(lan_label), "L%d", lan_idx);
+			for(i = 0; i < port_mapping->count; i++) {
+				if (!strcmp(port_mapping->port[i].label_name, lan_label)) {
+					//_dprintf("%s WANS_DUALWAN_IF_WAN is wan. cap1=%llu, cap2=%llu\n", port_mapping->port[i].label_name, cap, port_mapping->port[i].cap);
+					port_mapping->port[i].cap |= cap;
+					//_dprintf("%s WANS_DUALWAN_IF_WAN is wan. cap1=%llu, cap2=%llu\n", port_mapping->port[i].label_name, cap, port_mapping->port[i].cap);
+					break;
+				}
+			}
+		}
+	}
+}
+
+static inline void add_default_primary_wan(phy_port_mapping *port_mapping)
+{
+	int i;
+	for(i = 0; i < port_mapping->count; i++) {
+		if (!strcmp(port_mapping->port[i].label_name, "W0")) {
+			port_mapping->port[i].cap |= PHY_PORT_CAP_DUALWAN_PRIMARY_WAN;
+			return;
+		}
+	}
+}
+
+static inline void add_sw_cap(phy_port_mapping *port_mapping)
+{
+	clear_all_sw_cap(port_mapping);
+
+	if (!is_router_mode()) {
+		add_default_primary_wan(port_mapping);
+		return;
+	}
+
+	// Add software capability
+#if defined(RTCONFIG_DUALWAN)
+	char *wans_dualwan = nvram_safe_get("wans_dualwan");
+	if (strlen(wans_dualwan)) {
+		int unit;
+		for(unit = WAN_UNIT_FIRST; unit < WAN_UNIT_MAX; ++unit) {
+			int wan = get_dualwan_by_unit(unit);
+			if (wan == WANS_DUALWAN_IF_WAN ||
+					wan == WANS_DUALWAN_IF_LAN ||
+					wan == WANS_DUALWAN_IF_USB ||
+					wan == WANS_DUALWAN_IF_WAN2 ||
+					wan == WANS_DUALWAN_IF_SFPP) {
+				if (unit == WAN_UNIT_FIRST) { // main wan
+					//_dprintf("unit=%d, wan=%d, eth_wantype=1, cap=%llu\n", unit, wan, PHY_PORT_CAP_DUALWAN_PRIMARY_WAN);
+					add_sw_wan_cap(port_mapping, wan, PHY_PORT_CAP_DUALWAN_PRIMARY_WAN);
+				} else if (unit == WAN_UNIT_SECOND) {  // second wan
+					//_dprintf("unit=%d, wan=%d, eth_wantype=1, cap=%llu\n", unit, wan, PHY_PORT_CAP_DUALWAN_SECONDARY_WAN);
+					add_sw_wan_cap(port_mapping, wan, PHY_PORT_CAP_DUALWAN_SECONDARY_WAN);
+				}
+			}
+		}
+	}
+#endif
+#if defined(RTCONFIG_MULTICAST_IPTV)
+	add_sw_iptv_cap(port_mapping, nvram_safe_get("iptv_stb_port"), PHY_PORT_CAP_IPTV_STB);
+	add_sw_iptv_cap(port_mapping, nvram_safe_get("iptv_voip_port"), PHY_PORT_CAP_IPTV_VOIP);
+	add_sw_iptv_cap(port_mapping, nvram_safe_get("iptv_bridge_port"), PHY_PORT_CAP_IPTV_BRIDGE);
+#endif
+}
+
+static inline void swap_wanlan(phy_port_mapping *port_mapping)
+{
+	//int tmp_cap;
+	char *tmp_label_name;
+	//int tmp_max_rate;
+	int i, j;
+
+	for(i = 0; i < port_mapping->count; i++) {
+		if (((port_mapping->port[i].cap & PHY_PORT_CAP_WAN) > 0) &&
+			((port_mapping->port[i].cap & PHY_PORT_CAP_WANLAN) > 0) &&
+			((port_mapping->port[i].cap & PHY_PORT_CAP_DUALWAN_PRIMARY_WAN) == 0) &&
+			((port_mapping->port[i].cap & PHY_PORT_CAP_DUALWAN_SECONDARY_WAN) == 0)) {
+			for(j = 0; j < port_mapping->count; j++) {
+				if (((port_mapping->port[j].cap & PHY_PORT_CAP_LAN) > 0) &&
+					((port_mapping->port[j].cap & PHY_PORT_CAP_WANLAN) > 0) &&
+					(
+						((port_mapping->port[j].cap & PHY_PORT_CAP_DUALWAN_PRIMARY_WAN) > 0) ||
+						((port_mapping->port[j].cap & PHY_PORT_CAP_DUALWAN_SECONDARY_WAN) > 0)
+					)) {
+						/*tmp_cap = port_mapping->port[i].cap;
+						port_mapping->port[i].cap = port_mapping->port[j].cap;
+						port_mapping->port[j].cap = tmp_cap;*/
+						/*tmp_max_rate = port_mapping->port[i].max_rate;
+						port_mapping->port[i].max_rate = port_mapping->port[j].max_rate;
+						port_mapping->port[j].max_rate = tmp_max_rate;*/
+						// Exchanged cap PHY_PORT_CAP_WAN and PHY_PORT_CAP_LAN
+						port_mapping->port[i].cap &= ~PHY_PORT_CAP_WAN;
+						port_mapping->port[i].cap |= PHY_PORT_CAP_LAN;
+						port_mapping->port[j].cap &= ~PHY_PORT_CAP_LAN;
+						port_mapping->port[j].cap |= PHY_PORT_CAP_WAN;
+						tmp_label_name = port_mapping->port[i].label_name;
+						port_mapping->port[i].label_name = port_mapping->port[j].label_name;
+						port_mapping->port[j].label_name = tmp_label_name;
+						return;
+					}
+			}
+		}
+	}
+}
+
+extern void get_phy_port_mapping(phy_port_mapping *port_mapping); // for capability use
+extern void get_usb_modem_tatus(phy_info_list *list); // for usb modem status
+#endif //RTCONFIG_NEW_PHYMAP
 
 static inline int iptv_enabled(void)
 {
@@ -3061,9 +3376,6 @@ extern void set_lan_phy(char *phy);
 extern void add_lan_phy(char *phy);
 extern void set_wan_phy(char *phy);
 extern void add_wan_phy(char *phy);
-#if defined(RTCONFIG_SWRT_I2CLED)
-extern void swrt_esw_port_status(int port, int *mode, int *speed);
-#endif
 
 /* semaphore.c */
 extern void init_spinlock(void);
@@ -3429,10 +3741,16 @@ static inline int add_gpio_to_bled(__attribute__ ((unused)) const char *main_led
 
 #endif	/* RTCONFIG_BLINK_LED */
 
+/* add nt_center 2nd stage event */
+#define CC_EVENT_JSON   "/jffs/ccevent.json"
+
 /* bwdpi_utils.c */
 #if defined(RTCONFIG_BWDPI)
 extern int check_wrs_switch();
 extern int check_bwdpi_nvram_setting();
+extern int check_wan_2P5G_10G_speed();
+extern int check_AQoS_only_enabled();
+extern int check_WRS_only_enabled();
 #endif
 extern void erase_symbol(char *old, char *sym);
 extern void StampToDate(unsigned long timestamp, char *date);
@@ -3785,6 +4103,77 @@ typedef struct __amaslib_notification__t_
 
 #endif /* defined(RTCONFIG_AMAS) */
 
+#if defined(RTCONFIG_TIME_QUOTA)
+#define TQ_RULE_PERSIST_JSON_PATH "/tmp/tq_rules_persist.json"
+#define TQ_CLIENT_LIST_PATH "/tmp/tq_client_list.json"
+#define TQ_PROFILE_LIST_PATH "/tmp/tq_profile_list.json"
+#define TQ_CLIENT_LIST_LOCK	"tq_client_list"
+#define TQ_PROFILE_LIST_LOCK	"tq_profile_list"
+#define TQ_RULE_PERSIST_LOCK	"tq_rules_persist"
+#endif /* defined(RTCONFIG_TIME_QUOTA) */
+
+#ifdef RTCONFIG_TUNNEL
+
+#define AWSIOT_IPC_SOCKET_PATH  "/var/run/awsiot_ipc_socket"
+#define MASTIFF_IPC_SOCKET_PATH  "/var/run/mastiff_ipc_socket"
+#define MASTIFF_IPC_MAX_CONNECTION       10
+
+
+#define AAE_MAX_IPC_PACKET_SIZE   1024
+
+/* for ipc packet handler */
+struct aaeIpcArgStruct {
+  unsigned char data[AAE_MAX_IPC_PACKET_SIZE];
+  size_t dataLen;
+  char waitResp;
+  int sock;
+}aaeIpcArgs;
+
+#define AAE_IPC_EVENT_ID "eid"
+#define AAE_IPC_STATUS "status"
+
+#ifdef RTCONFIG_AWSIOT
+#define AWSIOT_PREFIX "awsiot"
+enum awsiotEventType {
+	EID_AWSIOT_NONE = 0,
+	EID_AWSIOT_TUNNEL_ENABLE = 1,
+	EID_AWSIOT_MAX
+};
+#define AWSIOT_GENERIC_MSG	 "{\""AWSIOT_PREFIX"\":{\""AAE_IPC_EVENT_ID"\":%d}}"
+#endif
+
+//#ifdef RTCONFIG_ACCOUNT_BINDING
+#define AAE_DDNS_PREFIX "ddns"
+enum aaeDdnsEventType {
+	AAE_EID_DDNS_NONE = 0,
+	AAE_EID_DDNS_REFRESH_TOKEN = 1,
+	AAE_EID_DDNS_MAX
+};
+#define AAE_DDNS_GENERIC_MSG	 "{\""AAE_DDNS_PREFIX"\":{\""AAE_IPC_EVENT_ID"\":%d}}"
+#define AAE_DDNS_GENERIC_RESP_MSG	 "{\""AAE_DDNS_PREFIX"\":{\""AAE_IPC_EVENT_ID"\":%d, \""AAE_IPC_STATUS"\":\"%s\"}}"
+
+#define AAE_NTC_PREFIX "nt_center"
+enum aaeNtcEventType {
+	AAE_EID_NTC_NONE = 0,
+	AAE_EID_NTC_REFRESH_DEVICE_TICKET = 1,
+	AAE_EID_NTC_MAX
+};
+#define AAE_NTC_GENERIC_MSG	 "{\""AAE_NTC_PREFIX"\":{\""AAE_IPC_EVENT_ID"\":%d}}"
+#define AAE_NTC_GENERIC_RESP_MSG	 "{\""AAE_NTC_PREFIX"\":{\""AAE_IPC_EVENT_ID"\":%d, \""AAE_IPC_STATUS"\":\"%s\"}}"
+
+#define AAE_HTTPD_PREFIX "httpd"
+#define AAE_HTTPD_PAYLOAD2_PREFIX "payload2"
+enum aaeHttpdEventType {
+	AAE_EID_HTTPD_NONE = 0,
+	AAE_EID_HTTPD_PAYLOAD2 = 1,
+	AAE_EID_HTTPD_MAX
+};
+#define AAE_HTTPD_PAYLOAD2_MSG	 "{\""AAE_HTTPD_PREFIX"\":{\""AAE_IPC_EVENT_ID"\":%d, \""AAE_HTTPD_PAYLOAD2_PREFIX"\":%s}}"
+#define AAE_HTTPD_PAYLOAD2_RESP_MSG	 "{\""AAE_HTTPD_PREFIX"\":{\""AAE_IPC_EVENT_ID"\":%d, \""AAE_IPC_STATUS"\":\"%s\"}}"
+//#endif
+
+int aae_sendIpcMsgAndWaitResp(char *ipcPath, char *data, int dataLen, char *out, int outLen, int timeout_sec);
+#endif //#ifdef RTCONFIG_TUNNEL
 
 extern int get_discovery_ssid(char *ssid_g, int size);
 extern int get_index_page(char *page, int size);
@@ -3798,6 +4187,8 @@ extern int get_iptv_and_dualwan_info(int *iptv_vids,int size, unsigned int *wan_
 extern int wl_set_wifiscan(char *ifname, int val);
 extern int wl_set_mcsindex(char *ifname, int *is_auto, int *idx, char *idx_type, int *stream);
 #endif
+
+extern int ParseIPv4OrIPv6 ( const char** ppszText, unsigned char* abyAddr, int* pnPort, int* pbIsIPv6 );
 
 #if defined(RTCONFIG_BCM_CLED)
 enum {
@@ -3832,7 +4223,7 @@ extern void firmware_downgrade_check(uint32_t sf);
 #define ANTLED_SCHEME_RSSI              2
 #endif
 
-#if defined(RTAX82U) || defined(DSL_AX82U) || defined(GSAX3000) || defined(GSAX5400) || defined(TUFAX5400) || defined(GTAX11000_PRO) || defined(GTAXE16000) || defined(GTAX6000) || defined(GT10) || defined(RTAX82U_V2)
+#if defined(RTAX82U) || defined(DSL_AX82U) || defined(GSAX3000) || defined(GSAX5400) || defined(TUFAX5400) || defined(GTAX11000_PRO) || defined(GTAXE16000) || defined(GTAX6000) || defined(GT10) || defined(RTAX82U_V2) || defined(TUFAX5400_V2)
 #define LEDG_OFF			0
 #define LEDG_STEADY_MODE		1
 #define LEDG_FADING_REVERSE_MODE	2
@@ -3898,6 +4289,7 @@ struct cled_config3 {
 #endif
 
 int is_passwd_default(void);
+void gen_custom_clientlist_groupid(void);
 
 #ifdef BCM_BSD
 #define SMRTCONN_DISABLE	0
@@ -3929,6 +4321,18 @@ enum {
 	BCMBSD_SELIF_MAX 	   = 12
 };
 
+/* rule idx of bcmbsd_def_policy table */
+enum {
+	RULE_2G = 0,
+	RULE_5G1= 1,
+	RULE_5G2= 2,
+	RULE_6G = 3,
+	RULE_MAX= 4
+};
+
+#endif
+#endif
+
 /* which wlunit to set the corresponding rule */
 enum {
 #if defined(GTAXE16000)
@@ -3944,18 +4348,6 @@ enum {
 #endif
 	WLIF_MAX = 4
 };
-
-/* rule idx of bcmbsd_def_policy table */
-enum {
-	RULE_2G = 0,
-	RULE_5G1= 1,
-	RULE_5G2= 2,
-	RULE_6G = 3,
-	RULE_MAX= 4
-};
-
-#endif
-#endif
 
 #ifdef CONFIG_BCMWL5
 #define WL_NBAND_2G 2
@@ -3973,42 +4365,48 @@ extern char *server6_table[][2];
 #endif
 #endif
 
+#define CD_DATA_TYPE_SERVERMAC "SERVERMAC"
+#define CD_DATA_TYPE_CLIENTMAC "CLIENTMAC"
+#define CD_DATA_TYPE_PORT "PORT"
+#define CD_DATA_TYPE_SERVERIP "SERVERIP"
+
+#ifdef RTCONFIG_CONNDIAG
+#define	CD_EVENT_ID        "EID"
+#define CD_DATA_TYPE_MAC   "MAC"
+#define CD_DATA_TYPE_LABEL "LABEL"
+#define CD_HTTPD_PREFIX    "HTTPD"
+#define CONNDIAG_PREFIX    "CONNDIAG"
+#define CD_EXT_DATA        "EXTDATA"
+#define CD_SQNUM		   "SQNUM"
+
+#define CD_IPC_MAX_CONNECTION 5
+#endif
+
+extern void sync_profile_update_time(int feat);
+
+/* conn diag bw */
+enum {
+	CDIAG_BW_NONE	= 0,
+	CDIAG_BW_20		= 1,
+	CDIAG_BW_40		= 2,
+	CDIAG_BW_80		= 3,
+	CDIAG_BW_160	= 4,
+	CDIAG_BW_8080	= 5,
+	CDIAG_BW_MAX	= 6
+};
+
+#ifdef RTCONFIG_TPVPN
+// tpvpn.c
+enum {
+	TPVPN_HMA = 0,
+	TPVPN_NORDVPN,
+};
+extern int is_tpvpn_configured(int provider, const char* region, const char* conntype, int unit);
+#endif
+
 #if defined(RTCONFIG_AMAS) && defined(RTCONFIG_AMAS_ADTBW)
 #define ACSD_SCORE_FILE	"/tmp/auto_chan_score.txt"
 #endif
 
-#if defined(RTCONFIG_SWRT_I2CLED)
-enum {
-#if defined(R6800)
-	I2CLED_WAN_WHITE = 1,
-	I2CLED_WAN_ORANGE,
-	I2CLED_LAN1_WHITE,
-	I2CLED_LAN1_ORANGE,
-	I2CLED_LAN2_WHITE,
-	I2CLED_LAN2_ORANGE,
-	I2CLED_LAN3_WHITE,
-	I2CLED_LAN3_ORANGE,
-	I2CLED_LAN4_WHITE,
-	I2CLED_LAN4_ORANGE,
-	I2CLED_PWR_WHITE,
-	I2CLED_PWR_ORANGE,
-	I2CLED_2G_WHITE,
-	I2CLED_5G_WHITE,
-	I2CLED_USB_WHITE,
-	I2CLED_GUEST_WHITE
-#elif defined(RAX120)
-	I2CLED_PWR = 1,
-	I2CLED_WAN,
-	I2CLED_5G,
-	I2CLED_2G,
-	I2CLED_USB1,
-	I2CLED_USB2,
-	I2CLED_WAN2
-#else
-	I2CLED_UNKNOWN
-#endif
-};
-extern void i2cled_control(int which, int onoff);
-#endif
 #endif	/* !__SHARED_H__ */
 

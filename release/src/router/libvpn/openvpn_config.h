@@ -116,6 +116,7 @@ typedef struct ovpn_sconf {
 	int direction;	//key-direction of secret or tls-auth (hmac)
 	char digest[32]; //HMAC message digest algorithm: e.g. SHA1, RSA-SHA512, ecdsa-with-SHA1
 	char cipher[32];	//cipher algorithm: e.g. AES-128-CBC, CAMELLIA-256-CBC
+	int ncp_enable;
 
 //TLS Mode Options:
 	int reneg;	//TLS Renegotiation Time
@@ -161,7 +162,7 @@ typedef struct ovpn_cconf {
 	int userauth;	//username, password
 	int useronly;	//client certificte not required
 	char username[64];
-	char password[64];
+	char password[256];
 
 //Data Channel Encryption Options:
 	int direction;	//key-direction of secret or tls-auth (hmac)
@@ -208,7 +209,7 @@ typedef enum ovpn_errno{
 typedef struct ovpn_accnt
 {
 	char username[128];
-	char password[128];
+	char password[256];
 } ovpn_accnt_t;
 
 

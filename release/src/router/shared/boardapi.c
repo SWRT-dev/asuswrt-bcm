@@ -199,11 +199,11 @@ static const struct led_btn_table_s {
 	{ "led_white_gpio",	&led_gpio_table[LED_WHITE] },
 #endif
 #endif
-#if defined(RTAX82U) || defined(DSL_AX82U) || defined(GSAX3000) || defined(GSAX5400) || defined(TUFAX5400) || defined(GTAX6000) || defined(GT10) || defined(RTAX82U_V2)
+#if defined(RTAX82U) || defined(DSL_AX82U) || defined(GSAX3000) || defined(GSAX5400) || defined(TUFAX5400) || defined(GTAX6000) || defined(GT10) || defined(RTAX82U_V2) || defined(TUFAX5400_V2)
 	{ "led_group1_red_gpio",	&led_gpio_table[LED_GROUP1_RED] },
 	{ "led_group1_green_gpio",	&led_gpio_table[LED_GROUP1_GREEN] },
 	{ "led_group1_blue_gpio",	&led_gpio_table[LED_GROUP1_BLUE] },
-#ifndef TUFAX5400
+#if !defined(TUFAX5400) && !defined(TUFAX5400_V2)
 	{ "led_group2_red_gpio",	&led_gpio_table[LED_GROUP2_RED] },
 	{ "led_group2_green_gpio",	&led_gpio_table[LED_GROUP2_GREEN] },
 	{ "led_group2_blue_gpio",	&led_gpio_table[LED_GROUP2_BLUE] },
@@ -287,7 +287,7 @@ static const struct led_btn_table_s {
 	{ "led_yellow_gpio",    &led_gpio_table[LED_YELLOW_GPIO] },
 	{ "led_purple_gpio",    &led_gpio_table[LED_PURPLE_GPIO] },
 #endif
-#if defined(RTAX95Q) || defined(XT8PRO) || defined(XT8_V2) || defined(RTAXE95Q) || defined(ET8PRO) || defined(RTAX56_XD4) || defined(XD4PRO) || defined(RTAX82_XD6) || defined(RTAX82_XD6S)  || defined(ET12) || defined(XT12)
+#if defined(RTAX95Q) || defined(XT8PRO) || defined(BM68) || defined(XT8_V2) || defined(RTAXE95Q) || defined(ET8PRO) || defined(ET8_V2) || defined(RTAX56_XD4) || defined(XD4PRO) || defined(RTAX82_XD6) || defined(RTAX82_XD6S)  || defined(ET12) || defined(XT12) || defined(XD6_V2)
 	{ "bt_rst_gpio",        &led_gpio_table[BT_RESET] },
 	{ "bt_disable_gpio",    &led_gpio_table[BT_DISABLE] },
 	{ "led_rgb1_red_gpio",  &led_gpio_table[LED_RGB1_RED] },
@@ -550,13 +550,6 @@ int init_gpio(void)
 
 		disable = (use_gpio&GPIO_ACTIVE_LOW)==0 ? 0: 1;
 #ifndef RTCONFIG_LEDS_CLASS
-#if defined(RTCONFIG_SWRT_I2CLED)
-#if defined(R6800)
-		if(gpio_pin == 17 || gpio_pin == 5)
-#elif defined(RAX120)
-		if(gpio_pin == 40 || gpio_pin == 41)
-#endif
-#endif
 		gpio_dir(gpio_pin, GPIO_DIR_OUT);
 #endif
 
@@ -586,13 +579,7 @@ int init_gpio(void)
 		if (inhibit_led_on())
 			disable = (use_gpio & GPIO_ACTIVE_LOW)? 1 : 0;
 #endif
-#if defined(RTCONFIG_SWRT_I2CLED)
-#if defined(R6800)
-		if(gpio_pin == 17 || gpio_pin == 5)
-#elif defined(RAX120)
-		if(gpio_pin == 40 || gpio_pin == 41)
-#endif
-#endif
+
 #if !defined(RTCONFIG_CONCURRENTREPEATER)
 		set_gpio(gpio_pin, disable);
 #endif
@@ -613,22 +600,11 @@ int init_gpio(void)
 #endif
 	{
 		enable = (use_gpio&GPIO_ACTIVE_LOW)==0 ? 1 : 0;
-#if defined(RTCONFIG_SWRT_I2CLED)
-#ifdef RTCONFIG_SW_CTRL_ALLLED
-		if (nvram_match("AllLED", "1"))
-#endif
-#if defined(R6800)
-			i2cled_control(I2CLED_WAN_WHITE, 1);
-#elif defined(RAX120)
-			i2cled_control(I2CLED_PWR, 1);
-#endif
-#else
 #if !defined(RTCONFIG_CONCURRENTREPEATER)
 #ifdef RTCONFIG_SW_CTRL_ALLLED
 		if (nvram_match("AllLED", "1"))
 #endif
 			set_gpio(gpio_pin, enable);
-#endif
 #endif
 #ifdef RT4GAC55U	// save setting value
 		{ int i; char led[16]; for(i=0; i<LED_ID_MAX; i++) if(gpio_pin == (led_gpio_table[i]&0xff)){snprintf(led, sizeof(led), "led%02d", i); nvram_set_int(led, LED_ON); break;}}
@@ -898,15 +874,6 @@ int do_led_control(int which, int mode)
 	if (which < 0 || which >= LED_ID_MAX || mode < 0 || mode >= LED_FAN_MODE_MAX)
 		return -1;
 
-#ifdef RTAX82U_V2
-	if (which == LED_WAN_NORMAL) {
-		eval("sw", "0xff800554", "0");
-		eval("sw", "0xff800558", mode == LED_ON ? "0x3015" : "0x2015");
-		eval("sw", "0xff80055c", "0x21");
-		return 0;
-	}
-#endif
-
 #if defined(RTAX86U) || defined(RTAX86U_PRO)
 	if(which == LED_LAN){
 		config_ext_wan_led(mode);
@@ -946,43 +913,7 @@ int do_led_control(int which, int mode)
 		stop_bled(use_gpio);
 	}
 #endif
-#if defined(RTCONFIG_SWRT_I2CLED)
-#if defined(R6800)
-	if(which == LED_WPS || which == LED_ALL)
-#elif defined(RAX120)
-	if(which == LED_WPS || which == LED_LAN)
-#endif
-#endif
 	set_gpio(gpio_nr, v);
-#if defined(RTCONFIG_SWRT_I2CLED)
-#if defined(R6800)
-	if(which == LED_WAN)
-		i2cled_control(I2CLED_WAN_WHITE, mode);
-	else if (which == LED_USB)
-		i2cled_control(I2CLED_USB_WHITE, mode);
-	else if (which == LED_5G)
-		i2cled_control(I2CLED_5G_WHITE, mode);
-	else if (which == LED_2G)
-		i2cled_control(I2CLED_2G_WHITE, mode);
-	else if (which == LED_POWER)
-		i2cled_control(I2CLED_PWR_WHITE, mode);
-#elif defined(RAX120)
-	if(which == LED_WAN)
-		i2cled_control(I2CLED_WAN, mode);
-	else if (which == LED_USB)
-		i2cled_control(I2CLED_USB1, mode);
-	else if (which == LED_USB3)
-		i2cled_control(I2CLED_USB2, mode);
-	else if (which == LED_5G)
-		i2cled_control(I2CLED_5G, mode);
-	else if (which == LED_2G)
-		i2cled_control(I2CLED_2G, mode);
-	else if (which == LED_POWER)
-		i2cled_control(I2CLED_PWR, mode);
-	else if (which == LED_R10G)
-		i2cled_control(I2CLED_WAN2, mode);
-#endif
-#endif
 #ifndef HND_ROUTER
 	if (mode == LED_ON) {
 		start_bled(use_gpio);
@@ -1169,7 +1100,18 @@ int lanport_status(void)
 	return rtkswitch_lanPorts_phyStatus();
 #elif defined(RTAX55) || defined(RTAX1800) || defined(RTAX58U_V2) || defined(RTAX3000N)
 	return rtkswitch_lanPorts_phyStatus();
-#elif defined(RTCONFIG_HND_ROUTER_AX_675X) || defined(RTCONFIG_HND_ROUTER_AX_6710) || defined(RTCONFIG_BCM_502L07P2)
+#elif defined(RTCONFIG_HND_ROUTER_AX_6710) || defined(RTCONFIG_BCM_502L07P2)
+	int status = 0;
+	char word[16] = {0};
+	char *next = NULL;
+	foreach(word, nvram_safe_get("lan_ifnames"), next) {
+		if(!wl_probe(word))		// skip wireless interface
+			continue;
+
+		status |= hnd_get_phy_status(word);
+	}
+	return status;
+#elif defined(RTCONFIG_HND_ROUTER_AX_675X)
 	int status = 0;
 	char word[16] = {0};
 	char *next = NULL;
@@ -1330,12 +1272,6 @@ int lanport_ctrl(int ctrl)
 		mask |= (0x0001<<atoi(word));
 #endif
 	}
-
-#if defined(BCM4912)
-	if((rp_mode() || mb_mode()))
-		doSystem("ethctl eth0 phy-reset");
-#endif
-
 #if defined(BCM6750) || defined(BCM4912) || defined(BCM6756) || defined(BCM6855)
 	return 1;
 #else
@@ -1343,94 +1279,3 @@ int lanport_ctrl(int ctrl)
 #endif
 #endif
 }
-
-
-#if defined(RTCONFIG_SWRT_I2CLED)
-void i2cled_control(int which, int onoff)
-{
-#if defined(R6800)
-	switch(which){
-		case I2CLED_WAN_WHITE:
-			f_write_string("/sys/class/leds/netgear:internet:white/trigger", onoff ? "default-on" : "none", 0, 0);
-			break;
-		case I2CLED_WAN_ORANGE:
-			f_write_string("/sys/class/leds/netgear:internet:orange/trigger", onoff ? "default-on" : "none", 0, 0);
-			break;
-		case I2CLED_LAN1_WHITE:
-			f_write_string("/sys/class/leds/netgear:lan1:white/trigger", onoff ? "default-on" : "none", 0, 0);
-			break;
-		case I2CLED_LAN1_ORANGE:
-			f_write_string("/sys/class/leds/netgear:lan1:orange/trigger", onoff ? "default-on" : "none", 0, 0);
-			break;
-		case I2CLED_LAN2_WHITE:
-			f_write_string("/sys/class/leds/netgear:lan2:white/trigger", onoff ? "default-on" : "none", 0, 0);
-			break;
-		case I2CLED_LAN2_ORANGE:
-			f_write_string("/sys/class/leds/netgear:lan2:orange/trigger", onoff ? "default-on" : "none", 0, 0);
-			break;
-		case I2CLED_LAN3_WHITE:
-			f_write_string("/sys/class/leds/netgear:lan3:white/trigger", onoff ? "default-on" : "none", 0, 0);
-			break;
-		case I2CLED_LAN3_ORANGE:
-			f_write_string("/sys/class/leds/netgear:lan3:orange/trigger", onoff ? "default-on" : "none", 0, 0);
-			break;
-		case I2CLED_LAN4_WHITE:
-			f_write_string("/sys/class/leds/netgear:lan4:white/trigger", onoff ? "default-on" : "none", 0, 0);
-			break;
-		case I2CLED_LAN4_ORANGE:
-			f_write_string("/sys/class/leds/netgear:lan4:orange/trigger", onoff ? "default-on" : "none", 0, 0);
-			break;
-		case I2CLED_PWR_WHITE:
-			f_write_string("/sys/class/leds/netgear:power:white/trigger", onoff ? "default-on" : "none", 0, 0);
-			break;
-		case I2CLED_PWR_ORANGE:
-			f_write_string("/sys/class/leds/netgear:power:orange/trigger", onoff ? "default-on" : "none", 0, 0);
-			break;
-		case I2CLED_2G_WHITE:
-			f_write_string("/sys/class/leds/netgear:2g:white/trigger", onoff ? "default-on" : "none", 0, 0);
-			break;
-		case I2CLED_5G_WHITE:
-			f_write_string("/sys/class/leds/netgear:5g:white/trigger", onoff ? "default-on" : "none", 0, 0);
-			break;
-		case I2CLED_USB_WHITE:
-			f_write_string("/sys/class/leds/netgear:usb:white/trigger", onoff ? "default-on" : "none", 0, 0);
-			break;
-		case I2CLED_GUEST_WHITE:
-			f_write_string("/sys/class/leds/netgear:guest:white/trigger", onoff ? "default-on" : "none", 0, 0);
-			break;
-		default:
-			break;
-	}
-#elif defined(RAX120)
-//controlled by gpio-leds now
-	switch(which){
-		case I2CLED_PWR:
-			f_write_string("/sys/class/leds/netgear:power:white/trigger", onoff ? "default-on" : "none", 0, 0);
-			break;
-		case I2CLED_USB1:
-			f_write_string("/sys/class/leds/netgear:usb:white/trigger", onoff ? "default-on" : "none", 0, 0);
-			break;
-		case I2CLED_USB2:
-			f_write_string("/sys/class/leds/netgear:usb2:white/trigger", onoff ? "default-on" : "none", 0, 0);
-			break;
-#if 0
-		case I2CLED_WAN:
-			f_write_string("/sys/class/leds/netgear:internet:white/trigger", onoff ? "default-on" : "none", 0, 0);
-			break;
-		case I2CLED_WAN2:
-			f_write_string("/sys/class/leds/netgear:wan2:white/trigger", onoff ? "default-on" : "none", 0, 0);
-			break;
-		case I2CLED_2G:
-			f_write_string("/sys/class/leds/netgear:2g:white/trigger", onoff ? "default-on" : "none", 0, 0);
-			break;
-		case I2CLED_5G:
-			f_write_string("/sys/class/leds/netgear:5g:white/trigger", onoff ? "default-on" : "none", 0, 0);
-			break;
-#endif
-		default:
-			break;
-	}
-#endif
-}
-#endif
-

@@ -27,6 +27,7 @@ build_link(){
 	[ ! -d GT-AXE16000 ] && ln -sf BCM491X GT-AXE16000
 	[ ! -d GT-AX11000_PRO ] && ln -sf BCM491X GT-AX11000_PRO
 	[ ! -d XT12 ] && ln -sf BCM491X XT12
+	[ ! -d RT-AX86U_PRO ] && ln -sf BCM490X_AX RT-AX86U_PRO
 }
 
 cd $REPO/release/src/router/aaews/prebuild/ && build_link

@@ -373,7 +373,7 @@ static void GPY211_SET_SPEED(phy_dev_t *phy_dev, int speed, uint32_t caps)
 	*/
 
 	if (speed == PHY_SPEED_AUTO) {
-		phy_bus_c45_write(phy_dev, 0x00, 0x04, 0x0de1); // 100M
+		phy_bus_c45_write(phy_dev, 0x00, 0x04, 0x0d81); // 100M
 		phy_bus_c45_write(phy_dev, 0x00, 0x09, 0x0200); // 1G
 		phy_bus_c45_write(phy_dev, 0x07, 0x20, 0x40a2); // 2.5G
 		phy_bus_c45_write(phy_dev, 0x01, 0x00, 0x2058); // PMAPMD
@@ -393,7 +393,7 @@ static void GPY211_SET_SPEED(phy_dev_t *phy_dev, int speed, uint32_t caps)
 		printk("[%s(%d)] force 2500M\n", __FUNCTION__, __LINE__);
 	}
 	else if (speed == PHY_SPEED_1000) {
-		phy_bus_c45_write(phy_dev, 0x00, 0x04, 0x0de1); // 100M
+		phy_bus_c45_write(phy_dev, 0x00, 0x04, 0x0d81); // 100M
 		phy_bus_c45_write(phy_dev, 0x00, 0x09, 0x0200); // 1G
 		phy_bus_c45_write(phy_dev, 0x07, 0x20, 0x4002); // 2.5G
 		phy_bus_c45_write(phy_dev, 0x01, 0x00, 0x0058); // PMAPMD
@@ -401,7 +401,7 @@ static void GPY211_SET_SPEED(phy_dev_t *phy_dev, int speed, uint32_t caps)
 		printk("[%s(%d)] force 1000M\n", __FUNCTION__, __LINE__);
 	}
 	else if (speed == PHY_SPEED_100) {
-		phy_bus_c45_write(phy_dev, 0x00, 0x04, 0x0de1); // 100M
+		phy_bus_c45_write(phy_dev, 0x00, 0x04, 0x0d81); // 100M
 		phy_bus_c45_write(phy_dev, 0x00, 0x09, 0x0000); // 1G
 		phy_bus_c45_write(phy_dev, 0x07, 0x20, 0x4002); // 2.5G
 		phy_bus_c45_write(phy_dev, 0x01, 0x00, 0x2018); // PMAPMD

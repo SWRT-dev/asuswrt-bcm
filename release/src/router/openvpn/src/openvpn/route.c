@@ -1548,6 +1548,7 @@ add_route(struct route_ipv4 *r,
 
     if (!(r->flags & RT_DEFINED))
     {
+        argv_reset(&argv);
         return;
     }
 
@@ -1867,6 +1868,7 @@ add_route_ipv6(struct route_ipv6 *r6, const struct tuntap *tt, unsigned int flag
 
     if (!(r6->flags & RT_DEFINED) )
     {
+        argv_reset(&argv);
         return;
     }
 

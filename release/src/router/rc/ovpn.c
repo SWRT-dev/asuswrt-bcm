@@ -37,4 +37,3 @@ int ovpn_route_pre_down_main(int argc, char **argv)
 
 	return 0;
 }
-

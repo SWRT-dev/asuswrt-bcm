@@ -1455,6 +1455,18 @@ setup_timezone(void)
 #endif
 
 	/* Setup sane start time */
+	if(nvram_get("sys_last_time")){
+		//We don't know the current time, but we know the last reboot time.
+		char tmp[12] = {0};
+		struct sysinfo info;
+		sysinfo(&info);
+		snprintf(tmp, sizeof(tmp), "%s", nvram_get("sys_last_time"));
+		tv.tv_sec = strtol(tmp, NULL, 10);
+		tv.tv_sec += info.uptime;
+		tvp = &tv;
+		nvram_unset("sys_last_time");
+	}
+	else
 	if (now < RC_BUILDTIME) {
 		struct sysinfo info;
 
@@ -1770,6 +1782,42 @@ void collect_debuglog(int type)
 		strlcat(cmd, buf, sizeof(cmd));
 		system(cmd);
 		delete_tmplog();
+	}
+}
+
+void remove_guillemets_form_str(char *str_in,int sizeofbuf)//sizeofbuf not strlen
+{
+	char *tmp;
+	int i,tmp_idx;
+	int len;
+
+	if(str_in == NULL)
+		return;
+
+	_dprintf("from [%s]\n",str_in);
+
+	len = sizeofbuf;
+
+	tmp=malloc(len+1);
+	if(tmp == NULL)
+	{ //make sure conn_diag will not crash
+		for(i=0;i<len;i++){
+			if(str_in[i]=='<' || str_in[i]=='>')
+				memset(str_in,0,len);
+		}
+		return;
+	} else {
+		tmp_idx=0;
+		//remove '<' or '>'
+		memset(tmp,0,len+1);
+		for(i=0;i<len;i++){
+			if(str_in[i]!='<' && str_in[i]!='>'){
+				tmp[tmp_idx] = str_in[i];
+				tmp_idx++;
+			}
+		}
+		strncpy(str_in,tmp,len);
+		_dprintf("to [%s]\n",str_in);
 	}
 }
 

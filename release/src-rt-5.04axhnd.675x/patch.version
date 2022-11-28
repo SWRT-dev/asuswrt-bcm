@@ -1,0 +1,57 @@
+--- # YAML format
+version: '5'
+release: '04'
+extraversion: '02p1'
+
+platforms_in_use:
+# one row per platform starting with hiphen+space e.g. - 63138
+- 63178
+- 4912
+- 6753
+- 6756
+
+patches:
+# one row per patch starting with hiphen+space e.g.:
+- {csp: CS00012227707, ref: SWBCACPE-49992, chg: CL376585} # refacor ULA filtering for use in IPv6 NAT scenario
+- {csp: CS00012222472, ref: SWBCACPE-49384, chg: CL382658} # header fixup for SPU downstream
+- {csp: CS00012217958, ref: SWBCACPE-49384, chg: CL382663} # add lock protection for SPU FLEXRM descriptor ring access
+- {csp: CS00012216661, ref: SWBCACPE-47430, chg: CL382673} # [FCACHE] Fix panic in fc_timeout_slice caused by fc_evict mcast master flow
+- {csp: CS00012214547, ref: SWBCACPE-49823, chg: CL382715} # fix archer_dhd_tx_complete_cpu_queue_write dead loop issue
+- {csp: CS00012229410, ref: SWBCACPE-49210, chg: CL382872} # ipv6 MASQUERADE
+- {csp: CS00012217008, ref: SWBCACPE-49449, chg: CL383129} # [archer][wlan] sync radio and intf index to the copied skb for miss queue
+- {csp: CS00012235140, ref: SWBCACPE-50898, chg: CL385795} # clean BPM shinfo while attach a BPM buffer to a BPM SKB header
+- {csp: CS00012235140, ref: SWBCACPE-50369, chg: CL385796} # clean BPM shinfo while attach a BPM buffer to a BPM SKB header
+- {csp: CS00012234629, ref: SWBCACPE-50959, chg: CL385814} # Dynamic bufmem/rdp1 based on mtusize when Jumbo frame is enabled.
+- {csp: CS00012235857, ref: SWBCACPE-50909, chg: CL385999} # ignore flow learning for LAN side IPSec connections
+- {csp: CS00012229410, ref: SWBCACPE-49210, chg: CL386507} # ipv6 MASQUERADE
+- {csp: CS00012235857, ref: SWBCACPE-46775, chg: CL388085} # 4912 SPU memory leakage
+- {csp: CS00012235857, ref: SWBCACPE-48963, chg: CL388088} # SPU: Fixed mishandling of aead request
+- {csp: CS00012235857, ref: SWBCACPE-50554, chg: CL388092} # SPU: Fixed the spu_blog error handling path
+- {csp: CS00012235857, ref: SWBCACPE-50508, chg: CL388100} # SPU: Packets encrypted by SPU engine dropped with HMAC error by peer in RAP mode
+- {csp: CS00012235857, ref: SWBCACPE-50909, chg: CL388101} # SPU: Add dst_clone/dst_release to prevent dst use-after-free in rx_callback
+- {csp: CS00012235857, ref: SWBCACPE-51350, chg: CL390370} # SPU: fix IPSec US throughput regression
+- {csp: CS00012241481, ref: SWBCACPE-48415, chg: CL390382} # NAND bcm63xx_nand timeout waiting for command
+- {csp: CS00012235140, ref: SWBCACPE-48146, chg: CL390383} # IPv6 stack on 6750 leaks memory and connection tracking entries
+- {csp: CS00012235140, ref: SWBCACPE-51381, chg: CL390384} # print version/date in archer dhd
+- {csp: CS00012235140, ref: SWBCACPE-50832, chg: CL390385} # Fix double free in archer dhd
+- {csp: CS00012235140, ref: SWBCACPE-51381, chg: CL390390} # Fix archer dhd compile error
+- {csp: CS00012245292, ref: SWBCACPE-48045, chg: CL393264} # Archer DHD Offload for 63178 and 47622
+- {csp: CS00012245292, ref: SWBCACPE-49849, chg: CL393270} # Fix double free bpm skb issue in archer wlan
+- {csp: CS00012235140, ref: SWBCACPE-50189, chg: CL393815} # Fix bpm SKB exhausted
+- {csp: CS00012242219, ref: SWBCACPE-52028, chg: CL396182} # Reduce the cpu tx delayed recycle time to improve openvpn throughput
+- {csp: CS00012235140, ref: SWBCACPE-50677, chg: CL397300} # BPM SKB recycle hook is not reset to correct BPM's recycle hook leads to random crash
+- {csp: CS00012235140, ref: SWBCACPE-50677, chg: CL397301} # BPM SKB recycle hook is not reset to correct BPM's recycle hook leads to random crash
+- {csp: CS00012235140, ref: SWBCACPE-46427, chg: CL401389} # 4912 samba lower than expected performance
+- {csp: CS00012251581, ref: SWBCACPE-51411, SWBCACPE-51643, chg: CL402189} # traffic stall due to small packet mixed in a high throughput test
+- {csp: CS00012254742, ref: SWBCACPE-50959, chg: CL402348} # fix uninitialized fkb object size issue caused by CL385814
+- {csp: CS00012254742, ref: SWBCACPE-48545, SWBCACPE-50619, chg: CL402350} # Enable BPM and BCM_FEED_RING_DYNAMIC for 6753
+- {csp: CS00012254742, ref: SWBCACPE-50168, chg: CL402352} # [68550][AVS]Margin characterization result [version: 68550.3.lite.7]
+- {csp: CS00012235140, ref: SWBCACPE-52562, chg: CL402372} # [ARCHER DHD] CPU Message Queue synchronization is broken
+- {csp: CS00012258657, ref: SWBCACPE-48256, chg: CL407365} # [Serdes][XGPHY] Non Broadcom PHY link status mis-synchronization
+- {csp: CS00012258657, ref: SWBCACPE-52708, chg: CL407372} # [BCM67XX/49XX/63XXX/6813][Serdes]Non Power Saving Mode not working with external XGPHY
+- {csp: CS00012258657, ref: SWBCACPE-48256, chg: CL408790} # Fix Build error for CL407365 in uboot.
+- {csp: CS00012235140, ref: SWBCACPE-52562, chg: CL408813} # Fix Archer DHD CPU messaging deadlock
+- {csp: CS00012235140, ref: SWBCACPE-52470, chg: CL409267} # [Archer DHD] RxPost uninit flushes wrong buffers in Rx Reinit procedure
+- {csp: CS00012260796, ref: SWBCACPE-52577, chg: CL411193} # IPSEC: Ping over Interface does not work when acceleration enabled
+- {csp: CS00012260796, ref: SWBCACPE-52577, chg: CL411194} # iperf over IPSEC causes a reboot due to kernel soft CPU lockup
+- {csp: CS00012260796, ref: SWBCACPE-52577, chg: CL411196} # fix a softlockup issue related to xfrm->lock

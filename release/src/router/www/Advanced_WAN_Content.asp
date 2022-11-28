@@ -43,6 +43,7 @@
 <script type="text/javascript" src="/validator.js"></script>
 <script type="text/javascript" src="/js/jquery.js"></script>
 <script type="text/javascript" src="/js/httpApi.js"></script>
+<script type="text/javascript" src="/js/searchIspNameProfile.js"></script>
 <script>
 
 var wans_dualwan = '<% nvram_get("wans_dualwan"); %>';
@@ -219,6 +220,11 @@ function initial(){
 		change_dnspriv_enable(0);
 	}
 
+	if(dnssec_support){
+		document.getElementById("dnssec_tr").style.display = "";
+		showhide("dnssec_strict_tr", "<% nvram_get("dnssec_enable"); %>" == "1" ? 1 : 0);
+	}
+
 	change_nat(<% nvram_get("wan_nat_x"); %>);
 
 	if(yadns_support){
@@ -272,12 +278,9 @@ function initial(){
 				document.form.bond_wan_radio.value = "0";
 				document.getElementById("wanports_bond_menu").style.display = "none";
 			}
+		}
 
-			change_wanAggre_desc();
-		}
-		else if(based_modelid == "XT12" || based_modelid == "ET12"){
-			change_wanAggre_desc();
-		}
+		change_wanAggre_desc();
 	}
 
 	if(wan_bonding_support){
@@ -397,7 +400,7 @@ function genWANSoption(){
 				(productid == "DSL-N55U" || productid == "DSL-N55U-B" || productid == "DSL-AC68U" || productid == "DSL-AC68R"))
 			wans_dualwan_NAME = "Ethernet WAN";
 		else if(wans_dualwan_NAME == "LAN"){
-			if((productid == "GT-AX11000" || productid == "RT-AX86U" || productid == "GT-AXE11000" || productid == "GT-AX6000" || productid == "GT-AX11000_PRO" || productid == "GT-AXE16000" || productid == "RT-AX86U_PRO") && wans_lanport == "5"){
+			if((productid == "GT-AX11000" || productid == "RT-AX86U" || productid == "GT-AXE11000" || productid == "GT-AX6000" || productid == "GT-AX11000_PRO" || productid == "GT-AXE16000" || productid == "RT-AX86U_PRO" || productid == "RT-AX88U_PRO") && wans_lanport == "5"){
 				if(wans_extwan == "0")
 					wans_dualwan_NAME = "2.5G WAN";
 				else
@@ -406,7 +409,7 @@ function genWANSoption(){
 			else
 				wans_dualwan_NAME = "Ethernet LAN";
 		}
-		else if(wans_dualwan_NAME == "WAN" && (productid == "GT-AX11000" || productid == "RT-AX86U" || productid == "GT-AXE11000" || productid == "GT-AX6000"  || productid == "GT-AX11000_PRO" || productid == "GT-AXE16000" || productid == "RT-AX86U_PRO") && wans_extwan == "1")
+		else if(wans_dualwan_NAME == "WAN" && (productid == "GT-AX11000" || productid == "RT-AX86U" || productid == "GT-AXE11000" || productid == "GT-AX6000"  || productid == "GT-AX11000_PRO" || productid == "GT-AXE16000" || productid == "RT-AX86U_PRO" || productid == "RT-AX88U_PRO") && wans_extwan == "1")
 			wans_dualwan_NAME = "2.5G WAN";
 		else if(wans_dualwan_NAME == "USB" && (based_modelid == "4G-AC53U" || based_modelid == "4G-AC55U" || based_modelid == "4G-AC68U"))
 			wans_dualwan_NAME = "<#Mobile_title#>";
@@ -515,6 +518,17 @@ function applyRule(){
 			}
 			document.form.action_script.value += ";restart_stubby";
 		}
+
+		if((dnssec_support &&
+				(getRadioValue(document.form.dnssec_enable) != '<% nvram_get("dnssec_enable"); %>') ||
+				(getRadioValue(document.form.dnssec_check_unsigned_x) != '<% nvram_get("dnssec_check_unsigned_x"); %>')) ||
+				(dnspriv_support &&
+				(document.form.dns_priv_override.value == 0) &&
+				(document.form.dnspriv_enable.value != '<% nvram_get("dnspriv_enable"); %>')) ||
+				(getRadioValue(document.form.dns_norebind) != '<% nvram_get("dns_norebind"); %>') ||
+				(document.form.dns_priv_override.value != '<% nvram_get("dns_priv_override"); %>') ||
+				(getRadioValue(document.form.dns_fwd_local) != '<% nvram_get("dns_fwd_local"); %>'))
+			document.form.action_script.value += ";restart_dnsmasq";
 
 		if(reboot_confirm==1){
 
@@ -783,6 +797,8 @@ function validForm(){
 				else{
 					document.form.wans_dualwan.disabled = false;
 					document.form.wans_dualwan.value = "wan none";
+					document.form.wans_mode.disabled = false;
+					document.form.wans_mode.value = "fo";
 					document.form.switch_wantag.disabled = false;
 					document.form.switch_wantag.value = "none";
 					document.form.switch_stb_x.disabled = false;
@@ -1400,16 +1416,31 @@ function show_dnspriv_rulelist(){
 
 var cur_bond_port = /LAN-*\D* 4/;
 function change_wanAggre_desc(){
-	var selectedIndex = document.getElementById("wanports_bond_menu").selectedIndex;
-	var selectedName = document.getElementById("wanports_bond_menu").options[selectedIndex].text;
 	var orig_desc = $("#wanAgg_desc").html();
+	var selectedName = "";
 
-	if(based_modelid == "XT12" || based_modelid == "ET12"){
+	if(based_modelid == "RT-AXE7800")
+		orig_desc = orig_desc.replace("#WAN", "1G WAN");
+	else
+		orig_desc = orig_desc.replace("#WAN", "WAN");
+
+	if(based_modelid == "RT-AX89U" || based_modelid == "GT-AXY16000"){
+		var selectedIndex = document.getElementById("wanports_bond_menu").selectedIndex;
+		selectedName = document.getElementById("wanports_bond_menu").options[selectedIndex].text;
+	}
+	else if(based_modelid == "XT12" || based_modelid == "ET12"){
 		orig_desc = orig_desc.replace("2Gbps", "5Gbps");
 		selectedName = "2.5G/1G LAN";
 	}
+	else if(based_modelid == "RT-AXE7800"){
+		selectedName = "LAN 2";
+	}
 
-	$("#wanAgg_desc").html(orig_desc.replace(cur_bond_port, selectedName));
+	if(selectedName != "");
+		orig_desc = orig_desc.replace(cur_bond_port, selectedName);
+
+	$("#wanAgg_desc").html(orig_desc);
+
 	cur_bond_port = selectedName;
 }
 
@@ -1828,6 +1859,7 @@ function DNSList_match(ip1, ip2){
 <input type="hidden" name="wan_dns2_x" value="<% nvram_get("wan_dns2_x"); %>">
 <input type="hidden" name="dnspriv_rulelist" value="" disabled>
 <input type="hidden" name="ipv6_service" value="<% nvram_get("ipv6_service"); %>" disabled>
+<input type="hidden" name="wans_mode" value="<% nvram_get("wans_mode"); %>" disabled>
 
 <table class="content" align="center" cellpadding="0" cellspacing="0">
   <tr>
@@ -2012,7 +2044,7 @@ function DNSList_match(ip1, ip2){
 							</tr>
 						</table>
 
-						<table id="S46setting" width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">
+						<table id="S46setting" width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable" style="display:none">
 							<thead>
 							<tr>
 								<td colspan="2"><#IPConnection_ExternalIPAddress_sectionname#></td>
@@ -2081,7 +2113,46 @@ function DNSList_match(ip1, ip2){
 						<div class="assign_dns"><#DNS_Assign_desc#></div>
 						<div style="margin:-38px 0 5px 0;text-align:right;"><input type="button" class="button_gen" onclick="Assign_DNS_service()" value="<#CTL_assign#>"></div>
 					</td>
-          		</tr>
+				</tr>
+				<tr>
+					<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(7,42);">Forward local domain queries to upstream DNS</a></th><!-- untranslated -->
+					<td>
+						<input type="radio" value="1" name="dns_fwd_local" <% nvram_match("dns_fwd_local", "1", "checked"); %> /><#checkbox_Yes#>
+						<input type="radio" value="0" name="dns_fwd_local" <% nvram_match("dns_fwd_local", "0", "checked"); %> /><#checkbox_No#>
+					</td>
+				</tr>
+				<tr>
+					<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(7,43);">Enable DNS Rebind protection</a></th><!-- untranslated -->
+					<td>
+						<input type="radio" value="1" name="dns_norebind" <% nvram_match("dns_norebind", "1", "checked"); %> /><#checkbox_Yes#>
+						<input type="radio" value="0" name="dns_norebind" <% nvram_match("dns_norebind", "0", "checked"); %> /><#checkbox_No#>
+					</td>
+				</tr>
+				<tr id="dnssec_tr" style="display:none;">
+					<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(7,44);">Enable DNSSEC support</a></th><!-- untranslated -->
+					<td>
+						<input type="radio" value="1" name="dnssec_enable" onclick="showhide('dnssec_strict_tr',1);" <% nvram_match("dnssec_enable", "1", "checked"); %> /><#checkbox_Yes#>
+						<input type="radio" value="0" name="dnssec_enable" onclick="showhide('dnssec_strict_tr',0);" <% nvram_match("dnssec_enable", "0", "checked"); %> /><#checkbox_No#>
+					</td>
+				</tr>
+				<tr id="dnssec_strict_tr" style="display:none;">
+					<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(7,45);">Validate unsigned DNSSEC replies</a></th><!-- untranslated -->
+					<td>
+						<input type="radio" value="1" name="dnssec_check_unsigned_x" <% nvram_match("dnssec_check_unsigned_x", "1", "checked"); %> /><#checkbox_Yes#>
+						<input type="radio" value="0" name="dnssec_check_unsigned_x" <% nvram_match("dnssec_check_unsigned_x", "0", "checked"); %> /><#checkbox_No#>
+					</td>
+				</tr>
+				<tr id="dns_priv_override_tr">
+					<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(7,46);">Prevent client auto DoH</a></th><!-- untranslated -->
+					<td>
+						<select id="dns_priv_override" class="input_option" name="dns_priv_override">
+							<option value="0" <% nvram_match("dns_priv_override", "0", "selected"); %>><#Auto#></option>
+							<option value="1" <% nvram_match("dns_priv_override", "1", "selected"); %>><#checkbox_Yes#></option>
+							<option value="2" <% nvram_match("dns_priv_override", "2", "selected"); %>><#checkbox_No#></option>
+						</select>
+					</td>
+				</tr>
+
 			<tr style="display:none">
 				<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(7,35);"><#WAN_DNS_Privacy#></a></th>
 				<td align="left">

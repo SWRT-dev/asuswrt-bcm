@@ -188,6 +188,30 @@ void char_to_ascii_with_utf8(const char *output, const char *input)
 #endif
 
 /* Transfer Char to ASCII */
+int all_char_to_ascii(const char *output, const char *input, int outsize)
+{
+	char *src = (char *)input;
+	char *dst = (char *)output;
+	char *end = (char *)output + outsize - 1;
+
+	if (src == NULL || dst == NULL || outsize <= 0)
+		return 0;
+
+	memset(dst, 0, outsize);
+
+	for ( ; *src && dst < end; src++) {
+		if (dst + 3 > end)
+			break;
+		dst += sprintf(dst, "%02X", (unsigned char)*src);
+	}
+
+	if (dst <= end)
+		*dst = '\0';
+
+	return dst - output;
+}
+
+/* Transfer Char to ASCII */
 int char_to_ascii_safe(const char *output, const char *input, int outsize)
 {
 	char *src = (char *)input;
@@ -317,15 +341,11 @@ int remove_word(char *buffer, const char *word)
 	return 1;
 }
 
-int replace_char(char *str, const char from, const char to)
-{
-	char *p = str;
-	while (*p) {
-		if (*p == from)
-			*p = to;
-		p++;
-	}
-	return 1;
+void replace_char(char *str, char find, char replace) {
+	char *p;
+
+	for(p = str; *p != '\0'; p++)
+		if(*p == find) *p = replace;
 }
 
 /* Escape characters that could break a Javascript array */

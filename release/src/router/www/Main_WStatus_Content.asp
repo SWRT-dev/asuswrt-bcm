@@ -48,7 +48,7 @@ function GenContent(){
 		},
 
 		success: function(resp){
-			content = decodeURI(resp);
+			content = decodeURIComponent(resp);
 			content = classObj.UnHexCode(content);
 			content = htmlEnDeCode.htmlEncode(content);
 			if(content.length > 10){

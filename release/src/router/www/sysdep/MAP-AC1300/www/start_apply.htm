@@ -89,12 +89,7 @@ function qis_delay_redirect(next_url){
 }
 
 function redirect(){
-	if(isMobile()){
-		parent.location.href = 'http://'+parent.document.form.lan_ipaddr.value+'/QIS_wizard_m.htm?flag=detect';
-	}
-	else{
-		parent.location.href = 'http://'+parent.document.form.lan_ipaddr.value+'/QIS_wizard.htm?flag=detect';
-	}	
+	parent.location.href = 'http://'+parent.document.form.lan_ipaddr.value+'/QIS_wizard.htm?flag=detect';
 }
 
 function redirect_qis(){
@@ -449,16 +444,10 @@ function initial(){
 			
 			if(getflag == "manual"){
 				if(rc_support.search("gobi") >= 0){
-					if(isMobile())
-						setTimeout("qis_delay_redirect('/qis_m/QIS_modem.htm');", restart_time*1000);
-					else
-						setTimeout("qis_delay_redirect('/qis/QIS_modem.htm');", restart_time*1000);
+					setTimeout("qis_delay_redirect('/qis/QIS_modem.htm');", restart_time*1000);
 				}	
 				else{
-					if(isMobile() && (parent.based_modelid == "RT-AC88U" || parent.based_modelid == "RT-AC3100" || parent.based_modelid == "RT-AC5300" || parent.based_modelid == "GT-AC5300"))
-						setTimeout("qis_delay_redirect('/qis_m/QIS_wireless.htm');", restart_time*1000);
-					else
-						setTimeout("qis_delay_redirect('/qis/QIS_wireless.htm');", restart_time*1000);
+					setTimeout("qis_delay_redirect('/qis/QIS_wireless.htm');", restart_time*1000);
 				}	
 			}
 			else if(parent.document.getElementById("hidden_frame")){
@@ -475,10 +464,7 @@ function initial(){
 				
 				}
 				else if(getflag == "static"){
-					if(isMobile())
-						qis_delay_redirect('/qis_m/QIS_wireless.htm');
-					else
-						qis_delay_redirect('/qis/QIS_wireless.htm');		
+					qis_delay_redirect('/qis/QIS_wireless.htm');		
 				}
 				else if(getflag == "pppoe"){
 					setTimeout("qis_delay_redirect('/qis/QIS_wireless.htm');", 500);
@@ -487,35 +473,23 @@ function initial(){
 					return;
 				}
 				else{
-					if(isMobile())
-						setTimeout("qis_delay_redirect('/qis_m/QIS_verify_detect.htm');", restart_time*1000);
-					else
-						setTimeout("qis_delay_redirect('/qis/QIS_verify_detect.htm');", restart_time*1000);
+					setTimeout("qis_delay_redirect('/qis/QIS_verify_detect.htm');", restart_time*1000);
 				}
 			}
 			else{
 				if(getflag == "auto_way_vpn"){
 					parent.showLoading(restart_time);
-					if(isMobile())
-						setTimeout("delay_redirect('/qis_m/QIS_verify_detect.htm');", restart_time*1000);
-					else
-						setTimeout("delay_redirect('/qis/QIS_verify_detect.htm');", restart_time*1000);
+					setTimeout("delay_redirect('/qis/QIS_verify_detect.htm');", restart_time*1000);
 					return;
 				}
 				else if(getflag == "detect"){
 					parent.showLoading(restart_time);
-					if(isMobile())
-						setTimeout("delay_redirect('/qis_m/QIS_detect.htm');", restart_time*1000);
-					else
-						setTimeout("delay_redirect('/qis/QIS_detect.htm');", restart_time*1000);
+					setTimeout("delay_redirect('/qis/QIS_detect.htm');", restart_time*1000);
 					return;
 				}		
 				else if(getflag == "verify_detect"){
 					parent.showLoading(restart_time);
-					if(isMobile())
-						setTimeout("delay_redirect('/qis_m/QIS_verify_detect.htm');", restart_time*1000);
-					else
-						setTimeout("delay_redirect('/qis/QIS_verify_detect.htm');", restart_time*1000);
+					setTimeout("delay_redirect('/qis/QIS_verify_detect.htm');", restart_time*1000);
 					return;
 				}
 				else{			

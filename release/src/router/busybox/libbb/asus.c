@@ -20,40 +20,6 @@ static int _get_process_path(const int pid, char *real_path, const size_t real_p
 	}
 }
 
-static int _get_cmdline(const int pid, char *cmdline, const size_t cmdline_len)
-{
-	FILE *fp;
-	char path[512], buf[2048] = {0}, *ptr;
-	long int fsize;
-	
-	if(!cmdline)
-		return 0;
-
-	snprintf(path, sizeof(path), "/proc/%d/cmdline", pid);
-	fp = fopen(path, "r");
-	if(fp)
-	{
-		memset(cmdline, 0, cmdline_len);
-		
-		fsize = fread(buf, 1, sizeof(buf), fp);
-		ptr = buf;
-		while(ptr - buf <  fsize)
-		{
-			if(*ptr == '\0')
-			{
-				++ptr;
-				continue;
-			}
-
-			snprintf(cmdline + strlen(cmdline), cmdline_len - strlen(cmdline), ptr == buf? "%s": " %s", ptr);
-			ptr += strlen(ptr);
-		}
-		fclose(fp);
-		return strlen(cmdline);
-	}
-	return 0;
-}
-
 static int _get_ppid(const int pid)
 {
 	FILE *fp;
@@ -81,7 +47,7 @@ static int _get_ppid(const int pid)
 	return ppid;
 }
 
-int asus_check_caller()
+int asus_check_caller(void)
 {
   pid_t ppid, pid;
 	char cmdline[2048];
