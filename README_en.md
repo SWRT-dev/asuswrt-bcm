@@ -67,9 +67,9 @@ sudo apt-get -y install build-essential asciidoc binutils bzip2 gawk gettext git
 
 	`make rt-ax95q`
 
-	`git checkout rt-axe95q && make rt-axe95q`
+	`git checkout rt-axe95q && git checkout ./ && make rt-axe95q`
 
-	`make rt-ax55`
+	`git checkout 386 && git checkout ./ && make rt-ax55`
 
 	`make rt-ax56u`
 
