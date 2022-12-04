@@ -201,6 +201,8 @@ typedef struct {
 	unsigned char	device_type[MAX_NR_CLIENT_LIST][32];
 	unsigned char	vendorClass[MAX_NR_CLIENT_LIST][32];
 	unsigned char	os_type[MAX_NR_CLIENT_LIST];
+	unsigned char	sdn_idx[MAX_NR_CLIENT_LIST];
+	unsigned char	online[MAX_NR_CLIENT_LIST];
 	unsigned char	type[MAX_NR_CLIENT_LIST];
 	unsigned char	ipMethod[MAX_NR_CLIENT_LIST][7];
 	unsigned char	opMode[MAX_NR_CLIENT_LIST];

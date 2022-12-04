@@ -942,7 +942,6 @@ static int rctest_main(int argc, char *argv[])
 		json_object_put(root);
 	}
 #endif
-#if !defined(GTAX11000) && !defined(RTAX88U)
 	else if (strcmp(argv[1], "diag_stainfo")==0) {
 		char *stainfo_buf = NULL;
 		if(argv[2] && query_stainfo((!strcmp(argv[2], "all") ? NULL : argv[2]), &stainfo_buf) > 0){
@@ -950,7 +949,6 @@ static int rctest_main(int argc, char *argv[])
 			free_stainfo(&stainfo_buf);
 		}
 	}
-#endif
 	else {
 		on = atoi(argv[2]);
 		_dprintf("%s %d\n", argv[1], on);

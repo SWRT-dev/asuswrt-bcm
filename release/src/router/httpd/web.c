@@ -1872,6 +1872,7 @@ ej_get_clientlist_from_json_database(int eid, webs_t wp, int argc, char_t **argv
 
 	struct json_object *customList = NULL, *custom_attr_get = NULL, *custom_client_type = NULL, *custom_client_name = NULL;
 	struct json_object *db_specific_client = NULL, *db_specific_client_defaultType = NULL;
+	struct json_object *db_specific_client_online = NULL;
 	struct json_object *never_online_client = NULL, *new_never_online_client = NULL, *new_never_online_client_type = NULL, *new_never_online_client_name = NULL;
 	int customList_status = 0;
 #ifdef RTCONFIG_AMAS
@@ -9712,7 +9713,7 @@ static int get_client_detail_info(struct json_object *clients, struct json_objec
 	int i, shm_client_info_id;
 	void *shared_client_info = (void *) 0;
 	char mac_buf[32], dev_name[32];
-	char type[8], defaultType[8], macRepeat[8], opMode[8], rssi[8], wtfast[8], internetState[8], wireless[8];
+	char type[8], online[8], defaultType[8], macRepeat[8], opMode[8], rssi[8], wtfast[8], internetState[8], wireless[8];
 	char ipaddr[16];
 	P_CLIENT_DETAIL_INFO_TABLE p_client_info_tab;
 	int lock;
@@ -9812,6 +9813,7 @@ static int get_client_detail_info(struct json_object *clients, struct json_objec
 		memset(ipaddr, 0, sizeof(ipaddr));
 		memset(mac_buf, 0, sizeof(mac_buf));
 		memset(devname, 0, LINE_SIZE);
+		memset(online, 0, sizeof(online));
 		memset(type, 0, sizeof(type));
 		memset(defaultType, 0, sizeof(defaultType));
 		memset(macRepeat, 0, sizeof(macRepeat));
@@ -9858,7 +9860,7 @@ static int get_client_detail_info(struct json_object *clients, struct json_objec
 					continue;
 			}
 #endif	/* RTCONFIG_AMAS */
-
+			snprintf(online, sizeof(online), "%d", p_client_info_tab->online[i]);
 			snprintf(type, sizeof(type), "%d", p_client_info_tab->type[i]);
 			snprintf(defaultType, sizeof(defaultType), "%d", p_client_info_tab->type[i]);
 			snprintf(macRepeat, sizeof(macRepeat), "%d", check_macrepeat(macArray, mac_buf));
@@ -10144,8 +10146,17 @@ static int get_client_detail_info(struct json_object *clients, struct json_objec
 					else
 						json_object_object_add(client, "isOnline", json_object_new_string("0"));
 				}
-				else if(isOnline && !strcmp(json_object_get_string(isOnline), "1"))
-					json_object_array_add(macArray, json_object_new_string(mac_buf));
+				else if(isOnline && !strcmp(json_object_get_string(isOnline), "1")) {
+ 					json_object_array_add(macArray, json_object_new_string(mac_buf));
+				} else {
+					if( atoi(wireless) != 0 ) {
+						// _dprintf("get  wireless = %s, online = %s\n", wireless, online);
+						json_object_object_add(client, "isOnline", json_object_new_string(online));	
+						if(strcmp(online, "1") == 0) {
+							json_object_array_add(macArray, json_object_new_string(mac_buf));	
+						}
+					}
+				}
 			}
 			else {
 				json_object_object_add(client, "isOnline", json_object_new_string("1"));

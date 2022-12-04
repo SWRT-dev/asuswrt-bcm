@@ -1256,7 +1256,7 @@ int check_bwdpi_nvram_setting(){ return 0; }
 int check_wrs_switch(){ return 0; }
 #endif
 
-#if 0//defined(RTCONFIG_BCMARM)
+#if defined(RTCONFIG_BCMARM) && !defined(RTCONFIG_HND_ROUTER_AX)
 #define	HAPD_MAX_BUF			512
 void __attribute__((weak)) wl_apply_akm_by_auth_mode(int unit, int subunit, char *sp_prefix_auth)
 {

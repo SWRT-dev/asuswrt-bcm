@@ -353,8 +353,85 @@ void dealloc_time_string(char* ts)
     if (ts) free(ts);
 }
 
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <shared.h>
+int __attribute__((weak)) query_stainfo(char *sta_mac,char **buf)
+{
+	int sock;
+	int i, ret;
+	size_t len = 0;
+	struct timeval timeout;
+	struct timeval timeout2;
+	struct sockaddr_un un;
+	fd_set writefds;
+	char msg[128];
 
+	timeout.tv_usec = 0;
+	timeout.tv_sec = 2;
+	timeout2.tv_sec = 1;
+	timeout2.tv_usec = 0;
+	if(buf){
+		*buf = NULL;
+		sock = socket(AF_UNIX, SOCK_STREAM, 0);
+		if(sock >= 0){
+			memset(&un, 0, sizeof(un));
+			un.sun_family = AF_UNIX;
+			strncpy(un.sun_path, "/var/run/conndiag_sql_ipc_socket", sizeof(un.sun_path));
+			if(connect(sock, (struct sockaddr *)&un, sizeof(un)) < 0){
+				if(errno != EINPROGRESS){
+					close(sock);
+					return 0;
+				}
+				FD_ZERO(&writefds);
+				FD_SET(sock, &writefds);
+				if(select(sock + 1, NULL, &writefds, NULL, &timeout) <= 0){
+					close(sock);
+					return 0;
+				}
+			}
+			if(sta_mac){
+				if(!is_valid_str("MAC", sta_mac)){
+					close(sock);
+					return 0;
+				}
+			}else{
+				sta_mac = "all";
+			}
+			snprintf(msg, sizeof(msg), "{\"%s\":{\"%s\":\"%d\",\"%s\":\"%s\"}}", "HTTPD", "EID", 4, "MAC", sta_mac);
+			if(write(sock, msg, strlen(msg)) >= 0){
+				FD_ZERO(&writefds);
+				FD_SET(sock, &writefds);
+			}
+			if(select(sock + 1, NULL, &writefds, NULL, &timeout2) > 0){
+				if(read(sock, &len, 4) <= 0){
+					_dprintf("ipc read data_len error!\n");
+					close(sock);
+					return 0;
+				}
+				*buf = (char *)malloc(len + 1);
+				if(*buf){
+					memset(*buf, 0, len + 1);
+					ret = read(sock, *buf, len);
+					if(ret > 0){
+						close(sock);
+						return ret;
+					}
+					_dprintf("ipc read data error! ret=%d, %s\n", ret, strerror(errno));
+					free(*buf);
+					*buf = NULL;
+				}
+			}
+		}
+	}
+	return 0;
+}
 
+void __attribute__((weak)) free_stainfo(char **buf)
+{
+	if(buf && *buf)
+		free(*buf);
+}
 #endif
 
 
