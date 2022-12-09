@@ -85,6 +85,8 @@ sudo apt-get -y install build-essential asciidoc binutils bzip2 gawk gettext git
 
 	`make rt-ax68u`
 
+	`make rt-ax92u`
+
 	`make rt-ax86u`
 
 	`cd asuswrt-bcm/release/src-rt-5.02axhnd` 
@@ -92,6 +94,20 @@ sudo apt-get -y install build-essential asciidoc binutils bzip2 gawk gettext git
 	`make rt-ax88u`
 
 	`make gt-ax11000`
+
+	`make gt-axe11000`
+
+	`cd asuswrt-bcm/release/src-rt-5.04axhnd.675x` 
+
+	`make rt-ax86u_pro`
+
+	`make gt-ax11000_pro`
+
+	`make gt-ax6000`
+
+	`make gt-axe16000`
+
+	`make xt12`
 
 	Build result will be produced to `asuswrt-bcm/release/src-rt-xxxxx/image` directory
 
