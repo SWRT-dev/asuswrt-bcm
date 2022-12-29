@@ -1530,6 +1530,7 @@ endif
 ifeq ($(RTCONFIG_IG_SITE2SITE),y)
 	@cd $(INSTALLDIR)/sbin && ln -sf rc ig_s2s_client
 endif
+	@cd $(INSTALLDIR)/sbin && ln -sf rc toolbox
 
 clean:
 	rm -f rc *.o .*.depend *.prep libconn_diag.so
