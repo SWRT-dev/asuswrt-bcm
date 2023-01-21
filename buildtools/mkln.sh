@@ -12,22 +12,22 @@ build_link(){
 	[ ! -d RT-AX55 ] && ln -sf BCM675X RT-AX55
 	[ ! -d RT-AX56U ] && ln -sf BCM675X RT-AX56U
 	[ ! -d RT-AX58U ] && ln -sf BCM675X RT-AX58U
+	[ ! -d RT-AX68U ] && ln -sf BCM490X_AX RT-AX68U
 	[ ! -d RT-AX82U ] && ln -sf BCM675X RT-AX82U
+	[ ! -d RT-AX86U ] && ln -sf BCM490X_AX RT-AX86U
+	[ ! -d RT-AX86U_PRO ] && ln -sf BCM490X_AX RT-AX86U_PRO
+	[ ! -d RT-AX88U ] && ln -sf BCM490X_AX RT-AX88U
+	[ ! -d RT-AX92U ] && ln -sf BCM490X_AX RT-AX92U
 	[ ! -d RT-AX95Q ] && ln -sf BCM675X RT-AX95Q
 	[ ! -d RT-AXE95Q ] && ln -sf BCM675X RT-AXE95Q
 	[ ! -d TUF-AX3000 ] && ln -sf BCM675X TUF-AX3000
 	[ ! -d TUF-AX5400 ] && ln -sf BCM675X TUF-AX5400
-	[ ! -d RT-AX88U ] && ln -sf BCM490X_AX RT-AX88U
-	[ ! -d RT-AX92U ] && ln -sf BCM490X_AX RT-AX92U
-	[ ! -d GT-AX11000 ] && ln -sf BCM490X_AX GT-AX11000
-	[ ! -d RT-AX68U ] && ln -sf BCM490X_AX RT-AX68U
-	[ ! -d RT-AX86U ] && ln -sf BCM490X_AX RT-AX86U
-	[ ! -d GT-AXE11000 ] && ln -sf BCM490X_AX GT-AXE11000
 	[ ! -d GT-AX6000 ] && ln -sf BCM491X GT-AX6000
-	[ ! -d GT-AXE16000 ] && ln -sf BCM491X GT-AXE16000
+	[ ! -d GT-AX11000 ] && ln -sf BCM490X_AX GT-AX11000
 	[ ! -d GT-AX11000_PRO ] && ln -sf BCM491X GT-AX11000_PRO
+	[ ! -d GT-AXE11000 ] && ln -sf BCM490X_AX GT-AXE11000
+	[ ! -d GT-AXE16000 ] && ln -sf BCM491X GT-AXE16000
 	[ ! -d XT12 ] && ln -sf BCM491X XT12
-	[ ! -d RT-AX86U_PRO ] && ln -sf BCM490X_AX RT-AX86U_PRO
 }
 
 cd $REPO/release/src/router/aaews/prebuild/ && build_link
@@ -35,9 +35,11 @@ cd $REPO/release/src/router/asusnatnl/natnl/prebuild/ && build_link
 cd $REPO/release/src/router/asuswebstorage/prebuild/ && build_link
 cd $REPO/release/src/router/bsd/prebuilt/ && build_link
 cd $REPO/release/src/router/dhd/prebuilt/ && build_link
+cd $REPO/release/src/router/dns_ping/prebuild/ && build_link
 cd $REPO/release/src/router/dropbox_client/prebuild/ && build_link
 cd $REPO/release/src/router/eventd/prebuilt/ && build_link
 cd $REPO/release/src/router/ftpclient/prebuild/ && build_link
+cd $REPO/release/src/router/fsmd/prebuild/ && build_link
 cd $REPO/release/src/router/infosvr/prebuild/ && build_link
 cd $REPO/release/src/router/inotify/prebuild/ && build_link
 cd $REPO/release/src/router/libbcm/prebuilt/ && build_link

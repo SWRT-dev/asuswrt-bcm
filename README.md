@@ -1,4 +1,12 @@
-[ENGLISH](README_en.md)
+[ENGLISH](README_en.md) [中文](README.md)
+
+## 编译测试
+
+测试目标:GT-AX6000 GT-AX11000 RT-AX82U
+
+**状态** [![CircleCI](https://dl.circleci.com/status-badge/img/gh/SWRT-dev/asuswrt-bcm/tree/master.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/SWRT-dev/asuswrt-bcm/tree/master)
+
+
 =======
 
 AC系列:[https://github.com/SWRT-dev/asuswrt-bcm-ac](https://github.com/SWRT-dev/asuswrt-bcm-ac)
@@ -68,7 +76,7 @@ sudo apt-get -y install build-essential asciidoc binutils bzip2 gawk gettext git
 
 	`make rt-ax95q`
 
-	`git checkout rt-axe95q && git checkout ./ && make rt-axe95q`
+	`make rt-axe95q`
 
 	`git checkout 386 && git checkout ./ && make rt-ax55`
 
