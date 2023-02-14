@@ -3746,7 +3746,7 @@ skipdbv2-install: skipdbv2
 	$(STRIP) $(INSTALLDIR)/skipdbv2/usr/sbin/dbus
 
 lua:
-	$(MAKE) -C lua/src CFLAGS="$(CFLAGS) -DLUA_USE_LINUX -std=gnu99 -fPIC -I./ -DNO_TLS" PKG_VERSION="5.1.5" MYLDFLAGS="$(LDFLAGS)" linux
+	$(MAKE) -C lua/src CFLAGS="$(CFLAGS) -DLUA_USE_LINUX -std=gnu99 -fPIC -I./ -DNO_TLS" PKG_VERSION="5.1.5" MYLDFLAGS="$(LDFLAGS) -ldl" linux
 
 lua-clean:
 	$(MAKE) -C lua/src clean
