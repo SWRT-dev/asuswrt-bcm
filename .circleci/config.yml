@@ -9,7 +9,7 @@ jobs:
         environment:
           PROJECT_DIR: "/home/docker/project"
           TERM: "xterm-256color"
-    resource_class: xlarge
+    resource_class: large
     steps:
       - attach_workspace:
           at: .
@@ -27,7 +27,7 @@ jobs:
         environment:
           PROJECT_DIR: "/home/docker/project"
           TERM: "xterm-256color"
-    resource_class: xlarge
+    resource_class: large
     steps:
       - attach_workspace:
           at: .
@@ -46,7 +46,7 @@ jobs:
         environment:
           PROJECT_DIR: "/home/docker/project"
           TERM: "xterm-256color"
-    resource_class: xlarge
+    resource_class: large
     steps:
       - attach_workspace:
           at: .
@@ -64,9 +64,7 @@ workflows:
   build-workflow:
     jobs:
       - testbcm4912
-      - testbcm675x:
-          requires:
-            - testbcm4912
+      - testbcm675x
       - testbcm4908:
           requires:
             - testbcm675x

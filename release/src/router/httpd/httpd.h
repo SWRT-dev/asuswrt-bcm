@@ -35,8 +35,8 @@
 #if defined(DEBUG) && defined(DMALLOC)
 #include <dmalloc.h>
 #endif
+#include <json.h>
 #include <rtconfig.h>
-#include "swrt.h"
 
 /* Basic authorization userid and passwd limit */
 #define AUTH_MAX 64
@@ -650,4 +650,3 @@ extern int last_time_lock_warning(void);
 extern int check_lock_status(time_t *dt);
 extern char *wl_nband_to_wlx(char *nv_name, char *wl_name, size_t len);
 #endif /* _httpd_h_ */
-

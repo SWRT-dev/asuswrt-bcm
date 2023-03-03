@@ -353,6 +353,78 @@ int get_switch(void)
 	return sw_model;
 }
 
+static const struct model_s modelname_list[] = {
+	{ "K3", 		SWRT_MODEL_K3 },
+	{ "XWR3100", 	SWRT_MODEL_XWR3100 },
+	{ "R7000P", 	SWRT_MODEL_R7000P },
+	{ "EA6700", 	SWRT_MODEL_EA6700 },
+	{ "SBRAC1900P", SWRT_MODEL_SBRAC1900P },
+	{ "F9K1118", 	SWRT_MODEL_F9K1118 },
+	{ "SBRAC3200P", SWRT_MODEL_SBRAC3200P },
+	{ "R8500", 		SWRT_MODEL_R8500 },
+	{ "R8000P", 	SWRT_MODEL_R8000P },
+	{ "K3C", 		SWRT_MODEL_K3C },
+	{ "TY6201_RTK", SWRT_MODEL_TY6201_RTK },
+	{ "TY6201_BCM", SWRT_MODEL_TY6201_BCM },
+	{ "TY6202", 	SWRT_MODEL_TY6202 },
+	{ "RAX120", 	SWRT_MODEL_RAX120 },
+	{ "DIR868L", 	SWRT_MODEL_DIR868L },
+	{ "R6300V2", 	SWRT_MODEL_R6300V2 },
+	{ "MR60", 		SWRT_MODEL_MR60 },
+	{ "MS60", 		SWRT_MODEL_MS60 },
+	{ "RAX70", 		SWRT_MODEL_RAX70 },
+	{ "360V6", 		SWRT_MODEL_360V6 },
+	{ "GLAX1800", 	SWRT_MODEL_GLAX1800 },
+	{ "RMAC2100", 	SWRT_MODEL_RMAC2100 },
+	{ "R6800", 		SWRT_MODEL_R6800 },
+	{ "PGBM1", 		SWRT_MODEL_PGBM1 },
+	{ "JCGQ10PRO", 	SWRT_MODEL_JCGQ10PRO },
+	{ "H3CTX1801", 	SWRT_MODEL_H3CTX1801 },
+	{ "RM-AX6000", 	SWRT_MODEL_RMAX6000 },
+	{ "UNR030N", 	SWRT_MODEL_UNR030N },
+	{ "RAX200", 	SWRT_MODEL_RAX200 },
+	{ "TYAX5400", 	SWRT_MODEL_TYAX5400 },
+	{ "RGMA2820A", 	SWRT_MODEL_RGMA2820A },
+	{ "RGMA2820B", 	SWRT_MODEL_RGMA2820B },
+	{ "JDCAX1800", 	SWRT_MODEL_JDCAX1800 },
+	{ "RGMA3032", 	SWRT_MODEL_RGMA3032 },
+	{ "TY6201PRO", 	SWRT_MODEL_TY6201PRO },
+	{ NULL, 0 },
+};
+
+int get_modelname(void)
+{
+	static int model = SWRT_MODEL_SWRTMIN;
+	char *pid;
+	const struct model_s *p;
+
+	if (model != SWRT_MODEL_SWRTMIN)
+		return model;
+
+	pid = nvram_safe_get("modelname");
+	for (p = &modelname_list[0]; p->pid; ++p) {
+		if (!strcmp(pid, p->pid)) {
+			model = p->model;
+			break;
+		}
+	}
+	return model;
+}
+
+char *get_modelnameid(int model)
+{
+	char *pid = "unknown";
+	const struct model_s *p;
+
+	for (p = &modelname_list[0]; p->pid; ++p) {
+		if (model == p->model) {
+			pid = p->pid;
+			break;
+		}
+	}
+	return pid;
+}
+
 #ifdef RTCONFIG_COMFW
 
 int is_shared_modelid(int model, char *build_name)
@@ -479,68 +551,3 @@ char *get_cf_name(int cfid) {
 */
 
 #endif
-
-static const struct model_s modelname_list[] = {
-	{ "K3", 		SWRT_MODEL_K3 },
-	{ "XWR3100", 	SWRT_MODEL_XWR3100 },
-	{ "R7000P", 	SWRT_MODEL_R7000P },
-	{ "EA6700", 	SWRT_MODEL_EA6700 },
-	{ "SBRAC1900P", SWRT_MODEL_SBRAC1900P },
-	{ "F9K1118", 	SWRT_MODEL_F9K1118 },
-	{ "SBRAC3200P", SWRT_MODEL_SBRAC3200P },
-	{ "R8500", 		SWRT_MODEL_R8500 },
-	{ "R8000P", 	SWRT_MODEL_R8000P },
-	{ "K3C", 		SWRT_MODEL_K3C },
-	{ "TY6201_RTK", SWRT_MODEL_TY6201_RTK },
-	{ "TY6201_BCM", SWRT_MODEL_TY6201_BCM },
-	{ "TY6202", 	SWRT_MODEL_TY6202 },
-	{ "RAX120", 	SWRT_MODEL_RAX120 },
-	{ "DIR868L", 	SWRT_MODEL_DIR868L },
-	{ "R6300V2", 	SWRT_MODEL_R6300V2 },
-	{ "MR60", 		SWRT_MODEL_MR60 },
-	{ "MS60", 		SWRT_MODEL_MS60 },
-	{ "RAX70", 		SWRT_MODEL_RAX70 },
-	{ "360V6", 		SWRT_MODEL_360V6 },
-	{ "GLAX1800", 	SWRT_MODEL_GLAX1800 },
-	{ "RMAC2100", 	SWRT_MODEL_RMAC2100 },
-	{ "R6800", 		SWRT_MODEL_R6800 },
-	{ "PGBM1", 		SWRT_MODEL_PGBM1 },
-	{ "RGMA2820A", 	SWRT_MODEL_RGMA2820A },
-	{ "RGMA2820B", 	SWRT_MODEL_RGMA2820B },
-	{ NULL, 0 },
-};
-
-int get_modelname(void)
-{
-	static int model = SWRT_MODEL_SWRTMIN;
-	char *pid;
-	const struct model_s *p;
-
-	if (model != SWRT_MODEL_SWRTMIN)
-		return model;
-
-	pid = nvram_safe_get("modelname");
-	for (p = &modelname_list[0]; p->pid; ++p) {
-		if (!strcmp(pid, p->pid)) {
-			model = p->model;
-			break;
-		}
-	}
-	return model;
-}
-
-char *get_modelnameid(int model)
-{
-	char *pid = "unknown";
-	const struct model_s *p;
-
-	for (p = &modelname_list[0]; p->pid; ++p) {
-		if (model == p->model) {
-			pid = p->pid;
-			break;
-		}
-	}
-	return pid;
-}
-
-
