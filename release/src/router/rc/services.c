@@ -6115,8 +6115,12 @@ void start_smartdns(void)
 #ifdef RTCONFIG_DUALWAN
 	int primary_unit = wan_primary_ifunit();
 #endif
-	if(!nvram_match("smartdns_enable", "1"))
+	if(!nvram_match("smartdns_enable", "1") || g_reboot)
 		return;
+#if defined(RTCONFIG_AMAS)
+	if(aimesh_re_node())
+		return;
+#endif
 	if (pids("smartdns"))
 		killall_tk("smartdns");
 	if (f_exists("/etc/smartdns.conf"))

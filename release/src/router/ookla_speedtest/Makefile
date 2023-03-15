@@ -6,7 +6,7 @@ OOKLA_VER = 38000# updated in 2022.08.16
 OOKLA_PATH = OOKLA-$(OOKLA_VER)
 
 prebuild:
-	-@mkdir prebuild
+	-@mkdir -p prebuild
 # QCA
 ifeq ($(or $(RTCONFIG_SOC_IPQ8064),$(RTCONFIG_SOC_IPQ8074),$(RTCONFIG_SOC_IPQ40XX)),y)
 	-cp -f $(OOKLA_PATH)/ookla-IPQ807-401X  prebuild/ookla # IPQ80XX / IPQ40XX
@@ -33,6 +33,9 @@ endif # RTCONFIG_BCMARM
 ifeq ($(RTCONFIG_RALINK),y)
 	-cp -f $(OOKLA_PATH)/ookla-MTK7621A prebuild/ookla     # MTK7621A
 endif # RTCONFIG_RALINK
+ifeq ($(RTCONFIG_MT798X),y)
+	-cp -f $(OOKLA_PATH)/ookla-MT7986A  prebuild/ookla     # MT7986A
+endif # RTCONFIG_MT798X
 
 all: prebuild
 
