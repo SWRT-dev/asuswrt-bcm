@@ -679,6 +679,32 @@ void setup_ct_timeout(int connflag)
 	}
 }
 
+#if defined(RTCONFIG_HND_ROUTER) || defined(RTCONFIG_QCA) || defined(RTCONFIG_LANTIQ) || defined(RTCONFIG_RALINK)
+void gen_conntrack_conf(void)
+{
+#define RAM_1GB 1024 *1024 *1024
+#define RAM_512M 512 *1024 *1024
+#define RAM_256M 256 *1024 *1024
+#define RAM_128M 128 *1024 *1024
+	struct sysinfo sys;
+	sysinfo(&sys);
+	nvram_set("ct_tcp_timeout", "300 300 120 60 30 30 30 10 30 30");
+	if(sys.totalram >= RAM_1GB){
+		nvram_set("ct_hashsize", "65536");
+		nvram_set("ct_expect_max", "16384");
+	}else if(sys.totalram >= RAM_512M && sys.freeram >= RAM_128M){
+		nvram_set("ct_hashsize", "32768");
+		nvram_set("ct_expect_max", "16384");
+	}else if(sys.totalram >= RAM_256M && sys.freeram >= RAM_128M){
+		nvram_set("ct_hashsize", "16384");
+		nvram_set("ct_expect_max", "16384");
+	}else{
+		nvram_set("ct_hashsize", "16384");
+		nvram_set("ct_expect_max", "8192");
+	}
+}
+#endif
+
 void setup_conntrack(void)
 {
 	unsigned int v[10];
@@ -689,7 +715,9 @@ void setup_conntrack(void)
 #ifdef RTCONFIG_CONCURRENTREPEATER
 	return;		/* don't need it for concurrent repeater */
 #endif
-
+#if defined(RTCONFIG_HND_ROUTER) || defined(RTCONFIG_QCA) || defined(RTCONFIG_LANTIQ) || defined(RTCONFIG_RALINK)
+	gen_conntrack_conf();
+#endif
 	snprintf(p, sizeof(p), "%s", nvram_safe_get("ct_tcp_timeout"));
 	if (strcmp(p,"0 0 0 0 0 0 0 0 0 0") && sscanf(p, "%u%u%u%u%u%u%u%u%u%u",
 		&v[0], &v[1], &v[2], &v[3], &v[4], &v[5], &v[6], &v[7], &v[8], &v[9]) == 10) {	// lightly verify
@@ -773,16 +801,8 @@ void setup_conntrack(void)
 	}
 #endif
 #if defined(RTCONFIG_HND_ROUTER) || defined(RTCONFIG_QCA) || defined(RTCONFIG_LANTIQ) || defined(RTCONFIG_RALINK)
-	snprintf(p, sizeof(p), "30");
-	f_write_string("/proc/sys/net/netfilter/nf_conntrack_tcp_timeout_fin_wait", p, 0, 0);
-	f_write_string("/proc/sys/net/netfilter/nf_conntrack_tcp_timeout_time_wait", p, 0, 0);
-	f_write_string("/proc/sys/net/netfilter/nf_conntrack_tcp_timeout_close_wait", p, 0, 0);
-	f_write_string("/proc/sys/net/ipv4/netfilter/ip_conntrack_tcp_timeout_fin_wait", p, 0, 0);
-	f_write_string("/proc/sys/net/ipv4/netfilter/ip_conntrack_tcp_timeout_time_wait", p, 0, 0);
-	f_write_string("/proc/sys/net/ipv4/netfilter/ip_conntrack_tcp_timeout_close_wait", p, 0, 0);
-	snprintf(p, sizeof(p), "300");
-	f_write_string("/proc/sys/net/netfilter/nf_conntrack_tcp_timeout_established", p, 0, 0);
-	f_write_string("/proc/sys/net/ipv4/netfilter/ip_conntrack_tcp_timeout_established", p, 0, 0);
+	snprintf(p, sizeof(p), "%s", nvram_safe_get("ct_hashsize"));
+	f_write_string("/proc/sys/net/netfilter/nf_conntrack_buckets", p, 0, 0);
 #endif
 #if 0
 	if (!nvram_match("nf_rtsp", "0")) {
@@ -1455,6 +1475,18 @@ setup_timezone(void)
 #endif
 
 	/* Setup sane start time */
+	if(nvram_get("sys_last_time")){
+		//We don't know the current time, but we know the last reboot time.
+		char tmp[12] = {0};
+		struct sysinfo info;
+		sysinfo(&info);
+		snprintf(tmp, sizeof(tmp), "%s", nvram_get("sys_last_time"));
+		tv.tv_sec = strtol(tmp, NULL, 10);
+		tv.tv_sec += info.uptime;
+		tvp = &tv;
+		nvram_unset("sys_last_time");
+	}
+	else
 	if (now < RC_BUILDTIME) {
 		struct sysinfo info;
 

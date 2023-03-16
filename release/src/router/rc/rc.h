@@ -15,7 +15,9 @@
 #ifndef __RC_H__
 #define __RC_H__
 
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 
 #include <rtconfig.h>
 #include <stdio.h>
@@ -3347,6 +3349,7 @@ int transform_wanlanstatus(wanlan_st_t *wlst);
 #define PLC_LOG_1_FILE	"plc.log-1"
 #endif /* RTCONFIG_QCA_PLC2 */
 
+extern void save_sys_time(void);
 void wl_apply_akm_by_auth_mode(int unit, int subunit, char *sp_prefix_auth);
 #endif	/* __RC_H__ */
 

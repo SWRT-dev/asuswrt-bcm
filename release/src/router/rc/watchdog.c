@@ -5102,7 +5102,7 @@ end_of_wl_sched:
 
 					if (atoi(reboot) || atoi(upgrade))
 						return;
-
+					save_sys_time();
 					logmessage("reboot scheduler", "[%s] The system is going down for reboot\n", __FUNCTION__);
 					kill(1, SIGTERM);
 				}
