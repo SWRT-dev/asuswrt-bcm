@@ -14,9 +14,9 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
  * MA 02111-1307 USA
  *
- * Copyright 2018-2022, SWRT.
- * Copyright 2018-2022, paldier <paldier@hotmail.com>.
- * Copyright 2018-2022, lostlonger<lostlonger.g@gmail.com>.
+ * Copyright 2018-2023, SWRT.
+ * Copyright 2018-2023, paldier <paldier@hotmail.com>.
+ * Copyright 2018-2023, lostlonger<lostlonger.g@gmail.com>.
  * All Rights Reserved.
  *
  */
@@ -95,12 +95,9 @@ void swrt_init_pre()
 #if defined(RTAC82U)
 	fix_jffs_size();
 #endif
-#if defined(RTCONFIG_AMAS) && defined(RTCONFIG_SMARTDNS)
-	if(aimesh_re_node())
-		nvram_set("smartdns_enable", "0");
-#endif
 	swrt_insmod();
-	swrt_init_model();
+	if(swrt_init_model)
+		swrt_init_model();
 #if defined(RTCONFIG_ROG_UI)
 	nvram_set("swrt_rog", "1");
 #endif
@@ -169,6 +166,18 @@ void swrt_init_pre()
 		nvram_set("modelname", "JDCAX1800");
 #elif defined(RMAX6000)
 		nvram_set("modelname", "RMAX6000");
+#elif defined(RMAC2100)
+		nvram_set("modelname", "RMAC2100");
+#elif defined(R6800)
+		nvram_set("modelname", "R6800");
+#elif defined(PGBM1)
+		nvram_set("modelname", "PGBM1");
+#elif defined(JCGQ10PRO)
+		nvram_set("modelname", "JCGQ10PRO");
+#elif defined(H3CTX1801)
+		nvram_set("modelname", "H3CTX1801");
+#elif defined(XMCR660X)
+		nvram_set("modelname", "XMCR660X");
 //asus
 #elif defined(RTAC68U)
 		nvram_set("modelname", "RTAC68U");
@@ -232,16 +241,6 @@ void swrt_init_pre()
 		nvram_set("modelname", "RTAX89X");
 #elif defined(RTAC85P)
 		nvram_set("modelname", "RTAC85P");
-#elif defined(RMAC2100)
-		nvram_set("modelname", "RMAC2100");
-#elif defined(R6800)
-		nvram_set("modelname", "R6800");
-#elif defined(PGBM1)
-		nvram_set("modelname", "PGBM1");
-#elif defined(JCGQ10PRO)
-		nvram_set("modelname", "JCGQ10PRO");
-#elif defined(H3CTX1801)
-		nvram_set("modelname", "H3CTX1801");
 #elif defined(TUFAC1750)
 		nvram_set("modelname", "TUFAC1750");
 #elif defined(RTAC95U)
@@ -912,6 +911,8 @@ void init_entware(void)
 #define ENTWARE_ACT_STOP		16
 #define	ENTWARE_ACT_MASK (ENTWARE_ACT_INSTALL | ENTWARE_ACT_UPDATE | ENTWARE_ACT_REMOVE)
 #define	ENTWARE_ACT_MASK2 (ENTWARE_ACT_START | ENTWARE_ACT_STOP)
+#define ENTWARE_SERVER "bin.entware.net"
+#define ENTWARE_MIRROR "mirrors.bfsu.edu.cn/entware"
 
 void start_entware(void)
 {
@@ -931,9 +932,18 @@ void start_entware(void)
 	{
 		if (ent_action & ENTWARE_ACT_INSTALL)
 		{
-			snprintf(cmd, sizeof(cmd), "wget http://bin.entware.net/%s/installer/%s.sh -O /tmp/doentware.sh", nvram_get("entware_arch"), ent_arg);
+			snprintf(cmd, sizeof(cmd), "wget http://%s/%s/installer/%s.sh -O /tmp/doentware.sh", 
+				nvram_match("preferred_lang", "CN") ? ENTWARE_MIRROR : ENTWARE_SERVER, nvram_get("entware_arch"), ent_arg);
 			system(cmd);
 			system("chmod +x /tmp/doentware.sh");
+			if(nvram_match("preferred_lang", "CN")){
+				system("mkdir -p /opt/etc");
+				snprintf(cmd, sizeof(cmd), "wget http://%s/%s/installer/opkg.conf -O /opt/etc/opkg.conf", ENTWARE_MIRROR, nvram_get("entware_arch"));
+				system(cmd);
+				system("sed -i '/opkg.conf/d' /tmp/doentware.sh");
+				system("sed -i 's|https\?://bin.entware.net|http://mirrors.bfsu.edu.cn/entware|g' /tmp/doentware.sh");
+				system("sed -i 's|https\?://bin.entware.net|http://mirrors.bfsu.edu.cn/entware|g' /opt/etc/opkg.conf");
+			}
 			system("/tmp/doentware.sh");
 			nvram_set("entware_installed", "1");
 		}
@@ -1011,12 +1021,14 @@ void gen_arch_conf(void)
 			else
 				nvram_set("entware_arch", "armv7sf-k3.2");
 		}else if(!strcmp(uts.machine, "mips")){
-			if(!strcmp(uts.release, "4.4.198") || !strcmp(uts.release, "5.4.179"))
+			if(!strncmp(uts.release, "4.4", 3) || !strncmp(uts.release, "5.4", 3))
 				nvram_set("entware_arch", "mipselsf-k3.4");
 			else
-				nvram_set("entware_arch", "mipssf-k3.4");
+				nvram_set("entware_arch", "mipssf-k3.4");//lantiq: 3.10/4.9
 		}else if(!strcmp(uts.machine, "aarch64"))
 			nvram_set("entware_arch", "aarch64-k3.10");
+		else if(!strcmp(uts.machine, "x86_64"))
+			nvram_set("entware_arch", "x64");
 	}
 }
 #endif
@@ -1256,7 +1268,7 @@ int check_bwdpi_nvram_setting(){ return 0; }
 int check_wrs_switch(){ return 0; }
 #endif
 
-#if defined(RTCONFIG_BCMARM)
+#if defined(RTCONFIG_BCMARM) && !defined(RTCONFIG_HND_ROUTER_AX)
 #define	HAPD_MAX_BUF			512
 void __attribute__((weak)) wl_apply_akm_by_auth_mode(int unit, int subunit, char *sp_prefix_auth)
 {
@@ -1826,65 +1838,16 @@ void fix_jffs_size(void)
 }
 #endif
 
-#if defined(RTCONFIG_HND_ROUTER_AX_6756) || defined(RTAX86U)
-char __attribute__((weak)) *hnd_check_macaddr(const char *mac)
+#if defined(RTCONFIG_HND_ROUTER_AX)
+void __attribute__((weak)) create_amas_sys_folder()
 {
-	unsigned char mac_binary[6];
-	unsigned char mac_binary2[6];
-	char buf[32];
-	char path[] = "/proc/nvram/BaseMacAddr";
-
-	if(f_read_string(path, buf, sizeof(buf)) <= 0)
-		return "ATE_ERROR";
-	memset(mac_binary, 0, sizeof(mac_binary));
-	memset(mac_binary2, 0, sizeof(mac_binary2));
-	if(sscanf(buf, "%02X:%02X:%02X:%02X:%02X:%02X", &mac_binary[0], &mac_binary[1], &mac_binary[2], &mac_binary[3], &mac_binary[4], &mac_binary[5]) != 6 || 
-		sscanf(mac, "%02X:%02X:%02X:%02X:%02X:%02X", &mac_binary2[0], &mac_binary2[1], &mac_binary2[2], &mac_binary2[3], &mac_binary2[4], &mac_binary2[5]) != 6)
-		return "ATE_ERROR";
-	if(mac_binary[0] != mac_binary2[0] || mac_binary[1] != mac_binary2[1] || mac_binary[2] != mac_binary2[2] ||
-		mac_binary[3] != mac_binary2[3] || mac_binary[4] != mac_binary2[4] || mac_binary[5] != mac_binary2[5])
-		return "ATE_ERROR";
-	return mac;
+	if(!d_exists("/jffs/.sys"))
+		mkdir("/jffs/.sys", 0666);
 }
 
-void __attribute__((weak)) hnd_set_macaddr(const char *mac)
+void __attribute__((weak)) misc_info_chk()
 {
-	char path[] = "/tmp/BaseMacAddr_tmp";
-	char cmd[64];
-
-	sprintf(cmd, "echo \"%s\" > %s", mac, path);
-	system(cmd);
-}
-
-void __attribute__((weak)) hnd_commit_macaddr()
-{
-	struct stat stat_mac;
-	char path[] = "/proc/nvram/BaseMacAddr";
-	char path2[] = "/tmp/BaseMacAddr_tmp";
-	char cmd[64];
-
-	if(!stat(path2, &stat_mac)){
-		snprintf(cmd, sizeof(cmd), "cat %s > %s", path2, path);
-		system(cmd);
-		unlink(path2);
-	}
-}
-
-void __attribute__((weak)) sync_cfe_mac()
-{
-	unsigned char mac_binary[6];
-	char mac[18];
-
-	snprintf(mac, sizeof(mac), "%s", cfe_nvram_safe_get_raw("et0macaddr"));
-	if(!ether_atoe(mac,mac_binary)){
-		strcpy(mac, "20:CF:30:00:00:00");
-		ATE_BRCM_SET("et0macaddr", "20:CF:30:00:00:00");
-		ATE_BRCM_COMMIT();
-	}
-	if(strlen(hnd_check_macaddr(mac)) != 17){
-		hnd_set_macaddr(mac);
-		hnd_commit_macaddr();
-	}
+	syslog(LOG_NOTICE, "fwver: %s_%s_%s (sn:%s /ha:%s )\n", rt_version, rt_serialno, rt_extendno, nvram_safe_get("serial_no"), nvram_safe_get("et0macaddr"));
 }
 #endif
 
@@ -1911,26 +1874,26 @@ void fan_watchdog(void)
 	if((status = get_gpio(gpio1)) < 0)
 		return;
 	if(nvram_get("fan_en") == NULL || nvram_match("fan_en", "1")){
-		if(temperature > 65 || nvram_match("fan_lv", "1")){
-			printf("Turn on FAN with level 1");
+		if(temperature > 95 || nvram_match("fan_lv", "4")){
+			printf("Turn on FAN with level 4");
 			set_gpio(gpio1, 1);
-			set_gpio(gpio2, 0);
-			set_gpio(gpio3, 0);
-		}else if(temperature > 75 || nvram_match("fan_lv", "2")){
-			printf("Turn on FAN with level 2");
-			set_gpio(gpio1, 1);
-			set_gpio(gpio2, 0);
+			set_gpio(gpio2, 1);
 			set_gpio(gpio3, 1);
 		}else if(temperature > 85 || nvram_match("fan_lv", "3")){
 			printf("Turn on FAN with level 3");
 			set_gpio(gpio1, 1);
 			set_gpio(gpio2, 1);
 			set_gpio(gpio3, 0);
-		}else if(temperature > 95 || nvram_match("fan_lv", "4")){
-			printf("Turn on FAN with level 4");
+		}else if(temperature > 75 || nvram_match("fan_lv", "2")){
+			printf("Turn on FAN with level 2");
 			set_gpio(gpio1, 1);
-			set_gpio(gpio2, 1);
+			set_gpio(gpio2, 0);
 			set_gpio(gpio3, 1);
+		}else if(temperature > 65 || nvram_match("fan_lv", "1")){
+			printf("Turn on FAN with level 1");
+			set_gpio(gpio1, 1);
+			set_gpio(gpio2, 0);
+			set_gpio(gpio3, 0);
 		}
 	}else if(nvram_match("fan_en", "0") && status == 1){
 		printf("Turn off FAN");
