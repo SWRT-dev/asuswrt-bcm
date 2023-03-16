@@ -36,7 +36,6 @@
 #include <dmalloc.h>
 #endif
 #include <rtconfig.h>
-#include "swrt.h"
 
 /* Basic authorization userid and passwd limit */
 #define AUTH_MAX 64
