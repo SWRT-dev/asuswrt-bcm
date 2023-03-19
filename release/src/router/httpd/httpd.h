@@ -35,6 +35,7 @@
 #if defined(DEBUG) && defined(DMALLOC)
 #include <dmalloc.h>
 #endif
+#include <json.h>
 #include <rtconfig.h>
 
 /* Basic authorization userid and passwd limit */
@@ -385,7 +386,7 @@ extern void do_f(char *path, webs_t wp);
 
 /* cgi.c */
 extern int web_read(void *buffer, int len);
-extern void unescape(char *s);
+extern void unescape(char *s, size_t len);
 extern char *get_cgi(char *name);
 extern void set_cgi(char *name, char *value);
 extern void init_cgi(char *query);

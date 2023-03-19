@@ -343,7 +343,7 @@ extern char* get_encrypt_wifi_status(char *buffer, size_t size);
 
 extern int upgrade_rc(char *action, char *autoreboot, char *reset, char *bootnew, int wait);
 
-extern void unescape(char *s);
+extern void unescape(char *s, size_t len);
 
 void response_nvram_config(webs_t wp, char *config_name, json_object *res, json_object *root);
 
@@ -2970,7 +2970,7 @@ static void do_html_get(char *url, int len, char *boundary){
 	strsep(&query, "?");
 
 	if (query && strlen(query) > 0){
-		unescape(query);
+		unescape(query, 128);
 		snprintf(post_buf_backup, sizeof(post_buf_backup), "?%s", query);
 		snprintf(post_buf, sizeof(post_buf), "%s", post_buf_backup+1);
 	}
