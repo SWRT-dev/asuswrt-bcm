@@ -3136,6 +3136,7 @@ int main(int argc, char **argv)
 	}
 #endif
 	else if (!strcmp(base, "mtd_erase_misc2")) {
+		stop_jffs2(1);//force unmount /jffs
 		return mtd_erase_misc2();
 	}
 #else
