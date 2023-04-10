@@ -49,6 +49,10 @@ sudo apt-get -y install build-essential asciidoc binutils bzip2 gawk gettext git
     `sudo ln -sf $(pwd)crosstools-arm-gcc-5.5-linux-4.1-glibc-2.26-binutils-2.28.1 /opt/toolchains/`
     
     `sudo ln -sf $(pwd)/crosstools-gcc-5.3-linux-4.1-uclibc-1.0.12-glibc-2.24-binutils-2.25 /opt/toolchains/`
+
+    `sudo ln -sf $(pwd)/crosstools-aarch64-gcc-9.2-linux-4.19-glibc-2.30-binutils-2.32 /opt/toolchains/`
+
+    `sudo ln -sf $(pwd)/crosstools-arm-gcc-9.2-linux-4.19-glibc-2.30-binutils-2.32 /opt/toolchains/`
     
     `sudo mkdir -p /projects/`
     
@@ -117,6 +121,12 @@ sudo apt-get -y install build-essential asciidoc binutils bzip2 gawk gettext git
 	`make gt-axe16000`
 
 	`make xt12`
+
+	`make rt-ax82u_v2`
+
+	`make tuf-ax3000_v2`
+
+	`make tuf-ax5400_v2`
 
 	编译完成后输出固件路径：
 
