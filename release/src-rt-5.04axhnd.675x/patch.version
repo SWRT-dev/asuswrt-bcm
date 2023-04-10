@@ -9,6 +9,7 @@ platforms_in_use:
 - 4912
 - 6753
 - 6756
+- 4908
 
 patches:
 # one row per patch starting with hiphen+space e.g.:
@@ -47,7 +48,7 @@ patches:
 - {csp: CS00012254742, ref: SWBCACPE-48545, SWBCACPE-50619, chg: CL402350} # Enable BPM and BCM_FEED_RING_DYNAMIC for 6753
 - {csp: CS00012254742, ref: SWBCACPE-50168, chg: CL402352} # [68550][AVS]Margin characterization result [version: 68550.3.lite.7]
 - {csp: CS00012235140, ref: SWBCACPE-52562, chg: CL402372} # [ARCHER DHD] CPU Message Queue synchronization is broken
-- {csp: CS00012258657, ref: SWBCACPE-48256, chg: CL407365} # [Serdes][XGPHY] Non Broadcom PHY link status mis-synchronization
+- {csp: CS00012258657, ref: SWBCACPE-48256, chg: CL407365} # [Serdes][XGPHY] Non Broadcom PHY link status mis-synchronization work around
 - {csp: CS00012258657, ref: SWBCACPE-52708, chg: CL407372} # [BCM67XX/49XX/63XXX/6813][Serdes]Non Power Saving Mode not working with external XGPHY
 - {csp: CS00012258657, ref: SWBCACPE-48256, chg: CL408790} # Fix Build error for CL407365 in uboot.
 - {csp: CS00012235140, ref: SWBCACPE-52562, chg: CL408813} # Fix Archer DHD CPU messaging deadlock
@@ -55,3 +56,22 @@ patches:
 - {csp: CS00012260796, ref: SWBCACPE-52577, chg: CL411193} # IPSEC: Ping over Interface does not work when acceleration enabled
 - {csp: CS00012260796, ref: SWBCACPE-52577, chg: CL411194} # iperf over IPSEC causes a reboot due to kernel soft CPU lockup
 - {csp: CS00012260796, ref: SWBCACPE-52577, chg: CL411196} # fix a softlockup issue related to xfrm->lock
+- {csp: CS00012263250, ref: SWBCACPE-53392, chg: CL414683} # File corrupted by editing through SAMBA 
+- {csp: CS00012263407, ref: SWBCACPE-50210, chg: CL414757} # [DSL_Serdes] data path robustness enhancement
+- {csp: CS00012260154, ref: SWBCACPE-53633, chg: CL417292, CL417322} # workaround for the connectivity issue between 2.5Gphy and Starlink GEN2
+- {csp: CS00012266743, ref: SWBCACPE-52899, chg: CL419441} # Don't change XLMAC default IPG (12)
+- {csp: CS00012269261, ref: SWBCACPE-52747, chg: CL420260} # fix multicast IPTV not work when there are multi-WAN interfaces
+- {csp: CS00012260186, ref: SWBCACPE-52454, chg: CL421844} # Fixed-PHY connection support on USXGMII capable Serdes
+- {csp: CS00012270754, ref: SWBCACPE-47119, chg: CL422326} # Multicast traffic doesn't pass over DWDS link
+- {csp: CS00012191305, ref: SWBCACPE-47136, chg: CL422424} # [4912][63158][XPORT] XGMII flag is not set correctly for 2500Base-X
+- {csp: CS00012235140, ref: SWBCACPE-48674, chg: CL422426} # [4912] all CPU core hangs during single radio WLAN <-> 10G LAN traffic testing
+- {csp: CS00012262296, ref: SWBCACPE-54103, chg: CL422781} # Bypass fcache for Wireguard traffic
+- {csp: CS00012271527, ref: SWBCACPE-48873, chg: CL422809} # fix 6855 2.5GPhy mode setting issue
+- {csp: CS00012262296, ref: SWBCACPE-54103, chg: CL422921} # Bypass fcache for Wireguard traffic - part 2
+- {csp: CS00012262296, ref: SWBCACPE-54103, chg: CL423326} # Bypass fcache for Wireguard traffic - part 3
+- {csp: CS00012273470, ref: SWBCACPE-52291, chg: CL424013} # [6756]: "fc disable"+"fc flush" firstly, then associate 2 STAs to the same BSSID, ping failure each other
+- {csp: CS00012270892, ref: SWBCACPE-54242, chg: CL424509} # [4912][4915] SGMII0 power down will cause SGMII 1 Tx failure
+- {csp: CS00012270892, ref: SWBCACPE-54306, chg: CL425230} # [BCM67XX/49XX/63XXX/] 3.c466 error blocking link up
+- {csp: CS00012280058, ref: SWBCACPE-54868, chg: CL430668} # fix crash due to out of bound access caused by Bypass fcache patch for Wireguard traffic
+- {csp: CS00012271164, ref: SWBCACPE-54276, chg: CL424446} # [4906] External 53134 support
+

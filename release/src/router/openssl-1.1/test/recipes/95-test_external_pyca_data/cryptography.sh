@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright 2017-2022 The OpenSSL Project Authors. All Rights Reserved.
+# Copyright 2017 The OpenSSL Project Authors. All Rights Reserved.
 # Copyright (c) 2017, Oracle and/or its affiliates.  All rights reserved.
 #
 # Licensed under the OpenSSL license (the "License").  You may not use
@@ -12,7 +12,6 @@
 # OpenSSL external testing using the Python Cryptography module
 #
 set -e
-set -x
 
 O_EXE=`pwd`/$BLDTOP/apps
 O_BINC=`pwd`/$BLDTOP/include
@@ -36,29 +35,30 @@ echo "------------------------------------------------------------------"
 cd $SRCTOP
 
 # Create a python virtual env and activate
-rm -rf venv-cryptography
-python -m venv venv-cryptography
-. ./venv-cryptography/bin/activate
+rm -rf venv-pycrypto
+virtualenv venv-pycrypto
+. ./venv-pycrypto/bin/activate
 
 cd pyca-cryptography
 
 pip install .[test]
-pip install -e vectors
 
 echo "------------------------------------------------------------------"
 echo "Building cryptography"
 echo "------------------------------------------------------------------"
-CFLAGS="-I$O_BINC -I$O_SINC -L$O_LIB" pip install .
+python ./setup.py clean
+
+CFLAGS="-I$O_BINC -I$O_SINC -L$O_LIB" python ./setup.py build
 
 echo "------------------------------------------------------------------"
 echo "Running tests"
 echo "------------------------------------------------------------------"
 
-CFLAGS="-I$O_BINC -I$O_SINC -L$O_LIB" pytest -n auto tests --wycheproof-root=../wycheproof
+CFLAGS="-I$O_BINC -I$O_SINC -L$O_LIB" python ./setup.py test
 
 cd ../
 deactivate
-rm -rf venv-cryptography
+rm -rf venv-pycrypto
 
 exit 0
 

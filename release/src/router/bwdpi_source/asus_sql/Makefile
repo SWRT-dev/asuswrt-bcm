@@ -19,6 +19,10 @@ endif
 LDFLAGS += -L$(TOP)/bwdpi_source/asus -lbwdpi
 LDFLAGS += -L$(LIBDIR) -lm -L$(TOP)/sqlite/.libs -lsqlite3
 
+ifeq ($(RTCONFIG_NOTIFICATION_CENTER),y)
+CFLAGS  += -I$(TOP)/json-c
+LDFLAGS += -L$(TOP)/json-c/.libs -ljson-c
+endif
 
 ifeq ($(RTCONFIG_QTN),y)
 CFLAGS += -I$(TOP)/libqcsapi_client

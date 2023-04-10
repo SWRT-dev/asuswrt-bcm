@@ -101,7 +101,10 @@ CFLAGS += -I$(SRCBASE)/include -I$(TOP)/shared -DASUS_DDNS -DHAVE_STRING_H
 ifneq ($(HND_ROUTER),y)
 CFLAGS += -D_LIBC
 endif
-LDFLAGS += -L$(TOP)/shared -lshared -L$(TOP_PLATFORM)/nvram${BCMEX}${EX7} -lnvram 
+LDFLAGS += -L$(TOP)/shared -lshared -L$(TOP_PLATFORM)/nvram${BCMEX}${EX7} -lnvram
+ifeq ($(RTCONFIG_BCM_502L07P2),y)
+LDFLAGS += -L$(TOP_PLATFORM)/ethctl_lib -lethctl
+endif
 ifeq ($(HND_ROUTER),y)
 LDFLAGS += -L$(TOP_PLATFORM)/wlcsm$(EXHND) -lwlcsm
 endif

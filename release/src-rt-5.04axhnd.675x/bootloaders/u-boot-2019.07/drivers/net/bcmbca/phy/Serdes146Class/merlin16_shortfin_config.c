@@ -2024,6 +2024,11 @@ int merlin_speed_set(phy_dev_t *phy_dev, phy_speed_t speed, phy_duplex_t duplex)
         phy_serdes->serdes_speed_mode != old_serdes_speed_mode)
         usxgmii_workaround(phy_dev);
 
+    /* Keep USXGMII(_MP) mode stable for shared MSBUS clock */
+    if (phy_serdes->serdes_speed_mode == old_serdes_speed_mode &&
+        phy_serdes->inited == 3)
+        return 0;
+
     rc = merline_speed_set_core(phy_dev);
     return rc;
 }
@@ -2033,13 +2038,16 @@ int merlin16_serdes_init(phy_dev_t *phy_dev)
 {
     phy_serdes_t *phy_serdes = phy_dev->priv;
     phy_serdes_t *sa__ = phy_dev->priv;
-    uint32 CoreNum = phy_serdes->core_num;
+    uint32 CoreNum = phy_dev->core_index;
+    phy_speed_t saved_config_speed = phy_serdes->config_speed;
+    int saved_xfi_mode = phy_dev->current_inter_phy_type;
 
     //--- Step 0 powerup/reset sequence
     print_log("--- Step 0 powerup/reset sequence of core #%d at address %d\n", CoreNum, phy_dev->addr);
 
-    if (phy_serdes->inited < 2)
+    if (phy_serdes->inited < 2)    /* Power On initialization, do a through power reset */
     {
+        _merlin_core_power_op(phy_dev, SERDES_POWER_UP);    /* Make next power down work without bypassed */
         _merlin_core_power_op(phy_dev, SERDES_POWER_DOWN);
         _merlin_core_power_op(phy_dev, SERDES_POWER_UP);
     }
@@ -2088,6 +2096,15 @@ int merlin16_serdes_init(phy_dev_t *phy_dev)
 
     if (phy_serdes->signal_detect_gpio != -1)
         wr_ext_los_en(1);
+
+    /* Set default 1G speed to fully exercise hardware status */
+    phy_serdes->config_speed = PHY_SPEED_1000;
+    phy_dev->current_inter_phy_type = INTER_PHY_TYPE_1000BASE_X;
+
+    merlin_speed_set(phy_dev, phy_serdes->config_speed, phy_dev->duplex);
+
+    phy_serdes->config_speed = saved_config_speed;
+    phy_dev->current_inter_phy_type = saved_xfi_mode;
 
     print_log("INFO MerlinSupport::%s(): END Merlin Initialization procedure\n", __func__);
 

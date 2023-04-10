@@ -529,12 +529,14 @@ var IPv6_support = isSupport("ipv6");
 var IPv6_Passthrough_support = isSupport("ipv6pt");
 var IPv6_Only_support = isSupport("v6only");
 var Softwire46_support = isSupport("s46");
+var ocnvc_support = isSupport("ocnvc");
 var ParentalCtrl2_support = isSupport("PARENTAL2");
 var pptpd_support = isSupport("pptpd"); 
 var openvpnd_support = isSupport("openvpnd"); 
 var vpnc_support = isSupport("vpnc");
 var WebDav_support = isSupport("webdav"); 
-var HTTPS_support = isSupport("HTTPS"); 
+var HTTPS_support = isSupport("HTTPS");
+var ftp_ssl_support = isSupport("ftp_ssl");
 var nodm_support = isSupport("nodm"); 
 var wimax_support = isSupport("wimax");
 var downsize_4m_support = isSupport("sfp4m");
@@ -572,6 +574,7 @@ var ipsec_srv_support = isSupport("ipsec_srv");
 var ipsec_cli_support = isSupport("ipsec_cli");
 var traffic_analyzer_support = isSupport("traffic_analyzer");
 var traffic_limiter_support = isSupport("traffic_limiter");
+var dns_dpi_support = isSupport("dns_dpi");
 var force_upgrade_support = isSupport("fupgrade");
 var odm_support = isSupport("odm");
 var adBlock_support = isSupport("adBlock");
@@ -601,6 +604,7 @@ var reboot_schedule_support = isSupport("reboot_schedule");
 var captivePortal_support = isSupport("captivePortal");
 var cp_freewifi_support = isSupport("cp_freewifi");
 var cp_advanced_support = isSupport("cp_advanced");
+var account_binding_support = isSupport("account_binding");
 var fbwifi_support = isSupport("fbwifi");
 var noiptv_support = isSupport("noiptv");
 var improxy_support = isSupport("improxy");
@@ -764,7 +768,7 @@ if(based_modelid != "BRT-AC828"){
 
 //notification value
 var notice_pw_is_default = '<% check_pw(); %>';
-if(notice_pw_is_default == 1 && window.location.pathname.toUpperCase().search("QIS_") < 0)	//force to change http_passwd / http_username & except QIS settings
+if(notice_pw_is_default == 1 && window.location.pathname.toUpperCase().search("QIS_") < 0 && navigator.userAgent.search("asusrouter") == -1)	//force to change http_passwd / http_username & except QIS settings
 		location.href = 'Main_Password.asp?nextPage=' + window.location.pathname.substring(1 ,window.location.pathname.length);
 else if('<% nvram_get("w_Setting"); %>' == '0' && sw_mode != 2 && window.location.pathname.toUpperCase().search("QIS_") < 0)
 	location.href = '/QIS_wizard.htm?flag=wireless';
@@ -797,6 +801,10 @@ if(wan_bonding_support){
 
 function change_wl_unit_status(_unit){
 	// if(sw_mode == 2 || sw_mode == 4) return false;
+
+    if(odmpid === 'GT6'){
+        _unit = (_unit+2)%3;
+    }
 	
 	document.titleForm.wl_unit.disabled = false;
 	document.titleForm.wl_unit.value = _unit;
@@ -1018,7 +1026,7 @@ function show_banner(L3){// L3 = The third Level of Menu
 		banner_code +='<div class="banner1" align="center"><img src="images/New_ui/logo_TUF.png" align="left" style="width:450px;height:96px;margin-left:45px;">\n';
 		banner_code +='<div style="margin-top:0px;margin-left:-90px;*margin-top:0px;*margin-left:0px;" align="center"><span id="modelName_top" onclick="this.focus();" class="modelName_top"><#Web_Title2#></span></div>';
 			// logout
-			banner_code +='<a href="javascript:logout();"><div style="margin:20px 0 0 15px;*width:136px;background:url(\'images/New_ui/btn_logout.png\') no-repeat;background-size:cover;width:132px;height:34px;float:left;" align="center"><div style="margin:8px 0 0 15px;"><#t1Logout#></div></div></a>\n';
+		banner_code +='<div style="position: absolute;margin-left: 720px;"><a href="javascript:logout();"><div style="margin:20px 0 0 0;*width:136px;background:url(\'images/New_ui/btn_logout.png\') no-repeat;background-size:cover;width:132px;height:34px;float:left;" align="center"><div style="margin:8px 0 0 0;"><#t1Logout#></div></div></a></div>\n';
 	}
 	else if(spirit_logo_support){
 		banner_code +='<div class="banner1" align="center"><img src="images/New_ui/asus_spirit_title.png" width="214" height="31" align="left" style="margin-top:13px;margin-left:30px;">\n';
@@ -1075,9 +1083,9 @@ function show_banner(L3){// L3 = The third Level of Menu
 
 	// dsl does not support operation mode, except DSL-AX82U
 	if ((!dsl_support || support_site_modelid=="DSL-AX82U") && !lyra_hide_support) {
-		banner_code +='<span style="font-family:Verdana, Arial, Helvetica, sans-serif;"><#menu5_6_1_title#>:</sapn><span class="title_link" style="text-decoration: none;" id="op_link"><a href="/Advanced_OperationMode_Content.asp" style="color:white"><span id="sw_mode_span" style="text-decoration: underline;"></span></a></span>\n';
+		banner_code +='<span style="font-family:Verdana, Arial, Helvetica, sans-serif;"><#menu5_6_1_title#>:</span><span class="title_link" style="text-decoration: none;" id="op_link"><a href="/Advanced_OperationMode_Content.asp" style="color:white"><span id="sw_mode_span" style="text-decoration: underline;"></span></a></span>\n';
 	}
-	banner_code +='<span style="font-family:Verdana, Arial, Helvetica, sans-serif;"><#General_x_FirmwareVersion_itemname#></sapn><a href="/Advanced_FirmwareUpgrade_Content.asp" style="color:white;"><span id="firmver" class="title_link"></span></a>\n';
+	banner_code +='<span style="font-family:Verdana, Arial, Helvetica, sans-serif;"><#General_x_FirmwareVersion_itemname#></span><a href="/Advanced_FirmwareUpgrade_Content.asp" style="color:white;"><span id="firmver" class="title_link"></span></a>\n';
 	banner_code +='<span style="font-family:Verdana, Arial, Helvetica, sans-serif;" id="ssidTitle">SSID:';
 
 	banner_code +='<span onclick="change_wl_unit_status(0)" id="elliptic_ssid_2g" class="title_link"></span>';
@@ -1658,9 +1666,9 @@ function showMenuTree(menuList, menuExclude){
 				tab_code += curTab.url;
 				tab_code += '" id="';
 				tab_code += curTab.url.split(".")[0];
-				tab_code += '_tab"><span>';
+				tab_code += '_tab"><div>';
 				tab_code += curTab.tabName; 
-				tab_code += '</span></div></td>';
+				tab_code += '</div></div></td>';
 				tabCounter ++;
 			}
 
@@ -2090,6 +2098,12 @@ function show_top_status(){
 		var ssid_status_6g =  htmlEnDeCode.htmlEncode(decodeURIComponent('<% nvram_char_to_ascii("WLANConfig11b", "wl3_ssid"); %>'));
 		var _t = ssid_status_6g;
 		ssid_status_6g = ssid_status_5g_2;
+		ssid_status_5g_2 = ssid_status_5g;
+		ssid_status_5g = ssid_status_2g;
+		ssid_status_2g = _t;
+	}
+	else if(odmpid === 'GT6'){
+		var _t = ssid_status_5g_2;
 		ssid_status_5g_2 = ssid_status_5g;
 		ssid_status_5g = ssid_status_2g;
 		ssid_status_2g = _t;
@@ -2892,7 +2906,7 @@ var date_year = date.getFullYear();
 var date_month = date.getMonth();
 var modem_enable = '';
 var modem_sim_order = '';
-var wanConnectStatus = true;
+var wanConnectStatus = false;
 var wlc0_ssid = htmlEnDeCode.htmlEncode(decodeURIComponent('<% nvram_char_to_ascii("WLANConfig11b", "wlc0_ssid"); %>'));
 var wlc1_ssid = htmlEnDeCode.htmlEncode(decodeURIComponent('<% nvram_char_to_ascii("WLANConfig11b", "wlc1_ssid"); %>'));
 var concurrent_pap = false;
@@ -3882,23 +3896,23 @@ function isPortConflict(_val, service){
 		str = str + "HTTP LAN port.";
 		return str;
 	}
-	else if(_val == '<% nvram_get("dm_http_port"); %>'){
+	else if(!nodm_support && _val == '<% nvram_get("dm_http_port"); %>'){
 		str = str + "<#DM_title#>.";
 		return str;
 	}
-	else if(_val == '<% nvram_get("webdav_http_port"); %>'){
+	else if(WebDav_support && _val == '<% nvram_get("webdav_http_port"); %>'){
 		str = str + "Cloud Disk.";
 		return str;
 	}
-	else if(_val == '<% nvram_get("webdav_https_port"); %>'){
+	else if(WebDav_support && _val == '<% nvram_get("webdav_https_port"); %>'){
 		str = str + "Cloud Disk.";
 		return str;
 	}
-	else if(service != "ssh" && _val == '<% nvram_get("sshd_port"); %>'){
+	else if(ssh_support && service != "ssh" && _val == '<% nvram_get("sshd_port"); %>'){
 		str = str + "SSH.";
 		return str;
 	}
-	else if(service != "openvpn" && _val == '<% nvram_get("vpn_server_port"); %>'){
+	else if(openvpnd_support && service != "openvpn" && _val == '<% nvram_get("vpn_server_port"); %>'){
 		str = str + "OpenVPN.";
 		return str;
 	}
@@ -4202,6 +4216,9 @@ function regen_band(obj_name){
 
 	if(based_modelid == 'GT-AXE16000'){
 		band_value = [3, 0, 1, 2];
+	}
+	else if(odmpid == 'GT6'){
+		band_value = [2, 0, 1];
 	}
 
 	add_options_x2(obj_name, band_desc, band_value, current_band);
@@ -4584,4 +4601,3 @@ function Get_Component_PWD_Strength_Meter(id){
 	var $strength_color = $("<div>").addClass("strength_color").appendTo($pwd_strength_container).attr("id", "scorebar"+postfix);
 	return $pwd_strength_container;
 }
-

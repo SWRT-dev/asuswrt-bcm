@@ -84,16 +84,8 @@ LDFLAGS = -L$(TOP_PLATFORM)/nvram${BCMEX}${EX7} -lnvram -L$(TOP)/shared -lshared
 endif
 
 ifeq ($(HND_ROUTER),y)
-ifeq ($(R8000P),y)
-CFLAGS += -I$(HND_SRC)/shared/opensource/include/bcm963xx -I$(TOP)/bcm_flashutil
-else ifeq ($(HND_ROUTER_AX_675X),y)
-CFLAGS += -I$(HND_SRC)/shared/opensource/include/bcm963xx -I$(TOP_PLATFORM)/bcm_flashutil -I$(TOP_PLATFORM)/gen_util
-endif
 CFLAGS += -I$(HND_SRC)/userspace/public/include -I$(HND_SRC)/userspace/public/include/linux -I$(HND_SRC)/userspace/private/include
 CFLAGS += -I$(HND_SRC)/shared/opensource/include/$(BRCM_BOARD)
-ifeq ($(HND_ROUTER_AX_675X),y)
-LDFLAGS += -L$(TOP_PLATFORM)/gen_util -lgen_util -L$(TOP_PLATFORM)/sys_util -lsys_util
-endif
 ifeq ($(RTCONFIG_BCM_502L07P2),y)
 LDFLAGS += -L$(TOP_PLATFORM)/ethctl_lib -lethctl
 endif
@@ -189,9 +181,9 @@ ifeq ($(RTCONFIG_4352_5G),y)
 CFLAGS += -DBCM4352
 endif
 
+CFLAGS += -I$(TOP)/libdisk
 ifeq ($(RTCONFIG_USB),y)
 CFLAGS += -DU2EC
-CFLAGS += -I$(TOP)/libdisk
 LDFLAGS += -L$(TOP)/libdisk -ldisk
 ifeq ($(BCM_MMC),y)
 CFLAGS += -DBCM_MMC
@@ -309,6 +301,10 @@ ifneq ($(findstring CONFIG_BCM_KF_NETFILTER=, $(shell cat $(LINUXDIR)/.config)),
 CFLAGS         += -DBCM_KF_NETFILTER
 endif
 
+ifeq ($(and $(BR63),$(NEW_SWITCH_ORDER)),y)
+CFLAGS += -DNEW_SWITCH_ORDER
+endif
+
 OBJS := rc.o init.o interface.o lan.o wireless.o wan.o pppd.o auth.o services.o
 OBJS += firewall.o ppp.o services.o common.o
 OBJS += watchdog.o check_watchdog.o fwupg_flashing.o ntp.o $(if $(RTCONFIG_MULTIWAN_CFG),qos_multiwan.o,qos.o) udhcpc.o ate.o
@@ -351,11 +347,11 @@ endif
 OBJS += amas-ssd-cd-broadcom.o
 endif
 ifeq ($(RTCONFIG_BCM_MFG),y)
-ifeq ($(BUILD_NAME),$(filter $(BUILD_NAME),RT-AC68U RT-AC3200 4G-AC68U GT-AC2900 RT-AX58U TUF-AX3000 TUF-AX5400 RT-AX82U RT-AX55 RT-AX1800 DSL-AX82U GS-AX3000 GS-AX5400))
+ifeq ($(BUILD_NAME),$(filter $(BUILD_NAME),RT-AC68U RT-AC3200 4G-AC68U GT-AC2900 RT-AX58U TUF-AX3000 TUF-AX5400 RT-AX82U RT-AX55 RT-AX1800 DSL-AX82U GS-AX3000 GS-AX5400 GT-AX6000))
 OBJS += cfe.o
 endif
 else
-ifeq ($(BUILD_NAME),$(filter $(BUILD_NAME),RT-AC68U RT-AC3200 4G-AC68U GT-AC2900 RT-AX58U TUF-AX3000 RT-AX82U DSL-AX82U GS-AX3000 GS-AX5400))
+ifeq ($(BUILD_NAME),$(filter $(BUILD_NAME),RT-AC68U RT-AC3200 4G-AC68U GT-AC2900 RT-AX58U TUF-AX3000 RT-AX82U DSL-AX82U GS-AX3000 GS-AX5400 GT-AX6000))
 OBJS += cfe.o
 endif
 endif
@@ -403,7 +399,7 @@ ifeq ($(RTCONFIG_BHCOST_OPT),y)
 OBJS += amas-ssd-qca.o
 endif
 ifeq ($(RTCONFIG_CONNDIAG),y)
-OBJS += amas-ssd-cd-qca.o
+OBJS += $(if $(wildcard sysdeps/qca/amas-ssd-cd-qca.c),amas-ssd-cd-qca.o,prebuild/amas-ssd-cd-qca.o)
 endif
 endif
 ifeq ($(RTCONFIG_WIFI_SON),y)
@@ -705,7 +701,7 @@ endif
 ifeq ($(RTCONFIG_SOFTWIRE46),y)
 CFLAGS += -I$(TOP)/json-c
 LDFLAGS += -L$(TOP)/json-c/.libs -ljson-c
-OBJS += s46map_rptd.o
+OBJS += s46comm.o v6plusd.o ocnvcd.o
 endif
 
 ifeq ($(RTCONFIG_INTERNAL_GOBI),y)
@@ -795,6 +791,10 @@ endif
 ifeq ($(RTCONFIG_TC_DOWNLOAD), y)
 OBJS += tc_utils.o
 CFLAGS += -D _FILE_OFFSET_BITS=64
+endif
+
+ifeq ($(RTCONFIG_HND_ROUTER_AX),y)
+OBJS += gpy211_war.o
 endif
 
 ifeq ($(RTCONFIG_BCMARM),y)
@@ -989,7 +989,6 @@ endif
 all: PB rc $(if $(RTCONFIG_BRCM_HOSTAPD), $(WPS_PBCD)) init.prep
 
 PB:
-	[ ! -d prebuild/$(SWRT_NAME) ] || cp prebuild/$(SWRT_NAME)/*.o prebuild/
 	[ ! -d prebuild ] || cp prebuild/*.o ./
 
 ifeq ($(RTCONFIG_BRCM_HOSTAPD),y)
@@ -1007,7 +1006,7 @@ rc: $(OBJS) $(if $(RTCONFIG_CONNDIAG),libconn_diag.so,)
 install: all
 	@echo "[rc] Installing..."
 	@install -D rc $(INSTALLDIR)/sbin/rc
-	@$(STRIP) $(INSTALLDIR)/sbin/rc
+	$(if $(RTCONFIG_DEBUG),,@$(STRIP) $(INSTALLDIR)/sbin/rc)
 	@chmod 0500 $(INSTALLDIR)/sbin/rc
 ifeq ($(RTCONFIG_BRCM_HOSTAPD),y)
 	@install $(WPS_PBCD) $(INSTALLDIR)/sbin
@@ -1016,7 +1015,7 @@ endif
 
 ifeq ($(RTCONFIG_CONNDIAG),y)
 	@install -D libconn_diag.so $(INSTALLDIR)/usr/lib/libconn_diag.so
-	@$(STRIP) $(INSTALLDIR)/usr/lib/libconn_diag.so
+	$(if $(RTCONFIG_DEBUG),,@$(STRIP) $(INSTALLDIR)/usr/lib/libconn_diag.so)
 endif
 
 ifeq ($(RTCONFIG_BCMARM),y)
@@ -1185,6 +1184,9 @@ ifeq ($(RTCONFIG_EXT_RTL8370MB),y)
 	@cd $(INSTALLDIR)/sbin && ln -sf rc rtkswitch
 endif
 ifeq ($(or $(RTAX55),$(RTAX1800),$(RTAX58U_V2),$(RTAX3000N)),y)
+	@cd $(INSTALLDIR)/sbin && ln -sf rc rtkswitch
+endif
+ifeq ($(BUILD_NAME),$(filter $(BUILD_NAME),BR63))
 	@cd $(INSTALLDIR)/sbin && ln -sf rc rtkswitch
 endif
 ifeq ($(RTCONFIG_QCA),y)
@@ -1440,6 +1442,11 @@ ifeq ($(HND_ROUTER_AX),y)
 	@cd $(INSTALLDIR)/sbin && ln -sf rc rmd
 endif
 endif
+ifeq ($(RTCONFIG_AMAS_CENTRAL_ADS),y)
+	@cd $(INSTALLDIR)/sbin && ln -sf rc start_ds_measure
+	@cd $(INSTALLDIR)/sbin && ln -sf rc monitor_ds_ap_status
+	@cd $(INSTALLDIR)/sbin && ln -sf rc monitor_ds_sta_status
+endif
 endif
 
 ifeq ($(RTCONFIG_LETSENCRYPT),y)
@@ -1447,8 +1454,10 @@ ifeq ($(RTCONFIG_LETSENCRYPT),y)
 endif
 
 ifeq ($(RTCONFIG_SOFTWIRE46),y)
+	@cd $(INSTALLDIR)/sbin && ln -sf rc s46reset
 	@cd $(INSTALLDIR)/sbin && ln -sf rc mapcalc
-	@cd $(INSTALLDIR)/sbin && ln -sf rc s46map_rptd
+	@cd $(INSTALLDIR)/sbin && ln -sf rc v6plusd
+	@cd $(INSTALLDIR)/sbin && ln -sf rc ocnvcd
 endif
 
 ifeq ($(RTCONFIG_WLCSCAN_RSSI),y)
@@ -1530,6 +1539,11 @@ endif
 ifeq ($(RTCONFIG_IG_SITE2SITE),y)
 	@cd $(INSTALLDIR)/sbin && ln -sf rc ig_s2s_client
 endif
+
+ifeq ($(HND_ROUTER),y)
+	@cd $(INSTALLDIR)/sbin && ln -sf rc gpy211_monitor
+endif
+
 	@cd $(INSTALLDIR)/sbin && ln -sf rc toolbox
 
 clean:
@@ -1950,9 +1964,17 @@ ledg.o:
 endif
 endif
 ifeq ($(RTCONFIG_SOFTWIRE46),y)
-ifneq ($(wildcard ./prebuild/s46map_rptd.o),)
-s46map_rptd.o:
-	@-cp -f ./prebuild/s46map_rptd.o .
+ifneq ($(wildcard ./prebuild/s46comm.o),)
+s46comm.o:
+	@-cp -f ./prebuild/s46comm.o .
+endif
+ifneq ($(wildcard ./prebuild/v6plusd.o),)
+v6plusd.o:
+	@-cp -f ./prebuild/v6plusd.o .
+endif
+ifneq ($(wildcard ./prebuild/ocnvcd.o),)
+ocnvcd.o:
+	@-cp -f ./prebuild/ocnvcd.o .
 endif
 endif
 ifeq ($(RTCONFIG_TPVPN),y)
@@ -1981,6 +2003,11 @@ ifneq ($(wildcard ./prebuild/ig_s2s_client.o),)
 ig_s2s_client.o:
 	@-cp -f ./prebuild/ig_s2s_client.o .
 endif
+endif
+
+ifneq ($(wildcard ./prebuild/gpy211_war.o),)
+gpy211_war.o:
+	@-cp -f ./prebuild/gpy211_war.o .
 endif
 
 %.o: %.c

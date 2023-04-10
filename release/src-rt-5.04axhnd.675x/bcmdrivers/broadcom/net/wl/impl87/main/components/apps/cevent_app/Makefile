@@ -70,25 +70,25 @@ ca_be_str.c:
 	"`echo '#include <bcmevent.h>' | $(CC) -M $(CFLAGS) -xc - | \
 	grep bcmevent.h | head -1`" $@
 
-ifneq ($(wildcard ./prebuilt/ceventd),)
+ifneq ($(wildcard ./prebuilt/$(BUILD_NAME)/ceventd),)
 ceventd:
-	cp ./prebuilt/ceventd ceventd
+	cp ./prebuilt/$(BUILD_NAME)/ceventd ceventd
 else
 ceventd: $(CEVENTD_OBJS) ceventd.h
 	$(CC) $(CFLAGS) $^ -o $@  $(LDFLAGS)
 endif
 
-ifneq ($(wildcard ./prebuilt/ceventc),)
+ifneq ($(wildcard ./prebuilt/$(BUILD_NAME)/ceventc),)
 ceventc:
-	cp ./prebuilt/ceventc ceventc
+	cp ./prebuilt/$(BUILD_NAME)/ceventc ceventc
 else
 ceventc: $(CEVENTC_OBJS) ceventc.h
 	$(CC) $(CFLAGS) $^ -o $@  $(LDFLAGS)
 endif
 
-ifneq ($(wildcard ./prebuilt/libceshared.so),)
+ifneq ($(wildcard ./prebuilt/$(BUILD_NAME)/libceshared.so),)
 libceshared.so:
-	cp ./prebuilt/libceshared.so libceshared.so
+	cp ./prebuilt/$(BUILD_NAME)/libceshared.so libceshared.so
 else
 $(LIBCESHARED_OBJS): ce_shared.h
 	$(CC) -fPIC $(CFLAGS) -c $(@:.o=.c) -o $@

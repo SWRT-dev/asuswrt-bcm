@@ -420,7 +420,7 @@ static int write_cont_null_strings(FILE *fp, const char *s)
 int __update_ini_file(const char *filename, char **params)
 {
 	const unsigned char end_mark[2] = { 0, 0 };
-	long flen = 0, params_tlen = 0;
+	long flen = 0, params_tlen = 0, alen;
 	int ret = 0, i, found, copy;
 	FILE *fp;
 	size_t l, key_len;
@@ -445,14 +445,15 @@ int __update_ini_file(const char *filename, char **params)
 	fseek(fp, 0, SEEK_END);
 	flen = ftell(fp);
 
+	alen = flen + params_tlen + 1;
 	for (i = 0, src = &bc[0]; i < ARRAY_SIZE(bc); ++i, ++src) {
-		src->buf = malloc(flen + params_tlen);
+		src->buf = malloc(alen);
 		if (!src->buf) {
 			ret = -3;
 			break;
 		}
 
-		src->remain = src->tlen = flen + params_tlen + 1;
+		src->remain = src->tlen = alen;
 		*src->buf = '\0';
 	}
 
@@ -496,6 +497,8 @@ int __update_ini_file(const char *filename, char **params)
 			break;
 		}
 
+		if (!(p = strchr(*v, '=')))
+			continue;
 		key_len = p - *v + 1;
 		found = 0;
 		src = &bc[0 ^ (i & 1)];

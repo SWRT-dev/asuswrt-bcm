@@ -229,7 +229,7 @@ define(function(){
 				tab: [
 					{url: "Advanced_LAN_Content.asp", tabName: "<#menu5_2_1#>"},
 					{url: "Advanced_DHCP_Content.asp", tabName: "<#menu5_2_2#>"},
-					{url: "DNSFilter.asp", tabName: "DNSFilter"},
+					//{url: "DNSFilter.asp", tabName: "DNSFilter"},
 					{url: "Advanced_MultiSubnet_Content.asp", tabName: "<#menu5_2_2#>"},
 					{url: "Advanced_GWStaticRoute_Content.asp", tabName: "<#menu5_2_3#>"},
 					{url: "Advanced_IPTV_Content.asp", tabName: "IPTV"},
@@ -282,8 +282,6 @@ define(function(){
 					{url: "Advanced_VPNClient_Content.asp", tabName: (vpn_fusion_support) ? "<#VPN_Fusion#>" : "<#vpnc_title#>"},
 					{url: "Advanced_TOR_Content.asp", tabName: "TOR"},
 					{url: "Advanced_Instant_Guard.asp", tabName: "<#Instant_Guard_title#>"},
-					{url: "Advanced_WireguardServer_Content.asp", tabName: "WireGuard Server"},/*untranslated*/
-					{url: "Advanced_WireguardClient_Content.asp", tabName: "WireGuard Client"},/*untranslated*/
 					{url: "NULL", tabName: "__INHERIT__"}
 				]
 			},		
@@ -566,7 +564,6 @@ define(function(){
 					retArray.push("AiProtection_AdBlock.asp");
 					retArray.push("AiProtection_Key_Guard.asp");
 					retArray.push("AiProtection_AdBlock.asp");
-					retArray.push("TrafficAnalyzer_Statistic.asp");
 				}
 
 				if(!bwdpi_mals_support){
@@ -627,7 +624,7 @@ define(function(){
 					retArray.push("AdaptiveQoS_Bandwidth_Monitor.asp");
 				}
 
-				if(!traffic_analyzer_support){
+				if(!traffic_analyzer_support && !dns_dpi_support){
 					retArray.push("TrafficAnalyzer_Statistic.asp");		
 				}
 
@@ -828,11 +825,6 @@ define(function(){
 				if(!dnsfilter_support)
 					retArray.push("DNSFilter.asp");
 
-				if(!wireguard_support) {
-					retArray.push("Advanced_WireguardServer_Content.asp");
-					retArray.push("Advanced_WireguardClient_Content.asp");
-				}
-
 				/* Operation Mode */
 				if(isSwMode("re")){
 					retArray.push("GameBoost.asp");
@@ -964,4 +956,3 @@ define(function(){
 
 	return menuTree;
 });
-

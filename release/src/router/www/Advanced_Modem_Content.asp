@@ -176,8 +176,12 @@ function initial(){
 		},
 		function() {
 			if(dualWAN_support){
-				if(usb_index == 0)
-					document.form.wans_dualwan.value = wans_dualwan_array[1]+" none";
+				if(usb_index == 0){
+					if(wans_dualwan_array[1] != "none" && wans_dualwan_array[1] != "lan")
+						document.form.wans_dualwan.value = wans_dualwan_array[1] +" none";
+					else
+						document.form.wans_dualwan.value = "wan none";
+				}
 				else
 					document.form.wans_dualwan.value = wans_dualwan_array[0]+" none";
 			}
@@ -813,8 +817,8 @@ function change_apn_mode(){
 						<th><#select_usb_device#></th>
 						<td align="left">
 							<select id="modem_android" name="modem_android" class="input_option" onChange="select_usb_device(this);">
-								<option value="0" <% nvram_match("modem_android", "0", "selected"); %>><#menu5_4_4#></option>
-								<option value="1" <% nvram_match("modem_android", "1", "selected"); %>><#Android_phone#></option>
+								<option value="0" <% nvram_match("modem_android", "0", "selected"); %>><#Auto#></option>
+								<option value="1" <% nvram_match("modem_android", "1", "selected"); %>>Legacy</option><!--untranslated-->
 							</select>
 							<div  class="formfontdesc" id="android_desc" style="display:none; color:#FFCC00;margin-top:5px;">
 								<#usb_tethering_hint0#>

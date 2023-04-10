@@ -195,13 +195,17 @@ function getInterface(){
 		'dualBand6GHzSmartConnect': [['0', '2.4 / 5 GHz', '0'], ['2', '6 GHz', '2']],
 		'dualBandSmartConnect': [['0', '<#smart_connect_dual#>', '0']],
 		'triBand5GHzSmartConnect': [['0', '2.4 GHz', '0'], ['1', '5GHz Smart Connect', '1']],
+		'GT6-5GHzSmartConnect': [['2', '2.4 GHz', '2'], ['1', '5GHz Smart Connect', '1']],
 		'triBandMeshSmartConnect': [['0', '<#smart_connect_dual#>', '0'], ['2', '5 GHz-2', '2']],
+		'GT6triBandMeshSmartConnect': [['0', '<#smart_connect_dual#>', '0'], ['1', '5 GHz-2', '1']],
 		'triBand6GHzMeshSmartConnect': [['0', '<#smart_connect_dual#>', '0'], ['2', '6 GHz', '2']],
 		'lyraHide': [['0', 'Wireless', '0']],
 		'2.4G':  [['0', '2.4 GHz', '0']],
 		'2.4G-AXE16000':  [['3', '2.4 GHz', '3']],
+		'2.4G-GT6':  [['2', '2.4 GHz', '2']],
 		'5GDualBand': [['1', '5 GHz', '1']],
 		'5GTriBand': [['1', '5 GHz-1', '1'], ['2', '5 GHz-2', '2']],
+		'GT6-5GTriBand': [['0', '5 GHz-1', '0'], ['1', '5 GHz-2', '1']],
 		'6GTriBand': [['1', '5 GHz', '1'], ['2', '6 GHz', '2']],
 		'6GQuadBand': [['0', '5 GHz-1', '0'], ['1', '5 GHz-2', '1'], ['2', '6 GHz', '2']],
 		'60G': [['3', '60 GHz','3']],
@@ -262,7 +266,13 @@ function getInterface(){
 							_temp = typeObj['triBandSmartConnect'];
 						}
 						else{
-							_temp = typeObj['triBandMeshSmartConnect'];
+							if(odmpid === 'GT6'){								
+								_temp = typeObj['GT6triBandMeshSmartConnect'];
+							}
+							else {
+								_temp = typeObj['triBandMeshSmartConnect'];
+							}
+							
 							if(isSupport("amas_fronthaul_network")){
 								var fh_ap_enabled = httpApi.nvramGet(["fh_ap_enabled"]).fh_ap_enabled;
 								if(fh_ap_enabled == "2"){
@@ -284,8 +294,13 @@ function getInterface(){
 		else if(variable.smart_connect_x == '3'){
 			_temp = typeObj['dualBand6GHzSmartConnect'];
 		}
-		else{		// 5 GHz Smart Connect
-			_temp = typeObj['triBand5GHzSmartConnect'];
+		else{		// 5 GHz Smart Connect			
+			if(odmpid === 'GT6'){								
+				_temp = typeObj['GT6-5GHzSmartConnect'];
+			}
+			else {
+				_temp = typeObj['triBand5GHzSmartConnect'];
+			}			
 		}
 	}
 	else if(system.lyraHideSupport){
@@ -295,6 +310,15 @@ function getInterface(){
 		if(system.band2gSupport){
 			if(system.modelName === 'GT-AXE16000'){
 				_temp = _temp.concat(typeObj['2.4G-AXE16000']);
+			}
+			else if(system.modelName === 'GT-BE98'){
+				_temp = _temp.concat(typeObj['2.4G-BE98']);
+			}
+			else if(system.modelName === 'GT-BE98_PRO'){
+				_temp = _temp.concat(typeObj['2.4G-BE98_PRO']);
+			}
+			else if(odmpid === 'GT6'){
+				_temp = _temp.concat(typeObj['2.4G-GT6']);
 			}
 			else{
 				_temp = _temp.concat(typeObj['2.4G']);
@@ -310,7 +334,12 @@ function getInterface(){
 					_temp = _temp.concat(typeObj['6GTriBand']);
 				}
 				else{
-					_temp = _temp.concat(typeObj['5GTriBand']);
+					if(odmpid === 'GT6'){								
+						_temp = _temp.concat(typeObj['GT6-5GTriBand']);
+					}
+					else {
+						_temp = _temp.concat(typeObj['5GTriBand']);
+					}					
 				}			
 			}
 			else{
@@ -331,7 +360,11 @@ function getInterface(){
 			});
 		}
 		else{
-			wlInterface[wlc_band][2] = wlc_band + '.1';
+			for(let i =0;i<wlInterface.length;i++){
+				if(wlInterface[i][0] === wlc_band){
+					wlInterface[i][2] = wlInterface[i][2] + '.1';
+				}
+			}
 		}
 	}
 
@@ -369,8 +402,8 @@ function genElement(){
 			
 		
 			code += '<select class="input_option" onchange="enableSmartConnect(this.value)">'
-			code += '<option value="0" '+ (variable.smart_connect_x === '0' ? 'selected': '') +'>關閉';
-			code += '<option value="1" '+ (variable.smart_connect_x !== '0' ? 'selected': '') +'>開';			
+			code += '<option value="0" '+ (variable.smart_connect_x === '0' ? 'selected': '') +'><#CTL_close#>';
+			code += '<option value="1" '+ (variable.smart_connect_x !== '0' ? 'selected': '') +'><#CTL_Enabled#>';			
 			code += '</select>'
 	
 
@@ -472,7 +505,7 @@ function genElement(){
             if(_authMode != 'owe' && _authMode != 'openowe'){            
                 code += '<div class="info-block">';
                 code += '<div class="info-title"><#WPA-PSKKey#></div>';
-                code += '<div><input type="text" class="input-size-25" id="wl'+ unit +'_wpa_psk" oninput="updateVariable(this.id, value, false)"></div>';
+                code += '<div><input type="password" class="input-size-25" id="wl'+ unit +'_wpa_psk" oninput="updateVariable(this.id, value, false)" onfocus="plainPasswordSwitch(this, \'focus\');" onblur="plainPasswordSwitch(this, \'blur\')"></div>';
                 code += '</div>';
             }
 		}

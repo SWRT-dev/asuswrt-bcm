@@ -165,6 +165,7 @@ static const struct model_s model_list[] = {
 	{ "RT-AX82U_V2",	MODEL_RTAX82U_V2	},
 	{ "RT-AX82_XD6S",	MODEL_RTAX82_XD6S	},
 	{ "RT-AX3000N",		MODEL_RTAX3000N		},
+	{ "BR63",		MODEL_BR63		},
 	{ "RT-AX58U_V2",	MODEL_RTAX58U_V2	},
 	{ "TUF-AX3000_V2",	MODEL_TUFAX3000_V2	},
 	{ "RT-AXE7800",		MODEL_RTAXE7800		},
@@ -214,6 +215,11 @@ static const struct model_s model_list[] = {
 	{ "ET8_V2",		MODEL_ET8_V2		},
 	{ "XD6_V2",		MODEL_XD6_V2		},
 	{ "RT-AX5400",		MODEL_RTAX5400		},
+	{ "BC109",		MODEL_BC109		},
+	{ "EBG19",		MODEL_EBG19		},
+	{ "EBG15",		MODEL_EBG15		},
+	{ "EBP15",		MODEL_EBP15		},
+	{ "BC105",		MODEL_BC105		},
 #endif	/* !RTCONFIG_RALINK */
 	{ NULL, 0 },
 };
@@ -387,7 +393,7 @@ static const struct model_s modelname_list[] = {
 	{ "RGMA2820A", 	SWRT_MODEL_RGMA2820A },
 	{ "RGMA2820B", 	SWRT_MODEL_RGMA2820B },
 	{ "JDCAX1800", 	SWRT_MODEL_JDCAX1800 },
-	{ "RGMA3032", 	SWRT_MODEL_RGMA3032 },
+	{ "RGMA3062", 	SWRT_MODEL_RGMA3062 },
 	{ "TY6201PRO", 	SWRT_MODEL_TY6201PRO },
 	{ NULL, 0 },
 };

@@ -426,9 +426,9 @@ $(CREATE_INSTALL):
 		mkdir -p $(INSTALL_DIR)/etc/snmp
 		mkdir -p $(INSTALL_DIR)/etc/iproute2
 		rm -rf $(INSTALL_DIR)/opt
-		mkdir -p $(INSTALL_DIR)/rom/bin
-		mkdir -p $(INSTALL_DIR)/rom/modules
-		mkdir -p $(INSTALL_DIR)/rom/scripts
+		mkdir -p $(INSTALL_DIR)/opt/bin
+		mkdir -p $(INSTALL_DIR)/opt/modules
+		mkdir -p $(INSTALL_DIR)/opt/scripts
 		touch $@
 
 $(KERNELLINKS): $(KERNEL_INCLUDE_LINK) $(KERNEL_ARM_INCLUDE_LINK)
@@ -844,6 +844,7 @@ endif
 	fi
 	cd $(TARGETS_DIR); ./buildFSopenwrt;
 else
+	cd $(BUILD_DIR); make -C router strips;
 	cd $(TARGETS_DIR); ./buildFS;
 endif
 
@@ -1249,6 +1250,5 @@ unexport BUILD_BRCM_CMS
 ###########################################
 # End of the real part
 ###########################################
-
 
 

@@ -31,7 +31,7 @@ function Get_Component_Customize_Alert(_text){
 	$desc.appendTo($customize_alert);
 	var $action_btn_container = $("<div>").addClass("action_btn_container");
 	$action_btn_container.appendTo($customize_alert);
-	var $ok = $("<div>").addClass("ok btn").html("<#CTL_ok#>");
+	var $ok = $("<div>").attr({"data-btn":"ok"}).addClass("ok btn").html("<#CTL_ok#>");
 	$ok.appendTo($action_btn_container);
 	$ok.unbind("click").click(function(e){
 		e = e || event;
@@ -463,8 +463,8 @@ function set_value_Custom_Select(_obj, _id, _value){
 	$text.html(htmlEnDeCode.htmlEncode(selected_text));
 }
 function resize_iframe_height(_preheight){
-	if(window.parent.$("#vpns_iframe").length == "1"){
-		var menu_height = window.parent.$("#mainMenu").height();
+	if($(parent.document).find(".rwd_iframe").length == "1"){
+		var menu_height = $(parent.document).find("#mainMenu").height();
 		var container_height = $(".container").height();
 
 		if(_preheight != undefined && (typeof _preheight == "number"))
@@ -480,7 +480,7 @@ function resize_iframe_height(_preheight){
 		});
 
 		var margin_bottom = 30;
-		window.parent.$("#vpns_iframe").css("height", (Math.max(menu_height, container_height, pop_height) + margin_bottom));
+		$(parent.document).find(".rwd_iframe").css("height", (Math.max(menu_height, container_height, pop_height) + margin_bottom));
 	}
 }
 function showLoading(seconds, flag){

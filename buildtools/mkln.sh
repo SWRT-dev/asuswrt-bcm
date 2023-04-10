@@ -2,13 +2,13 @@
 REPO=/home/paldier/release/asuswrt-bcm
 
 build_link(){
-	[ ! -d RT-AC68U ] && ln -sf BCM470X RT-AC68U
-	[ ! -d RT-AC88U ] && ln -sf BCM470X RT-AC88U
-	[ ! -d RT-AC3100 ] && ln -sf BCM470X RT-AC3100
-	[ ! -d RT-AC5300 ] && ln -sf BCM470X RT-AC5300
-	[ ! -d RT-AC86U ] && ln -sf BCM490X_AC RT-AC86U
-	[ ! -d GT-AC2900 ] && ln -sf BCM490X_AC GT-AC2900
-	[ ! -d GT-AC5300 ] && ln -sf BCM490X_AC GT-AC5300
+#	[ ! -d RT-AC68U ] && ln -sf BCM470X RT-AC68U
+#	[ ! -d RT-AC88U ] && ln -sf BCM470X RT-AC88U
+#	[ ! -d RT-AC3100 ] && ln -sf BCM470X RT-AC3100
+#	[ ! -d RT-AC5300 ] && ln -sf BCM470X RT-AC5300
+#	[ ! -d RT-AC86U ] && ln -sf BCM490X_AC RT-AC86U
+#	[ ! -d GT-AC2900 ] && ln -sf BCM490X_AC GT-AC2900
+#	[ ! -d GT-AC5300 ] && ln -sf BCM490X_AC GT-AC5300
 	[ ! -d RT-AX55 ] && ln -sf BCM675X RT-AX55
 	[ ! -d RT-AX56U ] && ln -sf BCM675X RT-AX56U
 	[ ! -d RT-AX58U ] && ln -sf BCM675X RT-AX58U
@@ -28,6 +28,10 @@ build_link(){
 	[ ! -d GT-AXE11000 ] && ln -sf BCM490X_AX GT-AXE11000
 	[ ! -d GT-AXE16000 ] && ln -sf BCM491X GT-AXE16000
 	[ ! -d XT12 ] && ln -sf BCM491X XT12
+	[ ! -d RT-AX88U_PRO ] && ln -sf BCM491X RT-AX88U_PRO
+	[ ! -d RT-AX82U_V2 ] && ln -sf BCM6756 RT-AX82U_V2
+	[ ! -d TUF-AX3000_V2 ] && ln -sf BCM6756 TUF-AX3000_V2
+	[ ! -d TUF-AX5400_V2 ] && ln -sf BCM6756 TUF-AX5400_V2
 }
 
 cd $REPO/release/src/router/aaews/prebuild/ && build_link
@@ -35,6 +39,7 @@ cd $REPO/release/src/router/asusnatnl/natnl/prebuild/ && build_link
 cd $REPO/release/src/router/asuswebstorage/prebuild/ && build_link
 cd $REPO/release/src/router/bsd/prebuilt/ && build_link
 cd $REPO/release/src/router/dhd/prebuilt/ && build_link
+cd $REPO/release/src/router/dhcpfwd/prebuild/ && build_link
 cd $REPO/release/src/router/dns_ping/prebuild/ && build_link
 cd $REPO/release/src/router/dropbox_client/prebuild/ && build_link
 cd $REPO/release/src/router/eventd/prebuilt/ && build_link
@@ -44,6 +49,7 @@ cd $REPO/release/src/router/infosvr/prebuild/ && build_link
 cd $REPO/release/src/router/inotify/prebuild/ && build_link
 cd $REPO/release/src/router/libbcm/prebuilt/ && build_link
 cd $REPO/release/src/router/libletsencrypt/prebuild/ && build_link
+cd $REPO/release/src/router/libvpn/prebuild/ && build_link
 cd $REPO/release/src/router/lighttpd-1.4.39/prebuild/ && build_link
 cd $REPO/release/src/router/networkmap/prebuild/ && build_link
 cd $REPO/release/src/router/nt_center/actMail/prebuild/ && build_link

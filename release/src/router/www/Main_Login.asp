@@ -364,7 +364,7 @@ var redirect_page = login_info.page;
 var isRouterMode = (htmlEnDeCode.htmlEncode(decodeURIComponent('<% nvram_char_to_ascii("","sw_mode"); %>')) == '1') ? true : false;
 
 var header_info = [<% get_header_info(); %>][0];
-var ROUTERHOSTNAME = htmlEnDeCode.htmlEncode(decodeURIComponent('<% nvram_char_to_ascii("","local_domain"); %>'));
+var ROUTERHOSTNAME = '<#Web_DOMAIN_NAME#>';
 var domainNameUrl = header_info.protocol+"://"+ROUTERHOSTNAME+":"+header_info.port;
 var chdom = function(){window.location.href=domainNameUrl};
 (function(){
@@ -583,7 +583,7 @@ function login(){
 			|| redirect_page.indexOf(" ") != -1 
 			|| redirect_page.indexOf("//") != -1 
 			|| redirect_page.indexOf("http") != -1
-			|| (redirect_page.indexOf(".asp") == -1 && redirect_page.indexOf(".htm") == -1 && redirect_page != "send_IFTTTPincode.cgi" && redirect_page != "cfg_onboarding.cgi" && redirect_page != "enable_ig_s2s_client.cgi")
+			|| (redirect_page.indexOf(".asp") == -1 && redirect_page.indexOf(".htm") == -1 && redirect_page != "send_IFTTTPincode.cgi" && redirect_page != "cfg_onboarding.cgi" && redirect_page != "ig_s2s_link.cgi")
 		){
 			document.form.next_page.value = "";
 		}

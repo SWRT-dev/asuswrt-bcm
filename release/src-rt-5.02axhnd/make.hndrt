@@ -55,7 +55,7 @@ all:
 	$(MAKE) default
 
 all_postcheck1: profile_saved_check sanity_check rdp_link\
-     create_install pinmuxcheck dynamic_cfe kernelbuild modbuild\
+     create_install pinmuxcheck dynamic_cfe #kernelbuild #modbuild\
      parallel_targets #gdbserver buildimage
 
 # Order-only rules
@@ -913,8 +913,8 @@ define build_images_unsecure
 $(if $(findstring B_y, $(1)), \
 $(if $(findstring uy, $(7)), \
       $(HOSTTOOLS_DIR)/scripts/bcmImageMaker --cferom $(2) --blocksize $(FLASH_NAND_BLOCK_$(3)KB) --bootofs $(4) --bootsize $(FLASH_NAND_BLOCK_$(3)KB)  --ubifs --bootfs bootfs$(3)kb.img --rootfs ubi_rootfs$(3)kb.img --image $(FLASH_NAND_CFEROM_FS_IMAGE_NAME_$(3))_ubi --fsonly $(FLASH_NAND_FS_IMAGE_NAME_$(3))_ubi $(6) $(5);)\
-#$(if $(findstring sy, $(8)), \
-#       $(HOSTTOOLS_DIR)/scripts/bcmImageMaker --cferom $(2) --blocksize $(FLASH_NAND_BLOCK_$(3)KB) --bootofs $(4) --bootsize $(FLASH_NAND_BLOCK_$(3)KB)  --squbifs --bootfs bootfs$(3)kb.img --rootfs squbi_rootfs$(3)kb.img --image $(FLASH_NAND_CFEROM_FS_IMAGE_NAME_$(3))_squbi --fsonly $(FLASH_NAND_FS_IMAGE_NAME_$(3))_squbi $(6) $(5);)\
+$(if $(findstring sy, $(8)), \
+       $(HOSTTOOLS_DIR)/scripts/bcmImageMaker --cferom $(2) --blocksize $(FLASH_NAND_BLOCK_$(3)KB) --bootofs $(4) --bootsize $(FLASH_NAND_BLOCK_$(3)KB)  --squbifs --bootfs bootfs$(3)kb.img --rootfs squbi_rootfs$(3)kb.img --image $(FLASH_NAND_CFEROM_FS_IMAGE_NAME_$(3))_squbi --fsonly $(FLASH_NAND_FS_IMAGE_NAME_$(3))_squbi $(6) $(5);)\
   )
 $(if $(findstring L_y, $(1)), \
 #$(if $(findstring uy, $(7)), \
@@ -1046,6 +1046,7 @@ else
 	make -C $(HOSTTOOLS_DIR) build_execstack;
 endif
 endif
+	make -C router strips;
 	cd $(TARGETS_DIR); ./buildFS;
 ifneq ($(BUILD_MODSW_BEE),)
 	cd $(TARGETS_DIR); ./buildFS_BEE;
@@ -1236,8 +1237,8 @@ ifneq ($(findstring _$(strip $(BRCM_KERNEL_ROOTFS))_,_all_ _squashfs_),)
 	    @echo -e "Done! Image $(PROFILE) has been built in $(PROFILE_DIR)."
 endif
 endif
-	md5sum $(HND_SRC)/targets/$(PROFILE)/$(IMGNAME)_ubi.w > $(HND_SRC)/targets/$(PROFILE)/$(IMGNAME)_ubi.md5
-	md5sum $(HND_SRC)/targets/$(PROFILE)/$(IMGNAME)_cferom_ubi.w > $(HND_SRC)/targets/$(PROFILE)/$(IMGNAME)_cferom_ubi.md5
+#	md5sum $(HND_SRC)/targets/$(PROFILE)/$(IMGNAME)_ubi.w > $(HND_SRC)/targets/$(PROFILE)/$(IMGNAME)_ubi.md5
+#	md5sum $(HND_SRC)/targets/$(PROFILE)/$(IMGNAME)_cferom_ubi.w > $(HND_SRC)/targets/$(PROFILE)/$(IMGNAME)_cferom_ubi.md5
 
 	$(if $(LIVE_UPDATE_RSA), \
 		$(if $(wildcard $(KEY_PATH)/private*.pem), \

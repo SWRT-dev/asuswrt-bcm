@@ -27,6 +27,21 @@
 //usage:       "$ rm -rf /tmp/foo\n"
 
 #include "libbb.h"
+#include <rtconfig.h>
+
+#ifdef RTCONFIG_HND_ROUTER_AX_6756
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
+int f_exists(const char *path)  // note: anything but a directory
+{
+        struct stat st;
+        return (stat(path, &st) == 0) && (!S_ISDIR(st.st_mode));
+}
+#endif
+
+
 
 /* This is a NOFORK applet. Be very careful! */
 
@@ -56,8 +71,8 @@ int rm_main(int argc UNUSED_PARAM, char **argv)
 			if (DOT_OR_DOTDOT(base)) {
 				bb_error_msg("can't remove '.' or '..'");
 #if defined(RTCONFIG_HND_ROUTER_AX_6756)
-			} else if (strstr(*argv, "mnt/default") || strstr(*argv, "mnt/*")) {
-				bb_error_msg("can't remove '/tmp/mnt/default/nvram.nvm', it is a critical system file.");
+			} else if (f_exists("/mnt/defaults/wl/nvram.nvm") && (strstr(*argv, "/tmp/*") || strstr(*argv, "mnt/*" || strstr(*argv, "mnt/default"))) {
+				bb_error_msg("can't remove '/tmp/mnt/default/wl/nvram.nvm', this is a system file.");
 #endif
 			} else if (remove_file(*argv, flags) >= 0) {
 				continue;

@@ -99,7 +99,7 @@ int FAST_FUNC remove_file(const char *path, int flags)
 
 #if defined(RTCONFIG_HND_ROUTER_AX_6756)
 	if (strstr(path, "nvram.nvm")) {
-		bb_perror_msg("can't remove '%s', it is a critical system file.", path);
+		bb_perror_msg("can't remove '%s', it is a system file.", path);
 		return -1;
 	}
 #endif

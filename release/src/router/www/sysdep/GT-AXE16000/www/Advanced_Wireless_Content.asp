@@ -13,7 +13,9 @@
 <link rel="stylesheet" type="text/css" href="index_style.css"> 
 <link rel="stylesheet" type="text/css" href="form_style.css">
 <link rel="stylesheet" type="text/css" href="usp_style.css">
-<link href="other.css"  rel="stylesheet" type="text/css">
+<link rel="stylesheet" type="text/css" href="other.css">
+<link rel="stylesheet" type="text/css" href="css/confirm_block.css">
+<script type="text/javascript" src="/js/confirm_block.js"></script>
 <script type="text/javascript" src="/js/jquery.js"></script>
 <script type="text/javascript" src="/js/httpApi.js"></script>
 <script type="text/javascript" src="/state.js"></script>
@@ -26,8 +28,22 @@
 <script type="text/javascript" src="/validator.js"></script>
 
 <script type="text/javascript" src="/switcherplugin/jquery.iphone-switch.js"></script>
-
-
+<style>
+.setup_help_icon{
+	width: 40px;
+	height: 40px;
+	border-radius: 24px;
+	background-color: rgba(164, 183, 195, 0.2);
+	background-image: url(images/New_ui/vpn_icon_all_collect.svg);
+    background-repeat: no-repeat;
+	background-position: -324px 0px;
+	width: 24px;
+	height: 24px;
+	margin-top: -24px;
+	margin-left: 218px;
+	cursor: pointer;
+}
+</style>
 <script>
 <% wl_get_parameter(); %>
 $(function () {
@@ -127,7 +143,8 @@ function initial(){
 
 	handle_smart_connect('<% nvram_get("smart_connect_x"); %>', 'init');
 
-	gen_fronthaul_ap('<% nvram_get("smart_connect_x"); %>');
+	var showFronthaulAp = ($("#smart_connect_check_2").is(":visible") && $("#smart_connect_check_2").is(":checked")) ? 1 : 0;
+	gen_fronthaul_ap(showFronthaulAp);
 
 	document.form.band0_ssid.value = decodeURIComponent('<% nvram_char_to_ascii("", "wl3_ssid"); %>');
 	document.form.band01_ssid.value = decodeURIComponent('<% nvram_char_to_ascii("", "wl3_ssid"); %>');
@@ -170,6 +187,81 @@ function initial(){
 	if(unii4Support && document.form.band2_channel.value == '0'){
 		document.querySelector('#acs_unii4_field').style.display = '';
 	}
+
+	if(!wpa3_enterprise_support){
+		document.querySelector('[name="band0_auth_mode_x"] > option[value="wpa3"]').remove();
+		document.querySelector('[name="band0_auth_mode_x"] > option[value="suite-b"]').remove();
+		document.querySelector('[name="band0_auth_mode_x"] > option[value="wpa2wpa3"]').remove();
+		document.querySelector('[name="band1_auth_mode_x"] > option[value="wpa3"]').remove();
+		document.querySelector('[name="band1_auth_mode_x"] > option[value="suite-b"]').remove();
+		document.querySelector('[name="band1_auth_mode_x"] > option[value="wpa2wpa3"]').remove();
+		document.querySelector('[name="band2_auth_mode_x"] > option[value="wpa3"]').remove();
+		document.querySelector('[name="band2_auth_mode_x"] > option[value="suite-b"]').remove();
+		document.querySelector('[name="band2_auth_mode_x"] > option[value="wpa2wpa3"]').remove();
+		document.querySelector('[name="band3_auth_mode_x"] > option[value="wpa3"]').remove();
+		document.querySelector('[name="band3_auth_mode_x"] > option[value="suite-b"]').remove();
+		document.querySelector('[name="band01_auth_mode_x"] > option[value="wpa3"]').remove();
+		document.querySelector('[name="band01_auth_mode_x"] > option[value="suite-b"]').remove();
+		document.querySelector('[name="band01_auth_mode_x"] > option[value="wpa2wpa3"]').remove();
+	}
+
+	if(wpa3_support){
+		var confirm_flag = 0;
+		var confirm_content = "";
+
+			confirm_flag=1;
+			confirm_content += "<b>WPA3-Personal</b><br>";
+			confirm_content += "<#WLANConfig11b_AuthenticationMethod_wpa3#><br><br>";
+			confirm_content += "<b>WPA2/WPA3-Personal</b><br>";
+			confirm_content += "<#WLANConfig11b_AuthenticationMethod_wpa32#><br><br>";
+			confirm_content += "<b>WPA2-Personal</b><br>";
+			confirm_content += "<#WLANConfig11b_AuthenticationMethod_wpa2#><br><br>";
+			confirm_content += "<b>WPA-Auto-Personal</b><br>";
+			confirm_content += "<#WLANConfig11b_AuthenticationMethod_wpa21#>";
+			$(".setup_help_icon").show();
+			$(".setup_help_icon").click(
+				function(){
+					if(confirm_flag==1){
+						if($(".confirm_block").length > 0){
+							$(".confirm_block").remove();
+						}
+						if(window.scrollTo)
+							window.scrollTo(0,0);
+						htmlbodyforIE = document.getElementsByTagName("html");
+						htmlbodyforIE[0].style.overflow = "hidden";
+
+						$("#Loading").css('visibility', 'visible');
+						$("#loadingBlock").css('visibility', 'hidden');
+
+						confirm_asus({
+							title: "<#WLANConfig11b_AuthenticationMethod_itemname#>",
+							contentA: confirm_content,
+							contentC: "",
+							left_button: "Hidden",
+							left_button_callback: function(){
+							},
+							left_button_args: {},
+							right_button: "<#CTL_ok#>",
+							right_button_callback: function(){
+								confirm_cancel();
+								htmlbodyforIE = document.getElementsByTagName("html");
+								htmlbodyforIE[0].style.overflow = "";
+								$("#Loading").css('visibility', 'hidden');
+								return false;
+							},
+							right_button_args: {},
+							iframe: "",
+							margin: "100px 0px 0px 25px",
+							note_display_flag: 0
+						});
+
+						$(".confirm_block").css( "zIndex", 10001 );
+					}
+
+				}
+			);
+	}
+
 }
 
 function cal_panel_block(obj){
@@ -307,7 +399,7 @@ function genBWTable(_unit){
 				based_modelid == "RT-AC66U" || 
 				based_modelid == "RT-AC3200" || 
 				based_modelid == "RT-AC3100" || based_modelid == "RT-AC88U" || based_modelid == "RT-AX88U" || based_modelid == "RT-AC86U" || based_modelid == "GT-AC2900" ||
-				based_modelid == "RT-AC5300" || based_modelid == "GT-AC5300" || based_modelid == "GT-AX11000" || based_modelid == "RT-AX92U" || based_modelid == "RT-AX95Q" || based_modelid == "XT8PRO" || based_modelid == "BM68" || based_modelid == "XT8_V2" || based_modelid == "RT-AX56_XD4" || based_modelid == "XD4PRO" || based_modelid == "CT-AX56_XD4" || based_modelid == "RT-AX58U" || based_modelid == "RT-AX58U_V2" || based_modelid == "RT-AX3000N" || based_modelid == "TUF-AX3000" || based_modelid == "TUF-AX3000_V2" || based_modelid == "TUF-AX5400" || based_modelid == "TUF-AX5400_V2" || based_modelid == "DSL-AX82U" || based_modelid == "RT-AX82U" || based_modelid == "RT-AX82U_V2"  || based_modelid == "RT-AX56U" || based_modelid == "GT-AXE11000" || based_modelid == "GS-AX3000" || based_modelid == "GS-AX5400" || based_modelid == "GT-AX6000" || based_modelid == "GT-AX11000_PRO" || based_modelid == "ET12" || based_modelid == "XT12" || based_modelid == "GT-AXE16000" || based_modelid == "RT-AXE7800" || based_modelid == "GT10" || based_modelid == "RT-AC53U") && document.form.wl_nmode_x.value == 1){		//N only
+				based_modelid == "RT-AC5300" || based_modelid == "GT-AC5300" || based_modelid == "GT-AX11000" || based_modelid == "RT-AX92U" || based_modelid == "RT-AX95Q" || based_modelid == "XT8PRO" || based_modelid == "BM68" || based_modelid == "XT8_V2" || based_modelid == "RT-AX56_XD4" || based_modelid == "XD4PRO" || based_modelid == "CT-AX56_XD4" || based_modelid == "RT-AX58U" || based_modelid == "RT-AX58U_V2" || based_modelid == "BR63" || based_modelid == "RT-AX3000N" || based_modelid == "TUF-AX3000" || based_modelid == "TUF-AX3000_V2" || based_modelid == "TUF-AX5400" || based_modelid == "TUF-AX5400_V2" || based_modelid == "DSL-AX82U" || based_modelid == "RT-AX82U" || based_modelid == "RT-AX82U_V2"  || based_modelid == "RT-AX56U" || based_modelid == "GT-AXE11000" || based_modelid == "GS-AX3000" || based_modelid == "GS-AX5400" || based_modelid == "GT-AX6000" || based_modelid == "GT-AX11000_PRO" || based_modelid == "ET12" || based_modelid == "XT12" || based_modelid == "GT-AXE16000" || based_modelid == "RT-AXE7800" || based_modelid == "GT10" || based_modelid == "RT-AC53U") && document.form.wl_nmode_x.value == 1){		//N only
 				bws = [0, 1, 2];
 				bwsDesc = ["20/40 MHz", "20 MHz", "40 MHz"];
 				
@@ -552,6 +644,15 @@ function applyRule(){var postObj = new Object();
 				variable['wl2_mfp'] = document.form.band3_mfp.value;
 				variable['wl2_wpa_gtk_rekey'] = document.form.band3_wpa_gtk_rekey.value;
 			}
+			else if(document.form.band3_auth_mode_x.value == 'wpa3'
+				 || document.form.band3_auth_mode_x.value == 'suite-b'){
+					variable['wl2_crypto'] = document.form.band3_crypto.value;
+					variable['wl2_radius_ipaddr'] = document.form.band3_radius_ipaddr.value;
+					variable['wl2_radius_port'] = document.form.band3_radius_port.value;
+					variable['wl2_radius_key'] = document.form.band3_radius_key.value;
+					variable['wl2_mfp'] = document.form.band3_mfp.value;
+					variable['wl2_wpa_gtk_rekey'] = document.form.band3_wpa_gtk_rekey.value;
+			}
 		}
 		else{
 			variable['wl2_ssid'] = document.form.band3_ssid.value;
@@ -564,6 +665,20 @@ function applyRule(){var postObj = new Object();
 				variable['wl2_wpa_psk'] = document.form.band3_wpa_psk.value;
 				variable['wl2_mfp'] = document.form.band3_mfp.value;
 				variable['wl2_wpa_gtk_rekey'] = document.form.band3_wpa_gtk_rekey.value;
+			}
+			else if(document.form.band3_auth_mode_x.value == 'owe'){
+				variable['wl2_crypto'] = document.form.band3_crypto.value;
+				variable['wl2_mfp'] = document.form.band3_mfp.value;
+				variable['wl2_wpa_gtk_rekey'] = document.form.band3_wpa_gtk_rekey.value;
+			}
+			else if(document.form.band3_auth_mode_x.value == 'wpa3'
+				 || document.form.band3_auth_mode_x.value == 'suite-b'){
+					variable['wl2_crypto'] = document.form.band3_crypto.value;
+					variable['wl2_radius_ipaddr'] = document.form.band3_radius_ipaddr.value;
+					variable['wl2_radius_port'] = document.form.band3_radius_port.value;
+					variable['wl2_radius_key'] = document.form.band3_radius_key.value;
+					variable['wl2_mfp'] = document.form.band3_mfp.value;
+					variable['wl2_wpa_gtk_rekey'] = document.form.band3_wpa_gtk_rekey.value;
 			}
 		}
 
@@ -585,7 +700,10 @@ function applyRule(){var postObj = new Object();
 					variable['wl1_wpa_gtk_rekey'] = document.form.band01_wpa_gtk_rekey.value;						
 			}
 			else if(document.form.band01_auth_mode_x.value == 'wpa2'
-			     || document.form.band01_auth_mode_x.value == 'wpawpa2'){
+			     || document.form.band01_auth_mode_x.value == 'wpawpa2'
+				 || document.form.band01_auth_mode_x.value == 'wpa3'
+				 || document.form.band01_auth_mode_x.value == 'suite-b'
+				 || document.form.band01_auth_mode_x.value == 'wpa2wpa3'){
 					variable['wl1_crypto'] = document.form.band01_crypto.value;
 					variable['wl1_radius_ipaddr'] = document.form.band01_radius_ipaddr.value;
 					variable['wl1_radius_port'] = document.form.band01_radius_port.value;
@@ -612,7 +730,10 @@ function applyRule(){var postObj = new Object();
 				variable['wl1_wpa_gtk_rekey'] = document.form.band2_wpa_gtk_rekey.value;
 			}
 			else if(document.form.band2_auth_mode_x.value == 'wpa2'
-				 || document.form.band2_auth_mode_x.value == 'wpawpa2'){
+				 || document.form.band2_auth_mode_x.value == 'wpawpa2'
+				 || document.form.band2_auth_mode_x.value == 'wpa3'
+				 || document.form.band2_auth_mode_x.value == 'suite-b'
+				 || document.form.band2_auth_mode_x.value == 'wpa2wpa3'){
 					variable['wl1_crypto'] = document.form.band2_crypto.value;
 					variable['wl1_radius_ipaddr'] = document.form.band2_radius_ipaddr.value;
 					variable['wl1_radius_port'] = document.form.band2_radius_port.value;
@@ -640,7 +761,10 @@ function applyRule(){var postObj = new Object();
 				variable['wl0_wpa_gtk_rekey'] = document.form.band01_wpa_gtk_rekey.value;						
 			}
 			else if(document.form.band01_auth_mode_x.value == 'wpa2'
-				 || document.form.band01_auth_mode_x.value == 'wpawpa2'){
+				 || document.form.band01_auth_mode_x.value == 'wpawpa2'
+				 || document.form.band01_auth_mode_x.value == 'wpa3'
+				 || document.form.band01_auth_mode_x.value == 'suite-b'
+				 || document.form.band01_auth_mode_x.value == 'wpa2wpa3'){
 					variable['wl0_crypto'] = document.form.band01_crypto.value;
 					variable['wl0_radius_ipaddr'] = document.form.band01_radius_ipaddr.value;
 					variable['wl0_radius_port'] = document.form.band01_radius_port.value;
@@ -667,7 +791,10 @@ function applyRule(){var postObj = new Object();
 				variable['wl0_wpa_gtk_rekey'] = document.form.band1_wpa_gtk_rekey.value;
 			}
 			else if(document.form.band1_auth_mode_x.value == 'wpa2'
-				 || document.form.band1_auth_mode_x.value == 'wpawpa2'){
+				 || document.form.band1_auth_mode_x.value == 'wpawpa2'
+				 || document.form.band1_auth_mode_x.value == 'wpa3'
+				 || document.form.band1_auth_mode_x.value == 'suite-b'
+				 || document.form.band1_auth_mode_x.value == 'wpa2wpa3'){
 					variable['wl0_crypto'] = document.form.band1_crypto.value;
 					variable['wl0_radius_ipaddr'] = document.form.band1_radius_ipaddr.value;
 					variable['wl0_radius_port'] = document.form.band1_radius_port.value;
@@ -700,7 +827,10 @@ function applyRule(){var postObj = new Object();
 				variable['wl3_wpa_gtk_rekey'] = document.form.band01_wpa_gtk_rekey.value;						
 			}
 			else if(document.form.band01_auth_mode_x.value == 'wpa2'
-				|| document.form.band01_auth_mode_x.value == 'wpawpa2'){
+				|| document.form.band01_auth_mode_x.value == 'wpawpa2'
+				|| document.form.band01_auth_mode_x.value == 'wpa3'
+				|| document.form.band01_auth_mode_x.value == 'suite-b'
+				|| document.form.band01_auth_mode_x.value == 'wpa2wpa3'){
 					variable['wl3_crypto'] = document.form.band01_crypto.value;
 					variable['wl3_radius_ipaddr'] = document.form.band01_radius_ipaddr.value;
 					variable['wl3_radius_port'] = document.form.band01_radius_port.value;
@@ -732,7 +862,10 @@ function applyRule(){var postObj = new Object();
 				variable['wl3_wpa_gtk_rekey'] = document.form.band0_wpa_gtk_rekey.value;
 			}
 			else if(document.form.band0_auth_mode_x.value == 'wpa2'
-				 || document.form.band0_auth_mode_x.value == 'wpawpa2'){
+				 || document.form.band0_auth_mode_x.value == 'wpawpa2'
+				 || document.form.band0_auth_mode_x.value == 'wpa3'
+				 || document.form.band0_auth_mode_x.value == 'suite-b'
+				 || document.form.band0_auth_mode_x.value == 'wpa2wpa3'){
 					variable['wl3_crypto'] = document.form.band0_crypto.value;
 					variable['wl3_radius_ipaddr'] = document.form.band0_radius_ipaddr.value;
 					variable['wl3_radius_port'] = document.form.band0_radius_port.value;
@@ -974,6 +1107,10 @@ function applyRule(){var postObj = new Object();
 		else{
 			variable['acs_unii4'] = '0';
 		}		
+	}
+
+	if(!$('.fronthaul_ap').is(':visible')){
+		variable.fh_ap_enabled = "0";
 	}
 
 	postObj = Object.assign(postObj, variable);
@@ -2820,7 +2957,7 @@ function auth_method_change(unit, value, flag){
 				add_options_x2(document.form.band0_mfp, _temp, _temp_value, _mfp);
 			}
 		}
-		else if(value == 'wpa2' || value == 'wpawpa2'){
+		else if(value == 'wpa2' || value == 'wpawpa2' || value == 'wpa3' || value == 'wpa2wpa3' || value == 'suite-b'){
 			$('#band0_encrypt_field').show();
 			$('#band0_psk_field').hide();
 			$('#band0_mfp_field').show();
@@ -2850,7 +2987,40 @@ function auth_method_change(unit, value, flag){
 				_temp = ['<#WLANConfig11b_WirelessCtrl_buttonname#>', '<#WLANConfig11b_x_mfp_opt1#>'];
 				_temp_value = ['0', '1'];
 				add_options_x2(document.form.band0_mfp, _temp, _temp_value, _mfp);
-			}	
+			}
+			else if(value == 'wpa3'){
+				var _crypto = '<% nvram_get("wl3_crypto"); %>';
+				_temp = ['AES'];
+				_temp_value = ['aes'];
+				add_options_x2(document.form.band0_crypto, _temp, _temp_value, 'aes');
+
+				var _mfp = '<% nvram_get("wl3_mfp"); %>';
+				_temp = ['<#WLANConfig11b_x_mfp_opt2#>'];
+				_temp_value = ['2'];
+				add_options_x2(document.form.band0_mfp, _temp, _temp_value, _mfp);
+			}
+			else if(value == 'suite-b'){
+				var _crypto = '<% nvram_get("wl3_crypto"); %>';
+				_temp = ['Suite B'];
+				_temp_value = ['suite-b'];
+				add_options_x2(document.form.band0_crypto, _temp, _temp_value, 'suite-b');
+
+				var _mfp = '<% nvram_get("wl3_mfp"); %>';
+				_temp = ['<#WLANConfig11b_x_mfp_opt2#>'];
+				_temp_value = ['2'];
+				add_options_x2(document.form.band0_mfp, _temp, _temp_value, _mfp);
+			}
+			else if(value == 'wpa2wpa3'){
+				var _crypto = '<% nvram_get("wl3_crypto"); %>';
+				_temp = ['AES'];
+				_temp_value = ['aes'];
+				add_options_x2(document.form.band0_crypto, _temp, _temp_value, _crypto);
+
+				var _mfp = '<% nvram_get("wl3_mfp"); %>';
+				_temp = ['<#WLANConfig11b_WirelessCtrl_buttonname#>', '<#WLANConfig11b_x_mfp_opt1#>'];
+				_temp_value = ['0', '1'];
+				add_options_x2(document.form.band0_mfp, _temp, _temp_value, _mfp);
+			}
 		}
 	}
 	else if(unit == '1'){
@@ -2924,7 +3094,7 @@ function auth_method_change(unit, value, flag){
 				add_options_x2(document.form.band1_mfp, _temp, _temp_value, _mfp);
 			}
 		}
-		else if(value == 'wpa2' || value == 'wpawpa2'){
+		else if(value == 'wpa2' || value == 'wpawpa2' || value == 'wpa3' || value == 'wpa2wpa3' || value == 'suite-b'){
 			$('#band1_encrypt_field').show();
 			$('#band1_psk_field').hide();
 			$('#band1_mfp_field').show();
@@ -2948,6 +3118,39 @@ function auth_method_change(unit, value, flag){
 				_temp = ['AES', 'TKIP+AES'];
 				_temp_value = ['aes', 'tkip+aes'];
 				add_options_x2(document.form.band1_crypto, _temp, _temp_value, _crypto);
+
+				var _mfp = '<% nvram_get("wl0_mfp"); %>';
+				_temp = ['<#WLANConfig11b_WirelessCtrl_buttonname#>', '<#WLANConfig11b_x_mfp_opt1#>'];
+				_temp_value = ['0', '1'];
+				add_options_x2(document.form.band1_mfp, _temp, _temp_value, _mfp);
+			}
+			else if(value == 'wpa3'){
+				var _crypto = '<% nvram_get("wl0_crypto"); %>';
+				_temp = ['AES'];
+				_temp_value = ['aes'];
+				add_options_x2(document.form.band1_crypto, _temp, _temp_value, 'aes');
+
+				var _mfp = '<% nvram_get("wl0_mfp"); %>';
+				_temp = ['<#WLANConfig11b_x_mfp_opt2#>'];
+				_temp_value = ['2'];
+				add_options_x2(document.form.band1_mfp, _temp, _temp_value, _mfp);
+			}
+			else if(value == 'suite-b'){
+				var _crypto = '<% nvram_get("wl0_crypto"); %>';
+				_temp = ['Suite B'];
+				_temp_value = ['suite-b'];
+				add_options_x2(document.form.band1_crypto, _temp, _temp_value, 'suite-b');
+
+				var _mfp = '<% nvram_get("wl0_mfp"); %>';
+				_temp = ['<#WLANConfig11b_x_mfp_opt2#>'];
+				_temp_value = ['2'];
+				add_options_x2(document.form.band1_mfp, _temp, _temp_value, _mfp);
+			}
+			else if(value == 'wpa2wpa3'){
+				var _crypto = '<% nvram_get("wl0_crypto"); %>';
+				_temp = ['AES'];
+				_temp_value = ['aes'];
+				add_options_x2(document.form.band1_crypto, _temp, _temp_value, 'aes');
 
 				var _mfp = '<% nvram_get("wl0_mfp"); %>';
 				_temp = ['<#WLANConfig11b_WirelessCtrl_buttonname#>', '<#WLANConfig11b_x_mfp_opt1#>'];
@@ -3027,7 +3230,7 @@ function auth_method_change(unit, value, flag){
 				add_options_x2(document.form.band2_mfp, _temp, _temp_value, _mfp);
 			}
 		}
-		else if(value == 'wpa2' || value == 'wpawpa2'){
+		else if(value == 'wpa2' || value == 'wpawpa2' || value == 'wpa3' || value == 'wpa2wpa3' || value == 'suite-b'){
 			$('#band2_encrypt_field').show();
 			$('#band2_psk_field').hide();
 			$('#band2_mfp_field').show();
@@ -3057,11 +3260,59 @@ function auth_method_change(unit, value, flag){
 				_temp_value = ['0', '1'];
 				add_options_x2(document.form.band2_mfp, _temp, _temp_value, _mfp);
 			}
+			else if(value == 'wpa3'){
+				var _crypto = '<% nvram_get("wl1_crypto"); %>';
+				_temp = ['AES'];
+				_temp_value = ['aes'];
+				add_options_x2(document.form.band2_crypto, _temp, _temp_value, 'aes');
+
+				var _mfp = '<% nvram_get("wl1_mfp"); %>';
+				_temp = ['<#WLANConfig11b_x_mfp_opt2#>'];
+				_temp_value = ['2'];
+				add_options_x2(document.form.band2_mfp, _temp, _temp_value, _mfp);
+			}
+			else if(value == 'suite-b'){
+				var _crypto = '<% nvram_get("wl1_crypto"); %>';
+				_temp = ['Suite B'];
+				_temp_value = ['suite-b'];
+				add_options_x2(document.form.band2_crypto, _temp, _temp_value, 'suite-b');
+
+				var _mfp = '<% nvram_get("wl1_mfp"); %>';
+				_temp = ['<#WLANConfig11b_x_mfp_opt2#>'];
+				_temp_value = ['2'];
+				add_options_x2(document.form.band2_mfp, _temp, _temp_value, _mfp);
+			}
+			else if(value == 'wpa2wpa3'){
+				var _crypto = '<% nvram_get("wl1_crypto"); %>';
+				_temp = ['AES'];
+				_temp_value = ['aes'];
+				add_options_x2(document.form.band2_crypto, _temp, _temp_value, 'aes');
+
+				var _mfp = '<% nvram_get("wl1_mfp"); %>';
+				_temp = ['<#WLANConfig11b_WirelessCtrl_buttonname#>', '<#WLANConfig11b_x_mfp_opt1#>'];
+				_temp_value = ['0', '1'];
+				add_options_x2(document.form.band2_mfp, _temp, _temp_value, _mfp);
+			}
 		}
 	}
 	else if(unit == '3'){
 		if(value == 'owe'){
+			$('#band3_encrypt_field').show();
 			$('#band3_psk_field').hide();
+			$('#band3_mfp_field').show();
+			$('#band3_gtk_field').show();
+			$('#band3_radius_ip_field').hide();
+			$('#band3_radius_port_field').hide();
+			$('#band3_radius_key_field').hide();
+			var _crypto = '<% nvram_get("wl2_crypto"); %>';
+			_temp = ['AES'];
+			_temp_value = ['aes'];
+			add_options_x2(document.form.band3_crypto, _temp, _temp_value, 'aes');
+
+			var _mfp = '<% nvram_get("wl2_mfp"); %>';
+			_temp = ['<#WLANConfig11b_x_mfp_opt2#>'];
+			_temp_value = ['2'];
+			add_options_x2(document.form.band3_mfp, _temp, _temp_value, _mfp);
 			/*if(document.form.smart_connect_t.value == '1'){
 				if(document.form.band01_auth_mode_x.value != 'open'){
 					document.form.band01_auth_mode_x.value = 'open';
@@ -3073,14 +3324,60 @@ function auth_method_change(unit, value, flag){
 				auth_method_change('01', 'openowe');
 			}
 		}
+		else if(value == 'wpa3' || value == 'suite-b'){
+			$('#band3_encrypt_field').show();
+			$('#band3_psk_field').hide();
+			$('#band3_mfp_field').show();
+			$('#band3_gtk_field').show();
+			$('#band3_radius_ip_field').show();
+			$('#band3_radius_port_field').show();
+			$('#band3_radius_key_field').show();
+			if(value == 'wpa3'){
+				var _crypto = '<% nvram_get("wl2_crypto"); %>';
+				_temp = ['AES'];
+				_temp_value = ['aes'];
+				add_options_x2(document.form.band3_crypto, _temp, _temp_value, 'aes');
+
+				var _mfp = '<% nvram_get("wl2_mfp"); %>';
+				_temp = ['<#WLANConfig11b_x_mfp_opt2#>'];
+				_temp_value = ['2'];
+				add_options_x2(document.form.band3_mfp, _temp, _temp_value, _mfp);
+			}
+			else if(value == 'suite-b'){
+				var _crypto = '<% nvram_get("wl2_crypto"); %>';
+				_temp = ['Suite B'];
+				_temp_value = ['suite-b'];
+				add_options_x2(document.form.band3_crypto, _temp, _temp_value, 'suite-b');
+
+				var _mfp = '<% nvram_get("wl2_mfp"); %>';
+				_temp = ['<#WLANConfig11b_x_mfp_opt2#>'];
+				_temp_value = ['2'];
+				add_options_x2(document.form.band3_mfp, _temp, _temp_value, _mfp);
+			}
+
+			if(document.form.smart_connect_t.value == '1' && flag != 'init'){
+				document.form.band01_auth_mode_x.value = value;
+				auth_method_change('01', value);
+			}
+		}
 		else{
+			$('#band3_encrypt_field').show();
 			$('#band3_psk_field').show();
-			/*if(document.form.smart_connect_t.value == '1'){
-				if(document.form.band01_auth_mode_x.value != 'psk2sae'){
-					document.form.band01_auth_mode_x.value = 'psk2sae';
-					auth_method_change('01', 'psk2sae');
-				}				
-			}*/
+			$('#band3_mfp_field').show();
+			$('#band3_gtk_field').show();
+			$('#band3_radius_ip_field').hide();
+			$('#band3_radius_port_field').hide();
+			$('#band3_radius_key_field').hide();
+			var _crypto = '<% nvram_get("wl2_crypto"); %>';
+			_temp = ['AES'];
+			_temp_value = ['aes'];
+			add_options_x2(document.form.band3_crypto, _temp, _temp_value, 'aes');
+
+			var _mfp = '<% nvram_get("wl2_mfp"); %>';
+			_temp = ['<#WLANConfig11b_x_mfp_opt2#>'];
+			_temp_value = ['2'];
+			add_options_x2(document.form.band3_mfp, _temp, _temp_value, _mfp);
+
 			if(smart_connect_mode[0] == '1' && flag != 'init'){
 				document.form.band01_auth_mode_x.value = 'psk2sae';
 				auth_method_change('01', 'psk2sae');
@@ -3183,17 +3480,19 @@ function auth_method_change(unit, value, flag){
 			if(band6g_support && smart_connect_mode[0] == '1' && flag != 'init'){
 				document.form.band3_auth_mode_x.value = 'sae';
 				$('#band3_psk_field').show();
+				$('#band3_radius_ip_field').hide();
+				$('#band3_radius_port_field').hide();
+				$('#band3_radius_key_field').hide();
 			}
 		}
-		else if(value == 'wpa2' || value == 'wpawpa2'){
+		else if(value == 'wpa2' || value == 'wpawpa2' || value == 'wpa3' || value == 'wpa2wpa3' || value == 'suite-b'){
 			$('#band01_encrypt_field').show();
 			$('#band01_psk_field').hide();
 			$('#band01_mfp_field').show();
 			$('#band01_gtk_field').show();
 			$('#band01_radius_ip_field').show();
 			$('#band01_radius_port_field').show();
-			$('#band01_radius_key_field').show();
-			
+			$('#band01_radius_key_field').show();			
 			if(value == 'wpa2'){
 				var _crypto = '<% nvram_get("wl0_crypto"); %>';
 				_temp = ['AES'];
@@ -3215,6 +3514,57 @@ function auth_method_change(unit, value, flag){
 				_temp = ['<#WLANConfig11b_WirelessCtrl_buttonname#>', '<#WLANConfig11b_x_mfp_opt1#>'];
 				_temp_value = ['0', '1'];
 				add_options_x2(document.form.band01_mfp, _temp, _temp_value, _mfp);
+			}
+			else if(value == 'wpa3'){
+				var _crypto = '<% nvram_get("wl0_crypto"); %>';
+				_temp = ['AES'];
+				_temp_value = ['aes'];
+				add_options_x2(document.form.band01_crypto, _temp, _temp_value, 'aes');
+
+				var _mfp = '<% nvram_get("wl0_mfp"); %>';
+				_temp = ['<#WLANConfig11b_x_mfp_opt2#>'];
+				_temp_value = ['2'];
+				add_options_x2(document.form.band01_mfp, _temp, _temp_value, _mfp);
+				if(document.form.smart_connect_t.value == '1' && flag != 'init'){
+					if(document.form.band3_auth_mode_x.value != 'wpa3'){
+						document.form.band3_auth_mode_x.value = 'wpa3';
+						auth_method_change('3', 'wpa3');
+					}					
+				}
+			}
+			else if(value == 'suite-b'){
+				var _crypto = '<% nvram_get("wl0_crypto"); %>';
+				_temp = ['Suite B'];
+				_temp_value = ['suite-b'];
+				add_options_x2(document.form.band01_crypto, _temp, _temp_value, 'suite-b');
+
+				var _mfp = '<% nvram_get("wl0_mfp"); %>';
+				_temp = ['<#WLANConfig11b_x_mfp_opt2#>'];
+				_temp_value = ['2'];
+				add_options_x2(document.form.band01_mfp, _temp, _temp_value, _mfp);
+				if(document.form.smart_connect_t.value == '1' && flag != 'init'){
+					if(document.form.band3_auth_mode_x.value != 'suite-b'){
+						document.form.band3_auth_mode_x.value = 'suite-b';
+						auth_method_change('3', 'suite-b');
+					}					
+				}
+			}
+			else if(value == 'wpa2wpa3'){
+				var _crypto = '<% nvram_get("wl0_crypto"); %>';
+				_temp = ['AES'];
+				_temp_value = ['aes'];
+				add_options_x2(document.form.band01_crypto, _temp, _temp_value, 'aes');
+
+				var _mfp = '<% nvram_get("wl0_mfp"); %>';
+				_temp = ['<#WLANConfig11b_WirelessCtrl_buttonname#>', '<#WLANConfig11b_x_mfp_opt1#>'];
+				_temp_value = ['0', '1'];
+				add_options_x2(document.form.band01_mfp, _temp, _temp_value, _mfp);
+				if(document.form.smart_connect_t.value == '1' && flag != 'init'){
+					if(document.form.band3_auth_mode_x.value != 'wpa3'){
+						document.form.band3_auth_mode_x.value = 'wpa3';
+						auth_method_change('3', 'wpa3');
+					}					
+				}
 			}	
 		}
 	}
@@ -3955,7 +4305,7 @@ function handle_smart_connect(value, flag){
 		else{
 			$('#band6_hide_ssid_field').show();
 			$('#band3_ssid_field').show();
-			auth_method_change('2', document.form.band3_auth_mode_x.value);
+			auth_method_change('3', document.form.band3_auth_mode_x.value);
 		}
 		
 
@@ -3992,7 +4342,7 @@ function handle_smart_connect(value, flag){
 			$('#band5_2_hide_ssid_field').show();
 			$('#band2_ssid_field').show();
 			$('#band2_auth_method_field').show();
-			auth_method_change('1', document.form.band2_auth_mode_x.value);
+			auth_method_change('2', document.form.band2_auth_mode_x.value);
 			if(wl_info['2'].bw_160_support){
 				$("#band2_160_field").show();		
 			}
@@ -4040,7 +4390,7 @@ function handle_smart_connect(value, flag){
 			$('#band5_hide_ssid_field').show();
 			$('#band1_ssid_field').show();
 			$('#band1_auth_method_field').show();
-			auth_method_change('0', document.form.band1_auth_mode_x.value);
+			auth_method_change('1', document.form.band1_auth_mode_x.value);
 
 			if(wl_info['1'].bw_160_support){
 				$("#band1_160_field").show();		
@@ -4250,6 +4600,9 @@ function handle_smart_connect(value, flag){
 	// 			$("#fh_ap_enabled").val(0);
 	// 	}
 	// }
+
+	var showFronthaulAp = ($("#smart_connect_check_2").is(":visible") && $("#smart_connect_check_2").is(":checked")) ? 1 : 0;
+	gen_fronthaul_ap(showFronthaulAp);
 }
 function handleAiMeshBackhaul(value){
 	var fh_ap_enabled = '<% nvram_get("fh_ap_enabled"); %>';
@@ -4379,6 +4732,7 @@ function updateSmartConnect(unit, checked){
 	}
 	else if(unit == '2'){
 		offset = checked ? 4 : -4;
+		gen_fronthaul_ap(checked);
 	}
 	else if(unit == '3'){
 		offset = checked ? 8 : -8;
@@ -4686,6 +5040,7 @@ function updateSmartConnect(unit, checked){
 							<option value="wpa2wpa3" <% nvram_match("wl0_auth_mode_x", "wpa2wpa3","selected"); %>>WPA2/WPA3 Enterprise</option>
 							<option value="suite-b" <% nvram_match("wl0_auth_mode_x", "suite-b","selected"); %>>WPA3 Enterprise 192-bit</option>
 						</select>
+						<div class="setup_help_icon" style="display:none;"></div>
 					</td>
 				</tr>
 				<tr id="band01_encrypt_field">
@@ -4700,7 +5055,7 @@ function updateSmartConnect(unit, checked){
 				<tr id="band01_psk_field">
 					<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(0, 7);"><#WLANConfig11b_x_PSKKey_itemname#></a></th>
 					<td>
-				  		<input type="text" name="band01_wpa_psk" maxlength="64" class="input_32_table" oninput="handle_auth(this);" value="<% nvram_get("wl0_wpa_psk"); %>"  autocorrect="off" autocapitalize="off">
+				  		<input type="password" name="band01_wpa_psk" maxlength="64" class="input_32_table" oninput="handle_auth(this);" value="<% nvram_get("wl0_wpa_psk"); %>"  autocorrect="off" autocapitalize="off" onfocus="plainPasswordSwitch(this, 'focus')" onblur="plainPasswordSwitch(this, 'blur')">
 					</td>
 				</tr>
 				  
@@ -4817,6 +5172,7 @@ function updateSmartConnect(unit, checked){
 							<option value="wpa2wpa3" <% nvram_match("wl3_auth_mode_x", "wpa2wpa3","selected"); %>>WPA2/WPA3 Enterprise</option>
 							<option value="suite-b" <% nvram_match("wl3_auth_mode_x", "suite-b","selected"); %>>WPA3 Enterprise 192-bit</option>
 						</select>
+						<div class="setup_help_icon" style="display:none;"></div>
 					</td>
 				</tr>
 
@@ -4833,7 +5189,7 @@ function updateSmartConnect(unit, checked){
 				<tr id="band0_psk_field">
 					<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(0, 7);"><#WLANConfig11b_x_PSKKey_itemname#></a></th>
 					<td>
-				  		<input type="text" name="band0_wpa_psk" maxlength="64" class="input_32_table" value="<% nvram_get("wl3_wpa_psk"); %>" autocorrect="off" autocapitalize="off">
+				  		<input type="password" name="band0_wpa_psk" maxlength="64" class="input_32_table" value="<% nvram_get("wl3_wpa_psk"); %>" autocorrect="off" autocapitalize="off" onfocus="plainPasswordSwitch(this, 'focus')" onblur="plainPasswordSwitch(this, 'blur')">
 					</td>
 				</tr>
 				  
@@ -4951,6 +5307,7 @@ function updateSmartConnect(unit, checked){
 							<option value="wpa2wpa3" <% nvram_match("wl0_auth_mode_x", "wpa2wpa3","selected"); %>>WPA2/WPA3 Enterprise</option>
 							<option value="suite-b" <% nvram_match("wl0_auth_mode_x", "suite-b","selected"); %>>WPA3 Enterprise 192-bit</option>
 						</select>
+						<div class="setup_help_icon" style="display:none;"></div>
 					</td>
 				</tr>
 
@@ -4967,7 +5324,7 @@ function updateSmartConnect(unit, checked){
 				<tr id="band1_psk_field">
 					<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(0, 7);"><#WLANConfig11b_x_PSKKey_itemname#></a></th>
 					<td>
-				  		<input type="text" name="band1_wpa_psk" maxlength="64" class="input_32_table" value="<% nvram_get("wl0_wpa_psk"); %>" autocorrect="off" autocapitalize="off">
+				  		<input type="password" name="band1_wpa_psk" maxlength="64" class="input_32_table" value="<% nvram_get("wl0_wpa_psk"); %>" autocorrect="off" autocapitalize="off" onfocus="plainPasswordSwitch(this, 'focus')" onblur="plainPasswordSwitch(this, 'blur')">
 					</td>
 				</tr>
 				  
@@ -5087,6 +5444,7 @@ function updateSmartConnect(unit, checked){
 							<option value="wpa2wpa3" <% nvram_match("wl1_auth_mode_x", "wpa2wpa3","selected"); %>>WPA2/WPA3 Enterprise</option>
 							<option value="suite-b" <% nvram_match("wl1_auth_mode_x", "suite-b","selected"); %>>WPA3 Enterprise 192-bit</option>
 						</select>
+						<div class="setup_help_icon" style="display:none;"></div>
 					</td>
 				</tr>
 
@@ -5103,7 +5461,7 @@ function updateSmartConnect(unit, checked){
 				<tr id="band2_psk_field">
 					<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(0, 7);"><#WLANConfig11b_x_PSKKey_itemname#></a></th>
 					<td>
-				  		<input type="text" name="band2_wpa_psk" maxlength="64" class="input_32_table" value="<% nvram_get("wl1_wpa_psk"); %>" autocorrect="off" autocapitalize="off">
+				  		<input type="password" name="band2_wpa_psk" maxlength="64" class="input_32_table" value="<% nvram_get("wl1_wpa_psk"); %>" autocorrect="off" autocapitalize="off" onfocus="plainPasswordSwitch(this, 'focus')" onblur="plainPasswordSwitch(this, 'blur')">
 					</td>
 				</tr>
 				  
@@ -5208,6 +5566,8 @@ function updateSmartConnect(unit, checked){
 						<select name="band3_auth_mode_x" class="input_option select_auth_mode" onChange="auth_method_change('3', this.value);">
 							<option value="owe" <% nvram_match("wl2_auth_mode_x", "owe",   "selected"); %>><#Wireless_Encryption_OWE#></option>
 							<option value="sae" <% nvram_match("wl2_auth_mode_x", "sae",   "selected"); %>>WPA3-Personal</option>
+							<option value="wpa3" <% nvram_match("wl2_auth_mode_x", "wpa3",   "selected"); %>>WPA3-Enterprise</option>				
+							<option value="suite-b" <% nvram_match("wl2_auth_mode_x", "suite-b","selected"); %>>WPA3 Enterprise 192-bit</option>
 						</select>
 					</td>
 				</tr>
@@ -5224,9 +5584,34 @@ function updateSmartConnect(unit, checked){
 				<tr id="band3_psk_field">
 					<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(0, 7);"><#WLANConfig11b_x_PSKKey_itemname#></a></th>
 					<td>
-				  		<input type="text" name="band3_wpa_psk" maxlength="64" class="input_32_table" oninput="handle_auth(this);" value="<% nvram_get("wl2_wpa_psk"); %>" autocorrect="off" autocapitalize="off">
+				  		<input type="password" name="band3_wpa_psk" maxlength="64" class="input_32_table" oninput="handle_auth(this);" value="<% nvram_get("wl2_wpa_psk"); %>" autocorrect="off" autocapitalize="off" onfocus="plainPasswordSwitch(this, 'focus')" onblur="plainPasswordSwitch(this, 'blur')">
 					</td>
 			  	</tr>
+
+				  <tr id="band3_radius_ip_field">
+					<th>
+						<a class="hintstyle" href="javascript:void(0);"  onClick="openHint(2,1);"><#WLANAuthentication11a_ExAuthDBIPAddr_itemname#></a>
+					</th>
+					<td>
+						<input type="text" maxlength="39" class="input_32_table" name="band3_radius_ipaddr" value='<% nvram_get("wl2_radius_ipaddr"); %>' onKeyPress="return validator.isIPAddr(this, event)" autocorrect="off" autocapitalize="off">
+					</td>
+				</tr>
+				<tr id="band3_radius_port_field">
+					<th>
+						<a class="hintstyle" href="javascript:void(0);"  onClick="openHint(2,2);"><#WLANAuthentication11a_ExAuthDBPortNumber_itemname#></a>
+					</th>
+					<td>
+						<input type="text" maxlength="5" class="input_6_table" name="band3_radius_port" value='<% nvram_get("wl2_radius_port"); %>' onkeypress="return validator.isNumber(this,event)" autocorrect="off" autocapitalize="off"/>
+					</td>
+				</tr>
+				<tr id="band3_radius_key_field">
+					<th>
+						<a class="hintstyle" href="javascript:void(0);"  onClick="openHint(2,3);"><#WLANAuthentication11a_ExAuthDBPassword_itemname#></a>
+					</th>
+					<td>
+						<input type="password" maxlength="64" class="input_32_table" name="band3_radius_key" value="<% nvram_get("wl2_radius_key"); %>" autocorrect="off" autocapitalize="off">
+					</td>
+				</tr>
 				
 				<tr id="band3_mfp_field">
 					<th><#WLANConfig11b_x_mfp#></th>

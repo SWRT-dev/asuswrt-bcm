@@ -4,7 +4,7 @@
 	background-color:#2A3539;
 }
 .statusTitle{	
-	font-family: "Times New Roman", Times, MS UI Gothic, MS P Gothic, Microsoft Yahei UI, serif;
+	font-family: "Times New Roman", Times, Microsoft Yahei UI, MS UI Gothic, MS P Gothic, serif;
 	background: #A5A5A5; /* Old browsers */
 	background: -moz-linear-gradient(top, #A5A5A5  0%, #434343 100%); /* FF3.6+ */
 	background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#A5A5A5 ), color-stop(100%,#434343)); /* Chrome,Safari4+ */

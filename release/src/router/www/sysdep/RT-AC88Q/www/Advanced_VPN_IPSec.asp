@@ -2147,8 +2147,9 @@ function update_ipsec_log() {
 
 		success: function(xml) {
 			var ipsecXML = xml.getElementsByTagName("ipsec");
-			var ipsec_log = ipsecXML[0].firstChild.nodeValue;
-			document.getElementById("textarea").innerText = ipsec_log;
+			var ipsec_log = ipsecXML[0].innerHTML;
+			$("textarea#textarea").html(htmlEnDeCode.htmlEncode(ipsec_log));
+
 		}
 	});	
 }

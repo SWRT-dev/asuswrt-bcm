@@ -139,12 +139,17 @@ function initial(){
 		$("#wan_proto_menu option[value='lw4o6']").remove();
 		$("#wan_proto_menu option[value='map-e']").remove();
 		$("#wan_proto_menu option[value='v6plus']").remove();
+		$("#wan_proto_menu option[value='ocnvc']").remove();
 	}
 	else{
 		$("#wan_proto_menu option[value='lw4o6']").remove();
 		$("#wan_proto_menu option[value='map-e']").remove();
+		if(!ocnvc_support){
+			$("#wan_proto_menu option[value='ocnvc']").remove();
+		}
 		if(dualWAN_support && wan_unit_flag == 1){
-			$("#wan_proto_menu option[value='v6plus']").remove();		
+			$("#wan_proto_menu option[value='v6plus']").remove();
+			$("#wan_proto_menu option[value='ocnvc']").remove();
 		}
 	}
 
@@ -479,7 +484,9 @@ function applyRule(){
 			}
 		}
 		
-		if (Softwire46_support && document.form.wan_proto.value == "v6plus" && ipv6_service_orig != "ipv6pt"){
+		if (Softwire46_support && ipv6_service_orig != "ipv6pt" &&
+			(document.form.wan_proto.value == "v6plus" || document.form.wan_proto.value == "ocnvc"))
+		{
 				document.form.ipv6_service.disabled = false;
 				document.form.ipv6_service.value = "ipv6pt";
 				document.form.action_script.value += ";restart_net";
@@ -623,7 +630,7 @@ function validForm(){
 	var wan_type = document.form.wan_proto.value;
 
 	if(!document.form.wan_dhcpenable_x[0].checked &&
-	   !(Softwire46_support && (wan_type == "lw4o6" || wan_type == "map-e" || wan_type == "v6plus"))){// Set IP address by userself
+	   !(Softwire46_support && (wan_type == "lw4o6" || wan_type == "map-e" || wan_type == "v6plus" || wan_type == "ocnvc"))){// Set IP address by userself
 		if(!valid_IP($("#wan_ipaddr_x"), "")) return false;  //WAN IP
 		if(!valid_IP($("#wan_gateway_x"), "GW"))return false;  //Gateway IP		
 
@@ -722,10 +729,6 @@ function validForm(){
 			document.form.wan_pppoe_hostuniq.select();
 			return false;
 		}
-	}
-
-	if (Softwire46_support && (wan_type == "lw4o6" || wan_type == "map-e" || wan_type == "v6plus")){
-		//
 	}
 
 	if(productid == "DSL-AC68U" || productid == "DSL-AC68R"){      //MODELDEP: DSL-AC68U,DSL-AC68R
@@ -1003,7 +1006,7 @@ function change_wan_type(wan_type, flag){
 			}
 		}
 	}
-	else if(Softwire46_support && (wan_type == "lw4o6" || wan_type == "map-e" || wan_type == "v6plus")){
+	else if(Softwire46_support && (wan_type == "lw4o6" || wan_type == "map-e" || wan_type == "v6plus" || wan_type == "ocnvc")){
 		showhide("wan_DHCP_opt",0);
 		
 		inputCtrl(document.form.wan_auth_x, 0);
@@ -1190,7 +1193,7 @@ function change_wan_dhcp_enable(flag){
 		inputCtrl(document.form.wan_netmask_x, 1);
 		inputCtrl(document.form.wan_gateway_x, 1);
 	}
-	else if(Softwire46_support && (wan_type == "lw4o6" || wan_type == "map-e" || wan_type == "v6plus")){
+	else if(Softwire46_support && (wan_type == "lw4o6" || wan_type == "map-e" || wan_type == "v6plus" || wan_type == "ocnvc")){
 		if(flag == 1){
 			if(wan_type == original_wan_type){
 				document.form.wan_dhcpenable_x[0].checked = original_wan_dhcpenable;
@@ -1436,7 +1439,7 @@ function change_wanAggre_desc(){
 		selectedName = "LAN 2";
 	}
 
-	if(selectedName != "");
+	if(selectedName != "")
 		orig_desc = orig_desc.replace(cur_bond_port, selectedName);
 
 	$("#wanAgg_desc").html(orig_desc);
@@ -1555,7 +1558,7 @@ function create_DNSlist_view(){
 	document.getElementById("dns_list_Block").onclick = function() {show_DNSList_view_block();}
 
 	var DNSListTableIndex=[array_Ab, array_Fm, array_FD, array_Sf, array_Pr];
-	var DNSListTableCategory=["Ad block", "Family", "Fast DNS", "Safe", "Privacy-respecting"];
+	var DNSListTableCategory=["<#IPConnection_x_DNS_List_adB#>", "<#IPConnection_x_DNS_List_Family#>", "<#IPConnection_x_DNS_List_Fast#>", "Safe", "<#IPConnection_x_DNS_List_Priv-resp#>"];
 
 	var code="";
 
@@ -2420,4 +2423,3 @@ function DNSList_match(ip1, ip2){
 
 </body>
 </html>
-
