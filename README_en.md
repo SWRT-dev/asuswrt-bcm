@@ -3,7 +3,7 @@
 
 ## Code compilation test
 
-**MODEL**:GT-AX6000 GT-AX11000 RT-AX82U
+**MODEL**:GT-AX6000 GT-AX11000 RT-AX82U TUF-AX3000_V2
 
 **status** [![CircleCI](https://dl.circleci.com/status-badge/img/gh/SWRT-dev/asuswrt-bcm/tree/master.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/SWRT-dev/asuswrt-bcm/tree/master)
 

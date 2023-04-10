@@ -2,7 +2,7 @@
 
 ## 编译测试
 
-测试目标:GT-AX6000 GT-AX11000 RT-AX82U
+测试目标:GT-AX6000 GT-AX11000 RT-AX82U TUF-AX3000_V2
 
 **状态** [![CircleCI](https://dl.circleci.com/status-badge/img/gh/SWRT-dev/asuswrt-bcm/tree/master.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/SWRT-dev/asuswrt-bcm/tree/master)
 
