@@ -127,6 +127,8 @@ sudo apt-get -y install build-essential asciidoc binutils bzip2 gawk gettext git
 
 	`make tuf-ax5400_v2`
 
+	`make rt-ax88u_pro`
+
 	Build result will be produced to `asuswrt-bcm/release/src-rt-xxxxx/image` directory
 
 	`asuswrt-bcm/release/src-rt-5.02axhnd.675x/image`
