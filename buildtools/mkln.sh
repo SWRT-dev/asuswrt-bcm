@@ -37,6 +37,7 @@ build_link(){
 cd $REPO/release/src/router/aaews/prebuild/ && build_link
 cd $REPO/release/src/router/asusnatnl/natnl/prebuild/ && build_link
 cd $REPO/release/src/router/asuswebstorage/prebuild/ && build_link
+cd $REPO/release/src/router/bwdpi_source/asus_sql/prebuild/ && build_link
 cd $REPO/release/src/router/bsd/prebuilt/ && build_link
 cd $REPO/release/src/router/dhd/prebuilt/ && build_link
 cd $REPO/release/src/router/dhcpfwd/prebuild/ && build_link
