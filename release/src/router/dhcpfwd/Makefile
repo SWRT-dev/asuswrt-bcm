@@ -11,7 +11,7 @@ INSTALL = install
 
 ifeq ($(wildcard ./*.c),)
 all:
-	cp -f ./prebuild/dhcpfwd .
+	cp -f ./prebuild/$(BUILD_NAME)/dhcpfwd .
 else
 all: dhcpfwd
 endif

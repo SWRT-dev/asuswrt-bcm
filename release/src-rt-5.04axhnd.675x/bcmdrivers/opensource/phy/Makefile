@@ -331,7 +331,7 @@ ifeq ($(strip ${BRCM_CHIP}),4912)
     DRV_OBJS += phy_drv_dsl_848xx.o
     DRV_OBJS += phy_drv_146class_serdes.o
     DRV_OBJS += phy_drv_ext3.o
-    DRV_OBJS += $(if $(wildcard gpy211.c),gpy211.o,prebuilt/gpy211.o)
+    DRV_OBJS += $(if $(wildcard gpy211.c),gpy211.o,prebuilt/gpy211_4912.o)
     DRV_OBJS += phy_mac_sec.o
     DRV_OBJS += phy_mac_sec_list.o
     DRV_OBJS += sha256.o
@@ -392,7 +392,7 @@ ifeq ($(strip ${BRCM_CHIP}),6756)
     DRV_OBJS += phy_drv_dsl_848xx.o
     DRV_OBJS += phy_drv_6756class_serdes.o
     DRV_OBJS += phy_drv_ext3.o
-    DRV_OBJS += $(if $(wildcard gpy211.c),gpy211.o,prebuilt/gpy211.o)
+    DRV_OBJS += $(if $(wildcard gpy211.c),gpy211.o,prebuilt/gpy211_6756.o)
     DRV_OBJS += phy_mac_sec.o
     DRV_OBJS += phy_mac_sec_list.o
     DRV_OBJS += sha256.o
