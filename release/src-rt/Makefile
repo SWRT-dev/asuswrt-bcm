@@ -733,7 +733,7 @@ ifeq ($(HND_ROUTER),y)
 	@rm -rf image
 	@ln -sf targets/${PROFILE} image
 	$(MAKE) buildimage
-	@rm -rf targets/${PROFILE}/*cferom*
+#	@rm -rf targets/${PROFILE}/*cferom*
 else
 	@-mkdir -p image
 

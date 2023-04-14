@@ -95,6 +95,7 @@ var faq_href = "https://nw-dlcdnet.asus.com/support/forward.html?model=&type=Faq
 var oauth_auth_status = httpApi.nvramGet(["oauth_auth_status"], true).oauth_auth_status;
 var aae_ddnsinfo = httpApi.nvramGet(["aae_ddnsinfo"], true).aae_ddnsinfo;
 var ipv6_service = httpApi.nvramGet(["ipv6_service"], true).ipv6_service;
+var asusddns_token_state = httpApi.nvramGet(["asusddns_token_state"], true).asusddns_token_state;
 
 function init(){
 	show_menu();

@@ -722,6 +722,7 @@ int __config_usbbus_bled(const char *led_gpio, char *bus_list, unsigned int min_
 	bl->mode = BLED_NORMAL_MODE;
 	bl->min_blink_speed = min_blink_speed;
 	bl->interval = interval;
+	strlcpy(bl->id, led_gpio_id(led_gpio), sizeof(bl->id));
 	ul.bus_mask = bus_mask;
 
 	if ((r = ioctl(fd, BLED_CTL_ADD_USBBUS_BLED, &ul)) < 0 && errno != EEXIST) {
@@ -795,6 +796,7 @@ int __config_interrupt_bled(const char *led_gpio, char *interrupt_list, unsigned
 	bl->mode = BLED_NORMAL_MODE;
 	bl->min_blink_speed = min_blink_speed;
 	bl->interval = interval;
+	strlcpy(bl->id, led_gpio_id(led_gpio), sizeof(bl->id));
 
 	if ((r = ioctl(fd, BLED_CTL_ADD_INTERRUPT_BLED, &il)) < 0 && errno != EEXIST) {
 		_dprintf("%s: ioctl(BLED_CTL_ADD_INTERRUPT_BLED) fail, return %d errno %d (%s)\n",
@@ -1128,4 +1130,3 @@ void set_rgbled(unsigned int mode)
 }
 #endif
 #endif	/* RTCONFIG_BLINK_LED */
-
