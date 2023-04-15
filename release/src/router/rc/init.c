@@ -18314,7 +18314,7 @@ NO_USB_CAP:
 	add_rc_support("wpa3-e");
 #endif
 
-#if defined(RTCONFIG_SWRT_FULLCONE)
+#if defined(RTCONFIG_SWRT_FULLCONE) || defined(BCM_KF_NETFILTER)
 	add_rc_support("swrt_fullcone");
 #endif
 #if defined(RTCONFIG_ENTWARE)
