@@ -179,6 +179,10 @@ void swrt_init_pre()
 		nvram_set("modelname", "H3CTX1801");
 #elif defined(XMCR660X)
 		nvram_set("modelname", "XMCR660X");
+#elif defined(TY6201PRO)
+		nvram_set("modelname", "TY6201PRO");
+#elif defined(RGMA3062)
+		nvram_set("modelname", "RGMA3062");
 //asus
 #elif defined(RTAC68U)
 		nvram_set("modelname", "RTAC68U");
@@ -1864,15 +1868,19 @@ void fix_jffs_size(void)
 #endif
 
 #if defined(RTCONFIG_HND_ROUTER_AX)
-void __attribute__((weak)) create_amas_sys_folder()
-{
-	if(!d_exists("/jffs/.sys"))
-		mkdir("/jffs/.sys", 0666);
-}
-
-void __attribute__((weak)) misc_info_chk()
+void __attribute__((weak)) misc_ctrl_post()
 {
 	syslog(LOG_NOTICE, "fwver: %s_%s_%s (sn:%s /ha:%s )\n", rt_version, rt_serialno, rt_extendno, nvram_safe_get("serial_no"), nvram_safe_get("et0macaddr"));
+}
+
+int  __attribute__((weak)) resetNetLed()
+{
+	return 0;
+}
+
+int  __attribute__((weak)) setNetLed(void)
+{
+	return 0;
 }
 #endif
 

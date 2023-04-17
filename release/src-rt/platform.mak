@@ -530,6 +530,11 @@ define platformKernelConfig
 					cp -f $(TOP_PLATFORM)/hnd_extra/prebuilt/wlcsm.o $(HND_SRC)/bcmdrivers/broadcom/char/wlcsm_ext/impl1/ ; \
 					cp -f $(TOP_PLATFORM)/hnd_extra/prebuilt/bcm_license.o $(HND_SRC)/bcmdrivers/broadcom/char/license/impl1/ ; \
 					cp -f $(TOP_PLATFORM)/hnd_extra/prebuilt/bcm_mpm.o $(HND_SRC)/bcmdrivers/broadcom/char/mpm/impl1/ ; \
+					if [ "$(BUILD_NAME)" = "GT10" ]; then \
+						cp -f $(TOP_PLATFORM)/hnd_extra/prebuilt/bcmepon.o $(HND_SRC)/bcmdrivers/broadcom/char/epon/impl2/ ; \
+						cp -f $(TOP_PLATFORM)/hnd_extra/prebuilt/bcm_pondrv.o $(HND_SRC)/bcmdrivers/broadcom/char/pon_drv/impl1/ ; \
+						cp -f $(TOP_PLATFORM)/hnd_extra/prebuilt/laser_dev.o $(HND_SRC)/bcmdrivers/broadcom/char/laser/impl2/ ; \
+					fi; \
 				fi; \
 				cp $(TOP_PLATFORM)/hnd_extra/prebuilt/bcm63xx_flash.o $(HND_SRC)/bcmdrivers/opensource/char/board/bcm963xx/impl1/ ; \
 				cp $(TOP_PLATFORM)/hnd_extra/prebuilt/bcm63xx_gpio.o $(HND_SRC)/bcmdrivers/opensource/char/board/bcm963xx/impl1/ ; \

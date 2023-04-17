@@ -32,6 +32,7 @@ build_link(){
 	[ ! -d RT-AX82U_V2 ] && ln -sf BCM6756 RT-AX82U_V2
 	[ ! -d TUF-AX3000_V2 ] && ln -sf BCM6756 TUF-AX3000_V2
 	[ ! -d TUF-AX5400_V2 ] && ln -sf BCM6756 TUF-AX5400_V2
+	[ ! -d GT10 ] && ln -sf BCM6756 GT10
 }
 
 cd $REPO/release/src/router/aaews/prebuild/ && build_link
