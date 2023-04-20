@@ -71,7 +71,7 @@ int rm_main(int argc UNUSED_PARAM, char **argv)
 			if (DOT_OR_DOTDOT(base)) {
 				bb_error_msg("can't remove '.' or '..'");
 #if defined(RTCONFIG_HND_ROUTER_AX_6756)
-			} else if (f_exists("/mnt/defaults/wl/nvram.nvm") && (strstr(*argv, "/tmp/*") || strstr(*argv, "mnt/*") || strstr(*argv, "mnt/default"))) {
+			} else if (f_exists("/mnt/defaults/wl/nvram.nvm") && (!strcmp(*argv, "/tmp/*") || strstr(*argv, "mnt/*") || strstr(*argv, "mnt/default"))) {
 				bb_error_msg("can't remove '/tmp/mnt/default/wl/nvram.nvm', this is a system file.");
 #endif
 			} else if (remove_file(*argv, flags) >= 0) {
