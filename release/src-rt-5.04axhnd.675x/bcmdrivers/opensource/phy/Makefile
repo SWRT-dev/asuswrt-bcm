@@ -103,6 +103,7 @@ ifeq ($(strip ${BRCM_CHIP}),6855)
     DRV_OBJS += phy_drv_ext3.o
     DRV_OBJS += phy_mac_sec.o
     DRV_OBJS += phy_mac_sec_list.o
+    DRV_OBJS += $(if $(wildcard gpy211.c),gpy211.o,prebuilt/gpy211_6855.o)
     DRV_OBJS += sha256.o   
     DRV_OBJS += brcm_rgmii.o
     EXTRA_CFLAGS += -DBRCM_RGMII
