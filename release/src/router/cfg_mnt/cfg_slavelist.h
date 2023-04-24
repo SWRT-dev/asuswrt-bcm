@@ -87,7 +87,9 @@ typedef struct _CM_CLIENT_TABLE {
 #ifdef RTCONFIG_BHCOST_OPT
 	unsigned int joinTime[CFG_CLIENT_NUM];
 #endif
+#if !defined(GT10)
 	int cost[CFG_CLIENT_NUM];
+#endif
 } CM_CLIENT_TABLE, *P_CM_CLIENT_TABLE;
 
 extern int cm_checkReListExist(char *Mac);
