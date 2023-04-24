@@ -10156,6 +10156,10 @@ wdp:
 #endif
 	if(check_auth_code)
 		check_auth_code();
+#if defined(GT10)
+	if(!pids("amas_portstatus") && nvram_match("conn_diag_ready", "1") && !nvram_match("enable_diag", "0"))
+		start_amas_portstatus();
+#endif
 }
 
 #if ! (defined(RTCONFIG_QCA) || defined(RTCONFIG_RALINK))
