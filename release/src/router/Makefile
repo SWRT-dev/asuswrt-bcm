@@ -2731,54 +2731,54 @@ roldconf: config/conf
 ifeq ($(RTCONFIG_BCMARM),y)
 	$(MAKE) compressed-clean
 endif
-ifeq ($(RTCONFIG_DHDAP),y)
-ifeq ($(RTCONFIG_BCM7),y)
-ifneq ($(wildcard $(SRCBASE_FW)/wl/sys),)
-ifeq ($(wildcard /projects/hnd/tools/linux/hndtools-armeabi-2011.09),)
-	# build 43602 src and to match its path
-	sudo mkdir /projects/hnd/tools/linux -p
-	sudo rm -rf /projects/hnd/tools/linux/hndtools-armeabi-2011.09
-	sudo ln -sf $(SRCBASE)/toolchains/hndtools-armeabi-2011.09 /projects/hnd/tools/linux/hndtools-armeabi-2011.09
-endif
-endif
-else ifeq ($(RTCONFIG_BCM_7114),y) # hnd models use same dongle toolchain as 7114
-ifeq ($(wildcard /projects/hnd/tools/linux/hndtools-armeabi-2013.11),)
-	# build pciefd
-	sudo mkdir /projects/hnd/tools/linux/bin -p
-	sudo rm -rf /projects/hnd/tools/linux/hndtools-armeabi-2013.11
-	sudo ln -sf $(SRCBASE)/toolchains/hndtools-armeabi-2013.11 /projects/hnd/tools/linux/hndtools-armeabi-2013.11
-	sudo ln -sf $(SRCBASE)/toolchains/fwtag.ini /projects/hnd/tools/linux/bin/fwtag.ini
-endif
-else ifeq ($(HND_ROUTER_AX),y)
-ifeq ($(wildcard /projects/bca/tools/linux/hndtools-armeabi-2013.11),)
-        # build pciefd
-	sudo mkdir /projects/bca/tools/linux/bin -p
-	sudo rm -rf /projects/bca/tools/linux/hndtools-armeabi-2013.11
-	sudo ln -sf $(SRCBASE)/toolchains/hndtools-armeabi-2013.11 /projects/bca/tools/linux/hndtools-armeabi-2013.11
-	sudo ln -sf $(SRCBASE)/toolchains/fwtag.ini /projects/bca/tools/linux/bin/fwtag.ini
-endif
-endif
-endif
-ifeq ($(HND_ROUTER),y)
-ifeq ($(wildcard /opt/toolchains),)
-	sudo mkdir /opt/toolchains -p
-endif
-ifeq ($(HND_ROUTER_AX),y)
-ifeq ($(wildcard /opt/toolchains/crosstools-aarch64-gcc-5.5-linux-4.1-glibc-2.26-binutils-2.28.1),)
-	sudo ln -sf $(SRCBASE)/toolchains/crosstools-aarch64-gcc-5.5-linux-4.1-glibc-2.26-binutils-2.28.1 /opt/toolchains/crosstools-aarch64-gcc-5.5-linux-4.1-glibc-2.26-binutils-2.28.1
-endif
-ifeq ($(wildcard /opt/toolchains/crosstools-arm-gcc-5.5-linux-4.1-glibc-2.26-binutils-2.28.1),)
-	sudo ln -sf $(SRCBASE)/toolchains/crosstools-arm-gcc-5.5-linux-4.1-glibc-2.26-binutils-2.28.1 /opt/toolchains/crosstools-arm-gcc-5.5-linux-4.1-glibc-2.26-binutils-2.28.1
-endif
-else
-ifeq ($(wildcard /opt/toolchains/crosstools-aarch64-gcc-5.3-linux-4.1-glibc-2.22-binutils-2.25),)
-	sudo ln -sf $(SRCBASE)/toolchains/crosstools-aarch64-gcc-5.3-linux-4.1-glibc-2.22-binutils-2.25 /opt/toolchains/crosstools-aarch64-gcc-5.3-linux-4.1-glibc-2.22-binutils-2.25
-endif
-ifeq ($(wildcard /opt/toolchains/crosstools-arm-gcc-5.3-linux-4.1-glibc-2.22-binutils-2.25),)
-	sudo ln -sf $(SRCBASE)/toolchains/crosstools-arm-gcc-5.3-linux-4.1-glibc-2.22-binutils-2.25 /opt/toolchains/crosstools-arm-gcc-5.3-linux-4.1-glibc-2.22-binutils-2.25
-endif
-endif
-endif
+#ifeq ($(RTCONFIG_DHDAP),y)
+#ifeq ($(RTCONFIG_BCM7),y)
+#ifneq ($(wildcard $(SRCBASE_FW)/wl/sys),)
+#ifeq ($(wildcard /projects/hnd/tools/linux/hndtools-armeabi-2011.09),)
+#	# build 43602 src and to match its path
+#	sudo mkdir /projects/hnd/tools/linux -p
+#	sudo rm -rf /projects/hnd/tools/linux/hndtools-armeabi-2011.09
+#	sudo ln -sf $(SRCBASE)/toolchains/hndtools-armeabi-2011.09 /projects/hnd/tools/linux/hndtools-armeabi-2011.09
+#endif
+#endif
+#else ifeq ($(RTCONFIG_BCM_7114),y) # hnd models use same dongle toolchain as 7114
+#ifeq ($(wildcard /projects/hnd/tools/linux/hndtools-armeabi-2013.11),)
+#	# build pciefd
+#	sudo mkdir /projects/hnd/tools/linux/bin -p
+#	sudo rm -rf /projects/hnd/tools/linux/hndtools-armeabi-2013.11
+#	sudo ln -sf $(SRCBASE)/toolchains/hndtools-armeabi-2013.11 /projects/hnd/tools/linux/hndtools-armeabi-2013.11
+#	sudo ln -sf $(SRCBASE)/toolchains/fwtag.ini /projects/hnd/tools/linux/bin/fwtag.ini
+#endif
+#else ifeq ($(HND_ROUTER_AX),y)
+#ifeq ($(wildcard /projects/bca/tools/linux/hndtools-armeabi-2013.11),)
+#        # build pciefd
+#	sudo mkdir /projects/bca/tools/linux/bin -p
+#	sudo rm -rf /projects/bca/tools/linux/hndtools-armeabi-2013.11
+#	sudo ln -sf $(SRCBASE)/toolchains/hndtools-armeabi-2013.11 /projects/bca/tools/linux/hndtools-armeabi-2013.11
+#	sudo ln -sf $(SRCBASE)/toolchains/fwtag.ini /projects/bca/tools/linux/bin/fwtag.ini
+#endif
+#endif
+#endif
+#ifeq ($(HND_ROUTER),y)
+#ifeq ($(wildcard /opt/toolchains),)
+#	sudo mkdir /opt/toolchains -p
+#endif
+#ifeq ($(HND_ROUTER_AX),y)
+#ifeq ($(wildcard /opt/toolchains/crosstools-aarch64-gcc-5.5-linux-4.1-glibc-2.26-binutils-2.28.1),)
+#	sudo ln -sf $(SRCBASE)/toolchains/crosstools-aarch64-gcc-5.5-linux-4.1-glibc-2.26-binutils-2.28.1 /opt/toolchains/crosstools-aarch64-gcc-5.5-linux-4.1-glibc-2.26-binutils-2.28.1
+#endif
+#ifeq ($(wildcard /opt/toolchains/crosstools-arm-gcc-5.5-linux-4.1-glibc-2.26-binutils-2.28.1),)
+#	sudo ln -sf $(SRCBASE)/toolchains/crosstools-arm-gcc-5.5-linux-4.1-glibc-2.26-binutils-2.28.1 /opt/toolchains/crosstools-arm-gcc-5.5-linux-4.1-glibc-2.26-binutils-2.28.1
+#endif
+#else
+#ifeq ($(wildcard /opt/toolchains/crosstools-aarch64-gcc-5.3-linux-4.1-glibc-2.22-binutils-2.25),)
+#	sudo ln -sf $(SRCBASE)/toolchains/crosstools-aarch64-gcc-5.3-linux-4.1-glibc-2.22-binutils-2.25 /opt/toolchains/crosstools-aarch64-gcc-5.3-linux-4.1-glibc-2.22-binutils-2.25
+#endif
+#ifeq ($(wildcard /opt/toolchains/crosstools-arm-gcc-5.3-linux-4.1-glibc-2.22-binutils-2.25),)
+#	sudo ln -sf $(SRCBASE)/toolchains/crosstools-arm-gcc-5.3-linux-4.1-glibc-2.22-binutils-2.25 /opt/toolchains/crosstools-arm-gcc-5.3-linux-4.1-glibc-2.22-binutils-2.25
+#endif
+#endif
+#endif
 
 kconf:
 	$(MAKE) -C $(LINUXDIR) config
@@ -3615,7 +3615,7 @@ iptables-1.4.21: iptables-1.4.21/Makefile
 	@$(SEP)
 	$(MAKE) -C $@ KERNEL_DIR=$(LINUXDIR) COPT_FLAGS="-Os $(EXTRACFLAGS) -U CONFIG_NVRAM_SIZE"
 
-iptables-1.4.21-install: iptables-1.4.21
+iptables-1.4.21-install:
 	install -D iptables-1.4.21/iptables/.libs/xtables-multi $(INSTALLDIR)/iptables-1.4.21/usr/sbin/xtables-multi
 	cd $(INSTALLDIR)/iptables-1.4.21/usr/sbin && \
 		ln -sf xtables-multi iptables-restore && \
@@ -3744,7 +3744,7 @@ iptables-1.4.x: iptables-1.4.x/Makefile
 	@$(SEP)
 	$(MAKE) -C $@ KERNEL_DIR=$(LINUX_INC_DIR) COPT_FLAGS="-Os $(EXTRACFLAGS) -U CONFIG_NVRAM_SIZE"
 
-iptables-1.4.x-install: iptables-1.4.x
+iptables-1.4.x-install:
 	install -D iptables-1.4.x/iptables/.libs/xtables-multi $(INSTALLDIR)/iptables-1.4.x/usr/sbin/xtables-multi
 	cd $(INSTALLDIR)/iptables-1.4.x/usr/sbin && \
 		ln -sf xtables-multi iptables-restore && \
@@ -3843,7 +3843,7 @@ skipdbv2-clean:
 	@rm -f skipdbv2/cmake_install.cmake
 	@rm -f skipdbv2/Makefile
 
-skipdbv2-install: skipdbv2
+skipdbv2-install:
 	install -D skipdbv2/bin/skipd $(INSTALLDIR)/skipdbv2/usr/sbin/skipd
 	install -D skipdbv2/bin/dbus $(INSTALLDIR)/skipdbv2/usr/sbin/dbus
 	$(STRIP) $(INSTALLDIR)/skipdbv2/usr/sbin/skipd
@@ -3886,7 +3886,7 @@ k3screenctrl: k3screenctrl/Makefile
 k3screenctrl-clean:
 	[ ! -f k3screenctrl/Makefile ] || $(MAKE) -C k3screenctrl -f Makefile distclean
 
-k3screenctrl-install: k3screenctrl
+k3screenctrl-install:
 	install -D k3screenctrl/src/k3screenctrl $(INSTALLDIR)/k3screenctrl/usr/sbin/k3screenctrl
 	install -D k3screenctrl/src/k3screend $(INSTALLDIR)/k3screenctrl/usr/sbin/k3screend
 	$(STRIP) $(INSTALLDIR)/k3screenctrl/usr/sbin/k3screenctrl
@@ -3900,7 +3900,7 @@ smartdns:
 smartdns-clean:
 	[ ! -f smartdns/src/Makefile ] || $(MAKE) -C smartdns/src clean
 
-smartdns-install: smartdns
+smartdns-install:
 	install -D smartdns/src/smartdns $(INSTALLDIR)/smartdns/usr/sbin/smartdns
 	$(STRIP) $(INSTALLDIR)/smartdns/usr/sbin/smartdns
 endif
@@ -4005,7 +4005,7 @@ else
 endif
 	$(MAKE) -C $@
 
-vsftpd-3.x-install: vsftpd-3.x
+vsftpd-3.x-install:
 	install -D vsftpd-3.x/vsftpd $(INSTALLDIR)/vsftpd-3.x/usr/sbin/vsftpd
 	$(STRIP) -s $(INSTALLDIR)/vsftpd-3.x/usr/sbin/vsftpd
 
@@ -4397,6 +4397,7 @@ ifeq ($(RTCONFIG_EXT4FS),y)
 	ln -sf e2fsck $(INSTALLDIR)/e2fsprogs/usr/sbin/fsck.ext4
 endif
 ifneq ($(NO_MKTOOLS),y)
+	install -D e2fsprogs/misc/tune2fs $(INSTALLDIR)/e2fsprogs/usr/sbin/tune2fs
 	install -D e2fsprogs/misc/mke2fs $(INSTALLDIR)/e2fsprogs/usr/sbin/mke2fs
 #	install -D e2fsprogs/misc/tune2fs $(INSTALLDIR)/e2fsprogs/usr/sbin/tune2fs
 	ln -sf mke2fs $(INSTALLDIR)/e2fsprogs/usr/sbin/mkfs.ext2
@@ -5534,7 +5535,7 @@ jpeg-clean:
 	-@$(MAKE) -C jpeg clean
 	@rm -f jpeg/stamp-h1
 
-jpeg-install: jpeg
+jpeg-install:
 	@$(SEP)
 ifneq ($(MEDIA_SERVER_STATIC),y)
 	install -D jpeg/libjpeg.so $(INSTALLDIR)/jpeg/usr/lib/libjpeg.so
@@ -5575,7 +5576,7 @@ zlib-clean:
 	-@$(MAKE) -C zlib clean
 	@rm -f zlib/stamp-h1
 
-zlib-install: zlib
+zlib-install:
 	@$(SEP)
 # commented out for mt-daapd-svn-1696
 ifneq ($(MEDIA_SERVER_STATIC),y)
@@ -5659,7 +5660,7 @@ libgdbm-clean:
 	-@$(MAKE) -C libgdbm clean
 	@rm -f libgdbm/stamp-h1
 
-libgdbm-install: libgdbm
+libgdbm-install:
 	@$(SEP)
 ifneq ($(MEDIA_SERVER_STATIC),y)
 	install -D libgdbm/.libs/libgdbm.so.3.0.0 $(INSTALLDIR)/libgdbm/usr/lib/libgdbm.so.3.0.0
@@ -6227,7 +6228,7 @@ EBK_INC=$(TOP)/kernel_header/include
 endif
 
 ebtables: kernel_header dummy
-	$(MAKE) -C ebtables $(if $(filter 4908 4912,$(BRCM_CHIP)),CC=$(CROSS_COMPILE_64)gcc LD=$(CROSS_COMPILE_64)ld CURRENT_ARCH=aarch64,CC=$(CC) LD=$(LD)) \
+	$(MAKE) -C ebtables $(PARALLEL_BUILD) $(if $(filter 4908 4912,$(BRCM_CHIP)),CC=$(CROSS_COMPILE_64)gcc LD=$(CROSS_COMPILE_64)ld CURRENT_ARCH=aarch64,CC=$(CC) LD=$(LD)) \
 	CFLAGS="-Os -Wall -Wunused $(if $(RTCONFIG_HND_ROUTER),-DHND_ROUTER,) $(if $(RTCONFIG_HND_ROUTER_AX_6756),-DHND_ROUTER_AX_6756,)" \
 	BINDIR="/usr/sbin" LIBDIR="/usr/lib/ebtables" KERNEL_INCLUDES=$(EBK_INC) $(if $(RTCONFIG_IPV6),DO_IPV6=1,) $(if $(OLD_QCA),USE_ARPNAT=1,)
 
@@ -6602,7 +6603,7 @@ libxml2/stamp-h1:
 libxml2: libxml2/stamp-h1
 	$(MAKE) $(PARALLEL_BUILD) -C libxml2 all && $(MAKE) $@-stage
 
-libxml2-install: libxml2
+libxml2-install:
 	@$(SEP)
 	install -D libxml2/.libs/libxml2.so.2 $(INSTALLDIR)/libxml2/usr/lib/libxml2.so.2
 	$(STRIP) $(INSTALLDIR)/libxml2/usr/lib/libxml2.so.2
@@ -6621,7 +6622,7 @@ libiconv-1.14/stamp-h1:
 libiconv-1.14:libiconv-1.14/stamp-h1
 	@$(MAKE) $(PARALLEL_BUILD) -C $@ CFLAGS="$(CFLAGS) $(if $(filter y,$(HND_ROUTER)),-DHND_ROUTER,)" && $(MAKE) $@-stage
 
-libiconv-1.14-install: libiconv-1.14
+libiconv-1.14-install:
 	@$(SEP)
 	install -D libiconv-1.14/lib/.libs/libiconv.so.2.5.1 $(INSTALLDIR)/libiconv-1.14/usr/lib/libiconv.so.2.5.1
 	$(STRIP) $(INSTALLDIR)/libiconv-1.14/usr/lib/libiconv.so.2.5.1
@@ -6639,7 +6640,7 @@ libiconv-1.14-clean:
 smartsync_api:
 	$(MAKE) -C smartsync_api all
 
-smartsync_api-install: smartsync_api
+smartsync_api-install:
 	@$(SEP)
 	install -D smartsync_api/libsmartsync_api.so $(INSTALLDIR)/smartsync_api/usr/lib/libsmartsync_api.so
 	$(STRIP) $(INSTALLDIR)/smartsync_api/usr/lib/libsmartsync_api.so
@@ -6653,7 +6654,7 @@ ftpclient/stamp-h1:
 
 ftpclient:ftpclient/stamp-h1 libiconv-1.14
 
-ftpclient-install: ftpclient
+ftpclient-install:
 	@$(SEP)
 	install -D ftpclient/ftpclient $(INSTALLDIR)/ftpclient/usr/sbin/ftpclient
 	$(STRIP) $(INSTALLDIR)/ftpclient/usr/sbin/ftpclient
@@ -6677,7 +6678,7 @@ sambaclient/stamp-h1:
 sambaclient: sambaclient/stamp-h1
 	@$(MAKE) -C sambaclient
 
-sambaclient-install: sambaclient
+sambaclient-install:
 	@$(SEP)
 	install -D sambaclient/sambaclient $(INSTALLDIR)/sambaclient/usr/sbin/sambaclient
 	$(STRIP) $(INSTALLDIR)/sambaclient/usr/sbin/sambaclient
@@ -6702,7 +6703,7 @@ usbclient/stamp-h1:
 usbclient: usbclient/stamp-h1
 	@$(MAKE) -C usbclient
 
-usbclient-install: usbclient
+usbclient-install:
 	@$(SEP)
 	install -D usbclient/usbclient $(INSTALLDIR)/usbclient/usr/sbin/usbclient
 	$(STRIP) $(INSTALLDIR)/usbclient/usr/sbin/usbclient
@@ -6793,7 +6794,7 @@ neon/Makefile neon/config.h:
 neon: libxml2 openssl neon/Makefile neon/config.h
 	$(MAKE) -C neon && $(MAKE) $@-stage
 
-neon-install: neon
+neon-install:
 	@$(SEP)
 	install -D neon/src/.libs/libneon.so.27.3.2 $(INSTALLDIR)/neon/usr/lib/libneon.so.27.3.2
 	$(STRIP) $(INSTALLDIR)/neon/usr/lib/libneon.so.27.3.2
@@ -6949,7 +6950,7 @@ asuswebstorage/stamp-h1:
 asuswebstorage: asuswebstorage/stamp-h1
 	@$(MAKE) -C asuswebstorage
 
-asuswebstorage-install: asuswebstorage
+asuswebstorage-install:
 	@$(SEP)
 	install -D asuswebstorage/asuswebstorage $(INSTALLDIR)/asuswebstorage/usr/sbin/asuswebstorage
 	$(STRIP) $(INSTALLDIR)/asuswebstorage/usr/sbin/asuswebstorage
@@ -6965,7 +6966,7 @@ google_client/stamp-h1:
 google_client: google_client/stamp-h1
 	@$(MAKE) -C google_client
 
-google_client-install: google_client
+google_client-install:
 	@$(SEP)
 	install -D google_client/google_client $(INSTALLDIR)/google_client/usr/sbin/google_client
 	$(STRIP) $(INSTALLDIR)/google_client/usr/sbin/google_client
@@ -6981,7 +6982,7 @@ dropbox_client/stamp-h1:
 dropbox_client: dropbox_client/stamp-h1
 	@$(MAKE) -C dropbox_client
 
-dropbox_client-install: dropbox_client
+dropbox_client-install:
 	@$(SEP)
 	install -D dropbox_client/dropbox_client $(INSTALLDIR)/dropbox_client/usr/sbin/dropbox_client
 	$(STRIP) $(INSTALLDIR)/dropbox_client/usr/sbin/dropbox_client
@@ -7032,7 +7033,7 @@ libgpg-error-1.10: libgpg-error-1.10/stamp-h1
 	@$(SEP)
 	$(MAKE) -C libgpg-error-1.10
 
-libgpg-error-1.10-install: libgpg-error-1.10
+libgpg-error-1.10-install:
 	install -D libgpg-error-1.10/src/.libs/libgpg-error.so.0.8.0 $(INSTALLDIR)/libgpg-error-1.10/usr/lib/libgpg-error.so.0.8.0
 	$(STRIP) $(INSTALLDIR)/libgpg-error-1.10/usr/lib/libgpg-error.so.0.8.0
 	cd $(INSTALLDIR)/libgpg-error-1.10/usr/lib && ln -sf libgpg-error.so.0.8.0 libgpg-error.so.0
@@ -7052,7 +7053,7 @@ libgcrypt-1.5.1: libgcrypt-1.5.1/stamp-h1
 	@$(SEP)
 	@$(MAKE) -C libgcrypt-1.5.1
 
-libgcrypt-1.5.1-install: libgcrypt-1.5.1
+libgcrypt-1.5.1-install:
 	install -D libgcrypt-1.5.1/src/.libs/libgcrypt.so.11.8.0 $(INSTALLDIR)/libgcrypt-1.5.1/usr/lib/libgcrypt.so.11.8.0
 	$(STRIP) $(INSTALLDIR)/libgcrypt-1.5.1/usr/lib/libgcrypt.so.11.8.0
 	cd $(INSTALLDIR)/libgcrypt-1.5.1/usr/lib && ln -sf libgcrypt.so.11.8.0 libgcrypt.so.11
@@ -7095,7 +7096,7 @@ db-4.8.30: db-4.8.30/build_unix/stamp-h1
 	@$(SEP)
 	@$(MAKE) -C db-4.8.30/build_unix $(PARALLEL_BUILD)
 
-db-4.8.30-install: db-4.8.30
+db-4.8.30-install:
 	install -D db-4.8.30/build_unix/.libs/libdb-4.8.so $(INSTALLDIR)/db-4.8.30/usr/lib/libdb-4.8.so
 	$(STRIP) $(INSTALLDIR)/db-4.8.30/usr/lib/libdb-4.8.so
 	cd $(INSTALLDIR)/db-4.8.30/usr/lib && ln -sf libdb-4.8.so libdb.so
@@ -7190,7 +7191,7 @@ expat-2.0.1: expat-2.0.1/stamp-h1
 	@$(MAKE) -C expat-2.0.1 $(PARALLEL_BUILD) && $(MAKE) $@-stage
 	sed 's|/usr/lib|$(STAGEDIR)/usr/lib|g' -i $(STAGEDIR)/usr/lib/libexpat.la
 
-expat-2.0.1-install: expat-2.0.1
+expat-2.0.1-install:
 	install -D expat-2.0.1/.libs/libexpat.so.1.5.2 $(INSTALLDIR)/expat-2.0.1/usr/lib/libexpat.so.1.5.2
 	$(STRIP) $(INSTALLDIR)/expat-2.0.1/usr/lib/libexpat.so.1.5.2
 	cd $(INSTALLDIR)/expat-2.0.1/usr/lib && ln -sf libexpat.so.1.5.2 libexpat.so.1
@@ -8513,7 +8514,7 @@ endif
 json-c: json-c/stamp-h1
 	$(MAKE) -C $@ && $(MAKE) $@-stage
 
-json-c-install: json-c
+json-c-install:
 	install -D json-c/.libs/libjson-c.so.2.0.2 $(INSTALLDIR)/json-c/usr/lib/libjson-c.so.2.0.2
 	$(if $(RTCONFIG_DEBUG),,$(STRIP) $(INSTALLDIR)/json-c/usr/lib/libjson-c.so.2.0.2)
 	cd $(INSTALLDIR)/json-c/usr/lib && \
@@ -8542,7 +8543,7 @@ endif
 phddns: phddns/stamp-h1
 	$(MAKE) -C phddns
 
-phddns-install: phddns
+phddns-install:
 	install -D phddns/src/phddns $(INSTALLDIR)/phddns/usr/sbin/phddns
 	$(STRIP) $(INSTALLDIR)/phddns/usr/sbin/phddns
 
@@ -9844,4 +9845,3 @@ $(obj-y) $(obj-n) $(obj-clean) $(obj-install): dummy
 .PHONY: all clean distclean mrproper install package image
 .PHONY: conf mconf oldconf kconf kmconf config menuconfig oldconfig
 .PHONY: dummy libnet libpcap
-
