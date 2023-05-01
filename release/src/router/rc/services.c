@@ -13075,6 +13075,12 @@ again:
 
 	if (strcmp(script, "reboot") == 0 || strcmp(script,"rebootandrestore")==0) {
 		save_sys_time();
+#if defined(RTCONFIG_HND_ROUTER_AX_6756) && defined(RTCONFIG_SOFTCENTER)
+		if(nvram_match("jffs2_format", "1")){
+			nvram_set("jffs2_format", "0");
+			eval("touch", "/jffs/remove_hidden_flag");
+		}
+#endif
 		if (wait_action_idle(10)) {
 			set_action(ACT_REBOOT);
 		}
@@ -13136,7 +13142,9 @@ again:
 		eval("touch", "/jffs/remove_hidden_flag");
 #endif
 #ifdef RTCONFIG_BCMARM
+#ifndef RTCONFIG_HND_ROUTER_AX_6756
 		stop_jffs2(1);
+#endif
 #ifdef RTCONFIG_ISP_CUSTOMIZE
 		if (!is_customized())
 #endif

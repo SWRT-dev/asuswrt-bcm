@@ -2731,8 +2731,14 @@ static void shutdn(int rb)
 	config_jumbo_frame();
 #endif
 #ifdef RTCONFIG_HND_ROUTER_AX_6756
-	if (f_exists("/jffs/remove_hidden_flag"))
+#ifndef MNT_DETACH
+#define MNT_DETACH	0x00000002
+#endif
+	if (f_exists("/jffs/remove_hidden_flag")){
+		if (umount("/jffs"))
+			umount2("/jffs", MNT_DETACH);
 		mtd_erase_misc2();
+	}
 #endif
 	printf("\nStopping bcm_boot_launcher ...\n");
 	system("bcm_boot_launcher stop");
@@ -21329,7 +21335,12 @@ int reboothalt_main(int argc, char *argv[])
 {
 	int reboot = (strstr(argv[0], "reboot") != NULL);
 	int def_reset_wait = 20;
-
+#if defined(RTCONFIG_HND_ROUTER_AX_6756) && defined(RTCONFIG_SOFTCENTER)
+	if(nvram_match("jffs2_format", "1")){
+		nvram_set("jffs2_format", "0");
+		eval("touch", "/jffs/remove_hidden_flag");
+	}
+#endif
 	nvram_set("sys_reboot_reason", "rbt_manual");
 	if(nvram_match("ahs_rbt_act", "1"))
 	{
