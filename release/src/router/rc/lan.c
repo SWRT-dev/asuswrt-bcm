@@ -6308,7 +6308,7 @@ void start_lan_wlc(void)
 #if defined(RTCONFIG_SWRT) && defined(RTCONFIG_AMAS)
 	else if(aimesh_re_node())
 		ifconfig(lan_ifname, IFUP | IFF_ALLMULTI, "192.168.111.111", nvram_default_get("lan_netmask"));
-#endi
+#endif
 	else
 		ifconfig(lan_ifname, IFUP | IFF_ALLMULTI, nvram_default_get("lan_ipaddr"), nvram_default_get("lan_netmask"));
 
