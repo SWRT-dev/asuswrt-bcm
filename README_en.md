@@ -89,7 +89,7 @@ sudo apt-get -y install build-essential asciidoc binutils bzip2 gawk gettext git
 
 	`make rt-ax82u`
 
-	`git checkout 388_21224 && make tuf-ax3000`
+	`make tuf-ax3000`
 
 	`make tuf-ax5400`
 
