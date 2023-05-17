@@ -98,17 +98,17 @@ sudo apt-get -y install build-essential asciidoc binutils bzip2 gawk gettext git
 
 	`make rt-ax68u`
 
-	`make rt-ax92u`
-
 	`make rt-ax86u`
+
+	`make gt-axe11000`
 
 	`cd asuswrt-bcm/release/src-rt-5.02axhnd` 
 
 	`make rt-ax88u`
 
-	`make gt-ax11000`
+	`make rt-ax92u`
 
-	`make gt-axe11000`
+	`make gt-ax11000`
 
 	`cd asuswrt-bcm/release/src-rt-5.04axhnd.675x` 
 
