@@ -665,6 +665,12 @@ define platformKernelConfig
 		sed -i "/CONFIG_PRINTK_TIME/d" $(1); \
 		echo "CONFIG_PRINTK_TIME=y" >>$(1); \
 	fi; \
+	if [ "$(HND_ROUTER_AX_6756)" = "y" ]; then \
+		if [ "$(BUILD_NAME)" != "RT-AX3000N" ] && [ "$(BUILD_NAME)" != "XD4PRO" ] ; then \
+			sed -i "/CONFIG_BCM_BPM_DYNAMIC_PRCNT_MAX_BUF/d" $(1); \
+			echo "CONFIG_BCM_BPM_DYNAMIC_PRCNT_MAX_BUF=20" >>$(1); \
+		fi; \
+	fi; \
 	)
 endef
 
