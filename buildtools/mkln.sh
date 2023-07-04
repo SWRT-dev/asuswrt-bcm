@@ -15,7 +15,7 @@ build_link(){
 	[ ! -d RT-AX68U ] && ln -sf BCM490X_AX RT-AX68U
 	[ ! -d RT-AX82U ] && ln -sf BCM675X RT-AX82U
 	[ ! -d RT-AX86U ] && ln -sf BCM490X_AX RT-AX86U
-	[ ! -d RT-AX86U_PRO ] && ln -sf BCM490X_AX RT-AX86U_PRO
+	[ ! -d RT-AX86U_PRO ] && ln -sf BCM491X RT-AX86U_PRO
 	[ ! -d RT-AX88U ] && ln -sf BCM490X_AX RT-AX88U
 	[ ! -d RT-AX92U ] && ln -sf BCM490X_AX RT-AX92U
 	[ ! -d RT-AX95Q ] && ln -sf BCM675X RT-AX95Q
