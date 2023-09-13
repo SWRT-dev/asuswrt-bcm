@@ -295,7 +295,8 @@ if [ "$CONFIG_BCM_UBUSCAP" == "y" ]; then
     cp -avf $BRCMDRIVERS_DIR/broadcom/char/ubuscap/impl$CONFIG_BCM_UBUSCAP_IMPL/ubcap_$BRCM_CHIP.sh  $TARGETS_DIR/$ROOTFS/opt/scripts/ubcap
 fi    
 
-DMfiles="bin etc lib sbin share tmp usr include doc"
+#DMfiles="bin etc lib sbin share tmp usr include doc"
+DMfiles="bin etc lib sbin share tmp usr include doc var home root libexec"
 
 for f in $DMfiles
 do
