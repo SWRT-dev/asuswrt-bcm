@@ -965,23 +965,82 @@ void start_entware(void)
 	{
 		if (ent_action & ENTWARE_ACT_INSTALL)
 		{
-			snprintf(cmd, sizeof(cmd), "wget http://%s/%s/installer/%s.sh -O /tmp/doentware.sh", 
-				nvram_match("preferred_lang", "CN") ? ENTWARE_MIRROR : ENTWARE_SERVER, nvram_get("entware_arch"), ent_arg);
-			system(cmd);
-			system("chmod +x /tmp/doentware.sh");
-			if(nvram_match("preferred_lang", "CN")){
-				system("mkdir -p /opt/etc");
-				snprintf(cmd, sizeof(cmd), "wget http://%s/%s/installer/opkg.conf -O /opt/etc/opkg.conf", ENTWARE_MIRROR, nvram_get("entware_arch"));
-				system(cmd);
-				system("sed -i '/opkg.conf/d' /tmp/doentware.sh");
-				system("sed -i 's|http://bin.entware.net|http://mirrors.bfsu.edu.cn/entware|g' /tmp/doentware.sh");
-				system("sed -i 's|http://bin.entware.net|http://mirrors.bfsu.edu.cn/entware|g' /opt/etc/opkg.conf");
-			}
-			system("/tmp/doentware.sh");
-			nvram_set("entware_installed", "1");
-#if defined(RTCONFIG_HND_ROUTER_AX_6756)
-			eval("ln", "-sf", "/bin/rm", "/opt/bin/rm");//keep system files safe
+			FILE *fp = NULL;
+			if(nvram_get_int("entware_mount") == 0){//uninstall
+#if defined(RTCONFIG_LANTIQ)
+#ifndef MNT_DETACH
+#define MNT_DETACH	0x00000002
 #endif
+			if (umount("/opt"))
+				umount2("/opt", MNT_DETACH);
+#endif
+				doSystem("rm -rf /jffs/opt");
+				doSystem("rm -rf /tmp/mnt/%s/opt", nvram_safe_get("entware_disk"));
+			}else if((fp = fopen("/tmp/installentware.sh", "w"))){
+				fprintf(fp, "#!/bin/sh\n");
+				fprintf(fp, "TYPE='%s'\n", ent_arg);
+				fprintf(fp, "unset LD_LIBRARY_PATH\n");
+				fprintf(fp, "unset LD_PRELOAD\n");
+				fprintf(fp, "ARCH=%s\n", nvram_safe_get("entware_arch"));
+				fprintf(fp, "LOADER=ld-linux.so.3\n");
+				fprintf(fp, "GLIBC=2.27\n");
+				fprintf(fp, "for folder in bin etc lib/opkg tmp var/lock\n");
+				fprintf(fp, "do\n");
+				fprintf(fp, "  if [ -d \"/opt/$folder\" ]; then\n");
+				fprintf(fp, "    echo \"Warning: Folder /opt/$folder exists!\"\n");
+				fprintf(fp, "    echo 'Warning: If something goes wrong please clean /opt folder and try again.'\n");
+				fprintf(fp, "  else\n");
+				fprintf(fp, "    mkdir -p /opt/$folder\n");
+				fprintf(fp, "  fi\n");
+				fprintf(fp, "done\n");
+				fprintf(fp, "echo 'Info: Opkg package manager deployment...'\n");
+				fprintf(fp, "URL=http://%s/${ARCH}/installer\n", nvram_match("preferred_lang", "CN") ? ENTWARE_MIRROR : ENTWARE_SERVER);
+				fprintf(fp, "wget $URL/opkg -O /opt/bin/opkg\n");
+				fprintf(fp, "chmod 755 /opt/bin/opkg\n");
+				fprintf(fp, "echo 'Info: Basic packages installation...'\n");
+				fprintf(fp, "/opt/bin/opkg update\n");
+				fprintf(fp, "if [ $TYPE = 'alternative' ]; then\n");
+				fprintf(fp, "  /opt/bin/opkg install --force-space busybox\n");
+				fprintf(fp, "fi\n");
+				fprintf(fp, "/opt/bin/opkg install --force-space entware-opt\n");
+				fprintf(fp, "chmod 777 /opt/tmp\n");
+				fprintf(fp, "for file in passwd group shells shadow gshadow; do\n");
+				fprintf(fp, "  if [ $TYPE = 'generic' ]; then\n");
+				fprintf(fp, "    if [ -f /etc/$file ]; then\n");
+				fprintf(fp, "      ln -sf /etc/$file /opt/etc/$file\n");
+				fprintf(fp, "    else");
+				fprintf(fp, "      [ -f /opt/etc/$file.1 ] && cp /opt/etc/$file.1 /opt/etc/$file\n");
+				fprintf(fp, "    fi\n");
+				fprintf(fp, "   else\n");
+				fprintf(fp, "    if [ -f /opt/etc/$file.1 ]; then\n");
+				fprintf(fp, "      cp /opt/etc/$file.1 /opt/etc/$file\n");
+				fprintf(fp, "    fi\n");
+				fprintf(fp, "  fi\n");
+				fprintf(fp, "done\n");
+				fprintf(fp, "[ -f /etc/localtime ] && ln -sf /etc/localtime /opt/etc/localtime\n");
+				fprintf(fp, "echo 'Info: Congratulations!'\n");
+				fprintf(fp, "echo 'Info: If there are no errors above then Entware was successfully initialized.'\n");
+				fprintf(fp, "echo 'Info: Add /opt/bin & /opt/sbin to $PATH variable'\n");
+				fprintf(fp, "echo 'Info: Add \"/opt/etc/init.d/rc.unslung start\" to startup script for Entware services to start'\n");
+				fprintf(fp, "if [ $TYPE = 'alternative' ]; then\n");
+				fprintf(fp, "  echo 'Info: Use ssh server from Entware for better compatibility.'\n");
+				fprintf(fp, "fi\n");
+				fprintf(fp, "echo 'Info: Found a Bug? Please report at https://github.com/Entware/Entware/issues'\n");
+				fclose(fp);
+				system("chmod +x /tmp/installentware.sh");
+				system("mkdir -p /opt/etc");
+				snprintf(cmd, sizeof(cmd), "wget http://%s/%s/installer/opkg.conf -O /opt/etc/opkg.conf", 
+					nvram_match("preferred_lang", "CN") ? ENTWARE_MIRROR : ENTWARE_SERVER, nvram_get("entware_arch"));
+				system(cmd);
+				if(nvram_match("preferred_lang", "CN"))
+					system("sed -i 's|http://bin.entware.net|http://mirrors.bfsu.edu.cn/entware|g' /opt/etc/opkg.conf");
+				system("/tmp/installentware.sh");
+				nvram_set("entware_installed", "1");
+#if defined(RTCONFIG_HND_ROUTER_AX_6756)
+				eval("ln", "-sf", "/bin/rm", "/opt/bin/rm");//protect system files
+#endif
+			}else
+				nvram_set("entware_installed", "0");
 		}
 		else if (ent_action & ENTWARE_ACT_UPDATE)
 		{
@@ -1051,10 +1110,10 @@ void gen_arch_conf(void)
 {
 	struct utsname uts;
 	if(nvram_match("entware_arch", "") && uname(&uts) == 0){
-		if(!strcmp(uts.machine, "armv7l")){
-			if(!strcmp(uts.release, "2.6.36.4brcmarm"))
-				nvram_set("entware_arch", "armv7sf-k2.6");
-			else
+		if(!strncmp(uts.machine, "armv7", 5)){
+//			if(!strcmp(uts.release, "2.6.36.4brcmarm"))
+//				nvram_set("entware_arch", "armv7sf-k2.6");
+//			else
 				nvram_set("entware_arch", "armv7sf-k3.2");
 		}else if(!strcmp(uts.machine, "mips")){
 			if(!strncmp(uts.release, "4.4", 3) || !strncmp(uts.release, "5.4", 3))
@@ -1064,7 +1123,7 @@ void gen_arch_conf(void)
 		}else if(!strcmp(uts.machine, "aarch64"))
 			nvram_set("entware_arch", "aarch64-k3.10");
 		else if(!strcmp(uts.machine, "x86_64"))
-			nvram_set("entware_arch", "x64");
+			nvram_set("entware_arch", "x64-k3.2");
 	}
 }
 #endif
@@ -1970,6 +2029,9 @@ const unsigned int devpath_idx[4] = {0, 1, 2};    // 2.4G, 5G-1, 5G-2
 	switch(get_model()){
 		case MODEL_RTAC68U:
 		case MODEL_RTAC3200:
+#if defined(SBRAC3200P)
+		case MODEL_SBRAC3200P:
+#endif
 		case MODEL_RTAC5300:
 		case MODEL_RTAC88U:
 		case MODEL_RTAC86U:
@@ -2109,12 +2171,12 @@ int set_wltxpower_swrt(void)
 		nvram_set("wl3_txpower", "100");
 	}
 #endif
-	if(nvram_get_int("wl0_cpenable") == 0 || nvram_get_int("wl1_cpenable") == 0
+	if((unit & 1) == 0 || (unit & 2) == 0
 #if defined(RTCONFIG_HAS_5G_2)
-	|| nvram_get_int("wl2_cpenable") == 0
+	|| (unit & 4) == 0
 #endif
 #if defined(RTCONFIG_QUADBAND)
-	|| nvram_get_int("wl3_cpenable") == 0
+	|| (unit & 8) == 0
 #endif
 	){
 		set_wltxpower();
@@ -2440,6 +2502,7 @@ int set_wltxpower_swrt(void)
 			}
 			break;
 		case MODEL_RTAC3200:
+		case MODEL_SBRAC3200P:
 			if(unit & 1){
 				snprintf(prefix, sizeof(prefix), "1:");
 				snprintf(tmp2, sizeof(tmp2), "%d", p1);
