@@ -5950,9 +5950,12 @@ void start_smartdns(void)
 		return;
 	}
 	fprintf(fp, "server-name SWRT-smartdns\n");
-	fprintf(fp, "conf-file /etc/blacklist-ip.conf\n");
-	fprintf(fp, "conf-file /etc/whitelist-ip.conf\n");
-	fprintf(fp, "conf-file /etc/seconddns.conf\n");
+	if (f_exists("/etc/blacklist-ip.conf"))
+		fprintf(fp, "conf-file /etc/blacklist-ip.conf\n");
+	if (f_exists("/etc/whitelist-ip.conf"))
+		fprintf(fp, "conf-file /etc/whitelist-ip.conf\n");
+	if (f_exists("/etc/seconddns.conf"))
+		fprintf(fp, "conf-file /etc/seconddns.conf\n");
 #if defined(RTCONFIG_IPV6)
 	fprintf(fp, "bind [::]:9053 -group master\n");
 	fprintf(fp, "bind-tcp [::]:9053 -group master\n");
