@@ -308,6 +308,7 @@ else if(odmpid == 'GT6'){
 var label_mac = <% get_label_mac(); %>;
 var CNSku = in_territory_code("CN");
 var modelname = "<% nvram_get("modelname"); %>";
+var swrtuu = "<% nvram_get("swrt_uu"); %>";
 
 for(i=0;i<30;i++){
 	var temp = [];
@@ -371,7 +372,7 @@ function initial(){
 	if($("#aura_field").css("display") == "none")
 		$('#pingMap').height('430px');
 
-	if(uu_support && based_modelid == 'GT-AC5300'){
+	if(uu_support && (based_modelid == 'GT-AC5300' || based_modelid == 'RT-AX89U')){
 		$('#uu_field').show();
 	}
 
@@ -1102,13 +1103,18 @@ function hideEventTriggerDesc(){
 }
 function uuRegister(mac){
 	var _mac = mac.toLowerCase();
-	if(modelname.indexOf("RTAC") != -1 || modelname.indexOf("RTAX") != -1 || modelname.indexOf("GTAC") != -1 || modelname.indexOf("GTAX") != -1 || modelname.indexOf("BLUE") != -1 || modelname.indexOf("ZEN") != -1  || modelname.indexOf("XT") != -1  )
-		window.open('https://router.uu.163.com/asus/pc.html#/acce?gwSn=' + _mac + '&type=asuswrt', '_blank');
-	else
+	if(swrtuu == "1")
 		window.open('https://router.uu.163.com/asus/pc.html#/acce?gwSn=' + _mac + '&type=asuswrt-merlin', '_blank');
+	else
+		window.open('https://router.uu.163.com/asus/pc.html#/acce?gwSn=' + _mac + '&type=asuswrt', '_blank');
 }
-function enableuu(){
-	window.open("http://"+window.location.hostname+"/Advanced_System_Content.asp");
+function applyRule() {
+	var postdata = {};
+	postdata["uu_enable"] = document.form.uu_enable.value;
+	postdata["action_mode"] = "apply";
+	postdata["rc_service"] = "restart_uuacc;";
+	httpApi.nvramSet(postdata);
+	showLoading(5);
 }
 </script>
 </head>
@@ -1129,6 +1135,7 @@ function enableuu(){
 <input type="hidden" name="firmver" value="<% nvram_get("firmver"); %>">
 <input type="hidden" name="aurargb_val" value="<% nvram_get("aurargb_val"); %>">
 <input type="hidden" name="TM_EULA" value="<% nvram_get("TM_EULA"); %>">
+<input type="hidden" name="uu_enable" value="<% nvram_get("uu_enable"); %>">
 
 <table class="content" align="center" cellpadding="0" cellspacing="0" >
 
@@ -1442,12 +1449,19 @@ function enableuu(){
 										<div style="margin:6px;">
 											<a href="https://uu.163.com/router/" target="_blank" style="color:#4A90E2;text-decoration: underline">FAQ</a>
 										</div>
-										<div class="content-action-container" onclick="enableuu();" style="margin-top:0px;">
-											<div class="button-container button-container-sm" style="margin: 0 auto;">
-												<div class="button-icon icon-go"></div>
-												<div class="button-text"><#CTL_Enabled#> UU</div>
-											</div>
-										</div>
+										<div style="width:0px;height: 25px;margin: 0 135px;" id="radio_uu_enable"></div>
+										<script type="text/javascript">
+											$('#radio_uu_enable').iphoneSwitch('<% nvram_get("uu_enable"); %>',
+												function(){
+													document.form.uu_enable.value = 1;
+													applyRule();
+												},
+												function(){
+													document.form.uu_enable.value = 0;
+													applyRule();
+												}
+											);
+										</script>
 										<div class="content-action-container" onclick="uuRegister(label_mac);" style="margin-top:10px;">
 											<div class="button-container button-container-sm" style="margin: 0 auto;">
 												<div class="button-icon icon-go"></div>
