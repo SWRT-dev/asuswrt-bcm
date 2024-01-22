@@ -1057,7 +1057,7 @@ var httpApi ={
 
 	"swrtupdateserver": function(model_info){
 		var modelName = (model_info.model_name != undefined) ? model_info.model_name : "";
-		if(modelName == "RAX120" || modelName == "RAX70" || modelName == "MR60" || modelName == "MS60" || modelName == "R8000P" || modelName == "360V6" || modelName == "RGMA2820A" || modelName == "RGMA2820B" || modelName == "RAX200" || modelName == "TYAX5400")
+		if(modelName == "RAX120" || modelName == "RAX70" || modelName == "MR60" || modelName == "MS60" || modelName == "R8000P" || modelName == "360V6" || modelName == "RGMA2820A" || modelName == "RGMA2820B" || modelName == "RAX200" || modelName == "TYAX5400" || modelName == "RAX80")
 			return "https://update.paldier.com";
 		else
 			return "https://nw-dlcdnet.asus.com";
