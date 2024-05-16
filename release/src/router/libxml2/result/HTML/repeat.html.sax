@@ -6,7 +6,7 @@ SAX.startElement(td)
 SAX.endElement(td)
 SAX.startElement(td)
 SAX.comment( <a><b> )
-SAX.characters(
+SAX.ignorableWhitespace(
 , 1)
 SAX.endElement(td)
 SAX.endElement(body)

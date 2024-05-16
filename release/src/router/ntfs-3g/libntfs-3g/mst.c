@@ -31,21 +31,6 @@
 #include "mst.h"
 #include "logging.h"
 
-/*
- * Basic validation of a NTFS multi-sector record.  The record size must be a
- * multiple of the logical sector size; and the update sequence array must be
- * properly aligned, of the expected length, and must end before the last le16
- * in the first logical sector.
- */
-static BOOL
-is_valid_record(u32 size, u16 usa_ofs, u16 usa_count)
-{
-	return size % NTFS_BLOCK_SIZE == 0 &&
-		usa_ofs % 2 == 0 &&
-		usa_count == 1 + (size / NTFS_BLOCK_SIZE) &&
-		usa_ofs + ((u32)usa_count * 2) <= NTFS_BLOCK_SIZE - 2;
-}
-
 /**
  * ntfs_mst_post_read_fixup - deprotect multi sector transfer protected data
  * @b:		pointer to the data to deprotect
@@ -62,8 +47,7 @@ is_valid_record(u32 size, u16 usa_ofs, u16 usa_count)
  *	EIO	Multi sector transfer error was detected. Magic of the NTFS
  *		record in @b will have been set to "BAAD".
  */
-int ntfs_mst_post_read_fixup_warn(NTFS_RECORD *b, const u32 size,
-					BOOL warn)
+int ntfs_mst_post_read_fixup(NTFS_RECORD *b, const u32 size)
 {
 	u16 usa_ofs, usa_count, usn;
 	u16 *usa_pos, *data_pos;
@@ -72,18 +56,16 @@ int ntfs_mst_post_read_fixup_warn(NTFS_RECORD *b, const u32 size,
 
 	/* Setup the variables. */
 	usa_ofs = le16_to_cpu(b->usa_ofs);
-	usa_count = le16_to_cpu(b->usa_count);
-
-	if (!is_valid_record(size, usa_ofs, usa_count)) {
+	/* Decrement usa_count to get number of fixups. */
+	usa_count = le16_to_cpu(b->usa_count) - 1;
+	/* Size and alignment checks. */
+	if (size & (NTFS_BLOCK_SIZE - 1) || usa_ofs & 1 ||
+			(u32)(usa_ofs + (usa_count * 2)) > size ||
+			(size >> NTFS_BLOCK_SIZE_BITS) != usa_count) {
 		errno = EINVAL;
-		if (warn) {
-			ntfs_log_perror("%s: magic: 0x%08lx  size: %ld "
-					"  usa_ofs: %d  usa_count: %u",
-					 __FUNCTION__,
-					(long)le32_to_cpu(*(le32 *)b),
-					(long)size, (int)usa_ofs,
-					(unsigned int)usa_count);
-		}
+		ntfs_log_perror("%s: magic: 0x%08x  size: %d  usa_ofs: %d  "
+				"usa_count: %d", __FUNCTION__, *(le32 *)b,
+				size, usa_ofs, usa_count);
 		return -1;
 	}
 	/* Position of usn in update sequence array. */
@@ -103,7 +85,7 @@ int ntfs_mst_post_read_fixup_warn(NTFS_RECORD *b, const u32 size,
 	/*
 	 * Check for incomplete multi sector transfer(s).
 	 */
-	while (--usa_count) {
+	while (usa_count--) {
 		if (*data_pos != usn) {
 			/*
 			 * Incomplete multi sector transfer detected! )-:
@@ -113,7 +95,7 @@ int ntfs_mst_post_read_fixup_warn(NTFS_RECORD *b, const u32 size,
 			errno = EIO;
 			ntfs_log_perror("Incomplete multi-sector transfer: "
 				"magic: 0x%08x  size: %d  usa_ofs: %d  usa_count:"
-				" %d  data: %d  usn: %d", le32_to_cpu(*(le32 *)b), size,
+				" %d  data: %d  usn: %d", *(le32 *)b, size,
 				usa_ofs, usa_count, *data_pos, usn);
 			b->magic = magic_BAAD;
 			return -1;
@@ -121,10 +103,10 @@ int ntfs_mst_post_read_fixup_warn(NTFS_RECORD *b, const u32 size,
 		data_pos += NTFS_BLOCK_SIZE/sizeof(u16);
 	}
 	/* Re-setup the variables. */
-	usa_count = le16_to_cpu(b->usa_count);
+	usa_count = le16_to_cpu(b->usa_count) - 1;
 	data_pos = (u16*)b + NTFS_BLOCK_SIZE/sizeof(u16) - 1;
 	/* Fixup all sectors. */
-	while (--usa_count) {
+	while (usa_count--) {
 		/*
 		 * Increment position in usa and restore original data from
 		 * the usa into the data buffer.
@@ -134,16 +116,6 @@ int ntfs_mst_post_read_fixup_warn(NTFS_RECORD *b, const u32 size,
 		data_pos += NTFS_BLOCK_SIZE/sizeof(u16);
 	}
 	return 0;
-}
-
-/*
- *		Deprotect multi sector transfer protected data
- *	with a warning if an error is found.
- */
-
-int ntfs_mst_post_read_fixup(NTFS_RECORD *b, const u32 size)
-{
-	return (ntfs_mst_post_read_fixup_warn(b,size,TRUE));
 }
 
 /**
@@ -169,8 +141,7 @@ int ntfs_mst_post_read_fixup(NTFS_RECORD *b, const u32 size)
 int ntfs_mst_pre_write_fixup(NTFS_RECORD *b, const u32 size)
 {
 	u16 usa_ofs, usa_count, usn;
-	le16 le_usn;
-	le16 *usa_pos, *data_pos;
+	u16 *usa_pos, *data_pos;
 
 	ntfs_log_trace("Entering\n");
 
@@ -183,15 +154,18 @@ int ntfs_mst_pre_write_fixup(NTFS_RECORD *b, const u32 size)
 	}
 	/* Setup the variables. */
 	usa_ofs = le16_to_cpu(b->usa_ofs);
-	usa_count = le16_to_cpu(b->usa_count);
-
-	if (!is_valid_record(size, usa_ofs, usa_count)) {
+	/* Decrement usa_count to get number of fixups. */
+	usa_count = le16_to_cpu(b->usa_count) - 1;
+	/* Size and alignment checks. */
+	if (size & (NTFS_BLOCK_SIZE - 1) || usa_ofs & 1 ||
+			(u32)(usa_ofs + (usa_count * 2)) > size ||
+			(size >> NTFS_BLOCK_SIZE_BITS) != usa_count) {
 		errno = EINVAL;
 		ntfs_log_perror("%s", __FUNCTION__);
 		return -1;
 	}
 	/* Position of usn in update sequence array. */
-	usa_pos = (le16*)((u8*)b + usa_ofs);
+	usa_pos = (u16*)((u8*)b + usa_ofs);
 	/*
 	 * Cyclically increment the update sequence number
 	 * (skipping 0 and -1, i.e. 0xffff).
@@ -199,21 +173,21 @@ int ntfs_mst_pre_write_fixup(NTFS_RECORD *b, const u32 size)
 	usn = le16_to_cpup(usa_pos) + 1;
 	if (usn == 0xffff || !usn)
 		usn = 1;
-	le_usn = cpu_to_le16(usn);
-	*usa_pos = le_usn;
-	/* Position in data of first le16 that needs fixing up. */
-	data_pos = (le16*)b + NTFS_BLOCK_SIZE/sizeof(le16) - 1;
+	usn = cpu_to_le16(usn);
+	*usa_pos = usn;
+	/* Position in data of first u16 that needs fixing up. */
+	data_pos = (u16*)b + NTFS_BLOCK_SIZE/sizeof(u16) - 1;
 	/* Fixup all sectors. */
-	while (--usa_count) {
+	while (usa_count--) {
 		/*
 		 * Increment the position in the usa and save the
 		 * original data from the data buffer into the usa.
 		 */
 		*(++usa_pos) = *data_pos;
 		/* Apply fixup to data. */
-		*data_pos = le_usn;
+		*data_pos = usn;
 		/* Increment position in data as well. */
-		data_pos += NTFS_BLOCK_SIZE/sizeof(le16);
+		data_pos += NTFS_BLOCK_SIZE/sizeof(u16);
 	}
 	return 0;
 }
@@ -232,7 +206,7 @@ void ntfs_mst_post_write_fixup(NTFS_RECORD *b)
 	u16 *usa_pos, *data_pos;
 
 	u16 usa_ofs = le16_to_cpu(b->usa_ofs);
-	u16 usa_count = le16_to_cpu(b->usa_count);
+	u16 usa_count = le16_to_cpu(b->usa_count) - 1;
 
 	ntfs_log_trace("Entering\n");
 
@@ -243,7 +217,7 @@ void ntfs_mst_post_write_fixup(NTFS_RECORD *b)
 	data_pos = (u16*)b + NTFS_BLOCK_SIZE/sizeof(u16) - 1;
 
 	/* Fixup all sectors. */
-	while (--usa_count) {
+	while (usa_count--) {
 		/*
 		 * Increment position in usa and restore original data from
 		 * the usa into the data buffer.

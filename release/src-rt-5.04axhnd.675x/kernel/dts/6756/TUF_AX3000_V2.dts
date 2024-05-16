@@ -76,6 +76,7 @@
 	};
 
 	phy_cascade0:cascade0 {
+		compatible = "brcm,intelphy";
 		phy-type = "GPY211";
 		reg = <25>;
 		status = "okay";
@@ -112,6 +113,7 @@
 			phy-mode = "gmii";
 			gmii-direct;
 			status = "okay";
+			label = "eth1";
 		};
 		sf2_port2@2 {
 			phy-handle = <&sf2_gphy2>;
@@ -120,6 +122,7 @@
 			phy-mode = "gmii";
 			gmii-direct;
 			status = "okay";
+			label = "eth2";
 		};
 		sf2_port3@3 {
 			phy-handle = <&sf2_gphy3>;
@@ -128,6 +131,7 @@
 			phy-mode = "gmii";
 			gmii-direct;
 			status = "okay";
+			label = "eth3";
 		};
 		sf2_port8@8 {
 			management;                     /* sf2_ext.p8 <--> root.p1 */
@@ -137,6 +141,7 @@
 			phy-mode = "gmii";
 			gmii-direct;
 			status = "okay";
+			label = "eth0";
 		};
 	};
 };
@@ -183,8 +188,8 @@
     /* GPIO_18: 1G_WAN */
     led0:port_0-led-1 {
         active_low;
-        link = <LED_SPEED_GBE>;
-        activity = <LED_SPEED_GBE>;
+        link = <(LED_SPEED_100|LED_SPEED_1G)>;
+        activity = <(LED_SPEED_100|LED_SPEED_1G)>;
         pinctrl-0=<&a_per_led_18_pin_18>;
         status = "okay";
     };

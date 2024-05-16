@@ -1,14 +1,13 @@
 moon::iptables-restore < /etc/iptables.rules
 carol::iptables-restore < /etc/iptables.rules
 dave::iptables-restore < /etc/iptables.rules
-alice::ip neigh del 10.1.0.30 dev eth0
-alice::ip neigh del 10.1.0.40 dev eth0
-moon::systemctl start strongswan
-carol::systemctl start strongswan
-dave::systemctl start strongswan
+alice::arp -d 10.1.0.30
+alice::arp -d 10.1.0.40
+moon::ipsec start
+carol::ipsec start
+dave::ipsec start
 moon::expect-connection rw-carol
 carol::expect-connection home
-carol::swanctl --initiate --child home 2> /dev/null
-moon::expect-connection rw-dave
+carol::ipsec up home
 dave::expect-connection home
-dave::swanctl --initiate --child home 2> /dev/null
+dave::ipsec up home

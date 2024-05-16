@@ -360,6 +360,7 @@ static int rm_write_header(AVFormatContext *s)
 
     if (rv10_write_header(s, 0, 0))
         return AVERROR_INVALIDDATA;
+    avio_flush(s->pb);
     return 0;
 }
 

@@ -74,7 +74,6 @@ typedef struct MCDeintContext {
     int mode;           ///< MCDeintMode
     int parity;         ///< MCDeintParity
     int qp;
-    AVPacket *pkt;
     AVCodecContext *enc_ctx;
 } MCDeintContext;
 
@@ -103,7 +102,7 @@ static int config_props(AVFilterLink *inlink)
 {
     AVFilterContext *ctx = inlink->dst;
     MCDeintContext *mcdeint = ctx->priv;
-    const AVCodec *enc;
+    AVCodec *enc;
     AVCodecContext *enc_ctx;
     AVDictionary *opts = NULL;
     int ret;
@@ -113,9 +112,6 @@ static int config_props(AVFilterLink *inlink)
         return AVERROR(EINVAL);
     }
 
-    mcdeint->pkt = av_packet_alloc();
-    if (!mcdeint->pkt)
-        return AVERROR(ENOMEM);
     mcdeint->enc_ctx = avcodec_alloc_context3(enc);
     if (!mcdeint->enc_ctx)
         return AVERROR(ENOMEM);
@@ -158,7 +154,6 @@ static av_cold void uninit(AVFilterContext *ctx)
 {
     MCDeintContext *mcdeint = ctx->priv;
 
-    av_packet_free(&mcdeint->pkt);
     avcodec_free_context(&mcdeint->enc_ctx);
 }
 
@@ -178,7 +173,7 @@ static int filter_frame(AVFilterLink *inlink, AVFrame *inpic)
     MCDeintContext *mcdeint = inlink->dst->priv;
     AVFilterLink *outlink = inlink->dst->outputs[0];
     AVFrame *outpic, *frame_dec;
-    AVPacket *pkt = mcdeint->pkt;
+    AVPacket pkt = {0};
     int x, y, i, ret, got_frame = 0;
 
     outpic = ff_get_video_buffer(outlink, outlink->w, outlink->h);
@@ -189,7 +184,9 @@ static int filter_frame(AVFilterLink *inlink, AVFrame *inpic)
     av_frame_copy_props(outpic, inpic);
     inpic->quality = mcdeint->qp * FF_QP2LAMBDA;
 
-    ret = avcodec_encode_video2(mcdeint->enc_ctx, pkt, inpic, &got_frame);
+    av_init_packet(&pkt);
+
+    ret = avcodec_encode_video2(mcdeint->enc_ctx, &pkt, inpic, &got_frame);
     if (ret < 0)
         goto end;
 
@@ -277,7 +274,7 @@ static int filter_frame(AVFilterLink *inlink, AVFrame *inpic)
     mcdeint->parity ^= 1;
 
 end:
-    av_packet_unref(pkt);
+    av_packet_unref(&pkt);
     av_frame_free(&inpic);
     if (ret < 0) {
         av_frame_free(&outpic);

@@ -995,9 +995,7 @@ width:122px;
 	text-decoration: none;
 	font-family: Verdana, MS UI Gothic, MS P Gothic, Microsoft Yahei UI, sans-serif;
 	font-size: 12px;
-	border-radius: 5px 5px 0 0;
-	display: flex;
-	align-items: center;
+	border-radius: 5px;
 }
 .tabClicked{
 	cursor:pointer;
@@ -1013,9 +1011,7 @@ width:122px;
 	text-decoration: none;
 	font-family: Verdana, MS UI Gothic, MS P Gothic, Microsoft Yahei UI, sans-serif;
 	font-size: 12px;
-	border-radius: 5px 5px 0 0;
-	display: flex;
-	align-items: center;
+	border-radius: 5px;
 }
 .submenuBlock{
 	margin-bottom: -10px;

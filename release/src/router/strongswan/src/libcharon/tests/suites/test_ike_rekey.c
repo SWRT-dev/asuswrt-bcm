@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2016 Tobias Brunner
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -361,7 +360,7 @@ END_TEST
 
 /**
  * Both peers initiate the IKE_SA rekeying concurrently but the proposed DH
- * groups are not the same.  After handling the INVALID_KE_PAYLOAD they should
+ * gropus are not the same.  After handling the INVALID_KE_PAYLOAD they should
  * still handle the collision properly depending on the nonces.
  */
 START_TEST(test_collision_ke_invalid)

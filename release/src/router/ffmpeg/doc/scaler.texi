@@ -5,8 +5,7 @@
 The video scaler supports the following named options.
 
 Options may be set by specifying -@var{option} @var{value} in the
-FFmpeg tools, with a few API-only exceptions noted below.
-For programmatic use, they can be set explicitly in the
+FFmpeg tools. For programmatic use, they can be set explicitly in the
 @code{SwsContext} options or through the @file{libavutil/opt.h} API.
 
 @table @option
@@ -48,8 +47,7 @@ Select Gaussian rescaling algorithm.
 Select sinc rescaling algorithm.
 
 @item lanczos
-Select Lanczos rescaling algorithm. The default width (alpha) is 3 and can be
-changed by setting @code{param0}.
+Select Lanczos rescaling algorithm.
 
 @item spline
 Select natural bicubic spline rescaling algorithm.
@@ -70,31 +68,29 @@ Select full chroma input.
 Enable bitexact output.
 @end table
 
-@item srcw @var{(API only)}
+@item srcw
 Set source width.
 
-@item srch @var{(API only)}
+@item srch
 Set source height.
 
-@item dstw @var{(API only)}
+@item dstw
 Set destination width.
 
-@item dsth @var{(API only)}
+@item dsth
 Set destination height.
 
-@item src_format @var{(API only)}
+@item src_format
 Set source pixel format (must be expressed as an integer).
 
-@item dst_format @var{(API only)}
+@item dst_format
 Set destination pixel format (must be expressed as an integer).
 
-@item src_range @var{(boolean)}
-If value is set to @code{1}, indicates source is full range. Default value is
-@code{0}, which indicates source is limited range.
+@item src_range
+Select source range.
 
-@item dst_range @var{(boolean)}
-If value is set to @code{1}, enable full range for destination. Default value
-is @code{0}, which enables limited range.
+@item dst_range
+Select destination range.
 
 @anchor{sws_params}
 @item param0, param1

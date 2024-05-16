@@ -2,8 +2,7 @@
  * Copyright (C) 2012-2017 Tobias Brunner
  * Copyright (C) 2012 Reto Buerki
  * Copyright (C) 2012 Adrian-Ken Rueegsegger
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -44,6 +43,7 @@
 #include "tkm_public_key.h"
 #include "tkm_cred.h"
 #include "tkm_encoder.h"
+#include "tkm_spi_generator.h"
 
 /**
  * TKM bus listener for IKE authorize events.
@@ -119,10 +119,14 @@ static void run()
 		switch (sig)
 		{
 			case SIGINT:
+			{
+				DBG1(DBG_DMN, "signal of type SIGINT received. Shutting down");
+				charon->bus->alert(charon->bus, ALERT_SHUTDOWN_SIGNAL, sig);
+				return;
+			}
 			case SIGTERM:
 			{
-				DBG1(DBG_DMN, "%s received, shutting down",
-					 sig == SIGINT ? "SIGINT" : "SIGTERM");
+				DBG1(DBG_DMN, "signal of type SIGTERM received. Shutting down");
 				charon->bus->alert(charon->bus, ALERT_SHUTDOWN_SIGNAL, sig);
 				return;
 			}
@@ -130,7 +134,6 @@ static void run()
 	}
 }
 
-#ifndef DISABLE_SIGNAL_HANDLER
 /**
  * Handle SIGSEGV/SIGILL signals raised by threads
  */
@@ -146,7 +149,6 @@ static void segv_handler(int signal)
 	DBG1(DBG_DMN, "killing ourself, received critical signal");
 	abort();
 }
-#endif /* DISABLE_SIGNAL_HANDLER */
 
 /**
  * Lookup UID and GID
@@ -314,6 +316,9 @@ int main(int argc, char *argv[])
 			PLUGIN_PROVIDE(PUBKEY_VERIFY, SIGN_RSA_EMSA_PKCS1_SHA2_256),
 		PLUGIN_CALLBACK(kernel_ipsec_register, tkm_kernel_ipsec_create),
 			PLUGIN_PROVIDE(CUSTOM, "kernel-ipsec"),
+		PLUGIN_CALLBACK(tkm_spi_generator_register, NULL),
+			PLUGIN_PROVIDE(CUSTOM, "tkm-spi-generator"),
+				PLUGIN_DEPENDS(CUSTOM, "libcharon-sa-managers"),
 	};
 	lib->plugins->add_static_features(lib->plugins, "tkm-backend", features,
 			countof(features), TRUE, NULL, NULL);
@@ -324,17 +329,8 @@ int main(int argc, char *argv[])
 		goto deinit;
 	}
 
-	if (!register_ca_mapping())
-	{
-		DBG1(DBG_DMN, "no CA certificate ID mapping defined - aborting %s", dmn_name);
-		goto deinit;
-	}
-
 	/* register TKM keymat variant */
 	keymat_register_constructor(IKEV2, (keymat_constructor_t)tkm_keymat_create);
-
-	/* register TKM credential encoder */
-	lib->encoding->add_encoder(lib->encoding, tkm_encoder_encode);
 
 	/* initialize daemon */
 	if (!charon->initialize(charon, PLUGINS))
@@ -377,21 +373,19 @@ int main(int argc, char *argv[])
 	creds = tkm_cred_create();
 	lib->credmgr->add_set(lib->credmgr, (credential_set_t*)creds);
 
-	/* add handler for fatal signals,
+	/* register TKM credential encoder */
+	lib->encoding->add_encoder(lib->encoding, tkm_encoder_encode);
+
+	/* add handler for SEGV and ILL,
 	 * INT and TERM are handled by sigwaitinfo() in run() */
+	action.sa_handler = segv_handler;
 	action.sa_flags = 0;
 	sigemptyset(&action.sa_mask);
 	sigaddset(&action.sa_mask, SIGINT);
 	sigaddset(&action.sa_mask, SIGTERM);
-
-	/* optionally let the external system handle fatal signals */
-#ifndef DISABLE_SIGNAL_HANDLER
-	action.sa_handler = segv_handler;
 	sigaction(SIGSEGV, &action, NULL);
 	sigaction(SIGILL, &action, NULL);
 	sigaction(SIGBUS, &action, NULL);
-#endif /* DISABLE_SIGNAL_HANDLER */
-
 	action.sa_handler = SIG_IGN;
 	sigaction(SIGPIPE, &action, NULL);
 
@@ -411,7 +405,6 @@ int main(int argc, char *argv[])
 
 deinit:
 	destroy_dh_mapping();
-	destroy_ca_mapping();
 	libcharon_deinit();
 	tkm_deinit();
 	unlink_pidfile();

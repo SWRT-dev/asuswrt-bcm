@@ -1,8 +1,7 @@
 /*
  * Copyright (C) 2008 Martin Willi
  * Copyright (C) 2009-2010 Andreas Steffen
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -125,7 +124,7 @@ Usage:\n\
                   --add dns --server 10.1.0.1\n\
                   --add dns --server 10.1.1.1\n\
                If a - (hyphen) is given as a file name, the commands are read\n\
-               from STDIN. Reading commands stops at the end of file. Empty\n\
+               from STDIN. Readin commands stops at the end of file. Empty\n\
                lines are ignored. The file may not contain a --batch command.\n\
   \n");
 }

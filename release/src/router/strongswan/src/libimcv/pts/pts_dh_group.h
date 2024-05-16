@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2011 Sansar Choinyambuu
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -23,7 +22,7 @@
 #define PTS_DH_GROUP_H_
 
 #include <library.h>
-#include <crypto/key_exchange.h>
+#include <crypto/diffie_hellman.h>
 
 typedef enum pts_dh_group_t pts_dh_group_t;
 
@@ -63,7 +62,7 @@ enum pts_dh_group_t {
  * @param dh_groups				returns set of available DH groups
  * @param mandatory_dh_groups	if TRUE enforce mandatory PTS DH groups
  * @return						TRUE if mandatory DH groups are available
- *								or at least one optional DH group if
+ *								or at least one optional DH group if 
  *								mandatory_dh_groups is set to FALSE.
  */
 bool pts_dh_group_probe(pts_dh_group_t *dh_groups, bool mandatory_dh_groups);
@@ -98,11 +97,11 @@ pts_dh_group_t pts_dh_group_select(pts_dh_group_t supported_groups,
 								   pts_dh_group_t offered_groups);
 
 /**
- * Convert pts_dh_group_t to key_exchange_method_t
+ * Convert pts_dh_group_t to diffie_hellman_group_t
  *
  * @param dh_group			PTS DH group type
  * @return					IKE DH group type
  */
-key_exchange_method_t pts_dh_group_to_ike(pts_dh_group_t dh_group);
+diffie_hellman_group_t pts_dh_group_to_ike(pts_dh_group_t dh_group);
 
 #endif /** PTS_DH_GROUP_H_ @}*/

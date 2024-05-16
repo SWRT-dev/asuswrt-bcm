@@ -1,5 +1,3 @@
-EXTRA_DIST = git-version
-
 AM_CPPFLAGS = \
 	-I$(top_srcdir)/src/libstrongswan \
 	-I$(top_srcdir)/src/libtls \
@@ -31,7 +29,6 @@ malloc_speed_SOURCES = malloc_speed.c
 fetch_SOURCES = fetch.c
 dnssec_SOURCES = dnssec.c
 timeattack_SOURCES = timeattack.c
-
 id2sql_LDADD = $(top_builddir)/src/libstrongswan/libstrongswan.la
 key2keyid_LDADD = $(top_builddir)/src/libstrongswan/libstrongswan.la
 keyid2sql_LDADD = $(top_builddir)/src/libstrongswan/libstrongswan.la
@@ -46,14 +43,6 @@ dnssec_LDADD = $(top_builddir)/src/libstrongswan/libstrongswan.la
 aes_test_LDADD = $(top_builddir)/src/libstrongswan/libstrongswan.la
 settings_test_LDADD = $(top_builddir)/src/libstrongswan/libstrongswan.la
 timeattack_LDADD = $(top_builddir)/src/libstrongswan/libstrongswan.la $(RTLIB)
-
-if USE_IMCV
-  AM_CPPFLAGS += -I$(top_srcdir)/src/libimcv
-  noinst_PROGRAMS += os_info
-  os_info_SOURCES = os_info.c
-  os_info_LDADD = $(top_builddir)/src/libstrongswan/libstrongswan.la \
-                  $(top_builddir)/src/libimcv/libimcv.la
-endif
 
 key2keyid.o :	$(top_builddir)/config.status
 

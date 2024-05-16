@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022, Broadcom. All Rights Reserved.
+ * Copyright (C) 2021, Broadcom. All Rights Reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -117,7 +117,7 @@ typedef struct emfc_snooper
 
 #ifdef BCM_NBUFF_WLMCAST
 	int32  (*remove_sta_fn)(struct emfc_snooper *snooper, void *sta, uint32 src_ip);
-#endif
+#endif // endif
 
 } emfc_snooper_t;
 
@@ -130,7 +130,7 @@ typedef struct emfc_wrapper
 	void  *(*hooks_get_fn)(int cmd, void *p, void *p1, void *p2);
 	int32   (*stall_sta_check_fn)(void *wrapper, void *p, uint32 mgrp_ip);
 	/* Function called to forward frames on a specific interface */
-#endif
+#endif // endif
 	int32   (*forward_fn)(void *wrapper, void *p, uint32 mgrp_ip,
 	                    void *txif, int rt_port);
 	/* Function called to send packet up the stack */
@@ -147,12 +147,12 @@ typedef struct emfc_wrapper
 
 	/* Function called when mfdb entry is being deleted */
 	int32   (*mfdb_delete_fn)(void *wrapper, uint32 mgrp_ip, void *txif);
-
 } emfc_wrapper_t;
 
 struct emfc_info;
 
-#if defined(BCM_NBUFF_WLMCAST_IPV6)
+#ifdef BCM_NBUFF_WLMCAST
+#ifdef BCM_NBUFF_WLMCAST_IPV6
 extern uint32 emfc_ipv6_input(struct emfc_info *emfc, void *sdu, void *ifp,
             uint8 *iph, bool rt_port);
 extern int32 emfc_mfdb_membership_status_change(struct emfc_info *emfc,
@@ -162,9 +162,8 @@ extern int32 emfc_mfdb_ipv6_membership_status_change(struct emfc_info *emfc,
 		void *mgrp_ip, void *ifp, int is_valid);
 extern int32 emfc_mfdb_ipv6_membership_add(struct emfc_info *emfc, void *mgrp_ip, void *ifp);
 extern int32 emfc_mfdb_ipv6_membership_dev_del(void *dev, void *grp, void *ifp);
-#endif
+#endif // endif
 
-#ifdef BCM_NBUFF_WLMCAST
 typedef struct {
 	void * p1;
 	void * p2;

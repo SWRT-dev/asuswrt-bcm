@@ -22,7 +22,7 @@
 /**
  * @file
  * Apple HTTP Live Streaming Protocol Handler
- * https://www.rfc-editor.org/rfc/rfc8216.txt
+ * http://tools.ietf.org/html/draft-pantos-http-live-streaming
  */
 
 #include "libavutil/avstring.h"
@@ -178,7 +178,7 @@ static int hls_close(URLContext *h)
 
     free_segment_list(s);
     free_variant_list(s);
-    ffurl_closep(&s->seg_hd);
+    ffurl_close(s->seg_hd);
     return 0;
 }
 
@@ -260,7 +260,8 @@ start:
             return ret;
     }
     if (s->seg_hd) {
-        ffurl_closep(&s->seg_hd);
+        ffurl_close(s->seg_hd);
+        s->seg_hd = NULL;
         s->cur_seq_no++;
     }
     reload_interval = s->n_segments > 0 ?
@@ -294,7 +295,7 @@ retry:
         }
         goto retry;
     }
-    url = s->segments[s->cur_seq_no - s->start_seq_no]->url;
+    url = s->segments[s->cur_seq_no - s->start_seq_no]->url,
     av_log(h, AV_LOG_DEBUG, "opening %s\n", url);
     ret = ffurl_open_whitelist(&s->seg_hd, url, AVIO_FLAG_READ,
                                &h->interrupt_callback, NULL,

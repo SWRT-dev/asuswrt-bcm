@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2008 Tobias Brunner
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -32,20 +31,20 @@ typedef struct openssl_diffie_hellman_t openssl_diffie_hellman_t;
 struct openssl_diffie_hellman_t {
 
 	/**
-	 * Implements key_exchange_t interface.
+	 * Implements diffie_hellman_t interface.
 	 */
-	key_exchange_t ke;
+	diffie_hellman_t dh;
 };
 
 /**
  * Creates a new openssl_diffie_hellman_t object.
  *
- * @param group			Diffie-Hellman group number to use
+ * @param group			Diffie Hellman group number to use
  * @param ...			expects generator and prime as chunk_t if MODP_CUSTOM
  * @return				openssl_diffie_hellman_t object, NULL if not supported
  */
 openssl_diffie_hellman_t *openssl_diffie_hellman_create(
-											key_exchange_method_t group, ...);
+											diffie_hellman_group_t group, ...);
 
 #endif /** OPENSSL_DIFFIE_HELLMAN_H_ @}*/
 

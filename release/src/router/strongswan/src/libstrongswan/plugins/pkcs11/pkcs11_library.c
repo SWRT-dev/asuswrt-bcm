@@ -1,8 +1,9 @@
 /*
  * Copyright (C) 2011-2015 Tobias Brunner
- * Copyright (C) 2010 Martin Willi
+ * HSR Hochschule fuer Technik Rapperswil
  *
- * Copyright (C) secunet Security Networks AG
+ * Copyright (C) 2010 Martin Willi
+ * Copyright (C) 2010 revosec AG
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -17,12 +18,7 @@
 
 #include "pkcs11_library.h"
 
-#ifndef WIN32
 #include <dlfcn.h>
-#else
-/* macro defined by synchapi.h that maps to CreateMutexA/W */
-#undef CreateMutex
-#endif
 
 #include <library.h>
 #include <asn1/asn1.h>
@@ -53,7 +49,7 @@ ENUM_NEXT(ck_rv_names, CKR_ATTRIBUTE_READ_ONLY, CKR_ATTRIBUTE_VALUE_INVALID,
 	"ATTRIBUTE_VALUE_INVALID");
 ENUM_NEXT(ck_rv_names, CKR_DATA_INVALID, CKR_DATA_LEN_RANGE,
 		CKR_ATTRIBUTE_VALUE_INVALID,
-	"DATA_INVALID",
+	"DATA_INVALID"
 	"DATA_LEN_RANGE");
 ENUM_NEXT(ck_rv_names, CKR_DEVICE_ERROR, CKR_DEVICE_REMOVED,
 		CKR_DATA_LEN_RANGE,
@@ -544,7 +540,6 @@ ENUM_NEXT(ck_attr_names, CKA_HW_FEATURE_TYPE, CKA_HAS_RESET,
 	"HAS_RESET");
 ENUM_NEXT(ck_attr_names, CKA_PIXEL_X, CKA_BITS_PER_PIXEL, CKA_HAS_RESET,
 	"PIXEL_X",
-	"PIXEL_Y",
 	"RESOLUTION",
 	"CHAR_ROWS",
 	"CHAR_COLUMNS",
@@ -623,8 +618,6 @@ typedef struct {
 	pkcs11_library_t *lib;
 	/* attributes to retrieve */
 	CK_ATTRIBUTE_PTR attr;
-	/* copy of the original attributes provided by the caller */
-	CK_ATTRIBUTE_PTR orig_attr;
 	/* number of attributes */
 	CK_ULONG count;
 	/* object handle in case of a single object */
@@ -634,41 +627,22 @@ typedef struct {
 } object_enumerator_t;
 
 /**
- * Keep a copy of the original attribute values so we can restore them while
- * enumerating e.g. if an attribute was unavailable for a particular object.
- */
-static void init_attrs(object_enumerator_t *this)
-{
-	int i;
-
-	this->orig_attr = calloc(this->count, sizeof(CK_ATTRIBUTE));
-	for (i = 0; i < this->count; i++)
-	{
-		this->orig_attr[i] = this->attr[i];
-	}
-}
-
-/**
- * Free contents of allocated attributes and reset them to their original
- * values.
+ * Free contents of attributes in a list
  */
 static void free_attrs(object_enumerator_t *this)
 {
 	CK_ATTRIBUTE_PTR attr;
-	int i;
 
 	while (this->freelist->remove_last(this->freelist, (void**)&attr) == SUCCESS)
 	{
 		free(attr->pValue);
-	}
-	for (i = 0; i < this->count; i++)
-	{
-		this->attr[i] = this->orig_attr[i];
+		attr->pValue = NULL;
+		attr->ulValueLen = 0;
 	}
 }
 
 /**
- * CKA_EC_POINT is encoded as ASN.1 octet string, we can't handle that and
+ * CKA_EC_POINT is encodeed as ASN.1 octet string, we can't handle that and
  * some tokens actually return them even unwrapped.
  *
  * Because ASN1_OCTET_STRING is 0x04 and uncompressed EC_POINTs also begin with
@@ -707,9 +681,7 @@ static bool get_attributes(object_enumerator_t *this, CK_OBJECT_HANDLE object)
 	/* get length of objects first */
 	rv = this->lib->f->C_GetAttributeValue(this->session, object,
 										   this->attr, this->count);
-	if (rv != CKR_OK &&
-		rv != CKR_ATTRIBUTE_SENSITIVE &&
-		rv != CKR_ATTRIBUTE_TYPE_INVALID)
+	if (rv != CKR_OK)
 	{
 		DBG1(DBG_CFG, "C_GetAttributeValue(NULL) error: %N", ck_rv_names, rv);
 		return FALSE;
@@ -717,12 +689,8 @@ static bool get_attributes(object_enumerator_t *this, CK_OBJECT_HANDLE object)
 	/* allocate required chunks */
 	for (i = 0; i < this->count; i++)
 	{
-		if (this->attr[i].ulValueLen == CK_UNAVAILABLE_INFORMATION)
-		{	/* reset this unavailable attribute before the next call */
-			this->attr[i] = this->orig_attr[i];
-		}
-		else if (this->attr[i].pValue == NULL &&
-				 this->attr[i].ulValueLen != 0)
+		if (this->attr[i].pValue == NULL &&
+			this->attr[i].ulValueLen != 0 && this->attr[i].ulValueLen != -1)
 		{
 			this->attr[i].pValue = malloc(this->attr[i].ulValueLen);
 			this->freelist->insert_last(this->freelist, &this->attr[i]);
@@ -731,10 +699,9 @@ static bool get_attributes(object_enumerator_t *this, CK_OBJECT_HANDLE object)
 	/* get the data */
 	rv = this->lib->f->C_GetAttributeValue(this->session, object,
 										   this->attr, this->count);
-	if (rv != CKR_OK &&
-		rv != CKR_ATTRIBUTE_SENSITIVE &&
-		rv != CKR_ATTRIBUTE_TYPE_INVALID)
+	if (rv != CKR_OK)
 	{
+		free_attrs(this);
 		DBG1(DBG_CFG, "C_GetAttributeValue() error: %N", ck_rv_names, rv);
 		return FALSE;
 	}
@@ -801,7 +768,6 @@ METHOD(enumerator_t, object_destroy, void,
 	}
 	free_attrs(this);
 	this->freelist->destroy(this->freelist);
-	free(this->orig_attr);
 	free(this);
 }
 
@@ -832,7 +798,6 @@ METHOD(pkcs11_library_t, create_object_enumerator, enumerator_t*,
 		.count = acount,
 		.freelist = linked_list_create(),
 	);
-	init_attrs(enumerator);
 	return &enumerator->public;
 }
 
@@ -855,7 +820,6 @@ METHOD(pkcs11_library_t, create_object_attr_enumerator, enumerator_t*,
 		.object = object,
 		.freelist = linked_list_create(),
 	);
-	init_attrs(enumerator);
 	return &enumerator->public;
 }
 
@@ -1063,6 +1027,7 @@ static void check_features(private_pkcs11_library_t *this, CK_INFO *info)
 {
 	if (has_version(info, 2, 20))
 	{
+		this->features |= PKCS11_TRUSTED_CERTS;
 		this->features |= PKCS11_ALWAYS_AUTH_KEYS;
 	}
 }

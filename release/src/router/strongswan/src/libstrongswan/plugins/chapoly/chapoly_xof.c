@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2016 Andreas Steffen
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -66,7 +65,7 @@ METHOD(xof_t, get_bytes, bool,
 	}
 
 	/* copy whole stream blocks directly to output buffer */
-	blocks = (out_len - index) / CHACHA_BLOCK_SIZE;
+	blocks = (out_len - index) / CHACHA_BLOCK_SIZE;	
 	while (blocks--)
 	{
 		if (!this->drv->chacha(this->drv, buffer + index))
@@ -74,8 +73,8 @@ METHOD(xof_t, get_bytes, bool,
 			return FALSE;
 		}
 		index += CHACHA_BLOCK_SIZE;
-	}
-
+	}	
+	
 	/* refill the stream buffer if some more output bytes are needed */
 	len = out_len - index;
 	if (len)
@@ -86,8 +85,8 @@ METHOD(xof_t, get_bytes, bool,
 		}
 		memcpy(buffer + index, this->stream, len);
 		this->stream_index = len;
-	}
-
+	}		
+	
 	return TRUE;
 }
 

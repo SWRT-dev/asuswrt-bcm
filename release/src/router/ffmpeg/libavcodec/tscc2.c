@@ -26,8 +26,6 @@
 
 #include <inttypes.h>
 
-#include "libavutil/thread.h"
-
 #define BITSTREAM_READER_LE
 #include "avcodec.h"
 #include "bytestream.h"
@@ -35,8 +33,6 @@
 #include "internal.h"
 #include "mathops.h"
 #include "tscc2data.h"
-
-#define TSCC2_VLC_BITS 9
 
 typedef struct TSCC2Context {
     AVCodecContext *avctx;
@@ -47,43 +43,52 @@ typedef struct TSCC2Context {
     int            q[2][3];
     GetBitContext  gb;
 
+    VLC            dc_vlc, nc_vlc[NUM_VLC_SETS], ac_vlc[NUM_VLC_SETS];
     int            block[16];
 } TSCC2Context;
 
-static VLC dc_vlc, nc_vlc[NUM_VLC_SETS], ac_vlc[NUM_VLC_SETS];
-
-static av_cold void tscc2_init_vlc(VLC *vlc, int *offset, int nb_codes,
-                                   const uint8_t *lens, const void *syms,
-                                   int sym_length)
+static av_cold void free_vlcs(TSCC2Context *c)
 {
-    static VLC_TYPE vlc_buf[15442][2];
+    int i;
 
-    vlc->table           = &vlc_buf[*offset];
-    vlc->table_allocated = FF_ARRAY_ELEMS(vlc_buf) - *offset;
-    ff_init_vlc_from_lengths(vlc, TSCC2_VLC_BITS, nb_codes,
-                             lens, 1, syms, sym_length, sym_length, 0,
-                             INIT_VLC_STATIC_OVERLONG | INIT_VLC_OUTPUT_LE, NULL);
-    *offset += vlc->table_size;
+    ff_free_vlc(&c->dc_vlc);
+    for (i = 0; i < NUM_VLC_SETS; i++) {
+        ff_free_vlc(c->nc_vlc + i);
+        ff_free_vlc(c->ac_vlc + i);
+    }
 }
 
-static av_cold void tscc2_init_vlcs(void)
+static av_cold int init_vlcs(TSCC2Context *c)
 {
-    const uint16_t *ac_vlc_syms = tscc2_ac_vlc_syms;
-    const uint8_t  *ac_vlc_lens = tscc2_ac_vlc_lens;
-    int i, offset = 0;
+    int i, ret;
 
-    tscc2_init_vlc(&dc_vlc, &offset, DC_VLC_COUNT,
-                   tscc2_dc_vlc_lens, tscc2_dc_vlc_syms, 2);
+    ret = ff_init_vlc_sparse(&c->dc_vlc, 9, DC_VLC_COUNT,
+                             tscc2_dc_vlc_bits,  1, 1,
+                             tscc2_dc_vlc_codes, 2, 2,
+                             tscc2_dc_vlc_syms,  2, 2, INIT_VLC_LE);
+    if (ret)
+        return ret;
 
     for (i = 0; i < NUM_VLC_SETS; i++) {
-        tscc2_init_vlc(&nc_vlc[i], &offset, 16,
-                       tscc2_nc_vlc_lens[i], tscc2_nc_vlc_syms[i], 1);
-
-        tscc2_init_vlc(&ac_vlc[i], &offset, tscc2_ac_vlc_sizes[i],
-                       ac_vlc_lens, ac_vlc_syms, 2);
-        ac_vlc_lens += tscc2_ac_vlc_sizes[i];
-        ac_vlc_syms += tscc2_ac_vlc_sizes[i];
+        ret = ff_init_vlc_sparse(c->nc_vlc + i, 9, 16,
+                                 tscc2_nc_vlc_bits[i],  1, 1,
+                                 tscc2_nc_vlc_codes[i], 2, 2,
+                                 tscc2_nc_vlc_syms,     1, 1, INIT_VLC_LE);
+        if (ret) {
+            free_vlcs(c);
+            return ret;
+        }
+        ret = ff_init_vlc_sparse(c->ac_vlc + i, 9, tscc2_ac_vlc_sizes[i],
+                                 tscc2_ac_vlc_bits[i],  1, 1,
+                                 tscc2_ac_vlc_codes[i], 2, 2,
+                                 tscc2_ac_vlc_syms[i],  2, 2, INIT_VLC_LE);
+        if (ret) {
+            free_vlcs(c);
+            return ret;
+        }
     }
+
+    return 0;
 }
 
 #define DEQUANT(val, q) (((q) * (val) + 0x80) >> 8)
@@ -149,7 +154,9 @@ static int tscc2_decode_mb(TSCC2Context *c, int *q, int vlc_set,
             if (!(j | k)) {
                 dc = get_bits(gb, 8);
             } else {
-                dc = get_vlc2(gb, dc_vlc.table, TSCC2_VLC_BITS, 2);
+                dc = get_vlc2(gb, c->dc_vlc.table, 9, 2);
+                if (dc == -1)
+                    return AVERROR_INVALIDDATA;
                 if (dc == 0x100)
                     dc = get_bits(gb, 8);
             }
@@ -157,12 +164,16 @@ static int tscc2_decode_mb(TSCC2Context *c, int *q, int vlc_set,
             prev_dc     = dc;
             c->block[0] = dc;
 
-            nc = get_vlc2(gb, nc_vlc[vlc_set].table, TSCC2_VLC_BITS, 1);
+            nc = get_vlc2(gb, c->nc_vlc[vlc_set].table, 9, 1);
+            if (nc == -1)
+                return AVERROR_INVALIDDATA;
 
             bpos = 1;
             memset(c->block + 1, 0, 15 * sizeof(*c->block));
             for (l = 0; l < nc; l++) {
-                ac = get_vlc2(gb, ac_vlc[vlc_set].table, TSCC2_VLC_BITS, 2);
+                ac = get_vlc2(gb, c->ac_vlc[vlc_set].table, 9, 2);
+                if (ac == -1)
+                    return AVERROR_INVALIDDATA;
                 if (ac == 0x1000)
                     ac = get_bits(gb, 12);
                 bpos += ac & 0xF;
@@ -229,7 +240,7 @@ static int tscc2_decode_frame(AVCodecContext *avctx, void *data,
         return buf_size;
     }
 
-    if ((ret = ff_reget_buffer(avctx, c->pic, 0)) < 0) {
+    if ((ret = ff_reget_buffer(avctx, c->pic)) < 0) {
         return ret;
     }
 
@@ -325,6 +336,7 @@ static av_cold int tscc2_decode_end(AVCodecContext *avctx)
 
     av_frame_free(&c->pic);
     av_freep(&c->slice_quants);
+    free_vlcs(c);
 
     return 0;
 }
@@ -332,25 +344,31 @@ static av_cold int tscc2_decode_end(AVCodecContext *avctx)
 static av_cold int tscc2_decode_init(AVCodecContext *avctx)
 {
     TSCC2Context * const c = avctx->priv_data;
-    static AVOnce init_static_once = AV_ONCE_INIT;
+    int ret;
 
     c->avctx = avctx;
 
     avctx->pix_fmt = AV_PIX_FMT_YUV444P;
+
+    if ((ret = init_vlcs(c)) < 0) {
+        av_log(avctx, AV_LOG_ERROR, "Cannot initialise VLCs\n");
+        return ret;
+    }
 
     c->mb_width     = FFALIGN(avctx->width,  16) >> 4;
     c->mb_height    = FFALIGN(avctx->height,  8) >> 3;
     c->slice_quants = av_malloc(c->mb_width * c->mb_height);
     if (!c->slice_quants) {
         av_log(avctx, AV_LOG_ERROR, "Cannot allocate slice information\n");
+        free_vlcs(c);
         return AVERROR(ENOMEM);
     }
 
     c->pic = av_frame_alloc();
-    if (!c->pic)
+    if (!c->pic) {
+        tscc2_decode_end(avctx);
         return AVERROR(ENOMEM);
-
-    ff_thread_once(&init_static_once, tscc2_init_vlcs);
+    }
 
     return 0;
 }
@@ -365,5 +383,4 @@ AVCodec ff_tscc2_decoder = {
     .close          = tscc2_decode_end,
     .decode         = tscc2_decode_frame,
     .capabilities   = AV_CODEC_CAP_DR1,
-    .caps_internal  = FF_CODEC_CAP_INIT_CLEANUP | FF_CODEC_CAP_INIT_THREADSAFE,
 };

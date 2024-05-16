@@ -1,7 +1,6 @@
 /*
- * Copyright (C) 2014-2022 Andreas Steffen
- *
- * Copyright (C) secunet Security Networks AG
+ * Copyright (C) 2014 Andreas Steffen
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -39,11 +38,11 @@ struct tcg_seg_attr_next_seg_t {
 	pa_tnc_attr_t pa_tnc_attribute;
 
 	/**
-	 * Get Base Message ID
+	 * Get Base Attribute ID
 	 *
-	 * @return				Base Message ID
+	 * @return				Base Attribute ID
 	 */
-	uint32_t (*get_base_msg_id)(tcg_seg_attr_next_seg_t *this);
+	uint32_t (*get_base_attr_id)(tcg_seg_attr_next_seg_t *this);
 
 	/**
 	 * Get the Cancel flag
@@ -57,10 +56,10 @@ struct tcg_seg_attr_next_seg_t {
 /**
  * Creates an tcg_seg_attr_next_seg_t object
  *
- * @param base_msg_id		Base Message ID
+ * @param base_attr_id		Base Attribute ID
  * @param cancel			If TRUE set Cancel flag
  */
-pa_tnc_attr_t* tcg_seg_attr_next_seg_create(uint32_t base_msg_id, bool cancel);
+pa_tnc_attr_t* tcg_seg_attr_next_seg_create(uint32_t base_attr_id, bool cancel);
 
 /**
  * Creates an tcg_seg_attr_next_seg_t object from received data

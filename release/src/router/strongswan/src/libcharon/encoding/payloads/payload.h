@@ -2,8 +2,7 @@
  * Copyright (C) 2007-2015 Tobias Brunner
  * Copyright (C) 2005-2006 Martin Willi
  * Copyright (C) 2005 Jan Hutter
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -169,7 +168,7 @@ enum payload_type_t {
 	PLV2_NONCE = 40,
 
 	/**
-	 * Notify payload (N).
+	 * Notify paylaod (N).
 	 */
 	PLV2_NOTIFY = 41,
 
@@ -179,7 +178,7 @@ enum payload_type_t {
 	PLV2_DELETE = 42,
 
 	/**
-	 * Vendor id payload (V).
+	 * Vendor id paylpoad (V).
 	 */
 	PLV2_VENDOR_ID = 43,
 
@@ -189,7 +188,7 @@ enum payload_type_t {
 	PLV2_TS_INITIATOR = 44,
 
 	/**
-	 * Traffic selector for the original responder (TSr).
+	 * Traffic selector for the original responser (TSr).
 	 */
 	PLV2_TS_RESPONDER = 45,
 
@@ -383,9 +382,9 @@ struct payload_t {
 	size_t (*get_length) (payload_t *this);
 
 	/**
-	 * Verifies payload structure and makes consistency check.
+	 * Verifies payload structure and makes consistence check.
 	 *
-	 * @return				SUCCESS,  FAILED if consistency not given
+	 * @return				SUCCESS,  FAILED if consistence not given
 	 */
 	status_t (*verify) (payload_t *this);
 
@@ -400,7 +399,7 @@ struct payload_t {
  *
  * Useful for the parser, who wants a generic constructor for all payloads.
  * It supports all payload_t methods. If a payload type is not known,
- * an unknown_payload is created with the chunk of data in it.
+ * an unknwon_paylod is created with the chunk of data in it.
  *
  * @param type		type of the payload to create
  * @return			payload_t object

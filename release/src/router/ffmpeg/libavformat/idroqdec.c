@@ -59,7 +59,7 @@ typedef struct RoqDemuxContext {
 
 } RoqDemuxContext;
 
-static int roq_probe(const AVProbeData *p)
+static int roq_probe(AVProbeData *p)
 {
     if ((AV_RL16(&p->buf[0]) != RoQ_MAGIC_NUMBER) ||
         (AV_RL32(&p->buf[2]) != 0xFFFFFFFF))
@@ -205,9 +205,8 @@ static int roq_read_packet(AVFormatContext *s,
             }
 
             /* load up the packet */
-            ret = av_new_packet(pkt, chunk_size + RoQ_CHUNK_PREAMBLE_SIZE);
-            if (ret < 0)
-                return ret;
+            if (av_new_packet(pkt, chunk_size + RoQ_CHUNK_PREAMBLE_SIZE))
+                return AVERROR(EIO);
             /* copy over preamble */
             memcpy(pkt->data, preamble, RoQ_CHUNK_PREAMBLE_SIZE);
 
@@ -224,7 +223,8 @@ static int roq_read_packet(AVFormatContext *s,
             ret = avio_read(pb, pkt->data + RoQ_CHUNK_PREAMBLE_SIZE,
                 chunk_size);
             if (ret != chunk_size) {
-                return AVERROR(EIO);
+                av_packet_unref(pkt);
+                ret = AVERROR(EIO);
             }
 
             packet_read = 1;

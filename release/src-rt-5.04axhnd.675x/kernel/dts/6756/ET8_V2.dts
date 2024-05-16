@@ -51,8 +51,11 @@
 	};
 
 	phy_cascade0:cascade0 {
-		reg = <28>;
+		compatible = "brcm,intelphy";
+		phy-type = "GPY211";
+		reg = <25>;
 		status = "okay";
+		phy-external;
 	};
 	phy_serdes0:serdes0 {
 		phy-handle = <&phy_cascade0>;
@@ -112,7 +115,7 @@
 		port0@0 {
             phy-handle = <&phy_ge>;
 			status = "okay";
-			label = "eth3";
+			label = "eth1";
 		};
 		port1@1 {
 			phy-handle = <&phy_m2m>;
@@ -140,25 +143,25 @@
 		active_low;
 		pinctrl-0=<&a_per_led_14_pin_14>;
         status = "okay";
-        brightness = <0>;
+        brightness = <127>;
 	};
 	led1:sw_led_15 {
 		active_low;
 		pinctrl-0=<&a_per_led_15_pin_15>;
         status = "okay";
-        brightness = <0>;
+        brightness = <127>;
 	};
 	led2:sw_led_16 {
 		active_low;
 		pinctrl-0=<&a_per_led_16_pin_16>;
         status = "okay";
-        brightness = <0>;
+        brightness = <127>;
 	};
 	led3:sw_led_29 {
 		active_low;
 		pinctrl-0=<&a_per_led_29_pin_29>;
         status = "okay";
-        brightness = <0>;
+        brightness = <255>;
 	};
 };
 

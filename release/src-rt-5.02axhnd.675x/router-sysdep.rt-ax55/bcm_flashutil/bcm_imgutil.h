@@ -36,8 +36,6 @@
 /* ---- Include Files ----------------------------------------------------- */
 
 #include "os_defs.h"
-#include "cms_retcodes.h"  // TODO: should use BcmRet not CmsRet
-#include "bcm_retcodes.h"
 #include "bcm_imgutil_def.h"
 
 
@@ -82,7 +80,6 @@ UBOOL8 bcmImg_willFitInFlash(UINT32 imageSize);
 UBOOL8 bcmImg_isBackupConfigFlashAvailable(void);
 imgutil_ret_e bcmImg_getImageVersion(char *imagePtr, int imageLen, char *imageName,
   int imageNameLen);
-CmsRet bcmImg_verifyBroadcomFileTag(FILE_TAG *pTag, UBOOL8 fullImageB, int imageLen);
 CmsImageFormat bcmImg_validateImage(const char *imageBuf, UINT32 imageLen);
 UBOOL8 bcmImg_isBcmTaggedImage(const char *imageBuf, UINT32 *imageSize);
 UINT32 bcmImg_getConfigFlashSize(void);
@@ -95,6 +92,5 @@ imgutil_ret_e bcmImg_ComboImageParseHeader(char *imageBuf, UINT32 imageLen,
   imgutil_accept_range_ctx_t *ar_ctx);
 UBOOL8 bcmImg_ComboImageParsingDone(void);
 UBOOL8 bcmImg_IsValidCombo(void);
-UBOOL8 bcmImg_MatchChipId( const char *strTagChipId );
 
 #endif /*_BCM_IMGUTIL_H_*/

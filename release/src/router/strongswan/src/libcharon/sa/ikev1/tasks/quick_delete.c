@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2011 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * Copyright (C) 2011 revosec AG
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -39,7 +38,6 @@
 
 #include <daemon.h>
 #include <encoding/payloads/delete_payload.h>
-#include <sa/ikev1/task_manager_v1.h>
 
 typedef struct private_quick_delete_t private_quick_delete_t;
 
@@ -87,15 +85,13 @@ struct private_quick_delete_t {
 /**
  * Delete the specified CHILD_SA, if found
  */
-static status_t delete_child(private_quick_delete_t *this,
-							 protocol_id_t protocol, uint32_t spi,
-							 bool remote_close)
+static bool delete_child(private_quick_delete_t *this, protocol_id_t protocol,
+						 uint32_t spi, bool remote_close)
 {
 	uint64_t bytes_in, bytes_out;
 	child_sa_t *child_sa;
 	linked_list_t *my_ts, *other_ts;
 	child_cfg_t *child_cfg;
-	status_t status = SUCCESS;
 	bool rekeyed;
 
 	child_sa = this->ike_sa->get_child_sa(this->ike_sa, protocol, spi, TRUE);
@@ -104,16 +100,12 @@ static status_t delete_child(private_quick_delete_t *this,
 		child_sa = this->ike_sa->get_child_sa(this->ike_sa, protocol, spi, FALSE);
 		if (!child_sa)
 		{
-			return NOT_FOUND;
+			return FALSE;
 		}
 		this->spi = spi = child_sa->get_spi(child_sa, TRUE);
 	}
 
 	rekeyed = child_sa->get_state(child_sa) == CHILD_REKEYED;
-	if (!rekeyed)
-	{
-		rekeyed = ikev1_child_sa_is_redundant(this->ike_sa, child_sa, NULL);
-	}
 	child_sa->set_state(child_sa, CHILD_DELETING);
 
 	my_ts = linked_list_create_from_enumerator(
@@ -150,40 +142,36 @@ static status_t delete_child(private_quick_delete_t *this,
 
 		if (remote_close)
 		{
-			child_init_args_t args = {
-				.reqid = child_sa->get_reqid(child_sa),
-			};
-			action_t action;
-
-			action = child_sa->get_close_action(child_sa);
 			child_cfg = child_sa->get_config(child_sa);
 			child_cfg->get_ref(child_cfg);
-			if (action & ACTION_TRAP)
+
+			switch (child_sa->get_close_action(child_sa))
 			{
-				charon->traps->install(charon->traps,
-									   this->ike_sa->get_peer_cfg(this->ike_sa),
-									   child_cfg);
-			}
-			if (action & ACTION_START)
-			{
-				child_cfg->get_ref(child_cfg);
-				status = this->ike_sa->initiate(this->ike_sa, child_cfg, &args);
+				case ACTION_RESTART:
+					child_cfg->get_ref(child_cfg);
+					this->ike_sa->initiate(this->ike_sa, child_cfg,
+									child_sa->get_reqid(child_sa), NULL, NULL);
+					break;
+				case ACTION_ROUTE:
+					charon->traps->install(charon->traps,
+									this->ike_sa->get_peer_cfg(this->ike_sa),
+									child_cfg);
+					break;
+				default:
+					break;
 			}
 			child_cfg->destroy(child_cfg);
 		}
 	}
-	if (status == SUCCESS)
-	{
-		this->ike_sa->destroy_child_sa(this->ike_sa, protocol, spi);
-	}
-	return status;
+	this->ike_sa->destroy_child_sa(this->ike_sa, protocol, spi);
+
+	return TRUE;
 }
 
 METHOD(task_t, build_i, status_t,
 	private_quick_delete_t *this, message_t *message)
 {
-	if (delete_child(this, this->protocol, this->spi, FALSE) == SUCCESS ||
-		this->force)
+	if (delete_child(this, this->protocol, this->spi, FALSE) || this->force)
 	{
 		delete_payload_t *delete_payload;
 
@@ -213,7 +201,6 @@ METHOD(task_t, process_r, status_t,
 	payload_t *payload;
 	delete_payload_t *delete_payload;
 	protocol_id_t protocol;
-	status_t status = SUCCESS;
 	uint32_t spi;
 
 	payloads = message->create_payload_enumerator(message);
@@ -232,27 +219,18 @@ METHOD(task_t, process_r, status_t,
 			{
 				DBG1(DBG_IKE, "received DELETE for %N CHILD_SA with SPI %.8x",
 					 protocol_id_names, protocol, ntohl(spi));
-				status = delete_child(this, protocol, spi, TRUE);
-				if (status == NOT_FOUND)
+				if (!delete_child(this, protocol, spi, TRUE))
 				{
 					DBG1(DBG_IKE, "CHILD_SA not found, ignored");
-					status = SUCCESS;
-				}
-				if (status != SUCCESS)
-				{
-					break;
+					continue;
 				}
 			}
 			spis->destroy(spis);
 		}
-		if (status != SUCCESS)
-		{
-			break;
-		}
 	}
 	payloads->destroy(payloads);
 
-	return status;
+	return SUCCESS;
 }
 
 METHOD(task_t, build_r, status_t,

@@ -668,7 +668,7 @@ width:122px;
 	-moz-border-radius: 5px;
 	border-radius: 5px;
 	z-index: 300;
-	background-color:#232629;
+	background-color:#444f53;
 	/*margin-left: 920px;
 	margin-top: -310px;*/
 	width:425px;
@@ -685,7 +685,7 @@ width:122px;
 	-moz-border-radius: 5px;
 	border-radius: 5px;
 	z-index: 300;
-	background-color:#232629;
+	background-color:#444f53;
 	/*margin-left: 920px;
 	margin-top: -310px;*/
 	width:425px;
@@ -833,8 +833,6 @@ width:122px;
 	height:54px;
 }
 .menu_Desc{
-	word-break: keep-all;
-	font-weight: bold;
 }
 .menu_Split{
 	margin-top:10px;
@@ -1008,9 +1006,7 @@ width:122px;
 	text-decoration: none;
 	font-family: Verdana;
 	font-size: 12px;
-	border-radius: 5px 5px 0 0;
-	display: flex;
-	align-items: center;
+	border-radius: 5px;
 }
 .tabClicked{
 	cursor:pointer;
@@ -1026,13 +1022,12 @@ width:122px;
 	text-decoration: none;
 	font-family: Verdana;
 	font-size: 12px;
-	border-radius: 5px 5px 0 0;
-	display: flex;
-	align-items: center;
+	border-radius: 5px;
 }
 .submenuBlock{
 	width:735px;
-	margin-bottom: -3px;
+	margin-top:-140px;
+	margin-bottom: -10px;
 }
 /* used for QIS */
 .m_qis_r {

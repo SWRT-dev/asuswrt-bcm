@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (c) 2018-2020, NLnet Labs
+ * Copyright (c) 2018-2019, NLnet Labs
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -102,18 +102,7 @@ static int set_connection_ciphers(_getdns_tls_connection* conn)
 	char* pri = NULL;
 	int res;
 
-	pri = getdns_priappend(conn->mfs, pri, "NONE:+COMP-ALL:+SIGN-ALL"
-	    /* Remove all the weak ones */
-	    ":-SIGN-RSA-MD5"
-	    ":-SIGN-RSA-SHA1:-SIGN-RSA-SHA224:-SIGN-RSA-SHA256"
-	    ":-SIGN-DSA-SHA1:-SIGN-DSA-SHA224:-SIGN-DSA-SHA256"
-#if GNUTLS_VERSION_NUMBER >= 0x030505
-	    ":-SIGN-ECDSA-SHA1:-SIGN-ECDSA-SHA224:-SIGN-ECDSA-SHA256"
-#endif
-#if GNUTLS_VERSION_NUMBER >= 0x030601
-	    ":-SIGN-RSA-PSS-SHA256"
-#endif
-	);
+	pri = getdns_priappend(conn->mfs, pri, "NONE:+COMP-ALL:+SIGN-RSA-SHA384");
 
 	if (conn->cipher_suites)
 		pri = getdns_priappend(conn->mfs, pri, conn->cipher_suites);
@@ -130,11 +119,7 @@ static int set_connection_ciphers(_getdns_tls_connection* conn)
 	else if (conn->ctx->curve_list)
 		pri = getdns_priappend(conn->mfs, pri, conn->ctx->curve_list);
 	else
-#if GNUTLS_VERSION_NUMBER >= 0x030605
-		pri = getdns_priappend(conn->mfs, pri, "+GROUP-EC-ALL");
-#else
 		pri = getdns_priappend(conn->mfs, pri, "+CURVE-ALL");
-#endif
 
 	gnutls_protocol_t min = conn->min_tls;
 	gnutls_protocol_t max = conn->max_tls;
@@ -149,16 +134,18 @@ static int set_connection_ciphers(_getdns_tls_connection* conn)
 		for (gnutls_protocol_t i = min; i <= max; ++i)
 			pri = getdns_priappend(conn->mfs, pri, _getdns_tls_priorities[i]);
 	}
+
 	if (pri) {
 		res = gnutls_priority_set_direct(conn->tls, pri, NULL);
-		_getdns_log(conn->log
-			    , GETDNS_LOG_UPSTREAM_STATS
-			    , (res == GNUTLS_E_SUCCESS ? GETDNS_LOG_DEBUG : GETDNS_LOG_ERR)
-			    , "%s: %s %s (%s)\n"
-			    , STUB_DEBUG_SETUP_TLS
-			    , "Configuring TLS connection with "
-			    , pri
-			    , gnutls_strerror(res));
+		if (res != GNUTLS_E_SUCCESS) {
+			_getdns_log(conn->log
+				    , GETDNS_LOG_UPSTREAM_STATS, GETDNS_LOG_ERR
+				    , "%s: %s %s (%s)\n"
+				    , STUB_DEBUG_SETUP_TLS
+				    , "Error configuring TLS connection with "
+				    , pri
+				    , gnutls_strerror(res));
+		}
 	}
 	else
 		res = gnutls_set_default_priority(conn->tls);
@@ -178,16 +165,7 @@ static getdns_return_t error_may_want_read_write(_getdns_tls_connection* conn, i
 			return GETDNS_RETURN_TLS_WANT_READ;
 		else
 			return GETDNS_RETURN_TLS_WANT_WRITE;
-	case GNUTLS_E_FATAL_ALERT_RECEIVED:
-		_getdns_log( conn->log
-		           , GETDNS_LOG_UPSTREAM_STATS, GETDNS_LOG_ERR
-		           , "%s %s %d (%s)\n"
-		           , STUB_DEBUG_SETUP_TLS
-		           , "Error in TLS handshake"
-		           , (int)gnutls_alert_get(conn->tls)
-			   , gnutls_alert_get_name(gnutls_alert_get(conn->tls))
-			   );
-		/* fallthrough */
+
 	default:
 		return GETDNS_RETURN_GENERIC_ERROR;
 	}
@@ -271,7 +249,7 @@ getdns_return_t _getdns_tls_context_free(struct mem_funcs* mfs, _getdns_tls_cont
 
 void _getdns_tls_context_pinset_init(_getdns_tls_context* ctx)
 {
-	(void) ctx; /* unused parameter */
+	(void) ctx;
 }
 
 getdns_return_t _getdns_tls_context_set_min_max_tls_version(_getdns_tls_context* ctx, getdns_tls_version_t min, getdns_tls_version_t max)
@@ -341,11 +319,6 @@ getdns_return_t _getdns_tls_context_set_ca(_getdns_tls_context* ctx, const char*
 	return GETDNS_RETURN_GOOD;
 }
 
-void _getdns_gnutls_stub_log(int level, const char *msg)
-{
-	DEBUG_STUB("GnuTLS log (%.2d): %s", level, msg);
-}
-
 _getdns_tls_connection* _getdns_tls_connection_new(struct mem_funcs* mfs, _getdns_tls_context* ctx, int fd, const getdns_log_config* log)
 {
 	_getdns_tls_connection* res;
@@ -380,9 +353,7 @@ _getdns_tls_connection* _getdns_tls_connection_new(struct mem_funcs* mfs, _getdn
 			gnutls_certificate_set_x509_trust_dir(res->cred, ctx->ca_trust_path, GNUTLS_X509_FMT_PEM);
 	}
 
-	gnutls_global_set_log_level(99);
-	gnutls_global_set_log_function(_getdns_gnutls_stub_log);
-	if (gnutls_init(&res->tls, GNUTLS_CLIENT | GNUTLS_NONBLOCK | GNUTLS_NO_SIGNAL) != GNUTLS_E_SUCCESS)
+	if (gnutls_init(&res->tls, GNUTLS_CLIENT | GNUTLS_NONBLOCK) != GNUTLS_E_SUCCESS)
 		goto failed;
 	if (set_connection_ciphers(res) != GNUTLS_E_SUCCESS) {
 
@@ -391,12 +362,6 @@ _getdns_tls_connection* _getdns_tls_connection_new(struct mem_funcs* mfs, _getdn
 	if (gnutls_credentials_set(res->tls, GNUTLS_CRD_CERTIFICATE, res->cred) != GNUTLS_E_SUCCESS)
 		goto failed;
 	if (dane_state_init(&res->dane_state, DANE_F_IGNORE_DNSSEC) != DANE_E_SUCCESS)
-		goto failed;
-
-	gnutls_datum_t proto;
-	proto.data = (unsigned char *)"dot";
-	proto.size = 3;
-	if (gnutls_alpn_set_protocols(res->tls, &proto, 1, 0) != GNUTLS_E_SUCCESS)
 		goto failed;
 
 	gnutls_transport_set_int(res->tls, fd);
@@ -744,11 +709,8 @@ failsafe:
 		GETDNS_FREE(*conn->mfs, new_cert_list);
 	}
 
-	if (ret != DANE_E_SUCCESS) {
-		*errnum = ret;
-		*errmsg = dane_strerror(ret);
+	if (ret != DANE_E_SUCCESS)
 		return GETDNS_RETURN_GENERIC_ERROR;
-	}
 
 	if (verify != 0) {
 		if (verify & DANE_VERIFY_CERT_DIFFERS) {
@@ -802,8 +764,6 @@ getdns_return_t _getdns_tls_session_free(struct mem_funcs* mfs, _getdns_tls_sess
 {
 	if (!s)
 		return GETDNS_RETURN_INVALID_PARAMETER;
-	if (s->tls.data)
-		gnutls_free(s->tls.data);
 	GETDNS_FREE(*mfs, s);
 	return GETDNS_RETURN_GOOD;
 }
@@ -872,6 +832,55 @@ unsigned char* _getdns_tls_hmac_hash(struct mem_funcs* mfs, int algorithm, const
 
 	if (output_size)
 		*output_size = md_len;
+	return res;
+}
+
+_getdns_tls_hmac* _getdns_tls_hmac_new(struct mem_funcs* mfs, int algorithm, const void* key, size_t key_size)
+{
+	gnutls_mac_algorithm_t alg;
+	_getdns_tls_hmac* res;
+
+	if (get_gnu_mac_algorithm(algorithm, &alg) != GETDNS_RETURN_GOOD)
+		return NULL;
+
+	if (!(res = GETDNS_MALLOC(*mfs, struct _getdns_tls_hmac)))
+		return NULL;
+
+	if (gnutls_hmac_init(&res->tls, alg, key, key_size) < 0) {
+		GETDNS_FREE(*mfs, res);
+		return NULL;
+	}
+	res->md_len = gnutls_hmac_get_len(alg);
+	return res;
+}
+
+getdns_return_t _getdns_tls_hmac_add(_getdns_tls_hmac* h, const void* data, size_t data_size)
+{
+	if (!h || !h->tls || !data)
+		return GETDNS_RETURN_INVALID_PARAMETER;
+
+	if (gnutls_hmac(h->tls, data, data_size) < 0)
+		return GETDNS_RETURN_GENERIC_ERROR;
+	else
+		return GETDNS_RETURN_GOOD;
+}
+
+unsigned char* _getdns_tls_hmac_end(struct mem_funcs* mfs, _getdns_tls_hmac* h, size_t* output_size)
+{
+	unsigned char* res;
+
+	if (!h || !h->tls)
+		return NULL;
+
+	res = (unsigned char*) GETDNS_XMALLOC(*mfs, unsigned char, h->md_len);
+	if (!res)
+		return NULL;
+
+	gnutls_hmac_deinit(h->tls, res);
+	if (output_size)
+		*output_size = h->md_len;
+
+	GETDNS_FREE(*mfs, h);
 	return res;
 }
 

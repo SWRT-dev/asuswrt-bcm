@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2010 Sansar Choinyambuu
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -105,7 +104,7 @@ struct pb_error_msg_t {
  */
 pb_tnc_msg_t* pb_error_msg_create(bool fatal, uint32_t vendor_id,
 								  pb_tnc_error_code_t error_code);
-
+	
 /**
  * Create a PB-Error message from parameters with offset field
  *

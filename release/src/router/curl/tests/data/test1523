@@ -17,7 +17,7 @@ Funny-head: yesyes
 AA
 </data>
 <servercmd>
-writedelay: 1000
+writedelay: 1
 </servercmd>
 </reply>
 #

@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2016 Andreas Steffen
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -17,7 +16,7 @@
 #include <crypto/crypto_tester.h>
 
 /**
- * ChaCha20 Stream Test Vector from RFC 7539, Section 2.3.2
+ * ChaCha20 Stream Test Vector from RFC 7539, Section 2.3.2 
  */
 xof_test_vector_t chacha20_xof_1 = {
 	.alg = XOF_CHACHA20, .len = 44,
@@ -32,7 +31,7 @@ xof_test_vector_t chacha20_xof_1 = {
 };
 
 /**
- * ChaCha20 Stream Test Vector from RFC 7539, Section 2.4.2
+ * ChaCha20 Stream Test Vector from RFC 7539, Section 2.4.2 
  */
 xof_test_vector_t chacha20_xof_2 = {
 	.alg = XOF_CHACHA20, .len = 44,
@@ -51,7 +50,7 @@ xof_test_vector_t chacha20_xof_2 = {
 };
 
 /**
- * ChaCha20 Stream Test Vector #2 from RFC 7539, Section A1.
+ * ChaCha20 Stream Test Vector #2 from RFC 7539, Section A1. 
  */
 xof_test_vector_t chacha20_xof_3 = {
 	.alg = XOF_CHACHA20, .len = 44,
@@ -66,7 +65,7 @@ xof_test_vector_t chacha20_xof_3 = {
 };
 
 /**
- * ChaCha20 Stream Test Vector #3 from RFC 7539, Section A1.
+ * ChaCha20 Stream Test Vector #3 from RFC 7539, Section A1. 
  */
 xof_test_vector_t chacha20_xof_4 = {
 	.alg = XOF_CHACHA20, .len = 44,

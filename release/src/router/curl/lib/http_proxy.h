@@ -7,7 +7,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2022, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2021, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -19,8 +19,6 @@
  *
  * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
  * KIND, either express or implied.
- *
- * SPDX-License-Identifier: curl
  *
  ***************************************************************************/
 
@@ -41,7 +39,6 @@ CURLcode Curl_proxy_connect(struct Curl_easy *data, int sockindex);
 bool Curl_connect_complete(struct connectdata *conn);
 bool Curl_connect_ongoing(struct connectdata *conn);
 int Curl_connect_getsock(struct connectdata *conn);
-void Curl_connect_done(struct Curl_easy *data);
 
 #else
 #define Curl_proxyCONNECT(x,y,z,w) CURLE_NOT_BUILT_IN
@@ -49,10 +46,10 @@ void Curl_connect_done(struct Curl_easy *data);
 #define Curl_connect_complete(x) CURLE_OK
 #define Curl_connect_ongoing(x) FALSE
 #define Curl_connect_getsock(x) 0
-#define Curl_connect_done(x)
 #endif
 
 void Curl_connect_free(struct Curl_easy *data);
+void Curl_connect_done(struct Curl_easy *data);
 
 /* struct for HTTP CONNECT state data */
 struct http_connect_state {
@@ -61,7 +58,6 @@ struct http_connect_state {
   struct dynbuf rcvbuf;
   struct dynbuf req;
   size_t nsend;
-  size_t headerlines;
   enum keeponval {
     KEEPON_DONE,
     KEEPON_CONNECT,

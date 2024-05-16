@@ -1,8 +1,7 @@
 /*
  * Copyright (C) 2007-2015 Tobias Brunner
  * Copyright (C) 2006 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -130,7 +129,6 @@ static int send_stroke_msg(stroke_msg_t *msg)
 			if (pass)
 			{
 				stream->write_all(stream, pass, strlen(pass));
-				memwipe(pass, strlen(pass));
 				stream->write_all(stream, "\n", 1);
 			}
 		}

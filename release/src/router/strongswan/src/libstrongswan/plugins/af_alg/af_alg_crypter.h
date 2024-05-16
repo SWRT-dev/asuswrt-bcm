@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2010 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * Copyright (C) 2010 revosec AG
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -28,7 +27,7 @@ typedef struct af_alg_crypter_t af_alg_crypter_t;
 #include <crypto/crypters/crypter.h>
 
 /** Number of crypters */
-#define AF_ALG_CRYPTER 28
+#define AF_ALG_CRYPTER 25
 
 /**
  * Implementation of signers using AF_ALG.

@@ -1,8 +1,9 @@
 /*
  * Copyright (C) 2013 Tobias Brunner
- * Copyright (C) 2012 Martin Willi
+ * HSR Hochschule fuer Technik Rapperswil
  *
- * Copyright (C) secunet Security Networks AG
+ * Copyright (C) 2012 Martin Willi
+ * Copyright (C) 2012 revosec AG
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -86,7 +87,7 @@ struct container_t {
 	 * Get the encoding of the full signed/encrypted container.
 	 *
 	 * @param data	allocated container encoding
-	 * @return		TRUE if encoding successful
+	 * @return		TRUE if encodign successful
 	 */
 	bool (*get_encoding)(container_t *this, chunk_t *encoding);
 

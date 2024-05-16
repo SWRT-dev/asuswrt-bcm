@@ -35,7 +35,6 @@
 #include "libavutil/imgutils.h"
 #include "libavutil/common.h"
 #include "libavutil/cpu.h"
-#include "libavutil/mem_internal.h"
 #include "libavutil/opt.h"
 #include "libavutil/pixdesc.h"
 #include "avfilter.h"

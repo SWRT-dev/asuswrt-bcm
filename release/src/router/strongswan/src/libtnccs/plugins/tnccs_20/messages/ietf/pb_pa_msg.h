@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2010 Andreas Steffen
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -81,7 +80,7 @@ struct pb_pa_msg_t {
  * Create a PB-PA message from parameters
  *
  * @param vendor_id			PA Message Vendor ID
- * @param subtype			PA Subtype
+ * @param subtype			PA Subtype		
  * @param collector_id		Posture Collector ID
  * @param validator_id		Posture Validator ID
  * @param excl				Exclusive Flag

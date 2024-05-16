@@ -38,7 +38,6 @@ extern "C" {
 
 
 #include <stdarg.h>
-#include <stdio.h>
 #include "number_defs.h"
 
 /*!\file bcm_ulog.h
@@ -63,8 +62,7 @@ extern "C" {
  {
     BCMULOG_LEVEL_ERR    = 3, /**< Message at error level. */
     BCMULOG_LEVEL_NOTICE = 5, /**< Message at notice level. */
-    BCMULOG_LEVEL_DEBUG  = 7,  /**< Message at debug level. */
-    BCMULOG_LEVEL_PERFTRACE  = 256  /**< Message at trace level. */
+    BCMULOG_LEVEL_DEBUG  = 7  /**< Message at debug level. */
  } BcmuLogLevel;
 
  #define BCMULOG_DEFAULT_LEVEL   BCMULOG_LEVEL_ERR
@@ -72,102 +70,30 @@ extern "C" {
  #define bcmuLog_error(args...)  ulog_log(BCMULOG_LEVEL_ERR, __FUNCTION__, __LINE__, args)
  #define bcmuLog_notice(args...) ulog_log(BCMULOG_LEVEL_NOTICE, __FUNCTION__, __LINE__, args)
  #define bcmuLog_debug(args...)  ulog_log(BCMULOG_LEVEL_DEBUG, __FUNCTION__, __LINE__, args)
- #define bcmuLog_perftrace_begin(args...)  ulog_trace(__FUNCTION__, __LINE__, ">>>", args)
- #define bcmuLog_perftrace_end(args...)  ulog_trace(__FUNCTION__, __LINE__, "<<<", args)
 
 
-/** Set the app-wide logging level */
+/** Set the logging level */
 void bcmuLog_setLevel(UINT32 level);
 
-/** Set the log level for a specific thread or eid.
- *  threadId and/or eid must be specified.
- *  If only threadId is specified, that is ok.
- *  If only eid is specified, then a EID to threadId mapping must already exist.
- *  If both threadId and eid are specified, then this call will also create
- *  a EID to threadId mapping.
- *  Internally, the thread specific log level is associated with the threadId.
- */
-void bcmuLog_setLevelEx(UINT32 level, SINT32 threadId, UINT32 eid);
-
-/** Get the app-wide logging level */
+/** Get the logging level */
 UINT32 bcmuLog_getLevel(void);
-
-/** Get the log level for a specific thread or eid.
- *  The use of threadId and eid is the same as bcmuLog_setLevelEx().
- *  If no thread or eid specific setting is found, the app wide-setting is
- *  returned.
- */
-UINT32 bcmuLog_getLevelEx(SINT32 threadId, UINT32 eid);
-
 
 /** Set the meta info on the log line, see HDRMASK_xxx */
 void bcmuLog_setHdrMask(UINT32 mask);
 
-/** Set the header mask for a specific thread or eid.
- *  See comments above for setLevelEx.
- */
-void bcmuLog_setHdrMaskEx(UINT32 mask, SINT32 threadId, UINT32 eid);
-
 /** Return the header mask, see HDRMASK_xxx */
 UINT32 bcmuLog_getHdrMask(void);
-
-/** Get the header mask for a specific thread or eid.
- *  See comments above for getLevelEx.
- */
-UINT32 bcmuLog_getHdrMaskEx(SINT32 threadId, UINT32 eid);
-
 
 /** Set where the log lines go. */
 void bcmuLog_setDestMask(UINT32 mask);
 
-/** Set the destination mask for a specific thread or eid.
- *  See comments above for setLevelEx.
- */
-void bcmuLog_setDestMaskEx(UINT32 mask, SINT32 threadId, UINT32 eid);
-
-/** Get the destination mask */
-UINT32 bcmuLog_getDestMask();
-
-/** Get the destination mask for a specific thread or eid.
- *  See comments above for getLevelEx.
- */
-UINT32 bcmuLog_getDestMaskEx(SINT32 threadId, UINT32 eid);
-
-
 /** set the app name on the log line.  Used with HDRMASK_APPNAME.
  *
- * This call is optional.  If the app name has not been explicitly set,
- * bcmuLog will automatially get the app's name by calling
- * bcmuLog_getNameFromProc(). However, Linux limits the app name in
- * /proc/self/comm to 15 characters.  Whereas bcmuLog_setName() allows up to
- * BCMULOG_MAX_APP_NAME_LEN characters for the name.
+ * bcmuLog will automatially get the app's name from /proc/self/comm.
+ * However, this name is limited to 15 characters.  Use this function if your
+ * app name is longer or you want to set a custom app name.
  */
 void bcmuLog_setName(const char *name);
-
-/** set the app name from /proc entry. */
-void bcmuLog_setNameFromProc();
-
-/** Set the thread name for a specific thread or eid.
- *  See comments above for setLevelEx.
- */
-void bcmuLog_setNameEx(const char *name, SINT32 threadId, UINT32 eid);
-
-/** Get the app name */
-const char *bcmuLog_getName(void);
-
-/** Get the thread name for a specific thread or eid.
- *  See comments above for getLevelEx.
- */
-const char *bcmuLog_getNameEx(SINT32 threadId, UINT32 eid);
-
-
-/** Map EID to threadId.  Assumes one-to-one EID to threadId mapping.  Does not
- *  work if there are multiple threads or processes associated with a single
- *  EID, e.g. ppp.
- */
-void bcmuLog_setEidToThreadId(UINT32 eid, SINT32 threadId);
-
-SINT32 bcmuLog_getEidToThreadId(UINT32 eid);
 
 
 /** Show application name in the log line. */
@@ -187,7 +113,7 @@ SINT32 bcmuLog_getEidToThreadId(UINT32 eid);
 #define BCMULOG_HDRMASK_THREAD_ID  0x0010
 
 /** Default header mask */
-#define BCMULOG_DEFAULT_HDRMASK (BCMULOG_HDRMASK_APPNAME|BCMULOG_HDRMASK_LEVEL|BCMULOG_HDRMASK_TIMESTAMP|BCMULOG_HDRMASK_LOCATION)
+#define BCMULOG_DEFAULT_HDRMASK (BCMULOG_HDRMASK_APPNAME|BCMULOG_HDRMASK_LEVEL|BCMULOG_HDRMASK_LOCATION)
 
 
 /** Send log to stderr */
@@ -218,6 +144,8 @@ SINT32 bcmuLog_getEidToThreadId(UINT32 eid);
 /** All the info needed by the log line formatter. */
 typedef struct bcm_ulog_format_info
 {
+   char *buf;           /**< Buffer for the formatted log line. */
+   UINT32 bufLen;       /**< Length of buffer */
    UINT32 logLevel;
    UINT32 logDestMask;
    UINT32 logHeaderMask;
@@ -231,27 +159,12 @@ typedef struct bcm_ulog_format_info
  *
  * This function is shared by bcm_ulog and CMS log.
 */
-void bcmuLog_formatLine(FILE *stream, BcmuLogFormatInfo *info, const char *pFmt, va_list ap);
-
-void bcmuLog_formatPerfTrace(FILE *stream, BcmuLogFormatInfo *info, const char *anchor, const char *pFmt, va_list ap);
+void bcmuLog_formatLine(BcmuLogFormatInfo *info, const char *pFmt, va_list ap);
 
 /** Do not call this function directly.  Use the bcmuLog_{error, notice, debug}
  *  macros instead.
  */
-void ulog_log(BcmuLogLevel level, const char *funcName, UINT32 lineNum, const char *pFmt, ... );
-
-void ulog_trace(const char *funcName, UINT32 lineNum, const char *anchor, const char *pFmt, ... );
-
-
-#define BCMULOG_NUM_THREAD_SLOTS   4
-
-typedef struct bcm_ulog_thread_info
-{
-   SINT32 threadId;   // only threadId as lookup key is supported.
-   UINT32 eid;        // used for mapping EID to threadid.
-   UINT32 value;      // logLevel, logDestMask, or logHdrMask;
-   char   appName[BCMULOG_MAX_APP_NAME_LEN];  // more accurately: thread name
-} BcmuLogThreadInfo;
+ void ulog_log(BcmuLogLevel level, const char *funcName, UINT32 lineNum, const char *pFmt, ... );
 
 
 #if defined __cplusplus

@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2011 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * Copyright (C) 2011 revosec AG
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -50,7 +49,7 @@ struct hybrid_authenticator_t {
  * @return					hybrid authenticator
  */
 hybrid_authenticator_t *hybrid_authenticator_create(ike_sa_t *ike_sa,
-										bool initiator, key_exchange_t *dh,
+										bool initiator, diffie_hellman_t *dh,
 										chunk_t dh_value, chunk_t sa_payload,
 										chunk_t id_payload);
 

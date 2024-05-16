@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2016 Andreas Steffen
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -16,7 +15,7 @@
 
 /**
  * @defgroup mgf1_xof mgf1_xof
- * @{ @ingroup mgf1_p
+ * @{ @ingroup crypto
  */
 
 #ifndef MGF1_XOF_H_

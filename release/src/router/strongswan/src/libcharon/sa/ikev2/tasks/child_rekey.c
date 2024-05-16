@@ -2,8 +2,7 @@
  * Copyright (C) 2009-2018 Tobias Brunner
  * Copyright (C) 2005-2007 Martin Willi
  * Copyright (C) 2005 Jan Hutter
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -197,7 +196,7 @@ METHOD(task_t, build_i, status_t,
 									config->get_ref(config), TRUE, NULL, NULL);
 
 		proposal = this->child_sa->get_proposal(this->child_sa);
-		if (proposal->get_algorithm(proposal, KEY_EXCHANGE_METHOD,
+		if (proposal->get_algorithm(proposal, DIFFIE_HELLMAN_GROUP,
 									&dh_group, NULL))
 		{	/* reuse the DH group negotiated previously */
 			this->child_create->use_dh_group(this->child_create, dh_group);
@@ -208,11 +207,6 @@ METHOD(task_t, build_i, status_t,
 	this->child_create->use_marks(this->child_create,
 						this->child_sa->get_mark(this->child_sa, TRUE).value,
 						this->child_sa->get_mark(this->child_sa, FALSE).value);
-	this->child_create->use_if_ids(this->child_create,
-						this->child_sa->get_if_id(this->child_sa, TRUE),
-						this->child_sa->get_if_id(this->child_sa, FALSE));
-	this->child_create->use_label(this->child_create,
-						this->child_sa->get_label(this->child_sa));
 
 	if (this->child_create->task.build(&this->child_create->task,
 									   message) != NEED_MORE)
@@ -272,11 +266,6 @@ METHOD(task_t, build_r, status_t,
 	this->child_create->use_marks(this->child_create,
 						this->child_sa->get_mark(this->child_sa, TRUE).value,
 						this->child_sa->get_mark(this->child_sa, FALSE).value);
-	this->child_create->use_if_ids(this->child_create,
-						this->child_sa->get_if_id(this->child_sa, TRUE),
-						this->child_sa->get_if_id(this->child_sa, FALSE));
-	this->child_create->use_label(this->child_create,
-						this->child_sa->get_label(this->child_sa));
 	config = this->child_sa->get_config(this->child_sa);
 	this->child_create->set_config(this->child_create, config->get_ref(config));
 	this->child_create->task.build(&this->child_create->task, message);
@@ -396,8 +385,7 @@ METHOD(task_t, process_i, status_t,
 	if (message->get_notify(message, CHILD_SA_NOT_FOUND))
 	{
 		child_cfg_t *child_cfg;
-		child_init_args_t args = {};
-		status_t status;
+		uint32_t reqid;
 
 		if (this->collision &&
 			this->collision->get_type(this->collision) == TASK_CHILD_DELETE)
@@ -412,21 +400,15 @@ METHOD(task_t, process_i, status_t,
 		 * that (we could go by name, but that might be tricky e.g. due to
 		 * narrowing) */
 		spi = this->child_sa->get_spi(this->child_sa, TRUE);
+		reqid = this->child_sa->get_reqid(this->child_sa);
 		protocol = this->child_sa->get_protocol(this->child_sa);
 		child_cfg = this->child_sa->get_config(this->child_sa);
 		child_cfg->get_ref(child_cfg);
-		args.reqid = this->child_sa->get_reqid(this->child_sa);
-		args.label = this->child_sa->get_label(this->child_sa);
-		if (args.label)
-		{
-			args.label = args.label->clone(args.label);
-		}
 		charon->bus->child_updown(charon->bus, this->child_sa, FALSE);
 		this->ike_sa->destroy_child_sa(this->ike_sa, protocol, spi);
-		status = this->ike_sa->initiate(this->ike_sa,
-										child_cfg->get_ref(child_cfg), &args);
-		DESTROY_IF(args.label);
-		return status;
+		return this->ike_sa->initiate(this->ike_sa,
+									  child_cfg->get_ref(child_cfg), reqid,
+									  NULL, NULL);
 	}
 
 	if (this->child_create->task.process(&this->child_create->task,
@@ -487,17 +469,19 @@ METHOD(task_t, process_i, status_t,
 			other_ts->destroy(other_ts);
 		}
 	}
-	if (to_delete->get_state(to_delete) != CHILD_REKEYED)
-	{	/* disable updown event for old/redundant CHILD_SA */
-		to_delete->set_state(to_delete, CHILD_REKEYED);
-	}
-	if (to_delete == this->child_sa)
-	{	/* invoke rekey hook if rekeying successful and remove the old
-		 * outbound SA as we installed the new one already above, but might not
-		 * be using it yet depending on how SAs/policies are handled */
-		this->child_sa->remove_outbound(this->child_sa);
+	if (to_delete != this->child_create->get_child(this->child_create))
+	{	/* invoke rekey hook if rekeying successful */
 		charon->bus->child_rekey(charon->bus, this->child_sa,
 							this->child_create->get_child(this->child_create));
+	}
+	if (to_delete == NULL)
+	{
+		return SUCCESS;
+	}
+	/* disable updown event for redundant CHILD_SA */
+	if (to_delete->get_state(to_delete) != CHILD_REKEYED)
+	{
+		to_delete->set_state(to_delete, CHILD_REKEYED);
 	}
 	spi = to_delete->get_spi(to_delete, TRUE);
 	protocol = to_delete->get_protocol(to_delete);
@@ -528,7 +512,7 @@ METHOD(child_rekey_t, is_redundant, bool,
 	return FALSE;
 }
 
-METHOD(child_rekey_t, collide, bool,
+METHOD(child_rekey_t, collide, void,
 	private_child_rekey_t *this, task_t *other)
 {
 	/* the task manager only detects exchange collision, but not if
@@ -540,14 +524,16 @@ METHOD(child_rekey_t, collide, bool,
 
 		if (rekey->child_sa != this->child_sa)
 		{	/* not the same child => no collision */
-			return FALSE;
+			other->destroy(other);
+			return;
 		}
 		/* ignore passive tasks that did not successfully create a CHILD_SA */
 		other_child = rekey->child_create->get_child(rekey->child_create);
 		if (!other_child ||
 			 other_child->get_state(other_child) != CHILD_INSTALLED)
 		{
-			return FALSE;
+			other->destroy(other);
+			return;
 		}
 	}
 	else if (other->get_type(other) == TASK_CHILD_DELETE)
@@ -556,37 +542,38 @@ METHOD(child_rekey_t, collide, bool,
 		if (is_redundant(this, del->get_child(del)))
 		{
 			this->other_child_destroyed = TRUE;
-			return FALSE;
+			other->destroy(other);
+			return;
 		}
 		if (del->get_child(del) != this->child_sa)
 		{
 			/* not the same child => no collision */
-			return FALSE;
+			other->destroy(other);
+			return;
 		}
 	}
 	else
 	{
-		/* shouldn't happen */
-		return FALSE;
+		/* any other task is not critical for collisions, ignore */
+		other->destroy(other);
+		return;
 	}
 	DBG1(DBG_IKE, "detected %N collision with %N", task_type_names,
 		 TASK_CHILD_REKEY, task_type_names, other->get_type(other));
 	DESTROY_IF(this->collision);
 	this->collision = other;
-	return TRUE;
 }
 
 METHOD(task_t, migrate, void,
 	private_child_rekey_t *this, ike_sa_t *ike_sa)
 {
-	/* only migrate the currently active task */
+	if (this->child_create)
+	{
+		this->child_create->task.migrate(&this->child_create->task, ike_sa);
+	}
 	if (this->child_delete)
 	{
 		this->child_delete->task.migrate(&this->child_delete->task, ike_sa);
-	}
-	else if (this->child_create)
-	{
-		this->child_create->task.migrate(&this->child_create->task, ike_sa);
 	}
 	DESTROY_IF(this->collision);
 

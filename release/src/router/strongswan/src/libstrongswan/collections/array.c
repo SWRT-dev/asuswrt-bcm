@@ -1,8 +1,9 @@
 /*
  * Copyright (C) 2014 Tobias Brunner
- * Copyright (C) 2013 Martin Willi
+ * HSR Hochschule fuer Technik Rapperswil
  *
- * Copyright (C) secunet Security Networks AG
+ * Copyright (C) 2013 Martin Willi
+ * Copyright (C) 2013 revosec AG
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -67,7 +68,7 @@ static size_t get_size(array_t *array, uint32_t num)
 {
 	if (array->esize)
 	{
-		return (size_t)array->esize * num;
+		return array->esize * num;
 	}
 	return sizeof(void*) * num;
 }

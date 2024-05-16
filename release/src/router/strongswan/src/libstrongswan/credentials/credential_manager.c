@@ -1,8 +1,7 @@
 /*
- * Copyright (C) 2015-2022 Tobias Brunner
+ * Copyright (C) 2015 Tobias Brunner
  * Copyright (C) 2007 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -275,7 +274,7 @@ METHOD(credential_manager_t, get_cert, certificate_t*,
 	enumerator = create_cert_enumerator(this, cert, key, id, trusted);
 	if (enumerator->enumerate(enumerator, &current))
 	{
-		/* TODO: best match? order by keyid, subject, subjectAltName */
+		/* TODO: best match? order by keyid, subject, sualtname */
 		found = current->get_ref(current);
 	}
 	enumerator->destroy(enumerator);
@@ -556,7 +555,7 @@ static void cache_queue(private_credential_manager_t *this)
  */
 static bool check_lifetime(private_credential_manager_t *this,
 						   certificate_t *cert, char *label,
-						   int pathlen, bool anchor, auth_cfg_t *auth)
+						   int pathlen, bool trusted, auth_cfg_t *auth)
 {
 	time_t not_before, not_after;
 	cert_validator_t *validator;
@@ -571,7 +570,7 @@ static bool check_lifetime(private_credential_manager_t *this,
 			continue;
 		}
 		status = validator->check_lifetime(validator, cert,
-										   pathlen, anchor, auth);
+										   pathlen, trusted, auth);
 		if (status != NEED_MORE)
 		{
 			break;
@@ -600,17 +599,17 @@ static bool check_lifetime(private_credential_manager_t *this,
 }
 
 /**
- * Check a certificate's lifetime and consult plugins
+ * check a certificate for its lifetime
  */
 static bool check_certificate(private_credential_manager_t *this,
-							  certificate_t *subject, certificate_t *issuer,
-							  int pathlen, bool anchor, auth_cfg_t *auth)
+				certificate_t *subject, certificate_t *issuer, bool online,
+				int pathlen, bool trusted, auth_cfg_t *auth)
 {
 	cert_validator_t *validator;
 	enumerator_t *enumerator;
 
 	if (!check_lifetime(this, subject, "subject", pathlen, FALSE, auth) ||
-		!check_lifetime(this, issuer, "issuer", pathlen + 1, anchor, auth))
+		!check_lifetime(this, issuer, "issuer", pathlen + 1, trusted, auth))
 	{
 		return FALSE;
 	}
@@ -618,34 +617,12 @@ static bool check_certificate(private_credential_manager_t *this,
 	enumerator = this->validators->create_enumerator(this->validators);
 	while (enumerator->enumerate(enumerator, &validator))
 	{
-		if (validator->validate &&
-			!validator->validate(validator, subject, issuer,
-								 pathlen, anchor, auth))
+		if (!validator->validate)
 		{
-			enumerator->destroy(enumerator);
-			return FALSE;
+			continue;
 		}
-	}
-	enumerator->destroy(enumerator);
-	return TRUE;
-}
-
-/**
- * Do online revocation checking
- */
-static bool check_certificate_online(private_credential_manager_t *this,
-							  certificate_t *subject, certificate_t *issuer,
-							  int pathlen, bool anchor, auth_cfg_t *auth)
-{
-	cert_validator_t *validator;
-	enumerator_t *enumerator;
-
-	enumerator = this->validators->create_enumerator(this->validators);
-	while (enumerator->enumerate(enumerator, &validator))
-	{
-		if (validator->validate_online &&
-			!validator->validate_online(validator, subject, issuer,
-										pathlen, anchor, auth))
+		if (!validator->validate(validator, subject, issuer,
+								 online, pathlen, trusted, auth))
 		{
 			enumerator->destroy(enumerator);
 			return FALSE;
@@ -748,7 +725,6 @@ static bool verify_trust_chain(private_credential_manager_t *this,
 	auth_cfg_t *auth;
 	signature_params_t *scheme;
 	int pathlen;
-	bool is_anchor = FALSE;
 
 	auth = auth_cfg_create();
 	get_key_strength(subject, auth);
@@ -766,7 +742,7 @@ static bool verify_trust_chain(private_credential_manager_t *this,
 				auth->add(auth, AUTH_RULE_CA_CERT, issuer->get_ref(issuer));
 				DBG1(DBG_CFG, "  using trusted ca certificate \"%Y\"",
 							  issuer->get_subject(issuer));
-				trusted = is_anchor = TRUE;
+				trusted = TRUE;
 			}
 			else
 			{
@@ -801,16 +777,11 @@ static bool verify_trust_chain(private_credential_manager_t *this,
 				DBG1(DBG_CFG, "  issuer is \"%Y\"",
 					 current->get_issuer(current));
 				call_hook(this, CRED_HOOK_NO_ISSUER, current);
-				if (trusted)
-				{
-					DBG1(DBG_CFG, "  reached end of incomplete trust chain for "
-						 "trusted certificate \"%Y\"",
-						 subject->get_subject(subject));
-				}
 				break;
 			}
 		}
-		if (!check_certificate(this, current, issuer, pathlen, is_anchor, auth))
+		if (!check_certificate(this, current, issuer, online,
+							   pathlen, trusted, auth))
 		{
 			trusted = FALSE;
 			issuer->destroy(issuer);
@@ -822,7 +793,7 @@ static bool verify_trust_chain(private_credential_manager_t *this,
 		}
 		current->destroy(current);
 		current = issuer;
-		if (is_anchor)
+		if (trusted)
 		{
 			DBG1(DBG_CFG, "  reached self-signed root ca with a "
 				 "path length of %d", pathlen);
@@ -834,34 +805,6 @@ static bool verify_trust_chain(private_credential_manager_t *this,
 	{
 		DBG1(DBG_CFG, "maximum path length of %d exceeded", MAX_TRUST_PATH_LEN);
 		call_hook(this, CRED_HOOK_EXCEEDED_PATH_LEN, subject);
-	}
-	else if (trusted && online)
-	{
-		enumerator_t *enumerator;
-		auth_rule_t rule;
-
-		/* do online revocation checks after basic validation of the chain */
-		pathlen = 0;
-		current = subject;
-		enumerator = auth->create_enumerator(auth);
-		while (enumerator->enumerate(enumerator, &rule, &issuer))
-		{
-			if (rule == AUTH_RULE_CA_CERT || rule == AUTH_RULE_IM_CERT)
-			{
-				if (!check_certificate_online(this, current, issuer, pathlen++,
-											  rule == AUTH_RULE_CA_CERT, auth))
-				{
-					trusted = FALSE;
-					break;
-				}
-				else if (rule == AUTH_RULE_CA_CERT)
-				{
-					break;
-				}
-				current = issuer;
-			}
-		}
-		enumerator->destroy(enumerator);
 	}
 	if (trusted)
 	{
@@ -924,8 +867,6 @@ METHOD(enumerator_t, trusted_enumerate, bool,
 		this->pretrusted = get_pretrusted_cert(this->this, this->type, this->id);
 		if (this->pretrusted)
 		{
-			DBG1(DBG_CFG, "  using trusted certificate \"%Y\"",
-				 this->pretrusted->get_subject(this->pretrusted));
 			/* if we find a trusted self signed certificate, we just accept it.
 			 * However, in order to fulfill authorization rules, we try to build
 			 * the trust chain if it is not self signed */
@@ -933,6 +874,8 @@ METHOD(enumerator_t, trusted_enumerate, bool,
 				verify_trust_chain(this->this, this->pretrusted, this->auth,
 								   TRUE, this->online))
 			{
+				DBG1(DBG_CFG, "  using trusted certificate \"%Y\"",
+					 this->pretrusted->get_subject(this->pretrusted));
 				*cert = this->pretrusted;
 				if (!this->auth->get(this->auth, AUTH_RULE_SUBJECT_CERT))
 				{	/* add cert to auth info, if not returned by trustchain */

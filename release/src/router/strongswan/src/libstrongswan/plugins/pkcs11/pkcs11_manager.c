@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2010 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * Copyright (C) 2010 revosec AG
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -174,7 +173,7 @@ CALLBACK(dispatch_slot_events, job_requeue_t,
 	rv = entry->lib->f->C_WaitForSlotEvent(0, &slot, NULL);
 	if (rv == CKR_FUNCTION_NOT_SUPPORTED || rv == CKR_NO_EVENT)
 	{
-		DBG1(DBG_CFG, "module '%s' does not support hot-plugging, canceled",
+		DBG1(DBG_CFG, "module '%s' does not support hot-plugging, cancelled",
 			 entry->lib->get_name(entry->lib));
 		return JOB_REQUEUE_NONE;
 	}
@@ -390,3 +389,4 @@ pkcs11_manager_t *pkcs11_manager_create(pkcs11_manager_token_event_t cb,
 
 	return &this->public;
 }
+

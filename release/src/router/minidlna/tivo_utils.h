@@ -30,8 +30,7 @@ struct sqlite3PrngType {
   unsigned char isInit;          /* True if initialized */
   unsigned char i, j;            /* State variables */
   unsigned char s[256];          /* State variables */
-};
-extern struct sqlite3PrngType sqlite3Prng;
+} sqlite3Prng;
 
 char *
 decodeString(char *string, int inplace);

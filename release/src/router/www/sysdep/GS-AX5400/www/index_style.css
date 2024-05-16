@@ -301,7 +301,7 @@ body {
 
 /**********AiHelp add by Lock*************/
 #helpicon{
-	font-family: Arial black, Arial, Helvetica, MS UI Gothic, MS P Gothic, Microsoft Yahei UI, sans-serif;
+	font-family: Arial black, Microsoft Yahei UI, Arial, Helvetica, MS UI Gothic, MS P Gothic, sans-serif;
 	font-size:12px;
 	color: #FF6600;
 	display:block;
@@ -436,7 +436,7 @@ body {
 	font-size:20px;
 	color:#FFFFFF;
 	background-color:#000000;
-	font-family: Arial, Helvetica, MS UI Gothic, MS P Gothic, Microsoft Yahei UI, sans-serif;
+	font-family: Microsoft Yahei UI, Arial, Helvetica, MS UI Gothic, MS P Gothic, sans-serif;
 	position:absolute;
 	margin:5px 35% 5px;
 }
@@ -449,7 +449,7 @@ body {
 	border: 0px;
 	width:450px;
 	font-size:12px;
-	font-family: Verdana, Arial, Helvetica, MS UI Gothic, MS P Gothic, Microsoft Yahei UI, sans-serif;
+	font-family: Verdana, Microsoft Yahei UI, Arial, Helvetica, MS UI Gothic, MS P Gothic, sans-serif;
 	color:#FFFFFF;
 	background-color:#000000;
 	position:absolute;
@@ -488,7 +488,7 @@ body {
 	margin-top:0px;
 	margin-left:-148px;
 	background-color:#FFFFFF;
-	font-family: Verdana, Arial, Helvetica, MS UI Gothic, MS P Gothic, Microsoft Yahei UI, sans-serif;
+	font-family: Verdana, Microsoft Yahei UI, Arial, Helvetica, MS UI Gothic, MS P Gothic, sans-serif;
 	font-size:11px;
 	width:120px;
 	border:1px solid #999;
@@ -683,7 +683,7 @@ src: url(../fonts/xolonium.regular.woff) format("woff"),
 	-moz-border-radius: 5px;
 	border-radius: 5px;
 	z-index: 300;
-	background-color:#232629;
+	background-color:#444f53;
 	/*margin-left: 920px;
 	margin-top: -310px;*/
 	width:425px;
@@ -700,7 +700,7 @@ src: url(../fonts/xolonium.regular.woff) format("woff"),
 	-moz-border-radius: 5px;
 	border-radius: 5px;
 	z-index: 300;
-	background-color:#232629;
+	background-color:#444f53;
 	/*margin-left: 920px;
 	margin-top: -310px;*/
 	width:425px;
@@ -737,7 +737,7 @@ src: url(../fonts/xolonium.regular.woff) format("woff"),
 	background-position: -0px -0px; width: 19px; height: 19px;
 }
 #bottom_help_title{
-	font-family: Arial, Helvetica, MS UI Gothic, MS P Gothic, Microsoft Yahei UI, sans-serif;
+	font-family: Microsoft Yahei UI, Arial, Helvetica, MS UI Gothic, MS P Gothic, sans-serif;
 	font-weight:bolder;
 	color: #569AC7;
 }

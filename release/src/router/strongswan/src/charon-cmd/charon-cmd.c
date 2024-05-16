@@ -3,8 +3,7 @@
  * Copyright (C) 2005-2013 Martin Willi
  * Copyright (C) 2006 Daniel Roethlisberger
  * Copyright (C) 2005 Jan Hutter
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -135,10 +134,14 @@ static int run()
 				break;
 			}
 			case SIGINT:
+			{
+				DBG1(DBG_DMN, "signal of type SIGINT received. Shutting down");
+				charon->bus->alert(charon->bus, ALERT_SHUTDOWN_SIGNAL, sig);
+				return 0;
+			}
 			case SIGTERM:
 			{
-				DBG1(DBG_DMN, "%s received, shutting down",
-					 sig == SIGINT ? "SIGINT" : "SIGTERM");
+				DBG1(DBG_DMN, "signal of type SIGTERM received. Shutting down");
 				charon->bus->alert(charon->bus, ALERT_SHUTDOWN_SIGNAL, sig);
 				return 0;
 			}
@@ -171,7 +174,6 @@ static bool lookup_uid_gid()
 	return TRUE;
 }
 
-#ifndef DISABLE_SIGNAL_HANDLER
 /**
  * Handle SIGSEGV/SIGILL signals raised by threads
  */
@@ -187,7 +189,6 @@ static void segv_handler(int signal)
 	DBG1(DBG_DMN, "killing ourself, received critical signal");
 	abort();
 }
-#endif /* DISABLE_SIGNAL_HANDLER */
 
 /**
  * Print command line usage and exit
@@ -371,23 +372,18 @@ int main(int argc, char *argv[])
 	/* handle all arguments */
 	handle_arguments(argc, argv, FALSE);
 
-	/* add handler for fatal signals,
-	 * INT, TERM, HUP and USR1 are handled by sigwaitinfo() in run() */
+	/* add handler for SEGV and ILL,
+	 * INT, TERM and HUP are handled by sigwaitinfo() in run() */
+	action.sa_handler = segv_handler;
 	action.sa_flags = 0;
 	sigemptyset(&action.sa_mask);
 	sigaddset(&action.sa_mask, SIGINT);
 	sigaddset(&action.sa_mask, SIGTERM);
 	sigaddset(&action.sa_mask, SIGHUP);
 	sigaddset(&action.sa_mask, SIGUSR1);
-
-	/* optionally let the external system handle fatal signals */
-#ifndef DISABLE_SIGNAL_HANDLER
-	action.sa_handler = segv_handler;
 	sigaction(SIGSEGV, &action, NULL);
 	sigaction(SIGILL, &action, NULL);
 	sigaction(SIGBUS, &action, NULL);
-#endif /* DISABLE_SIGNAL_HANDLER */
-
 	action.sa_handler = SIG_IGN;
 	sigaction(SIGPIPE, &action, NULL);
 

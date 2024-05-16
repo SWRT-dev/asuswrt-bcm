@@ -23,7 +23,6 @@
 
 #include "avcodec.h"
 #include "bsf.h"
-#include "bsf_internal.h"
 
 enum RemoveFreq {
     REMOVE_FREQ_KEYFRAME,

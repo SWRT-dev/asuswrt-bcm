@@ -74,7 +74,7 @@ wldpdctl_restart()
     wl_suspend
     sleep 1
     wl_resume
-# let wlssk restart before the script exist
+# let wlmngr restart before the script exist
     sleep 5
   fi
 }
@@ -123,8 +123,8 @@ wldpdctl_init()
       A_WLIFL=$(cat /proc/interrupts | grep wl | cut -d ',' -f3; cat /proc/interrupts | grep wl | cut -d ',' -f2 | grep -v ":")
 
       for intf in $A_WLIFL; do
-        domain=$(cat /proc/interrupts | grep $intf | grep -v msi_pcie | cut -d ':' -f3; cat /proc/interrupts | grep $intf | grep msi_pcie | cut -d ':' -f4)
-        device=$(cat /proc/interrupts | grep $intf | grep -v msi_pcie | cut -d ':' -f5 | cut -d '.' -f1; cat /proc/interrupts | grep $intf | grep msi_pcie | cut -d ':' -f6 | cut -d '.' -f1)
+        domain=$(cat /proc/interrupts | grep $intf | cut -d ':' -f3)
+        device=$(cat /proc/interrupts | grep $intf | cut -d ':' -f5 | cut -d '.' -f1)
         core=$(cat /proc/pcie_hcd/coreinfo | grep $domain | cut -d ':' -f1)
         nvram set ${intf}_dpd_apon=$(( 3 << ($core*4 + $device*2) ))
         nvram kset ${intf}_dpd=0

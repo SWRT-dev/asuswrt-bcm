@@ -1,8 +1,9 @@
 /*
  * Copyright (C) 2018 Tobias Brunner
- * Copyright (C) 2013 Martin Willi
+ * HSR Hochschule fuer Technik Rapperswil
  *
- * Copyright (C) secunet Security Networks AG
+ * Copyright (C) 2013 Martin Willi
+ * Copyright (C) 2013 revosec AG
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the

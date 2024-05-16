@@ -1,9 +1,7 @@
 /*
- * Copyright (C) 2012-2020 Tobias Brunner
  * Copyright (C) 2005-2006 Martin Willi
  * Copyright (C) 2005 Jan Hutter
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -62,20 +60,18 @@ struct sa_payload_t {
 	linked_list_t *(*get_ipcomp_proposals) (sa_payload_t *this, uint16_t *cpi);
 
 	/**
-	 * Get the lifetime of a proposal/transform (IKEv1 only).
+	 * Get the (shortest) lifetime of a proposal (IKEv1 only).
 	 *
-	 * @param proposal			proposal for which to get lifetime
 	 * @return					lifetime, in seconds
 	 */
-	uint32_t (*get_lifetime)(sa_payload_t *this, proposal_t *proposal);
+	uint32_t (*get_lifetime)(sa_payload_t *this);
 
 	/**
-	 * Get the life duration of a proposal/transform (IKEv1 only).
+	 * Get the (shortest) life duration of a proposal (IKEv1 only).
 	 *
-	 * @param proposal			proposal for which to get life duration
 	 * @return					life duration, in bytes
 	 */
-	uint64_t (*get_lifebytes)(sa_payload_t *this, proposal_t *proposal);
+	uint64_t (*get_lifebytes)(sa_payload_t *this);
 
 	/**
 	 * Get the first authentication method from the proposal (IKEv1 only).

@@ -18,8 +18,8 @@
  * Boston, MA  02110-1301  USA.
  */
 
-#ifndef LIBEXIF_EXIF_MNOTE_DATA_PRIV_H
-#define LIBEXIF_EXIF_MNOTE_DATA_PRIV_H
+#ifndef __EXIF_MNOTE_DATA_PRIV_H__
+#define __EXIF_MNOTE_DATA_PRIV_H__
 
 #ifdef __cplusplus
 extern "C" {
@@ -29,13 +29,10 @@ extern "C" {
 #include <libexif/exif-byte-order.h>
 #include <libexif/exif-log.h>
 
-/*! \internal */
 typedef struct _ExifMnoteDataMethods ExifMnoteDataMethods;
-
-/*! \internal */
 struct _ExifMnoteDataMethods {
 
-	/* Life cycle */
+	/* Live cycle */
 	void (* free) (ExifMnoteData *);
 
 	/* Modification */
@@ -53,10 +50,8 @@ struct _ExifMnoteDataMethods {
 	char * (* get_value)             (ExifMnoteData *, unsigned int, char *val, unsigned int maxlen);
 };
 
-/*! \internal */
 typedef struct _ExifMnoteDataPriv ExifMnoteDataPriv;
 
-/*! \internal */
 struct _ExifMnoteData 
 {
 	ExifMnoteDataPriv *priv;
@@ -70,17 +65,12 @@ struct _ExifMnoteData
 	ExifMem *mem;
 };
 
-/*! \internal */
 void exif_mnote_data_construct      (ExifMnoteData *, ExifMem *mem);
-
-/*! \internal */
 void exif_mnote_data_set_byte_order (ExifMnoteData *, ExifByteOrder);
-
-/*! \internal */
 void exif_mnote_data_set_offset     (ExifMnoteData *, unsigned int);
 
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */
 
-#endif /* !defined(LIBEXIF_EXIF_MNOTE_DATA_PRIV_H) */
+#endif /* __EXIF_MNOTE_PRIV_H__ */

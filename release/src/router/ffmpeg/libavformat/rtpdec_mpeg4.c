@@ -70,12 +70,6 @@ typedef struct AttrNameMap {
     const char *str;
     uint16_t    type;
     uint32_t    offset;
-
-    /** Range for integer values */
-    struct Range {
-        int min;
-        int max;
-    } range;
 } AttrNameMap;
 
 /* All known fmtp parameters and the corresponding RTPAttrTypeEnum */
@@ -83,24 +77,18 @@ typedef struct AttrNameMap {
 #define ATTR_NAME_TYPE_STR 1
 static const AttrNameMap attr_names[] = {
     { "SizeLength",       ATTR_NAME_TYPE_INT,
-      offsetof(PayloadContext, sizelength),
-      {0, 32} }, // SizeLength number of bits used to encode AU-size integer value
+      offsetof(PayloadContext, sizelength) },
     { "IndexLength",      ATTR_NAME_TYPE_INT,
-      offsetof(PayloadContext, indexlength),
-      {0, 32} }, // IndexLength number of bits used to encode AU-Index integer value
+      offsetof(PayloadContext, indexlength) },
     { "IndexDeltaLength", ATTR_NAME_TYPE_INT,
-      offsetof(PayloadContext, indexdeltalength),
-      {0, 32} }, // IndexDeltaLength number of bits to encode AU-Index-delta integer value
+      offsetof(PayloadContext, indexdeltalength) },
     { "profile-level-id", ATTR_NAME_TYPE_INT,
-      offsetof(PayloadContext, profile_level_id),
-      {INT32_MIN, INT32_MAX} }, // It differs depending on StreamType
+      offsetof(PayloadContext, profile_level_id) },
     { "StreamType",       ATTR_NAME_TYPE_INT,
-      offsetof(PayloadContext, streamtype),
-      {0x00, 0x3F} }, // Values from ISO/IEC 14496-1, 'StreamType Values' table
+      offsetof(PayloadContext, streamtype) },
     { "mode",             ATTR_NAME_TYPE_STR,
-      offsetof(PayloadContext, mode),
-       {0} },
-    { NULL, -1, -1, {0} },
+      offsetof(PayloadContext, mode) },
+    { NULL, -1, -1 },
 };
 
 static void close_context(PayloadContext *data)
@@ -112,10 +100,10 @@ static void close_context(PayloadContext *data)
 static int parse_fmtp_config(AVCodecParameters *par, const char *value)
 {
     /* decode the hexa encoded parameter */
-    int len = ff_hex_to_data(NULL, value), ret;
-
-    if ((ret = ff_alloc_extradata(par, len)) < 0)
-        return ret;
+    int len = ff_hex_to_data(NULL, value);
+    av_freep(&par->extradata);
+    if (ff_alloc_extradata(par, len))
+        return AVERROR(ENOMEM);
     ff_hex_to_data(par->extradata, value);
     return 0;
 }
@@ -301,24 +289,15 @@ static int parse_fmtp(AVFormatContext *s,
         for (i = 0; attr_names[i].str; ++i) {
             if (!av_strcasecmp(attr, attr_names[i].str)) {
                 if (attr_names[i].type == ATTR_NAME_TYPE_INT) {
-                    char *end_ptr = NULL;
-                    long long int val = strtoll(value, &end_ptr, 10);
-                    if (end_ptr == value || end_ptr[0] != '\0') {
+                    int val = atoi(value);
+                    if (val > 32) {
                         av_log(s, AV_LOG_ERROR,
-                               "The %s field value is not a valid number: %s\n",
-                               attr, value);
+                               "The %s field size is invalid (%d)\n",
+                               attr, val);
                         return AVERROR_INVALIDDATA;
                     }
-                    if (val < attr_names[i].range.min ||
-                        val > attr_names[i].range.max) {
-                        av_log(s, AV_LOG_ERROR,
-                            "fmtp field %s should be in range [%d,%d] (provided value: %lld)",
-                            attr, attr_names[i].range.min, attr_names[i].range.max, val);
-                        return  AVERROR_INVALIDDATA;
-                    }
-
                     *(int *)((char *)data+
-                        attr_names[i].offset) = (int) val;
+                        attr_names[i].offset) = val;
                 } else if (attr_names[i].type == ATTR_NAME_TYPE_STR) {
                     char *val = av_strdup(value);
                     if (!val)

@@ -69,20 +69,11 @@ typedef struct Wc3DemuxContext {
     int video_stream_index;
     int audio_stream_index;
 
-    AVPacket *vpkt;
+    AVPacket vpkt;
 
 } Wc3DemuxContext;
 
-static int wc3_read_close(AVFormatContext *s)
-{
-    Wc3DemuxContext *wc3 = s->priv_data;
-
-    av_packet_free(&wc3->vpkt);
-
-    return 0;
-}
-
-static int wc3_probe(const AVProbeData *p)
+static int wc3_probe(AVProbeData *p)
 {
     if (p->buf_size < 12)
         return 0;
@@ -109,9 +100,8 @@ static int wc3_read_header(AVFormatContext *s)
     wc3->height = WC3_DEFAULT_HEIGHT;
     wc3->pts = 0;
     wc3->video_stream_index = wc3->audio_stream_index = 0;
-    wc3->vpkt = av_packet_alloc();
-    if (!wc3->vpkt)
-        return AVERROR(ENOMEM);
+    av_init_packet(&wc3->vpkt);
+    wc3->vpkt.data = NULL; wc3->vpkt.size = 0;
 
     /* skip the first 3 32-bit numbers */
     avio_skip(pb, 12);
@@ -139,15 +129,9 @@ static int wc3_read_header(AVFormatContext *s)
             /* load up the name */
             buffer = av_malloc(size+1);
             if (!buffer)
-            if (!buffer) {
-                ret = AVERROR(ENOMEM);
-                goto fail;
-            }
-            if ((ret = avio_read(pb, buffer, size)) != size) {
-                av_freep(&buffer);
-                ret =  AVERROR(EIO);
-                goto fail;
-            }
+                return AVERROR(ENOMEM);
+            if ((ret = avio_read(pb, buffer, size)) != size)
+                return AVERROR(EIO);
             buffer[size] = 0;
             av_dict_set(&s->metadata, "title", buffer,
                                    AV_DICT_DONT_STRDUP_VAL);
@@ -162,32 +146,27 @@ static int wc3_read_header(AVFormatContext *s)
         case PALT_TAG:
             /* one of several palettes */
             avio_seek(pb, -8, SEEK_CUR);
-            av_append_packet(pb, wc3->vpkt, 8 + PALETTE_SIZE);
+            av_append_packet(pb, &wc3->vpkt, 8 + PALETTE_SIZE);
             break;
 
         default:
             av_log(s, AV_LOG_ERROR, "unrecognized WC3 chunk: %s\n",
                    av_fourcc2str(fourcc_tag));
-            ret = AVERROR_INVALIDDATA;
-            goto fail;
+            return AVERROR_INVALIDDATA;
         }
 
         fourcc_tag = avio_rl32(pb);
         /* chunk sizes are 16-bit aligned */
         size = (avio_rb32(pb) + 1) & (~1);
-        if (avio_feof(pb)) {
-            ret = AVERROR(EIO);
-            goto fail;
-        }
+        if (avio_feof(pb))
+            return AVERROR(EIO);
 
     } while (fourcc_tag != BRCH_TAG);
 
     /* initialize the decoder streams */
     st = avformat_new_stream(s, NULL);
-    if (!st) {
-        ret = AVERROR(ENOMEM);
-        goto fail;
-    }
+    if (!st)
+        return AVERROR(ENOMEM);
     avpriv_set_pts_info(st, 33, 1, WC3_FRAME_FPS);
     wc3->video_stream_index = st->index;
     st->codecpar->codec_type = AVMEDIA_TYPE_VIDEO;
@@ -197,10 +176,8 @@ static int wc3_read_header(AVFormatContext *s)
     st->codecpar->height = wc3->height;
 
     st = avformat_new_stream(s, NULL);
-    if (!st) {
-        ret = AVERROR(ENOMEM);
-        goto fail;
-    }
+    if (!st)
+        return AVERROR(ENOMEM);
     avpriv_set_pts_info(st, 33, 1, WC3_FRAME_FPS);
     wc3->audio_stream_index = st->index;
     st->codecpar->codec_type = AVMEDIA_TYPE_AUDIO;
@@ -215,9 +192,6 @@ static int wc3_read_header(AVFormatContext *s)
     st->codecpar->block_align = WC3_AUDIO_BITS * WC3_AUDIO_CHANNELS;
 
     return 0;
-fail:
-    wc3_read_close(s);
-    return ret;
 }
 
 static int wc3_read_packet(AVFormatContext *s,
@@ -248,17 +222,18 @@ static int wc3_read_packet(AVFormatContext *s,
         case SHOT_TAG:
             /* load up new palette */
             avio_seek(pb, -8, SEEK_CUR);
-            av_append_packet(pb, wc3->vpkt, 8 + 4);
+            av_append_packet(pb, &wc3->vpkt, 8 + 4);
             break;
 
         case VGA__TAG:
             /* send out video chunk */
             avio_seek(pb, -8, SEEK_CUR);
-            ret= av_append_packet(pb, wc3->vpkt, 8 + size);
+            ret= av_append_packet(pb, &wc3->vpkt, 8 + size);
             // ignore error if we have some data
-            if (wc3->vpkt->size > 0)
+            if (wc3->vpkt.size > 0)
                 ret = 0;
-            av_packet_move_ref(pkt, wc3->vpkt);
+            *pkt = wc3->vpkt;
+            wc3->vpkt.data = NULL; wc3->vpkt.size = 0;
             pkt->stream_index = wc3->video_stream_index;
             pkt->pts = wc3->pts;
             packet_read = 1;
@@ -307,6 +282,16 @@ static int wc3_read_packet(AVFormatContext *s,
     }
 
     return ret;
+}
+
+static int wc3_read_close(AVFormatContext *s)
+{
+    Wc3DemuxContext *wc3 = s->priv_data;
+
+    if (wc3->vpkt.size > 0)
+        av_packet_unref(&wc3->vpkt);
+
+    return 0;
 }
 
 AVInputFormat ff_wc3_demuxer = {

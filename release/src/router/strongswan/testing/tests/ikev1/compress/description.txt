@@ -1,4 +1,3 @@
-This scenario enables IPComp compression between roadwarrior <b>carol</b> and
-gateway <b>moon</b>. Two pings from <b>carol</b> to <b>alice</b> check
-the established tunnel with compression. The packet sizes of the two pings
-are different because the kernel does not compress small packets.
+This scenario enables IPCOMP compression between roadwarrior <b>carol</b> and
+gateway <b>moon</b>. Two pings from <b>carol</b> to <b>alice</b> checks
+the established tunnel with compression.

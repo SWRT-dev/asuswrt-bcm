@@ -68,7 +68,7 @@ function initial(){
 			if(tmo_support)
 				var theUrl = "cellspot.router"; 
 			else
-				var theUrl = "<#Web_DOMAIN_NAME#>";
+				var theUrl = "router.asus.com";
 			document.getElementById("aicloud_main_text").innerHTML = "<#AiCloud_maintext_note0#>"+ theUrl +"<#AiCloud_maintext_note1#>";
 		}
 	}

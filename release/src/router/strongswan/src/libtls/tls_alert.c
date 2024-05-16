@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2010 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * Copyright (C) 2010 revosec AG
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -64,34 +63,19 @@ ENUM_NEXT(tls_alert_desc_names, TLS_INTERNAL_ERROR, TLS_INTERNAL_ERROR,
 		TLS_INSUFFICIENT_SECURITY,
 	"internal error",
 );
-ENUM_NEXT(tls_alert_desc_names, TLS_INAPPROPRIATE_FALLBACK,
-		TLS_INAPPROPRIATE_FALLBACK, TLS_INTERNAL_ERROR,
-	"inappropriate fallback",
-);
 ENUM_NEXT(tls_alert_desc_names, TLS_USER_CANCELED, TLS_USER_CANCELED,
-		TLS_INAPPROPRIATE_FALLBACK,
+		TLS_INTERNAL_ERROR,
 	"user canceled",
 );
 ENUM_NEXT(tls_alert_desc_names, TLS_NO_RENEGOTIATION, TLS_NO_RENEGOTIATION,
 		TLS_USER_CANCELED,
 	"no renegotiation",
 );
-ENUM_NEXT(tls_alert_desc_names, TLS_MISSING_EXTENSION, TLS_CERTIFICATE_REQUIRED,
+ENUM_NEXT(tls_alert_desc_names, TLS_UNSUPPORTED_EXTENSION, TLS_UNSUPPORTED_EXTENSION,
 		TLS_NO_RENEGOTIATION,
-	"missing extensions",
 	"unsupported extension",
-	"certificate unobtainable",
-	"recognized name",
-	"bad certificate status response",
-	"bad certificate hash value",
-	"unknown psk identity",
-	"certificate required",
 );
-ENUM_NEXT(tls_alert_desc_names, TLS_NO_APPLICATION_PROTOCOL,
-		TLS_NO_APPLICATION_PROTOCOL, TLS_CERTIFICATE_REQUIRED,
-	"no application protocol"
-);
-ENUM_END(tls_alert_desc_names, TLS_NO_APPLICATION_PROTOCOL);
+ENUM_END(tls_alert_desc_names, TLS_UNSUPPORTED_EXTENSION);
 
 
 typedef struct private_tls_alert_t private_tls_alert_t;

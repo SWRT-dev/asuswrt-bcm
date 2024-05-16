@@ -1,8 +1,7 @@
 /*
  * Copyright (C) 2013 Tobias Brunner
  * Copyright (C) 2008 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -16,7 +15,7 @@
  */
 
 /**
- * @defgroup database_t database
+ * @defgroup databasei database
  * @{ @ingroup database
  */
 
@@ -122,7 +121,7 @@ struct database_t {
 	 *
 	 * @note Either commit() or rollback() has to be called to end the
 	 * transaction.
-	 * @note Transactions are thread-specific. So commit()/rollback() has to be
+	 * @note Transactions are thread-specific. So commit()/rollbak() has to be
 	 * called from the same thread.
 	 * @note While this method can be called multiple times (commit/rollback
 	 * have to be called an equal number of times) real nested transactions are

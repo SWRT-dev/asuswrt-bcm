@@ -1,8 +1,9 @@
 /*
  * Copyright (C) 2010 Martin Willi
- * Copyright (C) 2010 Andreas Steffen
+ * Copyright (C) 2010 revosec AG
  *
- * Copyright (C) secunet Security Networks AG
+ * Copyright (C) 2010 Andreas Steffen
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -78,7 +79,7 @@ METHOD(eap_method_t, process, status_t,
 }
 
 METHOD(eap_method_t, get_type, eap_type_t,
-	private_eap_ttls_t *this, pen_t *vendor)
+	private_eap_ttls_t *this, uint32_t *vendor)
 {
 	*vendor = 0;
 	return EAP_TTLS;
@@ -169,7 +170,7 @@ static eap_ttls_t *eap_ttls_create(identification_t *server,
 	include_length = lib->settings->get_bool(lib->settings,
 					"%s.plugins.eap-ttls.include_length", TRUE, lib->ns);
 	tls = tls_create(is_server, server, peer, TLS_PURPOSE_EAP_TTLS,
-					 application, NULL, 0);
+					 application, NULL);
 	this->tls_eap = tls_eap_create(EAP_TTLS, tls, frag_size, max_msg_count,
 												  include_length);
 	if (!this->tls_eap)

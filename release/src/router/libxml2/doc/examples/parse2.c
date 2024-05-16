@@ -33,11 +33,11 @@ exampleFunc(const char *filename) {
     }
     /* parse the file, activating the DTD validation option */
     doc = xmlCtxtReadFile(ctxt, filename, NULL, XML_PARSE_DTDVALID);
-    /* check if parsing succeeded */
+    /* check if parsing suceeded */
     if (doc == NULL) {
         fprintf(stderr, "Failed to parse %s\n", filename);
     } else {
-	/* check if validation succeeded */
+	/* check if validation suceeded */
         if (ctxt->valid == 0)
 	    fprintf(stderr, "Failed to validate %s\n", filename);
 	/* free up the resulting document */

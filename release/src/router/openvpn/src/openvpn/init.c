@@ -2383,9 +2383,8 @@ socket_restart_pause(struct context *c)
     }
 #endif
 
-    /* Slow down reconnection after 5 retries per remote -- for TCP client or UDP tls-client only */
-    if (c->options.ce.proto == PROTO_TCP_CLIENT
-        || (c->options.ce.proto == PROTO_UDP && c->options.tls_client))
+    /* Slow down reconnection after 5 retries per remote -- for tcp only in client mode */
+    if (c->options.ce.proto != PROTO_TCP_SERVER)
     {
         backoff = (c->options.unsuccessful_attempts / c->options.connection_list->len) - 4;
         if (backoff > 0)

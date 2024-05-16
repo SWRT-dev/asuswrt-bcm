@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2008 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -18,7 +17,6 @@
 
 #include <time.h>
 
-#include <credentials/certificates/x509.h>
 #include <utils/debug.h>
 
 typedef struct private_pubkey_cert_t private_pubkey_cert_t;
@@ -266,20 +264,15 @@ pubkey_cert_t *pubkey_cert_wrap(certificate_type_t type, va_list args)
 {
 	public_key_t *key = NULL;
 	chunk_t blob = chunk_empty;
-	builder_part_t part, blob_type = BUILD_END;
 	identification_t *subject = NULL;
 	time_t notBefore = UNDEFINED_TIME, notAfter = UNDEFINED_TIME;
 
 	while (TRUE)
 	{
-		part = va_arg(args, builder_part_t);
-		switch (part)
+		switch (va_arg(args, builder_part_t))
 		{
-			case BUILD_BLOB:
-			case BUILD_BLOB_PEM:
 			case BUILD_BLOB_ASN1_DER:
 				blob = va_arg(args, chunk_t);
-				blob_type = part;
 				continue;
 			case BUILD_PUBLIC_KEY:
 				key = va_arg(args, public_key_t*);
@@ -292,10 +285,6 @@ pubkey_cert_t *pubkey_cert_wrap(certificate_type_t type, va_list args)
 				continue;
 			case BUILD_SUBJECT:
 				subject = va_arg(args, identification_t*);
-				continue;
-			case BUILD_X509_FLAG:
-				/* just ignore the flags */
-				va_arg(args, x509_flag_t);
 				continue;
 			case BUILD_END:
 				break;
@@ -311,7 +300,7 @@ pubkey_cert_t *pubkey_cert_wrap(certificate_type_t type, va_list args)
 	else if (blob.ptr)
 	{
 		key = lib->creds->create(lib->creds, CRED_PUBLIC_KEY, KEY_ANY,
-								 blob_type, blob, BUILD_END);
+								 BUILD_BLOB_ASN1_DER, blob, BUILD_END);
 	}
 	if (key)
 	{
@@ -319,3 +308,4 @@ pubkey_cert_t *pubkey_cert_wrap(certificate_type_t type, va_list args)
 	}
 	return NULL;
 }
+

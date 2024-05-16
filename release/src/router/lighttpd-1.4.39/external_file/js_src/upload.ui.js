@@ -87,7 +87,7 @@ function closeUploadPanel(v){
 	
 	if(v==1){
 		var openurl = addPathSlash(g_storage.get('openurl'));
-		doPROPFIND(openurl, false);
+		doPROPFIND(openurl);
 	}
 }
 
@@ -121,7 +121,7 @@ function hideUploadPanel(){
 	$("#upload_panel").fadeOut("fast");
 		
 	var openurl = addPathSlash(g_storage.get('openurl'));
-	doPROPFIND(openurl, false);
+	doPROPFIND(openurl);
 }
 
 function createUploadLayout(){

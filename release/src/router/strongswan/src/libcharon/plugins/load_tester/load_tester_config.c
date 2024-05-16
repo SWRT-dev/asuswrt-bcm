@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2008 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -43,9 +42,9 @@ struct private_load_tester_config_t {
 	peer_cfg_t *peer_cfg;
 
 	/**
-	 * request virtual IPs
+	 * virtual IP, if any
 	 */
-	bool vips;
+	host_t *vip;
 
 	/**
 	 * Initiator address
@@ -328,7 +327,7 @@ static void generate_auth_cfg(private_load_tester_config_t *this, char *str,
 		if (this->initiator_id)
 		{
 			if (this->initiator_match && (!local && !num))
-			{	/* as responder, use the specified identity that matches
+			{	/* as responder, use the secified identity that matches
 				 * all used initiator identities, if given. */
 				snprintf(buf, sizeof(buf), this->initiator_match, rnd);
 				id = identification_create_from_string(buf);
@@ -625,7 +624,7 @@ static void add_ts(private_load_tester_config_t *this,
 /**
  * Allocate and install a dynamic external address to use
  */
-static host_t *allocate_addr(private_load_tester_config_t *this, u_int num)
+static host_t *allocate_addr(private_load_tester_config_t *this, uint num)
 {
 	enumerator_t *enumerator;
 	mem_pool_t *pool;
@@ -634,15 +633,13 @@ static host_t *allocate_addr(private_load_tester_config_t *this, u_int num)
 	char *iface = NULL, buf[32];
 	entry_t *entry;
 
+	requested = host_create_any(AF_INET);
 	snprintf(buf, sizeof(buf), "ext-%d", num);
 	id = identification_create_from_string(buf);
 	enumerator = this->pools->create_enumerator(this->pools);
 	while (enumerator->enumerate(enumerator, &pool))
 	{
-		requested = pool->get_base(pool);
-		requested = host_create_any(requested->get_family(requested));
 		found = pool->acquire_address(pool, id, requested, MEM_POOL_NEW, NULL);
-		requested->destroy(requested);
 		if (found)
 		{
 			iface = (char*)pool->get_name(pool);
@@ -650,6 +647,7 @@ static host_t *allocate_addr(private_load_tester_config_t *this, u_int num)
 		}
 	}
 	enumerator->destroy(enumerator);
+	requested->destroy(requested);
 
 	if (!found)
 	{
@@ -683,17 +681,13 @@ static host_t *allocate_addr(private_load_tester_config_t *this, u_int num)
 /**
  * Generate a new initiator config, num = 0 for responder config
  */
-static peer_cfg_t* generate_config(private_load_tester_config_t *this, u_int num)
+static peer_cfg_t* generate_config(private_load_tester_config_t *this, uint num)
 {
 	ike_cfg_t *ike_cfg;
 	child_cfg_t *child_cfg;
 	peer_cfg_t *peer_cfg;
-	char local[32];
+	char local[32], *remote;
 	host_t *addr;
-	ike_cfg_create_t ike = {
-		.version = this->version,
-		.remote_port = IKEV2_UDP_PORT,
-	};
 	peer_cfg_create_t peer = {
 		.cert_policy = CERT_SEND_IF_ASKED,
 		.unique = UNIQUE_NO,
@@ -732,32 +726,34 @@ static peer_cfg_t* generate_config(private_load_tester_config_t *this, u_int num
 		{
 			snprintf(local, sizeof(local), "%s", this->initiator);
 		}
-		ike.remote = this->responder;
+		remote = this->responder;
 	}
 	else
 	{
 		snprintf(local, sizeof(local), "%s", this->responder);
-		ike.remote = this->initiator;
+		remote = this->initiator;
 	}
 
-	ike.local = local;
 	if (this->port && num)
 	{
-		ike.local_port = this->port + num - 1;
-		ike.remote_port = IKEV2_NATT_PORT;
+		ike_cfg = ike_cfg_create(this->version, TRUE, FALSE,
+								 local, this->port + num - 1,
+								 remote, IKEV2_NATT_PORT,
+								 FRAGMENTATION_NO, 0);
 	}
 	else
 	{
-		ike.local_port = charon->socket->get_port(charon->socket, FALSE);
+		ike_cfg = ike_cfg_create(this->version, TRUE, FALSE, local,
+								 charon->socket->get_port(charon->socket, FALSE),
+								 remote, IKEV2_UDP_PORT,
+								 FRAGMENTATION_NO, 0);
 	}
-	ike_cfg = ike_cfg_create(&ike);
-	ike_cfg->add_proposal(ike_cfg, this->proposal->clone(this->proposal, 0));
+	ike_cfg->add_proposal(ike_cfg, this->proposal->clone(this->proposal));
 	peer_cfg = peer_cfg_create("load-test", ike_cfg, &peer);
 
-	if (this->vips)
+	if (this->vip)
 	{
-		peer_cfg->add_virtual_ip(peer_cfg, host_create_any(AF_INET));
-		peer_cfg->add_virtual_ip(peer_cfg, host_create_any(AF_INET6));
+		peer_cfg->add_virtual_ip(peer_cfg, this->vip->clone(this->vip));
 	}
 	if (this->pool)
 	{
@@ -787,11 +783,11 @@ static peer_cfg_t* generate_config(private_load_tester_config_t *this, u_int num
 	}
 
 	child_cfg = child_cfg_create("load-test", &child);
-	child_cfg->add_proposal(child_cfg, this->esp->clone(this->esp, 0));
+	child_cfg->add_proposal(child_cfg, this->esp->clone(this->esp));
 
 	if (num)
 	{	/* initiator */
-		if (this->vips)
+		if (this->vip)
 		{
 			add_ts(this, NULL, child_cfg, TRUE, TRUE);
 		}
@@ -916,6 +912,7 @@ METHOD(load_tester_config_t, destroy, void,
 	this->peer_cfg->destroy(this->peer_cfg);
 	DESTROY_IF(this->proposal);
 	DESTROY_IF(this->esp);
+	DESTROY_IF(this->vip);
 	free(this);
 }
 
@@ -943,8 +940,11 @@ load_tester_config_t *load_tester_config_create()
 		.unique_port = UNIQUE_PORT_START,
 	);
 
-	this->vips = lib->settings->get_bool(lib->settings,
-					"%s.plugins.load-tester.request_virtual_ip", FALSE, lib->ns);
+	if (lib->settings->get_bool(lib->settings,
+				"%s.plugins.load-tester.request_virtual_ip", FALSE, lib->ns))
+	{
+		this->vip = host_create_from_string("0.0.0.0", 0);
+	}
 	this->pool = lib->settings->get_str(lib->settings,
 					"%s.plugins.load-tester.pool", NULL, lib->ns);
 	this->initiator = lib->settings->get_str(lib->settings,

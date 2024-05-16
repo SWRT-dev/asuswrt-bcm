@@ -53,7 +53,6 @@ bool insert_in_object_tree(TALLOC_CTX *mem_ctx,
 			return false;
 		}
 		(*root)->guid = *guid;
-		(*root)->remaining_access = init_access;
 		*new_node = *root;
 		return true;
 	}

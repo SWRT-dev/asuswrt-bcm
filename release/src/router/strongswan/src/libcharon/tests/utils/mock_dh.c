@@ -1,8 +1,7 @@
 /*
  * Copyright (C) 2016 Tobias Brunner
  * Copyright (C) 2008 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -19,13 +18,6 @@
 
 typedef struct private_diffie_hellman_t private_diffie_hellman_t;
 
-/** Mock DH public and shared key */
-static chunk_t mock_key = chunk_from_chars(
-									0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,
-									0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,
-									0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,
-									0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08);
-
 /**
  * Private data
  */
@@ -34,41 +26,41 @@ struct private_diffie_hellman_t {
 	/**
 	 * Public interface
 	 */
-	key_exchange_t public;
+	diffie_hellman_t public;
 
 	/**
-	 * Instantiated key exchange method
+	 * Instantiated DH group
 	 */
-	key_exchange_method_t method;
+	diffie_hellman_group_t group;
 };
 
-METHOD(key_exchange_t, get_public_key, bool,
+METHOD(diffie_hellman_t, get_my_public_value, bool,
 	private_diffie_hellman_t *this, chunk_t *value)
 {
-	*value = chunk_clone(mock_key);
+	*value = chunk_empty;
 	return TRUE;
 }
 
-METHOD(key_exchange_t, set_public_key, bool,
+METHOD(diffie_hellman_t, set_other_public_value, bool,
 	private_diffie_hellman_t *this, chunk_t value)
 {
 	return TRUE;
 }
 
-METHOD(key_exchange_t, get_shared_secret, bool,
+METHOD(diffie_hellman_t, get_shared_secret, bool,
 	private_diffie_hellman_t *this, chunk_t *secret)
 {
-	*secret = chunk_clone(mock_key);
+	*secret = chunk_empty;
 	return TRUE;
 }
 
-METHOD(key_exchange_t, get_method, key_exchange_method_t,
+METHOD(diffie_hellman_t, get_dh_group, diffie_hellman_group_t,
 	private_diffie_hellman_t *this)
 {
-	return this->method;
+	return this->group;
 }
 
-METHOD(key_exchange_t, destroy, void,
+METHOD(diffie_hellman_t, destroy, void,
 	private_diffie_hellman_t *this)
 {
 	free(this);
@@ -77,19 +69,19 @@ METHOD(key_exchange_t, destroy, void,
 /**
  * See header
  */
-key_exchange_t *mock_dh_create(key_exchange_method_t method)
+diffie_hellman_t *mock_dh_create(diffie_hellman_group_t group)
 {
 	private_diffie_hellman_t *this;
 
 	INIT(this,
 		.public = {
 			.get_shared_secret = _get_shared_secret,
-			.set_public_key = _set_public_key,
-			.get_public_key = _get_public_key,
-			.get_method = _get_method,
+			.set_other_public_value = _set_other_public_value,
+			.get_my_public_value = _get_my_public_value,
+			.get_dh_group = _get_dh_group,
 			.destroy = _destroy,
 		},
-		.method = method,
+		.group = group,
 	);
 	return &this->public;
 }

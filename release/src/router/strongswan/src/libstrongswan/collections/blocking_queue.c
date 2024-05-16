@@ -2,8 +2,7 @@
  * Copyright (C) 2012 Tobias Brunner
  * Copyright (C) 2012 Giuliano Grassi
  * Copyright (C) 2012 Ralf Sager
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -98,19 +97,10 @@ METHOD(blocking_queue_t, destroy_offset, void,
 	destroy(this);
 }
 
-CALLBACK(destroy_item, void,
-	void *item, va_list args)
-{
-	void (*fn)(void*);
-
-	VA_ARGS_VGET(args, fn);
-	fn(item);
-}
-
 METHOD(blocking_queue_t, destroy_function, void,
 	private_blocking_queue_t *this, void (*fn)(void*))
 {
-	this->list->invoke_function(this->list, destroy_item, fn);
+	this->list->invoke_function(this->list, (linked_list_invoke_t)fn);
 	destroy(this);
 }
 

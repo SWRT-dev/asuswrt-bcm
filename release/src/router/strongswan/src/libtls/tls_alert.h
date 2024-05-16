@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2010 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * Copyright (C) 2010 revosec AG
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -62,18 +61,9 @@ enum tls_alert_desc_t {
 	TLS_PROTOCOL_VERSION = 70,
 	TLS_INSUFFICIENT_SECURITY = 71,
 	TLS_INTERNAL_ERROR = 80,
-	TLS_INAPPROPRIATE_FALLBACK = 86,
 	TLS_USER_CANCELED = 90,
 	TLS_NO_RENEGOTIATION = 100,
-	TLS_MISSING_EXTENSION = 109,
 	TLS_UNSUPPORTED_EXTENSION = 110,
-	TLS_CERTIFICATE_UNOBTAINABLE = 111,
-	TLS_RECOGNIZED_NAME = 112,
-	TLS_BAD_CERTIFICATE_STATUS_RESPONSE = 113,
-	TLS_BAD_CERTIFICATE_HASH_VALUE = 114,
-	TLS_UNKNOWN_PSK_IDENTITY = 115,
-	TLS_CERTIFICATE_REQUIRED = 116,
-	TLS_NO_APPLICATION_PROTOCOL = 120,
 };
 
 /**

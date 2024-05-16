@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2013 Andreas Steffen
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -79,7 +78,7 @@ static crypter_aead_t aead[] = {
 	{ ENCR_AES_CBC, FALSE },
 	{ ENCR_CAMELLIA_CBC, FALSE }
 };
-
+     
 START_TEST(test_crypter_is_aead)
 {
 	ck_assert(encryption_algorithm_is_aead(aead[_i].alg) == aead[_i].is_aead);

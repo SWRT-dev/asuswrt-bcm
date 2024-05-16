@@ -15,7 +15,7 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
 # USA.
 
-AM_CFLAGS = -Wall -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+AM_CFLAGS = -Wall -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 @STATIC_CFLAGS@
 
 SUBDIRS=po
 
@@ -29,16 +29,6 @@ minidlnad_SOURCES = minidlna.c upnphttp.c upnpdescgen.c upnpsoap.c \
 			tivo_utils.c tivo_beacon.c tivo_commands.c \
 			playlist.c image_utils.c albumart.c log.c \
 			containers.c avahi.c tagutils/tagutils.c
-
-if HAVE_KQUEUE
-minidlnad_SOURCES += kqueue.c monitor_kqueue.c
-else
-minidlnad_SOURCES += select.c
-endif
-
-if HAVE_INOTIFY
-minidlnad_SOURCES += monitor_inotify.c
-endif
 
 if HAVE_VORBISFILE
 vorbislibs = -lvorbis -logg
@@ -59,10 +49,13 @@ minidlnad_LDADD = \
 	@LIBID3TAG_LIBS@ \
 	@LIBSQLITE3_LIBS@ \
 	@LIBAVFORMAT_LIBS@ \
+	@LIBAVUTIL_LIBS@ \
 	@LIBEXIF_LIBS@ \
 	@LIBINTL@ \
 	@LIBICONV@ \
 	-lFLAC $(flacogglibs) $(vorbislibs) $(avahilibs)
+
+minidlnad_LDFLAGS = @STATIC_LDFLAGS@
 
 testupnpdescgen_SOURCES = testupnpdescgen.c upnpdescgen.c
 testupnpdescgen_LDADD = \

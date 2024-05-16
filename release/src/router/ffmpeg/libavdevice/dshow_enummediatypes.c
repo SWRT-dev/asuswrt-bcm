@@ -21,16 +21,17 @@
 
 #include "dshow_capture.h"
 
-DECLARE_QUERYINTERFACE(enummediatypes, DShowEnumMediaTypes,
+DECLARE_QUERYINTERFACE(libAVEnumMediaTypes,
     { {&IID_IUnknown,0}, {&IID_IEnumMediaTypes,0} })
-DECLARE_ADDREF(enummediatypes, DShowEnumMediaTypes)
-DECLARE_RELEASE(enummediatypes, DShowEnumMediaTypes)
+DECLARE_ADDREF(libAVEnumMediaTypes)
+DECLARE_RELEASE(libAVEnumMediaTypes)
 
-long ff_dshow_enummediatypes_Next(DShowEnumMediaTypes *this, unsigned long n,
+long WINAPI
+libAVEnumMediaTypes_Next(libAVEnumMediaTypes *this, unsigned long n,
                          AM_MEDIA_TYPE **types, unsigned long *fetched)
 {
     int count = 0;
-    dshowdebug("ff_dshow_enummediatypes_Next(%p)\n", this);
+    dshowdebug("libAVEnumMediaTypes_Next(%p)\n", this);
     if (!types)
         return E_POINTER;
     if (!this->pos && n == 1) {
@@ -50,26 +51,29 @@ long ff_dshow_enummediatypes_Next(DShowEnumMediaTypes *this, unsigned long n,
         return S_FALSE;
     return S_OK;
 }
-long ff_dshow_enummediatypes_Skip(DShowEnumMediaTypes *this, unsigned long n)
+long WINAPI
+libAVEnumMediaTypes_Skip(libAVEnumMediaTypes *this, unsigned long n)
 {
-    dshowdebug("ff_dshow_enummediatypes_Skip(%p)\n", this);
+    dshowdebug("libAVEnumMediaTypes_Skip(%p)\n", this);
     if (n) /* Any skip will always fall outside of the only valid type. */
         return S_FALSE;
     return S_OK;
 }
-long ff_dshow_enummediatypes_Reset(DShowEnumMediaTypes *this)
+long WINAPI
+libAVEnumMediaTypes_Reset(libAVEnumMediaTypes *this)
 {
-    dshowdebug("ff_dshow_enummediatypes_Reset(%p)\n", this);
+    dshowdebug("libAVEnumMediaTypes_Reset(%p)\n", this);
     this->pos = 0;
     return S_OK;
 }
-long ff_dshow_enummediatypes_Clone(DShowEnumMediaTypes *this, DShowEnumMediaTypes **enums)
+long WINAPI
+libAVEnumMediaTypes_Clone(libAVEnumMediaTypes *this, libAVEnumMediaTypes **enums)
 {
-    DShowEnumMediaTypes *new;
-    dshowdebug("ff_dshow_enummediatypes_Clone(%p)\n", this);
+    libAVEnumMediaTypes *new;
+    dshowdebug("libAVEnumMediaTypes_Clone(%p)\n", this);
     if (!enums)
         return E_POINTER;
-    new = ff_dshow_enummediatypes_Create(&this->type);
+    new = libAVEnumMediaTypes_Create(&this->type);
     if (!new)
         return E_OUTOFMEMORY;
     new->pos = this->pos;
@@ -77,16 +81,17 @@ long ff_dshow_enummediatypes_Clone(DShowEnumMediaTypes *this, DShowEnumMediaType
     return S_OK;
 }
 
-static int ff_dshow_enummediatypes_Setup(DShowEnumMediaTypes *this, const AM_MEDIA_TYPE *type)
+static int
+libAVEnumMediaTypes_Setup(libAVEnumMediaTypes *this, const AM_MEDIA_TYPE *type)
 {
     IEnumMediaTypesVtbl *vtbl = this->vtbl;
-    SETVTBL(vtbl, enummediatypes, QueryInterface);
-    SETVTBL(vtbl, enummediatypes, AddRef);
-    SETVTBL(vtbl, enummediatypes, Release);
-    SETVTBL(vtbl, enummediatypes, Next);
-    SETVTBL(vtbl, enummediatypes, Skip);
-    SETVTBL(vtbl, enummediatypes, Reset);
-    SETVTBL(vtbl, enummediatypes, Clone);
+    SETVTBL(vtbl, libAVEnumMediaTypes, QueryInterface);
+    SETVTBL(vtbl, libAVEnumMediaTypes, AddRef);
+    SETVTBL(vtbl, libAVEnumMediaTypes, Release);
+    SETVTBL(vtbl, libAVEnumMediaTypes, Next);
+    SETVTBL(vtbl, libAVEnumMediaTypes, Skip);
+    SETVTBL(vtbl, libAVEnumMediaTypes, Reset);
+    SETVTBL(vtbl, libAVEnumMediaTypes, Clone);
 
     if (!type) {
         this->type.majortype = GUID_NULL;
@@ -96,5 +101,5 @@ static int ff_dshow_enummediatypes_Setup(DShowEnumMediaTypes *this, const AM_MED
 
     return 1;
 }
-DECLARE_CREATE(enummediatypes, DShowEnumMediaTypes, ff_dshow_enummediatypes_Setup(this, type), const AM_MEDIA_TYPE *type)
-DECLARE_DESTROY(enummediatypes, DShowEnumMediaTypes, nothing)
+DECLARE_CREATE(libAVEnumMediaTypes, libAVEnumMediaTypes_Setup(this, type), const AM_MEDIA_TYPE *type)
+DECLARE_DESTROY(libAVEnumMediaTypes, nothing)

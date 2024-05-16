@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2012-2015 Andreas Steffen
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -109,9 +108,7 @@ struct imc_os_info_t {
 
 /**
  * Create an imc_os_info_t object
- *
- * @param test					activate test mode for os_info script
  */
-imc_os_info_t* imc_os_info_create(bool test);
+imc_os_info_t* imc_os_info_create(void);
 
 #endif /** IMC_OS_INFO_H_ @}*/

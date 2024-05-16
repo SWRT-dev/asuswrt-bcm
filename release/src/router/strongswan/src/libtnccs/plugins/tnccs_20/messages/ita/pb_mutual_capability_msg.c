@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2015 Andreas Steffen
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -20,13 +19,11 @@
 #include <bio/bio_reader.h>
 #include <utils/debug.h>
 
-ENUM_BEGIN(pb_tnc_mutual_protocol_type_names, PB_MUTUAL_FULL_DUPLEX,
-		   PB_MUTUAL_FULL_DUPLEX,
-	"full duplex");
-ENUM_NEXT(pb_tnc_mutual_protocol_type_names, PB_MUTUAL_HALF_DUPLEX,
-		  PB_MUTUAL_HALF_DUPLEX, PB_MUTUAL_FULL_DUPLEX,
-	"half duplex");
-ENUM_END(pb_tnc_mutual_protocol_type_names, PB_MUTUAL_HALF_DUPLEX);
+ENUM(pb_tnc_mutual_protocol_type_names, PB_MUTUAL_HALF_DUPLEX,
+										PB_MUTUAL_FULL_DUPLEX,
+	"half duplex",
+	"full duplex"
+);
 
 typedef struct private_pb_mutual_capability_msg_t private_pb_mutual_capability_msg_t;
 

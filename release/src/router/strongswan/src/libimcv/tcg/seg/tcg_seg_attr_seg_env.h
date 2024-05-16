@@ -1,7 +1,6 @@
 /*
- * Copyright (C) 2014-2022 Andreas Steffen
- *
- * Copyright (C) secunet Security Networks AG
+ * Copyright (C) 2014 Andreas Steffen
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -29,7 +28,7 @@ typedef struct tcg_seg_attr_seg_env_t tcg_seg_attr_seg_env_t;
 #define TCG_SEG_ATTR_SEG_ENV_HEADER		4
 
 /**
- * Class implementing the TCG Segment Envelope Attribute
+ * Class implementing the TCG Segmentation Envelope Attribute
  */
 struct tcg_seg_attr_seg_env_t {
 
@@ -47,23 +46,23 @@ struct tcg_seg_attr_seg_env_t {
 	chunk_t (*get_segment)(tcg_seg_attr_seg_env_t *this, uint8_t *flags);
 
 	/**
-	 * Get Base Message ID
+	 * Get Base Attribute ID
 	 *
-	 * @return				Base Message ID
+	 * @return				Base Attribute ID
 	 */
-	uint32_t (*get_base_msg_id)(tcg_seg_attr_seg_env_t *this);
+	uint32_t (*get_base_attr_id)(tcg_seg_attr_seg_env_t *this);
 
 };
 
 /**
  * Creates an tcg_seg_attr_seg_env_t object
  *
- * @param segment			Segment
+ * @param segment			Attribute segment
  * @param flags				Segmentation flags
- * @param base_msg_id		Base Message ID
+ * @param base_attr_id		Base Attribute ID
  */
 pa_tnc_attr_t* tcg_seg_attr_seg_env_create(chunk_t segment, uint8_t flags,
-								           uint32_t base_msg_id);
+										   uint32_t base_attr_id);
 
 /**
  * Creates an tcg_seg_attr_seg_env_t object from received data
@@ -72,6 +71,6 @@ pa_tnc_attr_t* tcg_seg_attr_seg_env_create(chunk_t segment, uint8_t flags,
  * @param value				Unparsed attribute value (might be a segment)
  */
 pa_tnc_attr_t* tcg_seg_attr_seg_env_create_from_data(size_t length,
-                                                     chunk_t value);
+													 chunk_t value);
 
 #endif /** TCG_SEG_ATTR_SEG_ENV_H_ @}*/

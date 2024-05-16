@@ -5,7 +5,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1997 - 2022, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1997 - 2021, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -17,8 +17,6 @@
  *
  * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
  * KIND, either express or implied.
- *
- * SPDX-License-Identifier: curl
  *
  ***************************************************************************/
 
@@ -109,7 +107,7 @@ struct Curl_tree *Curl_splayinsert(struct curltime i,
   if(!node)
     return t;
 
-  if(t) {
+  if(t != NULL) {
     t = Curl_splay(i, t);
     if(compare(i, t->key) == 0) {
       /* There already exists a node in the tree with the very same key. Build
@@ -156,7 +154,7 @@ struct Curl_tree *Curl_splaygetbest(struct curltime i,
                                     struct Curl_tree *t,
                                     struct Curl_tree **removed)
 {
-  static const struct curltime tv_zero = {0, 0};
+  static struct curltime tv_zero = {0, 0};
   struct Curl_tree *x;
 
   if(!t) {

@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2008 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -30,7 +29,7 @@
 typedef struct hmac_plugin_t hmac_plugin_t;
 
 /**
- * Plugin implementing HMAC algorithm to provide hash based PRF and signers.
+ * Plugin implementing HMAC algorithm to prvoide hash based PRF and signers.
  */
 struct hmac_plugin_t {
 

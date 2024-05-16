@@ -7,7 +7,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2022, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2021, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -19,8 +19,6 @@
  *
  * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
  * KIND, either express or implied.
- *
- * SPDX-License-Identifier: curl
  *
  ***************************************************************************/
 
@@ -126,12 +124,16 @@
 #define HAVE_TIME_H 1
 
 /* Define if you have the <unistd.h> header file. */
-#if defined(__MINGW32__) || defined(__LCC__) || defined(__POCC__)
+#if defined(__MINGW32__) || defined(__WATCOMC__) || defined(__LCC__) || \
+    defined(__POCC__)
 #define HAVE_UNISTD_H 1
 #endif
 
 /* Define if you have the <windows.h> header file. */
 #define HAVE_WINDOWS_H 1
+
+/* Define if you have the <winsock.h> header file. */
+#define HAVE_WINSOCK_H 1
 
 /* Define if you have the <winsock2.h> header file. */
 #ifndef __SALFORDC__
@@ -146,6 +148,9 @@
 /* ---------------------------------------------------------------- */
 /*                        OTHER HEADER INFO                         */
 /* ---------------------------------------------------------------- */
+
+/* Define if sig_atomic_t is an available typedef. */
+#define HAVE_SIG_ATOMIC_T 1
 
 /* Define if you have the ANSI C header files. */
 #define STDC_HEADERS 1
@@ -247,7 +252,7 @@
 #define HAVE_STRSTR 1
 
 /* Define if you have the strtoll function. */
-#if defined(__MINGW32__) || defined(__POCC__) || \
+#if defined(__MINGW32__) || defined(__WATCOMC__) || defined(__POCC__) || \
     (defined(_MSC_VER) && (_MSC_VER >= 1800))
 #define HAVE_STRTOLL 1
 #endif
@@ -329,7 +334,9 @@
 
 /* Define if ssize_t is not an available 'typedefed' type. */
 #ifndef _SSIZE_T_DEFINED
-#  if defined(__POCC__) || defined(__MINGW32__)
+#  if (defined(__WATCOMC__) && (__WATCOMC__ >= 1240)) || \
+      defined(__POCC__) || \
+      defined(__MINGW32__)
 #  elif defined(_WIN64)
 #    define _SSIZE_T_DEFINED
 #    define ssize_t __int64
@@ -377,6 +384,7 @@
 
 #ifdef USE_LWIPSOCK
 #  undef USE_WINSOCK
+#  undef HAVE_WINSOCK_H
 #  undef HAVE_WINSOCK2_H
 #  undef HAVE_WS2TCPIP_H
 #  undef HAVE_ERRNO_H
@@ -407,6 +415,7 @@
   #undef byte
   #undef word
   #undef USE_WINSOCK
+  #undef HAVE_WINSOCK_H
   #undef HAVE_WINSOCK2_H
   #undef HAVE_WS2TCPIP_H
   #define HAVE_GETADDRINFO
@@ -439,7 +448,7 @@
 #endif
 
 /* Define if the compiler supports the 'long long' data type. */
-#if defined(__MINGW32__) || \
+#if defined(__MINGW32__) || defined(__WATCOMC__)      || \
     (defined(_MSC_VER)     && (_MSC_VER     >= 1310)) || \
     (defined(__BORLANDC__) && (__BORLANDC__ >= 0x561))
 #define HAVE_LONGLONG 1
@@ -453,6 +462,9 @@
 
 /* mingw-w64, mingw using >= MSVCR80, and visual studio >= 2005 (MSVCR80)
    all default to 64-bit time_t unless _USE_32BIT_TIME_T is defined */
+#ifdef __MINGW32__
+#  include <_mingw.h>
+#endif
 #if defined(__MINGW64_VERSION_MAJOR) || \
     (defined(__MINGW32__) && (__MSVCRT_VERSION__ >= 0x0800)) || \
     (defined(_MSC_VER) && (_MSC_VER >= 1400))
@@ -600,6 +612,10 @@ Vista
 #  define USE_WIN32_LARGE_FILES
 #endif
 
+#if defined(__WATCOMC__) && !defined(USE_WIN32_LARGE_FILES)
+#  define USE_WIN32_LARGE_FILES
+#endif
+
 #if defined(__POCC__)
 #  undef USE_WIN32_LARGE_FILES
 #endif
@@ -644,6 +660,13 @@ Vista
 #undef HAVE_LDAP_URL_PARSE
 #define HAVE_LDAP_SSL 1
 #define USE_WIN32_LDAP 1
+#endif
+
+#if defined(__WATCOMC__) && defined(USE_WIN32_LDAP)
+#if __WATCOMC__ < 1280
+#define WINBERAPI  __declspec(cdecl)
+#define WINLDAPAPI __declspec(cdecl)
+#endif
 #endif
 
 #if defined(__POCC__) && defined(USE_WIN32_LDAP)

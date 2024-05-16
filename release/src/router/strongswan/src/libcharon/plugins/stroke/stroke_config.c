@@ -1,8 +1,7 @@
 /*
  * Copyright (C) 2012-2014 Tobias Brunner
  * Copyright (C) 2008 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -177,7 +176,7 @@ static bool add_proposals(private_stroke_config_t *this, char *string,
 		{
 			return TRUE;
 		}
-		/* add default proposal to the end if not strict */
+		/* add default porposal to the end if not strict */
 	}
 	if (ike_cfg)
 	{
@@ -261,40 +260,36 @@ static void swap_ends(stroke_msg_t *msg)
  */
 static ike_cfg_t *build_ike_cfg(private_stroke_config_t *this, stroke_msg_t *msg)
 {
-	ike_cfg_create_t ike;
 	ike_cfg_t *ike_cfg;
+	uint16_t ikeport;
 	char me[256], other[256];
 
 	swap_ends(msg);
 
-	ike = (ike_cfg_create_t){
-		.version = msg->add_conn.version,
-		.local = msg->add_conn.me.address,
-		.local_port = msg->add_conn.me.ikeport,
-		.remote = msg->add_conn.other.address,
-		.remote_port = msg->add_conn.other.ikeport,
-		.no_certreq = msg->add_conn.other.sendcert == CERT_NEVER_SEND,
-		.force_encap = msg->add_conn.force_encap,
-		.fragmentation = msg->add_conn.fragmentation,
-		.dscp = msg->add_conn.ikedscp,
-	};
 	if (msg->add_conn.me.allow_any)
 	{
 		snprintf(me, sizeof(me), "%s,0.0.0.0/0,::/0",
 				 msg->add_conn.me.address);
-		ike.local = me;
 	}
 	if (msg->add_conn.other.allow_any)
 	{
 		snprintf(other, sizeof(other), "%s,0.0.0.0/0,::/0",
 				 msg->add_conn.other.address);
-		ike.remote = other;
 	}
-	if (ike.local_port == IKEV2_UDP_PORT)
-	{
-		ike.local_port = charon->socket->get_port(charon->socket, FALSE);
-	}
-	ike_cfg = ike_cfg_create(&ike);
+	ikeport = msg->add_conn.me.ikeport;
+	ikeport = (ikeport == IKEV2_UDP_PORT) ?
+			   charon->socket->get_port(charon->socket, FALSE) : ikeport;
+	ike_cfg = ike_cfg_create(msg->add_conn.version,
+							 msg->add_conn.other.sendcert != CERT_NEVER_SEND,
+							 msg->add_conn.force_encap,
+							 msg->add_conn.me.allow_any ?
+								me : msg->add_conn.me.address,
+							 ikeport,
+							 msg->add_conn.other.allow_any ?
+								other : msg->add_conn.other.address,
+							 msg->add_conn.other.ikeport,
+							 msg->add_conn.fragmentation,
+							 msg->add_conn.ikedscp);
 
 	if (!add_proposals(this, msg->add_conn.algorithms.ike, ike_cfg,
 					   NULL, PROTO_IKE))
@@ -426,6 +421,10 @@ static auth_cfg_t *build_auth_cfg(private_stroke_config_t *this,
 			certificate = this->cred->load_peer(this->cred, cert);
 			if (certificate)
 			{
+				if (local)
+				{
+					this->ca->check_for_hash_and_url(this->ca, certificate);
+				}
 				cfg->add(cfg, AUTH_RULE_SUBJECT_CERT, certificate);
 				if (!first)
 				{
@@ -1043,9 +1042,9 @@ static action_t map_action(int starter_action)
 	switch (starter_action)
 	{
 		case 2: /* =hold */
-			return ACTION_TRAP;
+			return ACTION_ROUTE;
 		case 3: /* =restart */
-			return ACTION_START;
+			return ACTION_RESTART;
 		default:
 			return ACTION_NONE;
 	}

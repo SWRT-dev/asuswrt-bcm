@@ -5,7 +5,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2022, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2020, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -17,8 +17,6 @@
  *
  * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
  * KIND, either express or implied.
- *
- * SPDX-License-Identifier: curl
  *
  ***************************************************************************/
 /* <DESC>
@@ -62,47 +60,55 @@ const char * const urls[]= {
 
 size_t write_file(void *ptr, size_t size, size_t nmemb, FILE *stream)
 {
+  /* printf("write_file\n"); */
   return fwrite(ptr, size, nmemb, stream);
 }
 
-static void run_one(gchar *http, int j)
-{
-  FILE *outfile = fopen(urls[j], "wb");
-  CURL *curl;
-
-  curl = curl_easy_init();
-  if(curl) {
-    printf("j = %d\n", j);
-
-    /* Set the URL and transfer type */
-    curl_easy_setopt(curl, CURLOPT_URL, http);
-
-    /* Write to the file */
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, outfile);
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_file);
-    curl_easy_perform(curl);
-
-    fclose(outfile);
-    curl_easy_cleanup(curl);
-  }
-}
-
+/* https://weather.com/weather/today/l/46214?cc=*&dayf=5&unit=i */
 void *pull_one_url(void *NaN)
 {
-  /* protect the reading and increasing of 'j' with a mutex */
+  /* Stop threads from entering unless j is incremented */
   pthread_mutex_lock(&lock);
   while(j < num_urls) {
-    int i = j;
-    j++;
-    pthread_mutex_unlock(&lock);
-    http = g_strdup_printf("https://example.com/%s", urls[i]);
-    if(http) {
-      run_one(http, i);
-      g_free(http);
+    CURL *curl;
+    gchar *http;
+
+    printf("j = %d\n", j);
+
+    http =
+      g_strdup_printf("xoap.weather.com/weather/local/%s?cc=*&dayf=5&unit=i\n",
+                      urls[j]);
+
+    printf("http %s", http);
+
+    curl = curl_easy_init();
+    if(curl) {
+
+      FILE *outfile = fopen(urls[j], "wb");
+
+      /* Set the URL and transfer type */
+      curl_easy_setopt(curl, CURLOPT_URL, http);
+
+      /* Write to the file */
+      curl_easy_setopt(curl, CURLOPT_WRITEDATA, outfile);
+      curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_file);
+
+      j++;  /* critical line */
+      pthread_mutex_unlock(&lock);
+
+      curl_easy_perform(curl);
+
+      fclose(outfile);
+      printf("fclose\n");
+
+      curl_easy_cleanup(curl);
     }
-    pthread_mutex_lock(&lock);
-  }
-  pthread_mutex_unlock(&lock);
+    g_free(http);
+
+    /* Adds more latency, testing the mutex.*/
+    sleep(1);
+
+  } /* end while */
   return NULL;
 }
 
@@ -124,7 +130,7 @@ void *create_thread(void *progress_bar)
   pthread_t tid[NUMT];
   int i;
 
-  /* Make sure I do not create more threads than urls. */
+  /* Make sure I don't create more threads than urls. */
   for(i = 0; i < NUMT && i < num_urls ; i++) {
     int error = pthread_create(&tid[i],
                                NULL, /* default attributes please */
@@ -208,7 +214,7 @@ int main(int argc, char **argv)
                    G_CALLBACK(cb_delete), NULL);
 
   if(!g_thread_create(&create_thread, progress_bar, FALSE, NULL) != 0)
-    g_warning("cannot create the thread");
+    g_warning("can't create the thread");
 
   gtk_main();
   gdk_threads_leave();

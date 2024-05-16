@@ -1,7 +1,7 @@
 /*
  * flash.h: Common definitions for flash access.
  *
- * Copyright (C) 2022, Broadcom. All Rights Reserved.
+ * Copyright (C) 2021, Broadcom. All Rights Reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -98,7 +98,7 @@ unlock_cmd_t unlock_cmd_amd = {
 #endif	/* BCMHND74K */
 #else
 /* addr: */	{ 0x0aaa,	0x0554},
-#endif
+#endif // endif
 /* data: */	{ 0xaa,		0x55}
 };
 
@@ -111,7 +111,7 @@ unlock_cmd_t unlock_cmd_sst = {
 #endif	/* BCMHND74K */
 #else
 /* addr: */	{ 0xaaaa,	0x5554},
-#endif
+#endif // endif
 /* data: */	{ 0xaa,		0x55}
 };
 

@@ -102,6 +102,10 @@ if USE_SYSTEMD
   exes += $(DESTDIR)$(sbindir)/charon-systemd
 endif
 
+if USE_SCEPCLIENT
+  exes += $(DESTDIR)$(ipsecdir)/scepclient
+endif
+
 if USE_PKI
   exes += $(DESTDIR)$(bindir)/pki
 endif

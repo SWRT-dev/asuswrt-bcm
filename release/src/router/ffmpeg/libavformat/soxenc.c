@@ -80,6 +80,8 @@ static int sox_write_header(AVFormatContext *s)
 
     ffio_fill(pb, 0, comment_size - comment_len);
 
+    avio_flush(pb);
+
     return 0;
 }
 
@@ -99,6 +101,8 @@ static int sox_write_trailer(AVFormatContext *s)
         } else
             avio_wb64(pb, num_samples);
         avio_seek(pb, file_size, SEEK_SET);
+
+        avio_flush(pb);
     }
 
     return 0;

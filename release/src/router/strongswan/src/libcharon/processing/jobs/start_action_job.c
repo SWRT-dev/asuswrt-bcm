@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2011 Andreas Steffen
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -43,7 +42,8 @@ METHOD(job_t, execute, job_requeue_t,
 	enumerator_t *enumerator, *children;
 	peer_cfg_t *peer_cfg;
 	child_cfg_t *child_cfg;
-	action_t action;
+	ipsec_mode_t mode;
+	char *name;
 
 	enumerator = charon->backends->create_peer_cfg_enumerator(charon->backends,
 											NULL, NULL, NULL, NULL, IKE_ANY);
@@ -52,39 +52,34 @@ METHOD(job_t, execute, job_requeue_t,
 		children = peer_cfg->create_child_cfg_enumerator(peer_cfg);
 		while (children->enumerate(children, &child_cfg))
 		{
-			action = child_cfg->get_start_action(child_cfg);
-			if (action == ACTION_NONE)
-			{
-				continue;
-			}
+			name = child_cfg->get_name(child_cfg);
 
-			DBG1(DBG_JOB, "start action: %N '%s'", action_names, action,
-				 child_cfg->get_name(child_cfg));
-
-			if (action & ACTION_TRAP)
+			switch (child_cfg->get_start_action(child_cfg))
 			{
-				switch (child_cfg->get_mode(child_cfg))
-				{
-					case MODE_PASS:
-					case MODE_DROP:
+				case ACTION_RESTART:
+					DBG1(DBG_JOB, "start action: initiate '%s'", name);
+					charon->controller->initiate(charon->controller,
+												 peer_cfg->get_ref(peer_cfg),
+												 child_cfg->get_ref(child_cfg),
+												 NULL, NULL, 0, FALSE);
+					break;
+				case ACTION_ROUTE:
+					DBG1(DBG_JOB, "start action: route '%s'", name);
+					mode = child_cfg->get_mode(child_cfg);
+					if (mode == MODE_PASS || mode == MODE_DROP)
+					{
 						charon->shunts->install(charon->shunts,
 												peer_cfg->get_name(peer_cfg),
 												child_cfg);
-						/* no need to check for ACTION_START */
-						continue;
-					default:
+					}
+					else
+					{
 						charon->traps->install(charon->traps, peer_cfg,
 											   child_cfg);
-						break;
-				}
-			}
-
-			if (action & ACTION_START)
-			{
-				charon->controller->initiate(charon->controller,
-											 peer_cfg->get_ref(peer_cfg),
-											 child_cfg->get_ref(child_cfg),
-											 NULL, NULL, 0, FALSE);
+					}
+					break;
+				case ACTION_NONE:
+					break;
 			}
 		}
 		children->destroy(children);

@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2014 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * Copyright (C) 2014 revosec AG
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -27,9 +26,7 @@
 /**
  * Maximum size of a single message exchanged.
  */
-#ifndef VICI_MESSAGE_SIZE_MAX
 #define VICI_MESSAGE_SIZE_MAX (512 * 1024)
-#endif
 
 typedef struct vici_socket_t vici_socket_t;
 

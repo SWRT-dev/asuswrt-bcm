@@ -22,7 +22,6 @@
 #include "libavutil/internal.h"
 #include "libavutil/lfg.h"
 #include "libavutil/lls.h"
-#include "libavutil/mem_internal.h"
 
 int main(void)
 {

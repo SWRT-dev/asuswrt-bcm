@@ -36,11 +36,11 @@ install
 examples
     Build all examples located in doc/examples.
 
-checkheaders
-    Check headers dependencies.
+libavformat/output-example
+    Build the libavformat basic example.
 
-alltools
-    Build all tools in tools directory.
+libswscale/swscale-test
+    Build the swscale self-test (useful also as an example).
 
 config
     Reconfigure the project with the current configuration.
@@ -48,8 +48,6 @@ config
 tools/target_dec_<decoder>_fuzzer
     Build fuzzer to fuzz the specified decoder.
 
-tools/target_bsf_<filter>_fuzzer
-    Build fuzzer to fuzz the specified bitstream filter.
 
 Useful standard make commands:
 make -t <target>

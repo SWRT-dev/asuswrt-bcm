@@ -106,6 +106,8 @@ static int ico_write_header(AVFormatContext *s)
     if (!ico->images)
         return AVERROR(ENOMEM);
 
+    avio_flush(pb);
+
     return 0;
 }
 
@@ -181,14 +183,9 @@ static int ico_write_trailer(AVFormatContext *s)
         avio_wl32(pb, ico->images[i].offset);
     }
 
-    return 0;
-}
-
-static void ico_deinit(AVFormatContext *s)
-{
-    IcoMuxContext *ico = s->priv_data;
-
     av_freep(&ico->images);
+
+    return 0;
 }
 
 AVOutputFormat ff_ico_muxer = {
@@ -202,6 +199,5 @@ AVOutputFormat ff_ico_muxer = {
     .write_header   = ico_write_header,
     .write_packet   = ico_write_packet,
     .write_trailer  = ico_write_trailer,
-    .deinit         = ico_deinit,
     .flags          = AVFMT_NOTIMESTAMPS,
 };

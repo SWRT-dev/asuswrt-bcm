@@ -2,8 +2,7 @@
  * Copyright (C) 2009-2015 Tobias Brunner
  * Copyright (C) 2005-2009 Martin Willi
  * Copyright (C) 2005 Jan Hutter
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -184,9 +183,9 @@ enum id_part_t {
 	/** OrganizationUnit RDN of a DN */
 	ID_PART_RDN_OU,
 	/** Surname RDN of a DN */
-	ID_PART_RDN_SN,
+	ID_PART_RDN_S,
 	/** SerialNumber RDN of a DN */
-	ID_PART_RDN_SERIAL_NUMBER,
+	ID_PART_RDN_SN,
 	/** StateOrProvince RDN of a DN */
 	ID_PART_RDN_ST,
 	/** Title RDN of a DN */
@@ -300,7 +299,7 @@ struct identification_t {
  * - ID_RFC822_ADDR:	alice@wonderland.org
  * - ID_DER_ASN1_DN:	C=CH, O=Linux strongSwan, CN=bob
  *
- * In favor of pluto, domainnames are prepended with an @, since
+ * In favour of pluto, domainnames are prepended with an @, since
  * pluto resolves domainnames without an @ to IPv4 addresses. Since
  * we use a separate host_t class for addresses, this doesn't
  * make sense for us.
@@ -316,7 +315,7 @@ struct identification_t {
  * is interpreted as hex encoded binary data for that ID, otherwise the raw
  * string following the prefix is used as identity data, without conversion.
  * To specify a non-standard ID type, the numerical type may be prefixed
- * between curly brackets, building a prefix. For instance the "{1}:" prefix
+ * between curly backets, building a prefix. For instance the "{1}:" prefix
  * defines an ID_IPV4_ADDR type.
  *
  * This constructor never returns NULL. If it does not find a suitable

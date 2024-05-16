@@ -3,11 +3,11 @@ carol::iptables-restore < /etc/iptables.rules
 dave::iptables-restore < /etc/iptables.rules
 venus::cat /etc/dhcp/dhcpd.conf
 venus::service isc-dhcp-server start 2> /dev/null
-moon::systemctl start strongswan
-carol::systemctl start strongswan
-dave::systemctl start strongswan
+moon::ipsec start
+carol::ipsec start
+dave::ipsec start
 moon::expect-connection rw
 carol::expect-connection home
-carol::swanctl --initiate --child home 2> /dev/null
+carol::ipsec up home
 dave::expect-connection home
-dave::swanctl --initiate --child home 2> /dev/null
+dave::ipsec up home

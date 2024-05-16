@@ -5,8 +5,8 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 2012 - 2022, Daniel Stenberg, <daniel@haxx.se>, et al.
- * Copyright (C) 2012, Markus Moeller, <markus_moeller@compuserve.com>
+ * Copyright (C) 2012 - 2021, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 2009, Markus Moeller, <markus_moeller@compuserve.com>
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -18,8 +18,6 @@
  *
  * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
  * KIND, either express or implied.
- *
- * SPDX-License-Identifier: curl
  *
  ***************************************************************************/
 
@@ -53,7 +51,7 @@ static int check_gss_err(struct Curl_easy *data,
   if(GSS_ERROR(major_status)) {
     OM_uint32 maj_stat, min_stat;
     OM_uint32 msg_ctx = 0;
-    gss_buffer_desc status_string = GSS_C_EMPTY_BUFFER;
+    gss_buffer_desc status_string;
     char buf[1024];
     size_t len;
 
@@ -259,7 +257,7 @@ CURLcode Curl_SOCKS5_gssapi_negotiate(int sockindex,
       return CURLE_COULDNT_CONNECT;
     }
 
-    if(socksreq[1] != 1) { /* status / message type */
+    if(socksreq[1] != 1) { /* status / messgae type */
       failf(data, "Invalid GSS-API authentication response type (%d %d).",
             socksreq[0], socksreq[1]);
       gss_release_name(&gss_status, &server);
@@ -454,7 +452,7 @@ CURLcode Curl_SOCKS5_gssapi_negotiate(int sockindex,
     return CURLE_COULDNT_CONNECT;
   }
 
-  if(socksreq[1] != 2) { /* status / message type */
+  if(socksreq[1] != 2) { /* status / messgae type */
     failf(data, "Invalid GSS-API encryption response type (%d %d).",
           socksreq[0], socksreq[1]);
     gss_delete_sec_context(&gss_status, &gss_context, NULL);

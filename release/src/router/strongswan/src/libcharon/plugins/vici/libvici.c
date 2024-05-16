@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2014 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * Copyright (C) 2014 revosec AG
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -49,7 +48,7 @@ typedef enum {
 } wait_state_t;
 
 /**
- * Private vici connection context.
+ * Private vici connection contex.
  */
 struct vici_conn_t {
 	/** connection stream */

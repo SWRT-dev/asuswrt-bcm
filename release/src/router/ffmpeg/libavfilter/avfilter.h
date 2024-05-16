@@ -68,7 +68,6 @@ typedef struct AVFilterContext AVFilterContext;
 typedef struct AVFilterLink    AVFilterLink;
 typedef struct AVFilterPad     AVFilterPad;
 typedef struct AVFilterFormats AVFilterFormats;
-typedef struct AVFilterChannelLayouts AVFilterChannelLayouts;
 
 /**
  * Get the number of elements in a NULL-terminated array of AVFilterPads (e.g.
@@ -80,7 +79,7 @@ int avfilter_pad_count(const AVFilterPad *pads);
  * Get the name of an AVFilterPad.
  *
  * @param pads an array of AVFilterPads
- * @param pad_idx index of the pad in the array; it is the caller's
+ * @param pad_idx index of the pad in the array it; is the caller's
  *                responsibility to ensure the index is valid
  *
  * @return name of the pad_idx'th pad in pads
@@ -265,13 +264,13 @@ typedef struct AVFilter {
      * and outputs are fixed), shortly before the format negotiation. This
      * callback may be called more than once.
      *
-     * This callback must set AVFilterLink.outcfg.formats on every input link and
-     * AVFilterLink.incfg.formats on every output link to a list of pixel/sample
+     * This callback must set AVFilterLink.out_formats on every input link and
+     * AVFilterLink.in_formats on every output link to a list of pixel/sample
      * formats that the filter supports on that link. For audio links, this
-     * filter must also set @ref AVFilterLink.incfg.samplerates "in_samplerates" /
-     * @ref AVFilterLink.outcfg.samplerates "out_samplerates" and
-     * @ref AVFilterLink.incfg.channel_layouts "in_channel_layouts" /
-     * @ref AVFilterLink.outcfg.channel_layouts "out_channel_layouts" analogously.
+     * filter must also set @ref AVFilterLink.in_samplerates "in_samplerates" /
+     * @ref AVFilterLink.out_samplerates "out_samplerates" and
+     * @ref AVFilterLink.in_channel_layouts "in_channel_layouts" /
+     * @ref AVFilterLink.out_channel_layouts "out_channel_layouts" analogously.
      *
      * This callback may be NULL for filters with one input, in which case
      * libavfilter assumes that it supports all input formats and preserves
@@ -286,13 +285,11 @@ typedef struct AVFilter {
 
     int flags_internal; ///< Additional flags for avfilter internal use only.
 
-#if FF_API_NEXT
     /**
      * Used by the filter registration system. Must not be touched by any other
      * code.
      */
     struct AVFilter *next;
-#endif
 
     /**
      * Make the filter instance process a command.
@@ -428,35 +425,6 @@ struct AVFilterContext {
 };
 
 /**
- * Lists of formats / etc. supported by an end of a link.
- *
- * This structure is directly part of AVFilterLink, in two copies:
- * one for the source filter, one for the destination filter.
-
- * These lists are used for negotiating the format to actually be used,
- * which will be loaded into the format and channel_layout members of
- * AVFilterLink, when chosen.
- */
-typedef struct AVFilterFormatsConfig {
-
-    /**
-     * List of supported formats (pixel or sample).
-     */
-    AVFilterFormats *formats;
-
-    /**
-     * Lists of supported sample rates, only for audio.
-     */
-    AVFilterFormats  *samplerates;
-
-    /**
-     * Lists of supported channel layouts, only for audio.
-     */
-    AVFilterChannelLayouts  *channel_layouts;
-
-} AVFilterFormatsConfig;
-
-/**
  * A link between two filters. This contains pointers to the source and
  * destination filters between which this link exists, and the indexes of
  * the pads involved. In addition, this link also contains the parameters
@@ -503,16 +471,33 @@ struct AVFilterLink {
      * New public fields should be added right above.
      *****************************************************************
      */
+    /**
+     * Lists of formats and channel layouts supported by the input and output
+     * filters respectively. These lists are used for negotiating the format
+     * to actually be used, which will be loaded into the format and
+     * channel_layout members, above, when chosen.
+     *
+     */
+    AVFilterFormats *in_formats;
+    AVFilterFormats *out_formats;
 
     /**
-     * Lists of supported formats / etc. supported by the input filter.
+     * Lists of channel layouts and sample rates used for automatic
+     * negotiation.
      */
-    AVFilterFormatsConfig incfg;
+    AVFilterFormats  *in_samplerates;
+    AVFilterFormats *out_samplerates;
+    struct AVFilterChannelLayouts  *in_channel_layouts;
+    struct AVFilterChannelLayouts *out_channel_layouts;
 
     /**
-     * Lists of supported formats / etc. supported by the output filter.
+     * Audio only, the destination filter sets this to a non-zero value to
+     * request that buffers with the given number of samples should be sent to
+     * it. AVFilterPad.needs_fifo must also be set on the corresponding input
+     * pad.
+     * Last buffer before EOF will be padded with silence.
      */
-    AVFilterFormatsConfig outcfg;
+    int request_samples;
 
     /** stage of the initialization of the link properties (dimensions, etc) */
     enum {
@@ -586,6 +571,11 @@ struct AVFilterLink {
      * Number of channels.
      */
     int channels;
+
+    /**
+     * Link processing flags.
+     */
+    unsigned flags;
 
     /**
      * Number of past frames sent through the link.
@@ -681,7 +671,7 @@ void avfilter_link_free(AVFilterLink **link);
 attribute_deprecated
 int avfilter_link_get_channels(AVFilterLink *link);
 #endif
-#if FF_API_FILTER_LINK_SET_CLOSED
+
 /**
  * Set the closed field of a link.
  * @deprecated applications are not supposed to mess with links, they should
@@ -689,7 +679,7 @@ int avfilter_link_get_channels(AVFilterLink *link);
  */
 attribute_deprecated
 void avfilter_link_set_closed(AVFilterLink *link, int closed);
-#endif
+
 /**
  * Negotiate the media format, dimensions, etc of all inputs to a filter.
  *
@@ -957,7 +947,7 @@ AVFilterContext *avfilter_graph_get_filter(AVFilterGraph *graph, const char *nam
 /**
  * Create and add a filter instance into an existing graph.
  * The filter instance is created from the filter filt and inited
- * with the parameter args. opaque is currently ignored.
+ * with the parameters args and opaque.
  *
  * In case of success put in *filt_ctx the pointer to the created
  * filter instance, otherwise set *filt_ctx to NULL.

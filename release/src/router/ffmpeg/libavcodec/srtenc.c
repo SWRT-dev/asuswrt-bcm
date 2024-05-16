@@ -241,7 +241,7 @@ static int encode_frame(AVCodecContext *avctx,
 
         if (sub->rects[i]->type != SUBTITLE_ASS) {
             av_log(avctx, AV_LOG_ERROR, "Only SUBTITLE_ASS type supported.\n");
-            return AVERROR(EINVAL);
+            return AVERROR(ENOSYS);
         }
 
 #if FF_API_ASS_TIMING
@@ -276,7 +276,7 @@ static int encode_frame(AVCodecContext *avctx,
 
     if (s->buffer.len > bufsize) {
         av_log(avctx, AV_LOG_ERROR, "Buffer too small for ASS event.\n");
-        return AVERROR_BUFFER_TOO_SMALL;
+        return -1;
     }
     memcpy(buf, s->buffer.str, s->buffer.len);
 

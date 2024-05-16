@@ -1,4 +1,5 @@
 /*
+ * Copyright (C) 2016 secunet Security Networks AG
  * Copyright (C) 2016 Thomas Egerer
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy

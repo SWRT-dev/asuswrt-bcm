@@ -1,8 +1,7 @@
 /*
  * Copyright (C) 2007 Tobias Brunner
  * Copyright (C) 2007 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -35,7 +34,6 @@ ENUM(task_type_names, TASK_IKE_INIT, TASK_ISAKMP_CERT_POST,
 	"IKE_DELETE",
 	"IKE_DPD",
 	"IKE_VENDOR",
-	"IKE_ESTABLISH",
 #ifdef ME
 	"IKE_ME",
 #endif /* ME */

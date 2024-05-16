@@ -5,7 +5,7 @@
  *                | (__| |_| |  _ <| |___
  *                 \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2022, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2021, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -17,8 +17,6 @@
  *
  * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
  * KIND, either express or implied.
- *
- * SPDX-License-Identifier: curl
  *
  ***************************************************************************/
 
@@ -308,8 +306,8 @@ static CURLcode ldap_do(struct Curl_easy *data, bool *done)
   rc = _ldap_url_parse(data, conn, &ludp);
 #endif
   if(rc) {
-    failf(data, "Bad LDAP URL: %s", ldap_err2string(rc));
-    result = CURLE_URL_MALFORMAT;
+    failf(data, "LDAP local: %s", ldap_err2string(rc));
+    result = CURLE_LDAP_INVALID_URL;
     goto quit;
   }
 
@@ -330,7 +328,7 @@ static CURLcode ldap_do(struct Curl_easy *data, bool *done)
   host = conn->host.name;
 #endif
 
-  if(data->state.aptr.user) {
+  if(conn->bits.user_passwd) {
     user = conn->user;
     passwd = conn->passwd;
   }
@@ -363,7 +361,7 @@ static CURLcode ldap_do(struct Curl_easy *data, bool *done)
          (strcasecompare(data->set.ssl.cert_type, "DER")))
         cert_type = LDAPSSL_CERT_FILETYPE_DER;
       if(!ldap_ca) {
-        failf(data, "LDAP local: ERROR %s CA cert not set",
+        failf(data, "LDAP local: ERROR %s CA cert not set!",
               (cert_type == LDAPSSL_CERT_FILETYPE_DER ? "DER" : "PEM"));
         result = CURLE_SSL_CERTPROBLEM;
         goto quit;
@@ -402,12 +400,12 @@ static CURLcode ldap_do(struct Curl_easy *data, bool *done)
       /* OpenLDAP SDK supports BASE64 files. */
       if((data->set.ssl.cert_type) &&
          (!strcasecompare(data->set.ssl.cert_type, "PEM"))) {
-        failf(data, "LDAP local: ERROR OpenLDAP only supports PEM cert-type");
+        failf(data, "LDAP local: ERROR OpenLDAP only supports PEM cert-type!");
         result = CURLE_SSL_CERTPROBLEM;
         goto quit;
       }
       if(!ldap_ca) {
-        failf(data, "LDAP local: ERROR PEM CA cert not set");
+        failf(data, "LDAP local: ERROR PEM CA cert not set!");
         result = CURLE_SSL_CERTPROBLEM;
         goto quit;
       }
@@ -465,11 +463,6 @@ static CURLcode ldap_do(struct Curl_easy *data, bool *done)
 #endif
 #endif
 #endif /* CURL_LDAP_USE_SSL */
-  }
-  else if(data->set.use_ssl > CURLUSESSL_TRY) {
-    failf(data, "LDAP local: explicit TLS not supported");
-    result = CURLE_NOT_BUILT_IN;
-    goto quit;
   }
   else {
     server = ldap_init(host, (int)conn->port);
@@ -597,7 +590,7 @@ static CURLcode ldap_do(struct Curl_easy *data, bool *done)
       attr_len = strlen(attr);
 
       vals = ldap_get_values_len(server, entryIterator, attribute);
-      if(vals) {
+      if(vals != NULL) {
         for(i = 0; (vals[i] != NULL); i++) {
           result = Curl_client_write(data, CLIENTWRITE_BODY, (char *)"\t", 1);
           if(result) {
@@ -638,8 +631,11 @@ static CURLcode ldap_do(struct Curl_easy *data, bool *done)
           if((attr_len > 7) &&
              (strcmp(";binary", (char *) attr + (attr_len - 7)) == 0)) {
             /* Binary attribute, encode to base64. */
-            result = Curl_base64_encode(vals[i]->bv_val, vals[i]->bv_len,
-                                        &val_b64, &val_b64_sz);
+            result = Curl_base64_encode(data,
+                                        vals[i]->bv_val,
+                                        vals[i]->bv_len,
+                                        &val_b64,
+                                        &val_b64_sz);
             if(result) {
               ldap_value_free_len(vals);
               FREE_ON_WINLDAP(attr);
@@ -869,7 +865,7 @@ static int _ldap_url_parse2(struct Curl_easy *data,
     LDAP_TRACE(("DN '%s'\n", dn));
 
     /* Unescape the DN */
-    result = Curl_urldecode(dn, 0, &unescaped, NULL, REJECT_ZERO);
+    result = Curl_urldecode(data, dn, 0, &unescaped, NULL, REJECT_ZERO);
     if(result) {
       rc = LDAP_NO_MEMORY;
 
@@ -934,7 +930,7 @@ static int _ldap_url_parse2(struct Curl_easy *data,
       LDAP_TRACE(("attr[%zu] '%s'\n", i, attributes[i]));
 
       /* Unescape the attribute */
-      result = Curl_urldecode(attributes[i], 0, &unescaped, NULL,
+      result = Curl_urldecode(data, attributes[i], 0, &unescaped, NULL,
                               REJECT_ZERO);
       if(result) {
         free(attributes);
@@ -1004,7 +1000,7 @@ static int _ldap_url_parse2(struct Curl_easy *data,
     LDAP_TRACE(("filter '%s'\n", filter));
 
     /* Unescape the filter */
-    result = Curl_urldecode(filter, 0, &unescaped, NULL, REJECT_ZERO);
+    result = Curl_urldecode(data, filter, 0, &unescaped, NULL, REJECT_ZERO);
     if(result) {
       rc = LDAP_NO_MEMORY;
 

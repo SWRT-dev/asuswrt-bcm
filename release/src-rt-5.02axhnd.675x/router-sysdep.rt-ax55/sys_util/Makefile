@@ -1,12 +1,12 @@
 LIB := libsys_util.so
 
-OBJS := thread_id.o proc.o sysutil_fs.o sysutil_cpu.o sysutil_net.o
+OBJS := thread_id.o proc.o sysutil_fs.o
 
 CFLAGS += -Werror -Wfatal-errors -I$(HND_SRC)/userspace/public/include/linux/ -I$(HND_SRC)/userspace/public/include/
 
 # These are public API headers needed by other apps which want to call this lib.
 # Private/internal headers should not be listed here.
-HEADERS := sysutil.h sysutil_proc.h sysutil_fs.h sysutil_net.h
+HEADERS := sysutil.h sysutil_proc.h sysutil_fs.h
 
 all: $(LIB)
 

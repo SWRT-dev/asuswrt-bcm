@@ -68,14 +68,13 @@ static int ntfs_open(const char *device)
 	int ret = NTFS_VOLUME_OK;
 	
 	if (opts.probetype == PROBE_READONLY)
-		flags |= NTFS_MNT_RDONLY;
+		flags |= MS_RDONLY;
 
 	vol = ntfs_mount(device, flags);
 	if (!vol)
 		ret = ntfs_volume_error(errno);
 
-	if (ret == 0 && ntfs_umount(vol, FALSE) == -1)
-		ret = ntfs_volume_error(errno);
+	ntfs_umount(vol, FALSE);
 
 	return ret;
 }
@@ -159,8 +158,6 @@ int main(int argc, char *argv[])
 	err = ntfs_open(opts.device);
 
 	free(opts.device);
-	if (err)
-		exit(err);
-	return (0);
+	exit(err);
 }
 

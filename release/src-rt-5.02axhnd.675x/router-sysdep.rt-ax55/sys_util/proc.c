@@ -82,24 +82,5 @@ int sysUtl_getThreadInfoFromProc(int tid, ProcThreadInfo *info)
    }
    fclose(fp);
 
-   snprintf(filename, sizeof(filename), "/proc/%d/statm", tid);
-   if ((fp = fopen(filename, "r")) == NULL)
-   {
-      /* this pid/tid does not exist */
-      return -1;
-   }
-
-   {
-      int total, rss, shared, text, dat, lib, dirty;
-      // Expected format of statm is: total rss shared text data lib dirty
-      // but we only care about total.
-      // Values are reported by proc as "pages".  assume a page is 4KB
-      c = fscanf(fp, "%d %d %d %d %d %d %d",
-                     &total, &rss, &shared, &text, &dat, &lib, &dirty);
-      if (c > 1)
-         info->totalMemKB = total * 4;
-   }
-   fclose(fp);
-
    return rval;
 }

@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2022, Broadcom. All Rights Reserved.
+# Copyright (C) 2021, Broadcom. All Rights Reserved.
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -16,7 +16,7 @@
 #
 # <<Broadcom-WL-IPTag/Open:>>
 #
-# $Id: Makefile 802428 2021-08-26 09:29:53Z $
+# $Id: Makefile 697058 2017-05-02 01:10:42Z $
 #
 
 CROSS =
@@ -27,8 +27,6 @@ STRIP = $(CROSS)strip
 ALL_OBJS = emfu.o emfu_linux.o
 
 CCFLAGS = -Os -Wall -I$(SRCBASE)/include ${WLAN_StdIncPathA} ${WLAN_ComponentIncPathA} -I$(SRCBASE)/common/include -I$(SRCBASE_ROUTER)/shared -I$(SRCBASE)/../components/router/shared/ -I$(HND_SRC)/router-sysdep/bcmdrv/include/emf/emf/
-
-CCFLAGS += $(USR_CFLAGS)
 
 ifneq ($(wildcard ./prebuilt),)
 all:

@@ -343,6 +343,7 @@ static av_cold int decode_init(AVCodecContext *avctx)
     c->dsize = avctx->width * avctx->height * 2;
     c->decomp_buf = av_malloc(c->dsize + DECOMP_BUF_PADDING);
     if (!c->decomp_buf) {
+        av_frame_free(&c->prev);
         av_log(avctx, AV_LOG_ERROR, "Can't allocate decompression buffer.\n");
         return AVERROR(ENOMEM);
     }
@@ -370,5 +371,4 @@ AVCodec ff_dxa_decoder = {
     .close          = decode_end,
     .decode         = decode_frame,
     .capabilities   = AV_CODEC_CAP_DR1,
-    .caps_internal  = FF_CODEC_CAP_INIT_CLEANUP,
 };

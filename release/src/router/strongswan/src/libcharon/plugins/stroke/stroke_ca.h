@@ -1,8 +1,7 @@
 /*
  * Copyright (C) 2008-2015 Tobias Brunner
  * Copyright (C) 2008 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -60,11 +59,18 @@ struct stroke_ca_t {
 	void (*list)(stroke_ca_t *this, stroke_msg_t *msg, FILE *out);
 
 	/**
+	 * Check if a certificate can be made available through hash and URL.
+	 *
+	 * @param cert		peer certificate
+	 */
+	void (*check_for_hash_and_url)(stroke_ca_t *this, certificate_t* cert);
+
+	/**
 	 * Get a reference to a CA certificate if it is already stored,
 	 * otherwise returns the same certificate.
 	 *
 	 * @param cert		certificate to check
-	 * @return			reference to stored CA certificate, or original
+	 * @return			reference to stored CA certifiate, or original
 	 */
 	certificate_t *(*get_cert_ref)(stroke_ca_t *this, certificate_t *cert);
 

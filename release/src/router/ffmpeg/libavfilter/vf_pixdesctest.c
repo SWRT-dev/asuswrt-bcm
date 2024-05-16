@@ -31,7 +31,7 @@
 
 typedef struct PixdescTestContext {
     const AVPixFmtDescriptor *pix_desc;
-    uint32_t *line;
+    uint16_t *line;
 } PixdescTestContext;
 
 static av_cold void uninit(AVFilterContext *ctx)
@@ -89,17 +89,17 @@ static int filter_frame(AVFilterLink *inlink, AVFrame *in)
         const int h1 = c == 1 || c == 2 ? ch : h;
 
         for (i = 0; i < h1; i++) {
-            av_read_image_line2(priv->line,
+            av_read_image_line(priv->line,
                                (void*)in->data,
                                in->linesize,
                                priv->pix_desc,
-                               0, i, c, w1, 0, 4);
+                               0, i, c, w1, 0);
 
-            av_write_image_line2(priv->line,
+            av_write_image_line(priv->line,
                                 out->data,
                                 out->linesize,
                                 priv->pix_desc,
-                                0, i, c, w1, 4);
+                                0, i, c, w1);
         }
     }
 

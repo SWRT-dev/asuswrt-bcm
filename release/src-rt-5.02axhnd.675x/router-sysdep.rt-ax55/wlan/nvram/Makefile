@@ -29,19 +29,18 @@ ifeq ($(RTCONFIG_AMAS),y)
 LIBS += -L$(TOP)/json-c/.libs -ljson-c
 endif
 
-ifneq ($(strip $(BUILD_RDKWIFI)),)
-rdkwifi_lib:
-	$(MAKE) -C $(BUILD_DIR)/userspace/private/libs/wlcsm BUILD_RDKWIFI_LIB=1
-else
-rdkwifi_lib:
-	$(info "nothing to do")
-endif
-
 ifneq ($(strip $(WLCSM_DEBUG_TRACE)),)
 WLCSM_DEBUG :=  1
-CFLAGS += -DWLCSM_DEBUG
 else
 WLCSM_DEBUG :=  0
+endif
+
+ifneq ($(strip $(BUILD_BRCM_HNDROUTER_ALONE)),)
+CFLAGS += -DBCA_HNDROUTER
+endif
+
+ifneq ($(strip $(BUILD_UNIFIED_WLMNGR)),)
+CFLAGS +=-DSUPPORT_UNIFIED_WLMNGR
 endif
 
 ifneq ($(strip $(CONFIG_MTD_NAND)),)
@@ -63,38 +62,7 @@ WIRELESS_DRIVER_PATH=$(BRCMDRIVERS_DIR)/broadcom/net/wl/bcm9$(BRCM_CHIP)$(WL_SRC
 INC_WIRELESS_DRIVER_PATH=$(WIRELESS_DRIVER_PATH)/include
 COMM_INC_WIRELESS_DRIVER_PATH=$(WIRELESS_DRIVER_PATH)/common/include
 
-ifneq ($(strip $(BUILD_BRCM_BDK)),)
-# Remove all mdm_cbk_* and bcm_*_hal libs from CMS_CORE_LIBS.  The local
-# Makefile will specify which mdm_cbk and hal libs it needs.
-MDM_CORE_LIBS := $(patsubst -lmdm_cbk_%,,$(CMS_CORE_LIBS))
-MDM_CORE_LIBS := $(patsubst -lbcm_%_hal,,$(MDM_CORE_LIBS))
-MDM_CORE_LIBS += -lmdm_cbk_wifi
-else
-MDM_CORE_LIBS := $(CMS_CORE_LIBS)
-endif
-
-LIBS += -L$(INSTALL_DIR)/lib -L$(INSTALL_DIR)/usr/lib -ldl
-
-ifneq ($(strip $(BUILD_BRCM_CMS))$(strip $(BUILD_BRCM_BDK)),)
- ifneq ($(strip $(BUILD_PMD)),)
- LIBS += -Wl,-rpath,$(BCM_FSBUILD_DIR)/private/lib:$(BCM_FSBUILD_DIR)/public/lib -L$(BCM_FSBUILD_DIR)/private/lib -lpmd -L$(BCM_FSBUILD_DIR)/public/lib -ljson-c
- endif
- LIBS += -lcms_msg $(CMS_COMMON_LIBS) -lcms_dal -lcms_msg $(CMS_COMMON_LIBS) $(MDM_CORE_LIBS)
- ifneq ($(strip $(BUILD_BRCM_UNFWLCFG)),)
-  LIBS += -lstaged -ljson-c -lpthread
-  ifneq ($(strip $(BUILD_CUSTOMER)),)
-   LIBS += -lwlmdm_customer
-  else
-   LIBS += -lwlmdm
-  endif
- endif
-else
- # LIBS += -lwlsysutil
- ifneq ($(strip $(BUILD_BRCM_UNFWLCFG)),)
-  LIBS += -lstaged -ljson-c -lpthread -lbcm_util -lsys_util
- endif
-endif
-
+#
 # Private apps and libs are allowed to include header files from the
 # private and public directories.
 #
@@ -106,6 +74,7 @@ ALLOWED_INCLUDE_PATHS := -I.\
                          -I$(BUILD_DIR)/userspace/public/include/$(OALDIR) \
                          -I$(BUILD_DIR)/userspace/private/include  \
                          -I$(BUILD_DIR)/userspace/private/include/$(OALDIR) \
+                         -I$(BUILD_DIR)/userspace/private/apps/wlan/wlmngr
 
 # obviously, this app needs to access kernel headers
 ALLOWED_INCLUDE_PATHS += -I$(INC_BRCMDRIVER_PUB_PATH)/$(BRCM_BOARD)  \
@@ -121,19 +90,13 @@ ALLOWED_INCLUDE_PATHS += -I$(INC_BRCMDRIVER_PUB_PATH)/$(BRCM_BOARD)  \
 
 CFLAGS += -DDSLCPE_WLCSM_EXT -DKERNEL_NVRAM_FILE_NAME='"/data/.$(KERNEL_NVRAM_FILE_NAME)"'
 ALLOWED_INCLUDE_PATHS += -I$(TOP_PLATFORM)/wlcsm/include
-ifeq ($(strip $(BUILD_RDKWIFI)),)
 WLCSM_LIB := $(TOP_PLATFORM)/wlcsm/libwlcsm.a
 SHARED_LIB := -L$(TOP)/shared -lshared
 LIBS += $(WLCSM_LIB)
-LIBDIR = $(INSTALL_DIR)/lib
-endif
 ifneq ($(findstring CONFIG_DUMP_PREV_OOPS_MSG=, $(shell cat $(LINUXDIR)/.config)),)
 CFLAGS += -DDUMP_PREV_OOPS_MSG
 endif
-ifeq ($(BUILD_NAME),GT10)
-CFLAGS += -DGT10
-endif
-LDFLAGS +=-lc -lgcc_s 
+LIBDIR = $(INSTALL_DIR)/lib
 #
 # Private apps and libs are allowed to link with libraries from the
 # private and public directories.
@@ -141,19 +104,8 @@ LDFLAGS +=-lc -lgcc_s
 # WARNING: Do not modify this section unless you understand the
 # license implications of what you are doing.
 #
-ifneq ($(strip $(BUILD_RDKWIFI)),)
-CFLAGS +=-DBUILD_RDKWIFI 
-DBG_LDFLAGS += $(LDFLAGS) -lwldm  -lnvram -lshared $(LIBS)
-endif
-ifneq ($(strip $(BUILD_BRCM_UNFWLCFG)),)
-DBG_LDFLAGS += $(LDFLAGS) -lnvram -lshared $(LIBS)
-endif
-
-ifneq ($(strip $(BCM4906_504)),)
-CFLAGS += -DWL_DEFAULT_NUM_SSID=16
-endif
-
 ALLOWED_LIB_DIRS := /lib:/lib/public:/lib/private
+
 
 %.o: %.c
 	$(CC) -c $(CFLAGS) -o $@ $<
@@ -163,19 +115,21 @@ OBJS = nvram_shared.o main.o brcm_generic_lock.o wlcsmdbg.o wldbg.o wltest.o
 else
 OBJS = nvram_shared.o main.o brcm_generic_lock.o
 endif
+
+
+ifeq ($(strip $(WLCSM_DEBUG)),1)
+all:  libnvram nvram  wlcsmdbg wldbg wltest $(KERNEL_NVRAM_FILE_NAME)
+else
 ifeq ($(strip $(BUILD_BRCM_UNFWLCFG)),)
 ifneq ($(PREBUILT_BCMBIN),1)
-all_tags += libnvram nvram  $(KERNEL_NVRAM_FILE_NAME)
+all:  libnvram nvram 
 else
-all_tags:=
+all:
 endif
 else
-all_tags:=
+all:
 endif
-
-wlcsmdbg_tools:  wlcsmdbg wldbg wltest
-
-all: $(all_tags)
+endif
 	mkdir -p $(INSTALL_DIR)/rom/rom/etc/init.d
 	mkdir -p $(INSTALL_DIR)/rom/rom/etc/rc3.d
 	mkdir -p $(INSTALL_DIR)/rom/rom/etc/wlan
@@ -188,18 +142,11 @@ endif
 	install -m 755 ./scripts/hnddm.sh $(INSTALL_DIR)/usr/sbin
 	sed -e s/KERNEL_NVRAM_FILE_NAME/$(KERNEL_NVRAM_FILE_NAME)/g ./scripts/hndnvram.sh > $(INSTALL_DIR)/rom/rom/etc/init.d/hndnvram.sh
 ifeq ($(strip $(BUILD_BRCM_UNFWLCFG)_$(BUILD_BRCM_CMS)),y_)
-# fill in the content of "user_nvram_file" in hndnvram.sh for UNFWLCFG+BASESHELL builds
+# fill in the content of "user_nvram_file" in hndnvram.sh for UNFWLCFG+NOCMS builds
 	sed -i s/user_nvram_file=\"\"/user_nvram_file=\"\\/data\\/.$(USER_NVRAM_FILE_NAME)\"/g $(INSTALL_DIR)/rom/rom/etc/init.d/hndnvram.sh
 endif
-ifneq ($(strip $(BUILD_RDKWIFI)),)
-	sed -i s/BUILD_RDKWIFI_HOLDER/1/g  $(INSTALL_DIR)/rom/rom/etc/init.d/hndnvram.sh
-else
-	sed -i s/BUILD_RDKWIFI_HOLDER/0/g  $(INSTALL_DIR)/rom/rom/etc/init.d/hndnvram.sh
-endif
-ifneq ($(strip $(WLCSM_DEBUG_TRACE)),)
-	sed -i s/DEBUG_DEAMON_HOLDER/1/g  $(INSTALL_DIR)/rom/rom/etc/init.d/hndnvram.sh
-else
-	sed -i s/DEBUG_DEAMON_HOLDER/0/g  $(INSTALL_DIR)/rom/rom/etc/init.d/hndnvram.sh
+ifneq ($(strip $(BUILD_BRCM_HNDROUTER_ALONE)),)
+	sed -i s/HNDROUTER_ALONE=n/HNDROUTER_ALONE=y/g $(INSTALL_DIR)/rom/rom/etc/init.d/hndnvram.sh
 endif
 	(cd $(INSTALL_DIR)/rom/rom/etc/rc3.d; rm -f S40hndnvram; ln -s ../init.d/hndnvram.sh S40hndnvram)
 	install -m 755 ./scripts/hndmfg.sh $(INSTALL_DIR)/rom/rom/etc/init.d
@@ -216,7 +163,7 @@ ifneq ($(strip $(CONFIG_BCM96846)),)
 # dhda_rnr_offloverride - Override offload support setting, bit[1:0] with each bit position corresponding to a radio
 #   possible values
 #   - 0 (no offload), 1 (offload dhd0), 2 (offload dhd1), 3 (offload dhd0)
-	echo "dhd_rnr_offload_override=1" >> $(INSTALL_DIR)/rom/rom/etc/wlan/kernel_nvram.setting
+	echo "dhd_rnr_offload_override=1" >> $(INSTALL_DIR)/etc/wlan/kernel_nvram.setting
 endif
 ifeq ($(strip $(BCA_HNDROUTER)),)
 	sed -e s/KERNEL_NVRAM_FILE_NAME/$(KERNEL_NVRAM_FILE_NAME)/g ./scripts/wlnvram.sh > $(INSTALL_DIR)/rom/rom/etc/init.d/wlnvram.sh.1
@@ -226,8 +173,8 @@ ifeq ($(strip $(BCA_HNDROUTER)),)
 	(cd $(INSTALL_DIR)/rom/rom/etc/rc3.d; rm -f S42wlnvram_mount_fs; ln -s ../init.d/wlnvram.sh S42wlnvram_mount_fs)
 endif
 ifneq ($(strip $(BRCM_NVRAM_INCLUDE_IMAGE)),)
-	mkdir -p $(INSTALL_DIR)/rom/rom/etc/wlan/nvram/
-	-cp -f $(BUILD_DIR)/targets/nvram/$(BRCM_CHIP)/*.nvm $(INSTALL_DIR)/rom/rom/etc/wlan/nvram/
+	mkdir -p $(INSTALL_DIR)/etc/wlan/nvram/
+	-cp -f $(BUILD_DIR)/targets/nvram/$(BRCM_CHIP)/*.nvm $(INSTALL_DIR)/etc/wlan/nvram/
 endif
 
 install:
@@ -259,20 +206,19 @@ endif
 clean:
 	-rm -f *.o
 	-rm -f libnvram.so nvram $(OBJS)
-	-rm wlcsmdbg wldbg wltest
 
-ifneq ($(strip $(WLCSM_DEBUG_TRACE)),)
+ifeq ($(strip $(WLCSM_DEBUG)),1)
 
-wlcsmdbg: rdkwifi_lib wlcsmdbg.o
-	$(CC) -o $@ wlcsmdbg.o -fomit-frame-pointer -L$(INSTALL_DIR)/lib -lwlcsm  $(DBG_LDFLAGS) $(LIBS)
+wlcsmdbg:  wlcsmdbg.o
+	$(CC) -o $@ wlcsmdbg.o -fomit-frame-pointer -L$(INSTALL_DIR)/lib -lwlcsm -lc -lgcc_s 
 	install -m 755 wlcsmdbg $(INSTALL_DIR)/bin
 
 wldbg:  wldbg.o
-	$(CC) -o $@ wldbg.o -fomit-frame-pointer -L$(INSTALL_DIR)/lib -lwlcsm  $(DBG_LDFLAGS) $(LIBS)
+	$(CC) -o $@ wldbg.o -fomit-frame-pointer -L$(INSTALL_DIR)/lib -lwlcsm -lc -lgcc_s 
 	install -m 755 wldbg $(INSTALL_DIR)/bin
 
 wltest:  wltest.o
-	$(CC) -o $@ wltest.o -fomit-frame-pointer -L$(INSTALL_DIR)/lib -lwlcsm  $(DBG_LDFLAGS) $(LIBS)
+	$(CC) -o $@ wltest.o -fomit-frame-pointer -L$(INSTALL_DIR)/lib -lwlcsm -lc -lgcc_s 
 	install -m 755 wltest $(INSTALL_DIR)/bin
 endif
 

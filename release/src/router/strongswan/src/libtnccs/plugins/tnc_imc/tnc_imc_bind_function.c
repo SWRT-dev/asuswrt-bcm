@@ -1,8 +1,8 @@
 /*
  * Copyright (C) 2010 Andreas Steffen
- * Copyright (C) 2006 Mike McCauley
+ * HSR Hochschule fuer Technik Rapperswil
  *
- * Copyright (C) secunet Security Networks AG
+ * Copyright (C) 2006 Mike McCauley
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the

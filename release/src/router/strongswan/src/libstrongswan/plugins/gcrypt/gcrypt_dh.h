@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2009 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -32,9 +31,9 @@ typedef struct gcrypt_dh_t gcrypt_dh_t;
 struct gcrypt_dh_t {
 
 	/**
-	 * Implements key_exchange_t interface.
+	 * Implements diffie_hellman_t interface.
 	 */
-	key_exchange_t ke;
+	diffie_hellman_t dh;
 };
 
 /**
@@ -43,7 +42,7 @@ struct gcrypt_dh_t {
  * @param group			Diffie Hellman group number to use
  * @return				gcrypt_dh_t object, NULL if not supported
  */
-gcrypt_dh_t *gcrypt_dh_create(key_exchange_method_t group);
+gcrypt_dh_t *gcrypt_dh_create(diffie_hellman_group_t group);
 
 /**
  * Creates a new gcrypt_dh_t object for MODP_CUSTOM.
@@ -52,7 +51,7 @@ gcrypt_dh_t *gcrypt_dh_create(key_exchange_method_t group);
  * @param ...			expects generator and prime as chunk_t
  * @return				gcrypt_dh_t object, NULL if not supported
  */
-gcrypt_dh_t *gcrypt_dh_create_custom(key_exchange_method_t group, ...);
+gcrypt_dh_t *gcrypt_dh_create_custom(diffie_hellman_group_t group, ...);
 
 #endif /** GCRYPT_DH_H_ @}*/
 

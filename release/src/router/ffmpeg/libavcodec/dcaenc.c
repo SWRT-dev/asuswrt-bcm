@@ -28,7 +28,6 @@
 #include "libavutil/channel_layout.h"
 #include "libavutil/common.h"
 #include "libavutil/ffmath.h"
-#include "libavutil/mem_internal.h"
 #include "libavutil/opt.h"
 #include "avcodec.h"
 #include "dca.h"
@@ -137,7 +136,7 @@ static int subband_bufer_alloc(DCAEncContext *c)
                                (SUBBAND_SAMPLES + DCA_ADPCM_COEFFS),
                                sizeof(int32_t));
     if (!bufer)
-        return AVERROR(ENOMEM);
+        return -1;
 
     /* we need a place for DCA_ADPCM_COEFF samples from previous frame
      * to calc prediction coefficients for each subband */
@@ -153,11 +152,8 @@ static int subband_bufer_alloc(DCAEncContext *c)
 
 static void subband_bufer_free(DCAEncContext *c)
 {
-    if (c->subband[0][0]) {
-        int32_t *bufer = c->subband[0][0] - DCA_ADPCM_COEFFS;
-        av_free(bufer);
-        c->subband[0][0] = NULL;
-    }
+    int32_t *bufer = c->subband[0][0] - DCA_ADPCM_COEFFS;
+    av_freep(&bufer);
 }
 
 static int encode_init(AVCodecContext *avctx)
@@ -167,8 +163,8 @@ static int encode_init(AVCodecContext *avctx)
     int i, j, k, min_frame_bits;
     int ret;
 
-    if ((ret = subband_bufer_alloc(c)) < 0)
-        return ret;
+    if (subband_bufer_alloc(c))
+        return AVERROR(ENOMEM);
 
     c->fullband_channels = c->channels = avctx->channels;
     c->lfe_channel = (avctx->channels == 3 || avctx->channels == 6);
@@ -925,10 +921,10 @@ static void fill_in_adpcm_bufer(DCAEncContext *c)
              * But there are no proper value in decoder history, so likely result will be no good.
              * Bitstream has "Predictor history flag switch", but this flag disables history for all subbands
              */
-            samples[0] = c->adpcm_history[ch][band][0] * (1 << 7);
-            samples[1] = c->adpcm_history[ch][band][1] * (1 << 7);
-            samples[2] = c->adpcm_history[ch][band][2] * (1 << 7);
-            samples[3] = c->adpcm_history[ch][band][3] * (1 << 7);
+            samples[0] = c->adpcm_history[ch][band][0] << 7;
+            samples[1] = c->adpcm_history[ch][band][1] << 7;
+            samples[2] = c->adpcm_history[ch][band][2] << 7;
+            samples[3] = c->adpcm_history[ch][band][3] << 7;
         }
      }
 }

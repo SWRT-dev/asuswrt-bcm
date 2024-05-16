@@ -26,7 +26,7 @@ EXTRA_DIST=xstc.py xstc-to-python.xsl
 all:
 
 #
-# Rule to load the test description and extract the information
+# Rule to load the test description and extract the informations
 #
 $(TESTDIRS) Tests/Metadata/$(NISTTESTDEF_2) Tests/Metadata/$(MSTTESTDEF) Tests/Metadata/$(SUNTESTDEF):
 	-@(if [ ! -d Tests ] ; then \
@@ -118,7 +118,7 @@ pytests: $(PYSCRIPTS) $(TESTDIRS)
 
 tests:
 	-@(if [ -x $(PYTHON) ] ; then 					\
-	   $(MAKE) pytests ; fi);
+	   $(MAKE) MAKEFLAGS+=--silent pytests ; fi);
 
 #
 # Heavy, works well only on RHEL3
@@ -126,7 +126,7 @@ tests:
 valgrind:
 	-@(if [ -x $(PYTHON) ] ; then 					\
 	   echo '## Running the regression tests under Valgrind' ;	\
-	   $(MAKE) CHECKER='valgrind -q' pytests ; fi);
+	   $(MAKE) CHECKER='valgrind -q' MAKEFLAGS+=--silent pytests ; fi);
 
 CLEANFILES=$(PYSCRIPTS) test.log
 

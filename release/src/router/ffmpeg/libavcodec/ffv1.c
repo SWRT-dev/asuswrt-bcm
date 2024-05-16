@@ -31,6 +31,7 @@
 #include "libavutil/opt.h"
 #include "libavutil/imgutils.h"
 #include "libavutil/pixdesc.h"
+#include "libavutil/timer.h"
 
 #include "avcodec.h"
 #include "internal.h"
@@ -115,11 +116,12 @@ av_cold int ff_ffv1_init_slices_state(FFV1Context *f)
 
 av_cold int ff_ffv1_init_slice_contexts(FFV1Context *f)
 {
-    int i, max_slice_count = f->num_h_slices * f->num_v_slices;
+    int i;
 
-    av_assert0(max_slice_count > 0);
+    f->max_slice_count = f->num_h_slices * f->num_v_slices;
+    av_assert0(f->max_slice_count > 0);
 
-    for (i = 0; i < max_slice_count;) {
+    for (i = 0; i < f->max_slice_count; i++) {
         int sx          = i % f->num_h_slices;
         int sy          = i / f->num_h_slices;
         int sxs         = f->avctx->width  *  sx      / f->num_h_slices;
@@ -131,7 +133,7 @@ av_cold int ff_ffv1_init_slice_contexts(FFV1Context *f)
         if (!fs)
             goto memfail;
 
-        f->slice_context[i++] = fs;
+        f->slice_context[i] = fs;
         memcpy(fs, f, sizeof(*fs));
         memset(fs->rc_stat2, 0, sizeof(fs->rc_stat2));
 
@@ -144,14 +146,21 @@ av_cold int ff_ffv1_init_slice_contexts(FFV1Context *f)
                                       sizeof(*fs->sample_buffer));
         fs->sample_buffer32 = av_malloc_array((fs->width + 6), 3 * MAX_PLANES *
                                         sizeof(*fs->sample_buffer32));
-        if (!fs->sample_buffer || !fs->sample_buffer32)
+        if (!fs->sample_buffer || !fs->sample_buffer32) {
+            av_freep(&fs->sample_buffer);
+            av_freep(&fs->sample_buffer32);
+            av_freep(&f->slice_context[i]);
             goto memfail;
+        }
     }
-    f->max_slice_count = max_slice_count;
     return 0;
 
 memfail:
-    f->max_slice_count = i;
+    while(--i >= 0) {
+        av_freep(&f->slice_context[i]->sample_buffer);
+        av_freep(&f->slice_context[i]->sample_buffer32);
+        av_freep(&f->slice_context[i]);
+    }
     return AVERROR(ENOMEM);
 }
 

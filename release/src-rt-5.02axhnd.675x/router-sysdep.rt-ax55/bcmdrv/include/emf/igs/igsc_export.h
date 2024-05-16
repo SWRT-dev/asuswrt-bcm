@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022, Broadcom. All Rights Reserved.
+ * Copyright (C) 2021, Broadcom. All Rights Reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -86,9 +86,9 @@ typedef struct igsc_wrapper
 
 	/* Function called to broadcast IGMP query */
 	int32 (*igs_broadcast)(void *wrapper, uint8 *ip, uint32 length, uint32 mgrp_ip);
-#if defined(BCM_NBUFF_WLMCAST_IPV6)
+#ifdef BCM_NBUFF_WLMCAST_IPV6
 	int cmdline_indicator; /* indicate igsc_info created from cmdline or not */
-#endif
+#endif // endif
 
 } igsc_wrapper_t;
 
@@ -148,9 +148,9 @@ extern void igsc_sdb_clear(struct igsc_info *igsc_info);
  */
 extern int32 igsc_sdb_list(struct igsc_info *igsc_info, igs_cfg_sdb_list_t *list, uint32 size);
 
-#if defined(BCM_NBUFF_WLMCAST_IPV6)
+#ifdef BCM_NBUFF_WLMCAST_IPV6
 extern int32 igsc_sdb_list_ipv6(struct igsc_info *igsc_info, igs_cfg_sdb_list_t *list, uint32 size);
-#endif
+#endif // endif
 
 /*
  * Description: This function is called from the OS Specific layer when

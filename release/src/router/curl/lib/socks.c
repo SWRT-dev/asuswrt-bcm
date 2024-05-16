@@ -5,7 +5,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2022, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2021, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -17,8 +17,6 @@
  *
  * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
  * KIND, either express or implied.
- *
- * SPDX-License-Identifier: curl
  *
  ***************************************************************************/
 
@@ -40,7 +38,6 @@
 #include "timeval.h"
 #include "socks.h"
 #include "multiif.h" /* for getsock macros */
-#include "inet_pton.h"
 
 /* The last 3 #include files should be in this order */
 #include "curl_printf.h"
@@ -102,24 +99,24 @@ int Curl_blockread_all(struct Curl_easy *data,   /* transfer */
 }
 #endif
 
-#if defined(DEBUGBUILD) && !defined(CURL_DISABLE_VERBOSE_STRINGS)
-#define DEBUG_AND_VERBOSE
-#define sxstate(x,y) socksstate(x,y, __LINE__)
-#else
+#ifndef DEBUGBUILD
 #define sxstate(x,y) socksstate(x,y)
+#else
+#define sxstate(x,y) socksstate(x,y, __LINE__)
 #endif
+
 
 /* always use this function to change state, to make debugging easier */
 static void socksstate(struct Curl_easy *data,
                        enum connect_t state
-#ifdef DEBUG_AND_VERBOSE
+#ifdef DEBUGBUILD
                        , int lineno
 #endif
 )
 {
   struct connectdata *conn = data->conn;
   enum connect_t oldstate = conn->cnnct.state;
-#ifdef DEBUG_AND_VERBOSE
+#if defined(DEBUGBUILD) && !defined(CURL_DISABLE_VERBOSE_STRINGS)
   /* synced with the state list in urldata.h */
   static const char * const statename[] = {
     "INIT",
@@ -149,7 +146,7 @@ static void socksstate(struct Curl_easy *data,
 
   conn->cnnct.state = state;
 
-#ifdef DEBUG_AND_VERBOSE
+#if defined(DEBUGBUILD) && !defined(CURL_DISABLE_VERBOSE_STRINGS)
   infof(data,
         "SXSTATE: %s => %s conn %p; line %d",
         statename[oldstate], statename[conn->cnnct.state], conn,
@@ -328,7 +325,7 @@ CURLproxycode Curl_SOCKS4(const char *proxy_user,
     if(proxy_user) {
       size_t plen = strlen(proxy_user);
       if(plen >= (size_t)data->set.buffer_size - 8) {
-        failf(data, "Too long SOCKS proxy user name, can't use");
+        failf(data, "Too long SOCKS proxy user name, can't use!");
         return CURLPX_LONG_USER;
       }
       /* copy the proxy name WITH trailing zero */
@@ -859,32 +856,10 @@ CURLproxycode Curl_SOCKS5(const char *proxy_user,
     socksreq[len++] = 0; /* must be zero */
 
     if(!socks5_resolve_local) {
-      /* ATYP: domain name = 3,
-         IPv6 == 4,
-         IPv4 == 1 */
-      unsigned char ip4[4];
-#ifdef ENABLE_IPV6
-      if(conn->bits.ipv6_ip) {
-        char ip6[16];
-        if(1 != Curl_inet_pton(AF_INET6, hostname, ip6))
-          return CURLPX_BAD_ADDRESS_TYPE;
-        socksreq[len++] = 4;
-        memcpy(&socksreq[len], ip6, sizeof(ip6));
-        len += sizeof(ip6);
-      }
-      else
-#endif
-      if(1 == Curl_inet_pton(AF_INET, hostname, ip4)) {
-        socksreq[len++] = 1;
-        memcpy(&socksreq[len], ip4, sizeof(ip4));
-        len += sizeof(ip4);
-      }
-      else {
-        socksreq[len++] = 3;
-        socksreq[len++] = (char) hostname_len; /* one byte address length */
-        memcpy(&socksreq[len], hostname, hostname_len); /* address w/o NULL */
-        len += hostname_len;
-      }
+      socksreq[len++] = 3; /* ATYP: domain name = 3 */
+      socksreq[len++] = (char) hostname_len; /* one byte address length */
+      memcpy(&socksreq[len], hostname, hostname_len); /* address w/o NULL */
+      len += hostname_len;
       infof(data, "SOCKS5 connect to %s:%d (remotely resolved)",
             hostname, remote_port);
     }

@@ -22,8 +22,6 @@
 #ifndef AVCODEC_CAVS_H
 #define AVCODEC_CAVS_H
 
-#include "libavutil/mem_internal.h"
-
 #include "cavsdsp.h"
 #include "blockdsp.h"
 #include "h264chroma.h"

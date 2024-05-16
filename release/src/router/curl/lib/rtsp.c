@@ -5,7 +5,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2022, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2021, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -17,8 +17,6 @@
  *
  * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
  * KIND, either express or implied.
- *
- * SPDX-License-Identifier: curl
  *
  ***************************************************************************/
 
@@ -221,7 +219,7 @@ static CURLcode rtsp_done(struct Curl_easy *data,
 
   httpStatus = Curl_http_done(data, status, premature);
 
-  if(rtsp && !status && !httpStatus) {
+  if(rtsp) {
     /* Check the sequence numbers */
     long CSeq_sent = rtsp->CSeq_sent;
     long CSeq_recv = rtsp->CSeq_recv;
@@ -342,7 +340,7 @@ static CURLcode rtsp_do(struct Curl_easy *data, bool *done)
   }
 
   /* Transport Header for SETUP requests */
-  p_transport = Curl_checkheaders(data, STRCONST("Transport"));
+  p_transport = Curl_checkheaders(data, "Transport");
   if(rtspreq == RTSPREQ_SETUP && !p_transport) {
     /* New Transport: setting? */
     if(data->set.str[STRING_RTSP_TRANSPORT]) {
@@ -366,11 +364,11 @@ static CURLcode rtsp_do(struct Curl_easy *data, bool *done)
   /* Accept Headers for DESCRIBE requests */
   if(rtspreq == RTSPREQ_DESCRIBE) {
     /* Accept Header */
-    p_accept = Curl_checkheaders(data, STRCONST("Accept"))?
+    p_accept = Curl_checkheaders(data, "Accept")?
       NULL:"Accept: application/sdp\r\n";
 
     /* Accept-Encoding header */
-    if(!Curl_checkheaders(data, STRCONST("Accept-Encoding")) &&
+    if(!Curl_checkheaders(data, "Accept-Encoding") &&
        data->set.str[STRING_ENCODING]) {
       Curl_safefree(data->state.aptr.accept_encoding);
       data->state.aptr.accept_encoding =
@@ -387,12 +385,11 @@ static CURLcode rtsp_do(struct Curl_easy *data, bool *done)
      it might have been used in the proxy connect, but if we have got a header
      with the user-agent string specified, we erase the previously made string
      here. */
-  if(Curl_checkheaders(data, STRCONST("User-Agent")) &&
-     data->state.aptr.uagent) {
+  if(Curl_checkheaders(data, "User-Agent") && data->state.aptr.uagent) {
     Curl_safefree(data->state.aptr.uagent);
     data->state.aptr.uagent = NULL;
   }
-  else if(!Curl_checkheaders(data, STRCONST("User-Agent")) &&
+  else if(!Curl_checkheaders(data, "User-Agent") &&
           data->set.str[STRING_USERAGENT]) {
     p_uagent = data->state.aptr.uagent;
   }
@@ -408,7 +405,7 @@ static CURLcode rtsp_do(struct Curl_easy *data, bool *done)
 
   /* Referrer */
   Curl_safefree(data->state.aptr.ref);
-  if(data->state.referer && !Curl_checkheaders(data, STRCONST("Referer")))
+  if(data->state.referer && !Curl_checkheaders(data, "Referer"))
     data->state.aptr.ref = aprintf("Referer: %s\r\n", data->state.referer);
   else
     data->state.aptr.ref = NULL;
@@ -425,7 +422,7 @@ static CURLcode rtsp_do(struct Curl_easy *data, bool *done)
      (rtspreq  & (RTSPREQ_PLAY | RTSPREQ_PAUSE | RTSPREQ_RECORD))) {
 
     /* Check to see if there is a range set in the custom headers */
-    if(!Curl_checkheaders(data, STRCONST("Range")) && data->state.range) {
+    if(!Curl_checkheaders(data, "Range") && data->state.range) {
       Curl_safefree(data->state.aptr.rangeline);
       data->state.aptr.rangeline = aprintf("Range: %s\r\n", data->state.range);
       p_range = data->state.aptr.rangeline;
@@ -435,11 +432,11 @@ static CURLcode rtsp_do(struct Curl_easy *data, bool *done)
   /*
    * Sanity check the custom headers
    */
-  if(Curl_checkheaders(data, STRCONST("CSeq"))) {
+  if(Curl_checkheaders(data, "CSeq")) {
     failf(data, "CSeq cannot be set as a custom header.");
     return CURLE_RTSP_CSEQ_ERROR;
   }
-  if(Curl_checkheaders(data, STRCONST("Session"))) {
+  if(Curl_checkheaders(data, "Session")) {
     failf(data, "Session ID cannot be set as a custom header.");
     return CURLE_BAD_FUNCTION_ARGUMENT;
   }
@@ -511,7 +508,7 @@ static CURLcode rtsp_do(struct Curl_easy *data, bool *done)
      rtspreq == RTSPREQ_SET_PARAMETER ||
      rtspreq == RTSPREQ_GET_PARAMETER) {
 
-    if(data->state.upload) {
+    if(data->set.upload) {
       putsize = data->state.infilesize;
       data->state.httpreq = HTTPREQ_PUT;
 
@@ -526,31 +523,29 @@ static CURLcode rtsp_do(struct Curl_easy *data, bool *done)
     if(putsize > 0 || postsize > 0) {
       /* As stated in the http comments, it is probably not wise to
        * actually set a custom Content-Length in the headers */
-      if(!Curl_checkheaders(data, STRCONST("Content-Length"))) {
+      if(!Curl_checkheaders(data, "Content-Length")) {
         result =
           Curl_dyn_addf(&req_buffer,
                         "Content-Length: %" CURL_FORMAT_CURL_OFF_T"\r\n",
-                        (data->state.upload ? putsize : postsize));
+                        (data->set.upload ? putsize : postsize));
         if(result)
           return result;
       }
 
       if(rtspreq == RTSPREQ_SET_PARAMETER ||
          rtspreq == RTSPREQ_GET_PARAMETER) {
-        if(!Curl_checkheaders(data, STRCONST("Content-Type"))) {
-          result = Curl_dyn_addn(&req_buffer,
-                                 STRCONST("Content-Type: "
-                                          "text/parameters\r\n"));
+        if(!Curl_checkheaders(data, "Content-Type")) {
+          result = Curl_dyn_addf(&req_buffer,
+                                 "Content-Type: text/parameters\r\n");
           if(result)
             return result;
         }
       }
 
       if(rtspreq == RTSPREQ_ANNOUNCE) {
-        if(!Curl_checkheaders(data, STRCONST("Content-Type"))) {
-          result = Curl_dyn_addn(&req_buffer,
-                                 STRCONST("Content-Type: "
-                                          "application/sdp\r\n"));
+        if(!Curl_checkheaders(data, "Content-Type")) {
+          result = Curl_dyn_addf(&req_buffer,
+                                 "Content-Type: application/sdp\r\n");
           if(result)
             return result;
         }
@@ -568,7 +563,7 @@ static CURLcode rtsp_do(struct Curl_easy *data, bool *done)
   /* RTSP never allows chunked transfer */
   data->req.forbidchunk = TRUE;
   /* Finish the request buffer */
-  result = Curl_dyn_addn(&req_buffer, STRCONST("\r\n"));
+  result = Curl_dyn_add(&req_buffer, "\r\n");
   if(result)
     return result;
 

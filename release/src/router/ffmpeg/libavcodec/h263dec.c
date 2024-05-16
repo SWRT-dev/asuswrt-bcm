@@ -28,14 +28,12 @@
 #define UNCHECKED_BITSTREAM_READER 1
 
 #include "libavutil/cpu.h"
-#include "libavutil/video_enc_params.h"
-
 #include "avcodec.h"
 #include "error_resilience.h"
 #include "flv.h"
 #include "h263.h"
 #include "h263_parser.h"
-#include "hwconfig.h"
+#include "hwaccel.h"
 #include "internal.h"
 #include "mpeg_er.h"
 #include "mpeg4video.h"
@@ -49,9 +47,10 @@
 
 static enum AVPixelFormat h263_get_format(AVCodecContext *avctx)
 {
+    MpegEncContext *s = avctx->priv_data;
     /* MPEG-4 Studio Profile only, not supported by hardware */
     if (avctx->bits_per_raw_sample > 8) {
-        av_assert1(((MpegEncContext *)avctx->priv_data)->studio_profile);
+        av_assert1(s->studio_profile);
         return avctx->pix_fmt;
     }
 
@@ -75,6 +74,7 @@ av_cold int ff_h263_decode_init(AVCodecContext *avctx)
     s->out_format      = FMT_H263;
 
     // set defaults
+    ff_mpv_decode_defaults(s);
     ff_mpv_decode_init(s, avctx);
 
     s->quant_precision = 5;
@@ -319,7 +319,6 @@ static int decode_slice(MpegEncContext *s)
 
     av_assert1(s->mb_x == 0 && s->mb_y == s->mb_height);
 
-    // Detect incorrect padding with wrong stuffing codes used by NEC N-02B
     if (s->codec_id == AV_CODEC_ID_MPEG4         &&
         (s->workaround_bugs & FF_BUG_AUTODETECT) &&
         get_bits_left(&s->gb) >= 48              &&
@@ -501,9 +500,9 @@ retry:
             GetBitContext gb;
 
             if (init_get_bits8(&gb, s->avctx->extradata, s->avctx->extradata_size) >= 0 )
-                ff_mpeg4_decode_picture_header(avctx->priv_data, &gb, 1);
+                ff_mpeg4_decode_picture_header(avctx->priv_data, &gb);
         }
-        ret = ff_mpeg4_decode_picture_header(avctx->priv_data, &s->gb, 0);
+        ret = ff_mpeg4_decode_picture_header(avctx->priv_data, &s->gb);
     } else if (CONFIG_H263I_DECODER && s->codec_id == AV_CODEC_ID_H263I) {
         ret = ff_intel_h263_decode_picture_header(s);
     } else if (CONFIG_FLV_DECODER && s->h263_flv) {
@@ -615,7 +614,7 @@ retry:
     if ((ret = ff_mpv_frame_start(s, avctx)) < 0)
         return ret;
 
-    if (!s->divx_packed && !avctx->hwaccel)
+    if (!s->divx_packed)
         ff_thread_finish_setup(avctx);
 
     if (avctx->hwaccel) {
@@ -744,22 +743,6 @@ const enum AVPixelFormat ff_h263_hwaccel_pixfmt_list_420[] = {
     AV_PIX_FMT_NONE
 };
 
-const AVCodecHWConfigInternal *const ff_h263_hw_config_list[] = {
-#if CONFIG_H263_VAAPI_HWACCEL
-    HWACCEL_VAAPI(h263),
-#endif
-#if CONFIG_MPEG4_NVDEC_HWACCEL
-    HWACCEL_NVDEC(mpeg4),
-#endif
-#if CONFIG_MPEG4_VDPAU_HWACCEL
-    HWACCEL_VDPAU(mpeg4),
-#endif
-#if CONFIG_H263_VIDEOTOOLBOX_HWACCEL
-    HWACCEL_VIDEOTOOLBOX(h263),
-#endif
-    NULL
-};
-
 AVCodec ff_h263_decoder = {
     .name           = "h263",
     .long_name      = NULL_IF_CONFIG_SMALL("H.263 / H.263-1996, H.263+ / H.263-1998 / H.263 version 2"),
@@ -775,7 +758,6 @@ AVCodec ff_h263_decoder = {
     .flush          = ff_mpeg_flush,
     .max_lowres     = 3,
     .pix_fmts       = ff_h263_hwaccel_pixfmt_list_420,
-    .hw_configs     = ff_h263_hw_config_list,
 };
 
 AVCodec ff_h263p_decoder = {
@@ -793,5 +775,16 @@ AVCodec ff_h263p_decoder = {
     .flush          = ff_mpeg_flush,
     .max_lowres     = 3,
     .pix_fmts       = ff_h263_hwaccel_pixfmt_list_420,
-    .hw_configs     = ff_h263_hw_config_list,
+    .hw_configs     = (const AVCodecHWConfigInternal*[]) {
+#if CONFIG_H263_VAAPI_HWACCEL
+                        HWACCEL_VAAPI(h263),
+#endif
+#if CONFIG_MPEG4_VDPAU_HWACCEL
+                        HWACCEL_VDPAU(mpeg4),
+#endif
+#if CONFIG_H263_VIDEOTOOLBOX_HWACCEL
+                        HWACCEL_VIDEOTOOLBOX(h263),
+#endif
+                        NULL
+                    },
 };

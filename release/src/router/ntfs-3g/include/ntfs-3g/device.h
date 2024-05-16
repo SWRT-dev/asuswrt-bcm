@@ -1,8 +1,7 @@
 /*
  * device.h - Exports for low level device io. Originated from the Linux-NTFS project.
  *
- * Copyright (c) 2000-2013 Anton Altaparmakov
- * Copyright (c) 2008-2013 Tuxera Inc.
+ * Copyright (c) 2000-2006 Anton Altaparmakov
  *
  * This program/include file is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as published
@@ -42,7 +41,6 @@ typedef enum {
 	ND_ReadOnly,	/* 1: Device is read-only. */
 	ND_Dirty,	/* 1: Device is dirty, needs sync. */
 	ND_Block,	/* 1: Device is a block device. */
-	ND_Sync,	/* 1: Device is mounted with "-o sync" */
 } ntfs_device_state_bits;
 
 #define  test_ndev_flag(nd, flag)	   test_bit(ND_##flag, (nd)->d_state)
@@ -65,20 +63,11 @@ typedef enum {
 #define NDevSetBlock(nd)	  set_ndev_flag(nd, Block)
 #define NDevClearBlock(nd)	clear_ndev_flag(nd, Block)
 
-#define NDevSync(nd)		 test_ndev_flag(nd, Sync)
-#define NDevSetSync(nd)		  set_ndev_flag(nd, Sync)
-#define NDevClearSync(nd)	clear_ndev_flag(nd, Sync)
-
 /**
  * struct ntfs_device -
  *
  * The ntfs device structure defining all operations needed to access the low
  * level device underlying the ntfs volume.
- *
- * Note d_heads and d_sectors_per_track are only set as a result of a call to
- * either ntfs_device_heads_get() or ntfs_device_sectors_per_track_get() (both
- * calls will set up both fields or if getting them failed they will be left at
- * -1).
  */
 struct ntfs_device {
 	struct ntfs_device_operations *d_ops;	/* Device operations. */
@@ -86,10 +75,6 @@ struct ntfs_device {
 	char *d_name;				/* Name of device. */
 	void *d_private;			/* Private data used by the
 						   device operations. */
-	int d_heads;				/* Disk geometry: number of
-						   heads or -1. */
-	int d_sectors_per_track;		/* Disk geometry: number of
-						   sectors per track or -1. */
 };
 
 struct stat;
@@ -111,14 +96,12 @@ struct ntfs_device_operations {
 			s64 offset);
 	int (*sync)(struct ntfs_device *dev);
 	int (*stat)(struct ntfs_device *dev, struct stat *buf);
-	int (*ioctl)(struct ntfs_device *dev, unsigned long request,
-			void *argp);
+	int (*ioctl)(struct ntfs_device *dev, int request, void *argp);
 };
 
 extern struct ntfs_device *ntfs_device_alloc(const char *name, const long state,
 		struct ntfs_device_operations *dops, void *priv_data);
 extern int ntfs_device_free(struct ntfs_device *dev);
-extern int ntfs_device_sync(struct ntfs_device *dev);
 
 extern s64 ntfs_pread(struct ntfs_device *dev, const s64 pos, s64 count,
 		void *b);

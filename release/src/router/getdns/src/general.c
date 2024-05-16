@@ -256,7 +256,7 @@ static void
 ub_resolve_event_callback(void* arg, int rcode, void *pkt, int pkt_len,
     int sec, char* why_bogus, int was_ratelimited)
 {
-	(void) was_ratelimited; /* unused parameter */
+	(void) was_ratelimited;
 #else
 static void
 ub_resolve_event_callback(void* arg, int rcode, void *pkt, int pkt_len,

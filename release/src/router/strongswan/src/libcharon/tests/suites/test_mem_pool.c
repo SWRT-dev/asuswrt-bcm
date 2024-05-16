@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2014 Tobias Brunner
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -22,7 +21,7 @@ static void assert_host(char *expected, host_t *host)
 {
 	if (!expected)
 	{
-		ck_assert_msg(!host, "not expecting IP != %+H", host);
+		ck_assert_msg(!host, "not epxecting IP != %+H", host);
 	}
 	else
 	{

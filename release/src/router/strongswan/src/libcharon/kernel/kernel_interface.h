@@ -3,8 +3,7 @@
  * Copyright (C) 2006 Daniel Roethlisberger
  * Copyright (C) 2005-2006 Martin Willi
  * Copyright (C) 2005 Jan Hutter
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -51,6 +50,7 @@ typedef struct kernel_interface_t kernel_interface_t;
 typedef enum kernel_feature_t kernel_feature_t;
 
 #include <networking/host.h>
+#include <crypto/prf_plus.h>
 
 #include <kernel/kernel_listener.h>
 #include <kernel/kernel_ipsec.h>
@@ -143,16 +143,12 @@ struct kernel_interface_t {
 	 * @param remote_ts	traffic selectors of remote side for SA
 	 * @param mark_in	inbound mark on SA
 	 * @param mark_out	outbound mark on SA
-	 * @param if_id_in	inbound interface ID on SA
-	 * @param if_id_out	outbound interface ID on SA
-	 * @param label		security label (usually the one on the policy, not SA)
 	 * @param reqid		allocated reqid
 	 * @return			SUCCESS if reqid allocated
 	 */
 	status_t (*alloc_reqid)(kernel_interface_t *this,
 							linked_list_t *local_ts, linked_list_t *remote_ts,
-							mark_t mark_in, mark_t mark_out, uint32_t if_id_in,
-							uint32_t if_id_out, sec_label_t *label,
+							mark_t mark_in, mark_t mark_out,
 							uint32_t *reqid);
 
 	/**
@@ -161,15 +157,10 @@ struct kernel_interface_t {
 	 * @param reqid		reqid to release
 	 * @param mark_in	inbound mark on SA
 	 * @param mark_out	outbound mark on SA
-	 * @param if_id_in	inbound interface ID on SA
-	 * @param if_id_out	outbound interface ID on SA
-	 * @param label		security label (usually the one on the policy, not SA)
 	 * @return			SUCCESS if reqid released
 	 */
 	status_t (*release_reqid)(kernel_interface_t *this, uint32_t reqid,
-							  mark_t mark_in, mark_t mark_out,
-							  uint32_t if_id_in, uint32_t if_id_out,
-							  sec_label_t *label);
+							  mark_t mark_in, mark_t mark_out);
 
 	/**
 	 * Add an SA to the SAD.
@@ -365,7 +356,7 @@ struct kernel_interface_t {
 	 *
 	 * @param virtual_ip	virtual ip address to remove
 	 * @param prefix		prefix length of the IP to uninstall, -1 for auto
-	 * @param wait			TRUE to wait until IP is gone
+	 * @param wait			TRUE to wait untily IP is gone
 	 * @return				SUCCESS if operation completed
 	 */
 	status_t (*del_ip) (kernel_interface_t *this, host_t *virtual_ip,
@@ -379,13 +370,12 @@ struct kernel_interface_t {
 	 * @param gateway		gateway for this route
 	 * @param src_ip		source ip of the route
 	 * @param if_name		name of the interface the route is bound to
-	 * @param pass			TRUE if route is installed for passthrough policy
 	 * @return				SUCCESS if operation completed
 	 *						ALREADY_DONE if the route already exists
 	 */
 	status_t (*add_route) (kernel_interface_t *this, chunk_t dst_net,
 						   uint8_t prefixlen, host_t *gateway, host_t *src_ip,
-						   char *if_name, bool pass);
+						   char *if_name);
 
 	/**
 	 * Delete a route.
@@ -395,12 +385,11 @@ struct kernel_interface_t {
 	 * @param gateway		gateway for this route
 	 * @param src_ip		source ip of the route
 	 * @param if_name		name of the interface the route is bound to
-	 * @param pass			TRUE if route was installed for passthrough policy
 	 * @return				SUCCESS if operation completed
 	 */
 	status_t (*del_route) (kernel_interface_t *this, chunk_t dst_net,
 						   uint8_t prefixlen, host_t *gateway, host_t *src_ip,
-						   char *if_name, bool pass);
+						   char *if_name);
 
 	/**
 	 * Set up a bypass policy for a given socket.
@@ -439,7 +428,7 @@ struct kernel_interface_t {
 	/**
 	 * Check if interfaces are excluded by config.
 	 *
-	 * @return				TRUE if no interfaces are excluded by config
+	 * @return				TRUE if no interfaces are exclued by config
 	 */
 	bool (*all_interfaces_usable)(kernel_interface_t *this);
 
@@ -517,10 +506,11 @@ struct kernel_interface_t {
 	 * Raise an acquire event.
 	 *
 	 * @param reqid			reqid of the policy to acquire
-	 * @param data			data from the acquire
+	 * @param src_ts		source traffic selector
+	 * @param dst_ts		destination traffic selector
 	 */
 	void (*acquire)(kernel_interface_t *this, uint32_t reqid,
-					kernel_acquire_data_t *data);
+					traffic_selector_t *src_ts, traffic_selector_t *dst_ts);
 
 	/**
 	 * Raise an expire event.

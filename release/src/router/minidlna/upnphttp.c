@@ -64,7 +64,6 @@
 #include <limits.h>
 
 #include "config.h"
-#include "event.h"
 #include "upnpglobalvars.h"
 #include "upnphttp.h"
 #include "upnpdescgen.h"
@@ -109,7 +108,6 @@ static void SendResp_caption(struct upnphttp *, char * url);
 static void SendResp_resizedimg(struct upnphttp *, char * url);
 static void SendResp_thumbnail(struct upnphttp *, char * url);
 static void SendResp_dlnafile(struct upnphttp *, char * url);
-static void Process_upnphttp(struct event *ev);
 
 struct upnphttp * 
 New_upnphttp(int s)
@@ -121,8 +119,7 @@ New_upnphttp(int s)
 	if(ret == NULL)
 		return NULL;
 	memset(ret, 0, sizeof(struct upnphttp));
-	ret->ev = (struct event ){ .fd = s, .rdwr = EVENT_READ, .up.process = Process_upnphttp, .data = ret };
-	event_module.add(&ret->ev);
+	ret->socket = s;
 	return ret;
 }
 
@@ -239,13 +236,11 @@ int getmodel()
 void
 CloseSocket_upnphttp(struct upnphttp * h)
 {
-
-	event_module.del(&h->ev, EV_FLAG_CLOSING);
-	if(close(h->ev.fd) < 0)
+	if(close(h->socket) < 0)
 	{
-		DPRINTF(E_ERROR, L_HTTP, "CloseSocket_upnphttp: close(%d): %s\n", h->ev.fd, strerror(errno));
+		DPRINTF(E_ERROR, L_HTTP, "CloseSocket_upnphttp: close(%d): %s\n", h->socket, strerror(errno));
 	}
-	h->ev.fd = -1;
+	h->socket = -1;
 	h->state = 100;
 }
 
@@ -254,7 +249,7 @@ Delete_upnphttp(struct upnphttp * h)
 {
 	if(h)
 	{
-		if(h->ev.fd >= 0)
+		if(h->socket >= 0)
 			CloseSocket_upnphttp(h);
 		free(h->req_buf);
 		free(h->res_buf);
@@ -390,19 +385,14 @@ ParseHttpHeaders(struct upnphttp * h)
 				p = colon + 1;
 				while(isspace(*p))
 					p++;
-				n = 0;
-				while(p[n] >= ' ')
-					n++;
-				h->req_Host = p;
-				h->req_HostLen = n;
-				for(n = 0; n < n_lan_addr; n++)
+				for(n = 0; n<n_lan_addr; n++)
 				{
-					for(i = 0; lan_addr[n].str[i]; i++)
+					for(i=0; lan_addr[n].str[i]; i++)
 					{
 						if(lan_addr[n].str[i] != p[i])
 							break;
 					}
-					if(i && !lan_addr[n].str[i])
+					if(!lan_addr[n].str[i])
 					{
 						h->iface = n;
 						break;
@@ -542,14 +532,14 @@ next_header:
 			return;
 		line += 2;
 	}
-	if (h->reqflags & FLAG_CHUNKED)
+	if( h->reqflags & FLAG_CHUNKED )
 	{
 		char *endptr;
 		h->req_chunklen = -1;
-		if (h->req_buflen <= h->req_contentoff)
+		if( h->req_buflen <= h->req_contentoff )
 			return;
 		while( (line < (h->req_buf + h->req_buflen)) &&
-		       ((h->req_chunklen = strtol(line, &endptr, 16)) > 0) &&
+		       (h->req_chunklen = strtol(line, &endptr, 16)) &&
 		       (endptr != line) )
 		{
 			endptr = strstr(endptr, "\r\n");
@@ -746,7 +736,7 @@ SendResp_presentation(struct upnphttp * h)
 	v = sql_get_int_field(db, "SELECT count(*) from DETAILS where MIME glob 'v*'");
 	p = sql_get_int_field(db, "SELECT count(*) from DETAILS where MIME glob 'i*'");
 	strcatf(&str,
-		"<HTML><HEAD><TITLE>" SERVER_NAME " " MINIDLNA_VERSION "</TITLE><meta http-equiv=\"refresh\" content=\"20\"></HEAD>"
+		"<HTML><HEAD><TITLE>" SERVER_NAME " " MINIDLNA_VERSION "</TITLE></HEAD>"
 		"<BODY><div style=\"text-align: center\">"
 		"<h2>" SERVER_NAME " status</h2></div>");
 
@@ -821,9 +811,30 @@ ProcessHTTPPOST_upnphttp(struct upnphttp * h)
 }
 
 static int
+is_vaild_ip(struct upnphttp *h) {
+	int i = 0, ret = 0;
+	const char *p;
+	char addrstr[16];
+	unsigned char ip[4];
+
+	memset(addrstr, 0, sizeof(addrstr));
+	p = h->req_Callback;
+	p += 7;	/* http:// */
+	while(*p != '/' && *p != ':' && i < (sizeof(addrstr)-1) && i < h->req_CallbackLen-7)
+		addrstr[i++] = *(p++);
+	addrstr[i] = '\0';
+
+	ret = inet_aton(addrstr, (struct in_addr *)ip);
+
+	if(ret && ((ip[0] == 10) || (ip[0] == 172 && ip[1] >= 16 && ip[1] <= 31) || (ip[0] == 192 && ip[1] == 168)))
+		return 1;// intranet ip
+
+	return 0;
+}
+static int
 check_event(struct upnphttp *h)
 {
-	enum event_type type = E_INVALID;
+	enum event_type type;
 
 	if (h->req_Callback)
 	{
@@ -831,38 +842,25 @@ check_event(struct upnphttp *h)
 		{
 			BuildResp2_upnphttp(h, 400, "Bad Request",
 				            "<html><body>Bad request</body></html>", 37);
+			type = E_INVALID;
 		}
 		else if (strncmp(h->req_Callback, "http://", 7) != 0 ||
-		         strncmp(h->req_NT, "upnp:event", h->req_NTLen) != 0)
+		         strncmp(h->req_NT, "upnp:event", h->req_NTLen) != 0 || h->req_CallbackLen > 256)
 		{
 			/* Missing or invalid CALLBACK : 412 Precondition Failed.
 			 * If CALLBACK header is missing or does not contain a valid HTTP URL,
 			 * the publisher must respond with HTTP error 412 Precondition Failed*/
 			BuildResp2_upnphttp(h, 412, "Precondition Failed", 0, 0);
+			type = E_INVALID;
+		}
+		else if(!is_vaild_ip(h))
+		{
+			BuildResp2_upnphttp(h, 400, "Bad Request",
+							"<html><body>Bad request</body></html>", 37);
+			type = E_INVALID;
 		}
 		else
-		{
-			/* Make sure callback URL points to the originating IP */
-			struct in_addr addr;
-			char addrstr[16];
-			int i = 0;
-			const char *p = h->req_Callback + 7;
-			while (!strchr("/:>", *p) && i < sizeof(addrstr) - 1 &&
-			       p < (h->req_Callback + h->req_CallbackLen))
-			{
-				addrstr[i++] = *(p++);
-			}
-			addrstr[i] = '\0';
-
-			if (inet_pton(AF_INET, addrstr, &addr) <= 0 ||
-			    memcmp(&addr, &h->clientaddr, sizeof(struct in_addr)))
-			{
-				DPRINTF(E_ERROR, L_HTTP, "Bad callback IP (%s)\n", addrstr);
-				BuildResp2_upnphttp(h, 412, "Precondition Failed", 0, 0);
-			}
-			else
-				type = E_SUBSCRIBE;
-		}
+			type = E_SUBSCRIBE;
 	}
 	else if (h->req_SID)
 	{
@@ -871,6 +869,7 @@ check_event(struct upnphttp *h)
 		{
 			BuildResp2_upnphttp(h, 400, "Bad Request",
 				            "<html><body>Bad request</body></html>", 37);
+			type = E_INVALID;
 		}
 		else
 			type = E_RENEW;
@@ -878,6 +877,7 @@ check_event(struct upnphttp *h)
 	else
 	{
 		BuildResp2_upnphttp(h, 412, "Precondition Failed", 0, 0);
+		type = E_INVALID;
 	}
 
 	return type;
@@ -1012,7 +1012,7 @@ ProcessHttpQuery_upnphttp(struct upnphttp * h)
 		char *chunkstart, *chunk, *endptr, *endbuf;
 		chunk = endbuf = chunkstart = h->req_buf + h->req_contentoff;
 
-		while ((h->req_chunklen = strtol(chunk, &endptr, 16)) > 0 && (endptr != chunk) )
+		while( (h->req_chunklen = strtol(chunk, &endptr, 16)) && (endptr != chunk) )
 		{
 			endptr = strstr(endptr, "\r\n");
 			if (!endptr)
@@ -1033,32 +1033,6 @@ ProcessHttpQuery_upnphttp(struct upnphttp * h)
 	}
 
 	DPRINTF(E_DEBUG, L_HTTP, "HTTP REQUEST: %.*s\n", h->req_buflen, h->req_buf);
-	if(h->req_Host && h->req_HostLen > 0) {
-		const char *port = memchr(h->req_Host, ':', h->req_HostLen);
-		size_t ip_sz = port ? (port - h->req_Host) : h->req_HostLen;
-		struct in_addr addr;
-		char ip_buf[16];
-		DPRINTF(E_MAXDEBUG, L_HTTP, "Host: %.*s\n", h->req_HostLen, h->req_Host);
-		if (port) {
-			const char *ptr = port + 1;
-			for (i = ip_sz + 2; i < h->req_HostLen; i++) {
-				if (*ptr > '9' || *ptr < '0')
-					break;
-				ptr++;
-			}
-			if (i != h->req_HostLen || atoi(port + 1) > 65535) {
-				DPRINTF(E_ERROR, L_HTTP, "DNS rebinding attack suspected (Host: %.*s)\n", h->req_HostLen, h->req_Host);
-				Send400(h);
-				return;
-			}
-		}
-		strncpyt(ip_buf, h->req_Host, MIN(ip_sz + 1, sizeof(ip_buf)));
-		if (ip_sz >= sizeof(ip_buf) || inet_pton(AF_INET, ip_buf, &addr) <= 0 || !addr.s_addr) {
-			DPRINTF(E_ERROR, L_HTTP, "DNS rebinding attack suspected (Host: %.*s)\n", h->req_HostLen, h->req_Host);
-			Send400(h);
-			return;
-		}
-	}
 	if(strcmp("POST", HttpCommand) == 0)
 	{
 		h->req_command = EPost;
@@ -1215,17 +1189,18 @@ ProcessHttpQuery_upnphttp(struct upnphttp * h)
 	}
 }
 
-static void
-Process_upnphttp(struct event *ev)
+
+void
+Process_upnphttp(struct upnphttp * h)
 {
 	char buf[2048];
-	struct upnphttp *h = ev->data;
 	int n;
-
+	if(!h)
+		return;
 	switch(h->state)
 	{
 	case 0:
-		n = recv(h->ev.fd, buf, 2048, 0);
+		n = recv(h->socket, buf, 2048, 0);
 		if(n<0)
 		{
 			DPRINTF(E_ERROR, L_HTTP, "recv (state0): %s\n", strerror(errno));
@@ -1233,7 +1208,7 @@ Process_upnphttp(struct event *ev)
 		}
 		else if(n==0)
 		{
-			DPRINTF(E_DEBUG, L_HTTP, "HTTP Connection closed unexpectedly\n");
+			DPRINTF(E_WARN, L_HTTP, "HTTP Connection closed unexpectedly\n");
 			h->state = 100;
 		}
 		else
@@ -1271,7 +1246,7 @@ Process_upnphttp(struct event *ev)
 		break;
 	case 1:
 	case 2:
-		n = recv(h->ev.fd, buf, sizeof(buf), 0);
+		n = recv(h->socket, buf, sizeof(buf), 0);
 		if(n < 0)
 		{
 			DPRINTF(E_ERROR, L_HTTP, "recv (state%d): %s\n", h->state, strerror(errno));
@@ -1279,7 +1254,7 @@ Process_upnphttp(struct event *ev)
 		}
 		else if(n == 0)
 		{
-			DPRINTF(E_DEBUG, L_HTTP, "HTTP Connection closed unexpectedly\n");
+			DPRINTF(E_WARN, L_HTTP, "HTTP Connection closed unexpectedly\n");
 			h->state = 100;
 		}
 		else
@@ -1398,7 +1373,7 @@ SendResp_upnphttp(struct upnphttp * h)
 {
 	int n;
 	DPRINTF(E_DEBUG, L_HTTP, "HTTP RESPONSE: %.*s\n", h->res_buflen, h->res_buf);
-	n = send(h->ev.fd, h->res_buf, h->res_buflen, 0);
+	n = send(h->socket, h->res_buf, h->res_buflen, 0);
 	if(n<0)
 	{
 		DPRINTF(E_ERROR, L_HTTP, "send(res_buf): %s\n", strerror(errno));
@@ -1416,7 +1391,7 @@ send_data(struct upnphttp * h, char * header, size_t size, int flags)
 {
 	int n;
 
-	n = send(h->ev.fd, header, size, flags);
+	n = send(h->socket, header, size, flags);
 	if(n<0)
 	{
 		DPRINTF(E_ERROR, L_HTTP, "send(res_buf): %s\n", strerror(errno));
@@ -1450,7 +1425,7 @@ send_file(struct upnphttp * h, int sendfd, off_t offset, off_t end_offset)
 		if( try_sendfile )
 		{
 			send_size = ( ((end_offset - offset) < MAX_BUFFER_SIZE) ? (end_offset - offset + 1) : MAX_BUFFER_SIZE);
-			ret = sys_sendfile(h->ev.fd, sendfd, &offset, send_size);
+			ret = sys_sendfile(h->socket, sendfd, &offset, send_size);
 			if( ret == -1 )
 			{
 				DPRINTF(E_DEBUG, L_HTTP, "sendfile error :: error no. %d [%s]\n", errno, strerror(errno));
@@ -1459,10 +1434,6 @@ send_file(struct upnphttp * h, int sendfd, off_t offset, off_t end_offset)
 					try_sendfile = 0;
 				else if( errno != EAGAIN )
 					break;
-			}
-			else if( ret == 0 )
-			{
-				break;  /* Premature end of file */
 			}
 			else
 			{
@@ -1484,11 +1455,7 @@ send_file(struct upnphttp * h, int sendfd, off_t offset, off_t end_offset)
 			else
 				break;
 		}
-		else if( ret == 0 )
-		{
-			break;  /* premature end of file */
-		}
-		ret = write(h->ev.fd, buf, ret);
+		ret = write(h->socket, buf, ret);
 		if( ret == -1 ) {
 			DPRINTF(E_DEBUG, L_HTTP, "write error :: error no. %d [%s]\n", errno, strerror(errno));
 			if( errno == EAGAIN )
@@ -2222,7 +2189,7 @@ SendResp_resizedimg(struct upnphttp * h, char * object)
 	int scale = 1;
 	const char *tmode;
 #if defined MS_IPK || defined MS_LIMIT
-	//avoid OOM when generate the small pic
+	//avoid OOM when generate the small pic 
 	char *cache_file;
 	char *no_thumb_image_path_dir = NULL;
 	char no_thumb_image_path_dir_buf[PATH_MAX] = {0};
@@ -2231,7 +2198,7 @@ SendResp_resizedimg(struct upnphttp * h, char * object)
 #ifdef MS_IPK
 	no_thumb_image_path_dir = realpath("/opt/etc/downloadmaster/mediaserverui/images", no_thumb_image_path_dir_buf);
 #else
-	no_thumb_image_path_dir = realpath("/www/images", no_thumb_image_path_dir_buf);
+    no_thumb_image_path_dir = realpath("/www/images", no_thumb_image_path_dir_buf);
 #endif
 	if (no_thumb_image_path_dir)
 		snprintf(no_thumb_image_path, sizeof(no_thumb_image_path), "%s/ic_file_image.jpg", no_thumb_image_path_dir);
@@ -2250,8 +2217,7 @@ SendResp_resizedimg(struct upnphttp * h, char * object)
 	{
 		file_path = result[3];
 		resolution = result[4];
-                if (result[5])
-			rotate = atoi(result[5]);
+		rotate = result[5] ? atoi(result[5]) : 0;
 	}
 	if( !file_path || !resolution || (access(file_path, F_OK) != 0) )
 	{
@@ -2336,7 +2302,7 @@ SendResp_resizedimg(struct upnphttp * h, char * object)
 	if( ret != 2 )
 	{
 		Send500(h);
-		goto resized_error;
+		return;
 	}
 	/* Figure out the best destination resolution we can use */
 	dstw = width;
@@ -2372,7 +2338,7 @@ SendResp_resizedimg(struct upnphttp * h, char * object)
 		scale = 2;
 
 	INIT_STR(str, header);
-
+	
 #if !defined MS_IPK && !defined MS_LIMIT
 #if USE_FORK
 	if( (h->reqflags & FLAG_XFERBACKGROUND) && (setpriority(PRIO_PROCESS, 0, 19) == 0) )
@@ -2441,7 +2407,7 @@ SendResp_resizedimg(struct upnphttp * h, char * object)
 				Send500(h);
 				goto resized_error;
 			}
-
+			
 #if defined MS_IPK || defined MS_LIMIT
 			imdst = imsrc;
 #else

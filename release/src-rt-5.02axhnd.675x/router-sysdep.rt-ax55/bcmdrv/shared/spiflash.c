@@ -1,7 +1,7 @@
 /*
  * Broadcom QSPI serial flash interface
  *
- * Copyright (C) 2022, Broadcom. All Rights Reserved.
+ * Copyright (C) 2021, Broadcom. All Rights Reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -35,7 +35,7 @@
 
 #ifndef FLASH_SPI_MAX_PAGE_SIZE
 #define FLASH_SPI_MAX_PAGE_SIZE   (256)
-#endif
+#endif // endif
 
 #ifdef BCMDBG
 #define	SPIFL_MSG(args)	printf args
@@ -555,7 +555,7 @@ bspi2_st_page_program(hndsflash_t *spifl, qspiregs_t *qspi, unsigned int offset,
 #else
 	for (i = 0; i < len; ++i)
 		cmd[i + idx] = buf[i];
-#endif
+#endif // endif
 
 	i = 0;
 	len_total = len + idx;
@@ -641,7 +641,7 @@ bspi2_at_page_program(osl_t *osh, qspiregs_t *qspi, hndsflash_t *spifl, unsigned
 #else
 	for (i = 0; i < len; ++i)
 		cmd[i+4] = buf[i];
-#endif
+#endif // endif
 
 	i = 0;
 	len_total = len + 4;

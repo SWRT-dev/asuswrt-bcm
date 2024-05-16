@@ -29,7 +29,6 @@ static int mpeg_parse_packet(AVFormatContext *ctx, PayloadContext *data,
                              int flags)
 {
     unsigned int h;
-    int ret;
     if (len <= 4)
         return AVERROR_INVALIDDATA;
     h    = AV_RB32(buf);
@@ -42,8 +41,8 @@ static int mpeg_parse_packet(AVFormatContext *ctx, PayloadContext *data,
         buf += 4;
         len -= 4;
     }
-    if ((ret = av_new_packet(pkt, len)) < 0)
-        return ret;
+    if (av_new_packet(pkt, len) < 0)
+        return AVERROR(ENOMEM);
     memcpy(pkt->data, buf, len);
     pkt->stream_index = st->index;
     return 0;

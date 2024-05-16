@@ -690,39 +690,16 @@ cursor:pointer;
 width: 100%;
 height: 25px;
 text-align: center;
-background-color: #FFC54D;
+background-color: #fff;
 cursor:pointer;
 position: absolute;
-padding: 10px;
 bottom: 107px;
-font-size:1.0em;
+font-size:16px;
 }
 
 #fileview .nextDiv:hover {
 color:#fff;
 background-color:#0C5FB4;
-}
-
-.nextDiv #nav {
-z-index: 99;
-right: 0px;
-width: 100%;
-font-weight: bold;
-}
-
-.nextDiv #nav a{
-margin: 0 5px;
-padding: 3px 5px;
-border: 1px solid #ccc;
-color: #fff;
-text-decoration: none;
-cursor: pointer;
-background-color:#DF7861;
-}
-
-.nextDiv #nav a.activeSlide{
-color: #fff;
-background: #99D2F9;
 }
 
 #fileview .albumDiv {
@@ -1887,7 +1864,7 @@ color: #fff;
 padding: 0 10px;
 }
 
-/* #nav {
+#nav {
 width: 100%;
 height: 100%;
 line-height: 2em;
@@ -1896,7 +1873,7 @@ padding: 0;
 margin: 0;
 overflow: scroll;
 overflow-x: hidden;
-} */
+}
 #uploadRegion li {
 border-bottom: 1px solid #ccc;
 height:40px;

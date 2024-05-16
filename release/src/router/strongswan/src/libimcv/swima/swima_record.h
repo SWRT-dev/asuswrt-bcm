@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2017 Andreas Steffen
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -107,7 +106,7 @@ struct swima_record_t {
  * Creates a swima_record_t object
  *
  * @param record_id			Record ID
- * @param sw_id				Software Identifier
+ * @param sw_id				Software Identifierl
  * @param sw_locator		Software Locator or empty chunk
  */
 swima_record_t* swima_record_create(uint32_t record_id, chunk_t sw_id,

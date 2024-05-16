@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2015 Andreas Steffen
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -49,7 +48,7 @@ CALLBACK(authority_list, int,
 		if (streq(name, "crl_uris"))
 		{
 			printf("  %s %.*s\n",
-				  (*labeled & LABELED_CRL_URI)  ? "          " : "crl_uris: ",
+				  (*labeled & LABELED_CRL_URI)  ? "          " : "crl_uris: ", 
 				  len, value);
 			*labeled |= LABELED_CRL_URI;
 		}

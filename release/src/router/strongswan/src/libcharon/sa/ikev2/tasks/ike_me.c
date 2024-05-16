@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2007-2008 Tobias Brunner
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -405,7 +404,7 @@ METHOD(task_t, build_r, status_t,
 			if (this->callback)
 			{
 				/* we got a callback from the mediation server, initiate the
-				 * queued mediated connection */
+				 * queued mediated connecction */
 				charon->connect_manager->check_and_initiate(
 						charon->connect_manager,
 						this->ike_sa->get_id(this->ike_sa),

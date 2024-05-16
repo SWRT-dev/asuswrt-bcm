@@ -8,11 +8,6 @@
  * http://www.fortran-2000.com/ArnaudRecipes/sharedlib.html
  */
 
-/* In order RTLD_GLOBAL and RTLD_NOW to be defined on zOS */
-#if defined(__MVS__)
-#define _UNIX03_SOURCE
-#endif
-
 #define IN_LIBXML
 #include "libxml.h"
 
@@ -35,7 +30,7 @@ static int xmlModulePlatformSymbol(void *handle, const char *name, void **result
 
 /************************************************************************
  *									*
- *		module memory error handler				*
+ * 		module memory error handler				*
  *									*
  ************************************************************************/
 
@@ -66,10 +61,6 @@ xmlModuleErrMemory(xmlModulePtr module, const char *extra)
  * @options: a set of xmlModuleOption
  *
  * Opens a module/shared library given its name or path
- * NOTE: that due to portability issues, behaviour can only be
- * guaranteed with @name using ASCII. We cannot guarantee that
- * an UTF-8 string would work, which is why name is a const char *
- * and not a const xmlChar * .
  * TODO: options are not yet implemented.
  *
  * Returns a handle for the module or NULL in case of error
@@ -108,10 +99,6 @@ xmlModuleOpen(const char *name, int options ATTRIBUTE_UNUSED)
  * @symbol: the resulting symbol address
  *
  * Lookup for a symbol address in the given module
- * NOTE: that due to portability issues, behaviour can only be
- * guaranteed with @name using ASCII. We cannot guarantee that
- * an UTF-8 string would work, which is why name is a const char *
- * and not a const xmlChar * .
  *
  * Returns 0 if the symbol was found, or -1 in case of error
  */
@@ -119,8 +106,8 @@ int
 xmlModuleSymbol(xmlModulePtr module, const char *name, void **symbol)
 {
     int rc = -1;
-
-    if ((NULL == module) || (symbol == NULL) || (name == NULL)) {
+	
+    if ((NULL == module) || (symbol == NULL)) {
         __xmlRaiseError(NULL, NULL, NULL, NULL, NULL, XML_FROM_MODULE,
                         XML_MODULE_OPEN, XML_ERR_FATAL, NULL, 0, 0,
                         NULL, NULL, 0, 0, "null parameter\n");
@@ -301,9 +288,8 @@ xmlModulePlatformSymbol(void *handle, const char *name, void **symbol)
 #endif /* HAVE_SHLLOAD */
 #endif /* ! HAVE_DLOPEN */
 
-#if defined(_WIN32)
+#ifdef _WIN32
 
-#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
 /*
@@ -314,7 +300,7 @@ xmlModulePlatformSymbol(void *handle, const char *name, void **symbol)
 static void *
 xmlModulePlatformOpen(const char *name)
 {
-    return LoadLibraryA(name);
+    return LoadLibrary(name);
 }
 
 /*
@@ -340,10 +326,8 @@ xmlModulePlatformClose(void *handle)
 static int
 xmlModulePlatformSymbol(void *handle, const char *name, void **symbol)
 {
-XML_IGNORE_PEDANTIC_WARNINGS
     *symbol = GetProcAddress(handle, name);
     return (NULL == *symbol) ? -1 : 0;
-XML_POP_WARNINGS
 }
 
 #endif /* _WIN32 */
@@ -456,4 +440,6 @@ xmlModulePlatformSymbol(void *handle, const char *name, void **symbol)
 
 #endif /* HAVE_OS2 */
 
+#define bottom_xmlmodule
+#include "elfgcchack.h"
 #endif /* LIBXML_MODULES_ENABLED */

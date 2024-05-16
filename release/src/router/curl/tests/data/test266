@@ -37,9 +37,6 @@ Connection: mooo
 aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccccccccccccccccccccccc
 chunky-trailer: header data
 </datacheck>
-<servercmd>
-writedelay: 10
-</servercmd>
 </reply>
 
 #

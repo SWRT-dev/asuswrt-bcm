@@ -1,7 +1,6 @@
 /*
- * Copyright (C) 2014-2020 Andreas Steffen
- *
- * Copyright (C) secunet Security Networks AG
+ * Copyright (C) 2014 Andreas Steffen
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -22,12 +21,9 @@
 #ifndef PTS_IMA_BIOS_LIST_H_
 #define PTS_IMA_BIOS_LIST_H_
 
-#include "pts_meas_algo.h"
-
 #include <time.h>
 
 #include <library.h>
-#include <tpm_tss.h>
 
 typedef struct pts_ima_bios_list_t pts_ima_bios_list_t;
 
@@ -71,12 +67,8 @@ struct pts_ima_bios_list_t {
 /**
  * Create a PTS IMA BIOS measurement object
  *
- * @param tpm				TPM object
  * @param file				Pathname pointing to the BIOS measurements
- * @param algo				hash measurement algorithm to be used
  */
-pts_ima_bios_list_t* pts_ima_bios_list_create(tpm_tss_t *tpm, char *file,
-											  pts_meas_algorithms_t algo);
-
+pts_ima_bios_list_t* pts_ima_bios_list_create(char *file);
 
 #endif /** PTS_IMA_BIOS_LIST_H_ @}*/

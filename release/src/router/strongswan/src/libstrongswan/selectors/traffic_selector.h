@@ -2,8 +2,7 @@
  * Copyright (C) 2007-2017 Tobias Brunner
  * Copyright (C) 2005-2006 Martin Willi
  * Copyright (C) 2005 Jan Hutter
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -51,12 +50,7 @@ enum ts_type_t {
 	 * (inclusive). All addresses falling between the two specified
 	 *  addresses are considered to be within the list.
 	 */
-	TS_IPV6_ADDR_RANGE = 8,
-
-	/**
-	 * A security label.
-	 */
-	TS_SECLABEL = 10,
+	TS_IPV6_ADDR_RANGE = 8
 };
 
 /**

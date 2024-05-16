@@ -77,13 +77,11 @@ typedef struct SPS {
     enum AVColorPrimaries color_primaries;
     enum AVColorTransferCharacteristic color_trc;
     enum AVColorSpace colorspace;
-    enum AVChromaLocation chroma_location;
-
     int timing_info_present_flag;
     uint32_t num_units_in_tick;
     uint32_t time_scale;
     int fixed_frame_rate_flag;
-    int32_t offset_for_ref_frame[256];
+    short offset_for_ref_frame[256]; // FIXME dyn aloc?
     int bitstream_restriction_flag;
     int num_reorder_frames;
     int scaling_matrix_present;
@@ -135,9 +133,6 @@ typedef struct PPS {
     uint32_t dequant8_buffer[6][QP_MAX_NUM + 1][64];
     uint32_t(*dequant4_coeff[6])[16];
     uint32_t(*dequant8_coeff[6])[64];
-
-    AVBufferRef *sps_ref;
-    const SPS   *sps;
 } PPS;
 
 typedef struct H264ParamSets {
@@ -145,11 +140,10 @@ typedef struct H264ParamSets {
     AVBufferRef *pps_list[MAX_PPS_COUNT];
 
     AVBufferRef *pps_ref;
+    AVBufferRef *sps_ref;
     /* currently active parameters sets */
     const PPS *pps;
     const SPS *sps;
-
-    int overread_warning_printed[2];
 } H264ParamSets;
 
 /**

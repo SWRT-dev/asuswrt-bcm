@@ -69,7 +69,6 @@ typedef struct CDGraphicsContext {
     int hscroll;
     int vscroll;
     int transparency;
-    int cleared;
 } CDGraphicsContext;
 
 static av_cold int cdg_decode_init(AVCodecContext *avctx)
@@ -81,8 +80,11 @@ static av_cold int cdg_decode_init(AVCodecContext *avctx)
         return AVERROR(ENOMEM);
     cc->transparency = -1;
 
+    avctx->width   = CDG_FULL_WIDTH;
+    avctx->height  = CDG_FULL_HEIGHT;
     avctx->pix_fmt = AV_PIX_FMT_PAL8;
-    return ff_set_dimensions(avctx, CDG_FULL_WIDTH, CDG_FULL_HEIGHT);
+
+    return 0;
 }
 
 static void cdg_border_preset(CDGraphicsContext *cc, uint8_t *data)
@@ -283,12 +285,11 @@ static int cdg_decode_frame(AVCodecContext *avctx,
 
     bytestream2_init(&gb, avpkt->data, avpkt->size);
 
-    if ((ret = ff_reget_buffer(avctx, cc->frame, 0)) < 0)
+    if ((ret = ff_reget_buffer(avctx, cc->frame)) < 0)
         return ret;
-    if (!cc->cleared) {
+    if (!avctx->frame_number) {
         memset(cc->frame->data[0], 0, cc->frame->linesize[0] * avctx->height);
         memset(cc->frame->data[1], 0, AVPALETTE_SIZE);
-        cc->cleared = 1;
     }
 
     command = bytestream2_get_byte(&gb);
@@ -365,18 +366,6 @@ static int cdg_decode_frame(AVCodecContext *avctx,
     return avpkt->size;
 }
 
-static void cdg_decode_flush(AVCodecContext *avctx)
-{
-    CDGraphicsContext *cc = avctx->priv_data;
-
-    if (!cc->frame->data[0])
-        return;
-
-    memset(cc->frame->data[0], 0, cc->frame->linesize[0] * avctx->height);
-    if (!avctx->frame_number)
-        memset(cc->frame->data[1], 0, AVPALETTE_SIZE);
-}
-
 static av_cold int cdg_decode_end(AVCodecContext *avctx)
 {
     CDGraphicsContext *cc = avctx->priv_data;
@@ -395,6 +384,5 @@ AVCodec ff_cdgraphics_decoder = {
     .init           = cdg_decode_init,
     .close          = cdg_decode_end,
     .decode         = cdg_decode_frame,
-    .flush          = cdg_decode_flush,
     .capabilities   = AV_CODEC_CAP_DR1,
 };

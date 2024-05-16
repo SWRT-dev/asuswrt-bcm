@@ -44,6 +44,7 @@ typedef struct APNGDemuxContext {
     int max_fps;
     int default_fps;
 
+    int64_t pkt_pts;
     int pkt_duration;
 
     int is_key_frame;
@@ -66,7 +67,7 @@ typedef struct APNGDemuxContext {
  *     ...
  *     IDAT
  */
-static int apng_probe(const AVProbeData *p)
+static int apng_probe(AVProbeData *p)
 {
     GetByteContext gb;
     int state = 0;
@@ -127,18 +128,17 @@ static int append_extradata(AVCodecParameters *par, AVIOContext *pb, int len)
     int new_size, ret;
     uint8_t *new_extradata;
 
-    if (len > INT_MAX - AV_INPUT_BUFFER_PADDING_SIZE - previous_size)
+    if (previous_size > INT_MAX - len)
         return AVERROR_INVALIDDATA;
 
     new_size = previous_size + len;
     new_extradata = av_realloc(par->extradata, new_size + AV_INPUT_BUFFER_PADDING_SIZE);
     if (!new_extradata)
         return AVERROR(ENOMEM);
-    memset(new_extradata + new_size, 0, AV_INPUT_BUFFER_PADDING_SIZE);
     par->extradata = new_extradata;
     par->extradata_size = new_size;
 
-    if ((ret = ffio_read_size(pb, par->extradata + previous_size, len)) < 0)
+    if ((ret = avio_read(pb, par->extradata + previous_size, len)) < 0)
         return ret;
 
     return previous_size;
@@ -151,17 +151,17 @@ static int apng_read_header(AVFormatContext *s)
     uint32_t len, tag;
     AVStream *st;
     int acTL_found = 0;
-    int64_t ret;
+    int64_t ret = AVERROR_INVALIDDATA;
 
     /* verify PNGSIG */
     if (avio_rb64(pb) != PNGSIG)
-        return AVERROR_INVALIDDATA;
+        return ret;
 
     /* parse IHDR (must be first chunk) */
     len = avio_rb32(pb);
     tag = avio_rl32(pb);
     if (len != 13 || tag != MKTAG('I', 'H', 'D', 'R'))
-        return AVERROR_INVALIDDATA;
+        return ret;
 
     st = avformat_new_stream(s, NULL);
     if (!st)
@@ -178,24 +178,27 @@ static int apng_read_header(AVFormatContext *s)
         return ret;
 
     /* extradata will contain every chunk up to the first fcTL (excluded) */
-    ret = ff_alloc_extradata(st->codecpar, len + 12);
-    if (ret < 0)
-        return ret;
+    st->codecpar->extradata = av_malloc(len + 12 + AV_INPUT_BUFFER_PADDING_SIZE);
+    if (!st->codecpar->extradata)
+        return AVERROR(ENOMEM);
+    st->codecpar->extradata_size = len + 12;
     AV_WB32(st->codecpar->extradata,    len);
     AV_WL32(st->codecpar->extradata+4,  tag);
     AV_WB32(st->codecpar->extradata+8,  st->codecpar->width);
     AV_WB32(st->codecpar->extradata+12, st->codecpar->height);
-    if ((ret = ffio_read_size(pb, st->codecpar->extradata + 16, 9)) < 0)
-        return ret;
+    if ((ret = avio_read(pb, st->codecpar->extradata+16, 9)) < 0)
+        goto fail;
 
-    while (1) {
+    while (!avio_feof(pb)) {
         if (acTL_found && ctx->num_play != 1) {
             int64_t size   = avio_size(pb);
             int64_t offset = avio_tell(pb);
             if (size < 0) {
-                return size;
+                ret = size;
+                goto fail;
             } else if (offset < 0) {
-                return offset;
+                ret = offset;
+                goto fail;
             } else if ((ret = ffio_ensure_seekback(pb, size - offset)) < 0) {
                 av_log(s, AV_LOG_WARNING, "Could not ensure seekback, will not loop\n");
                 ctx->num_play = 1;
@@ -203,18 +206,20 @@ static int apng_read_header(AVFormatContext *s)
         }
         if ((ctx->num_play == 1 || !acTL_found) &&
             ((ret = ffio_ensure_seekback(pb, 4 /* len */ + 4 /* tag */)) < 0))
-            return ret;
+            goto fail;
 
         len = avio_rb32(pb);
-        if (len > INT_MAX - 12)
-            return AVERROR_INVALIDDATA;
+        if (len > 0x7fffffff) {
+            ret = AVERROR_INVALIDDATA;
+            goto fail;
+        }
 
         tag = avio_rl32(pb);
         switch (tag) {
         case MKTAG('a', 'c', 'T', 'L'):
             if ((ret = avio_seek(pb, -8, SEEK_CUR)) < 0 ||
                 (ret = append_extradata(st->codecpar, pb, len + 12)) < 0)
-                return ret;
+                goto fail;
             acTL_found = 1;
             ctx->num_frames = AV_RB32(st->codecpar->extradata + ret + 8);
             ctx->num_play   = AV_RB32(st->codecpar->extradata + ret + 12);
@@ -222,18 +227,26 @@ static int apng_read_header(AVFormatContext *s)
                                     ctx->num_frames, ctx->num_play);
             break;
         case MKTAG('f', 'c', 'T', 'L'):
-            if (!acTL_found || len != 26) {
-                return AVERROR_INVALIDDATA;
+            if (!acTL_found) {
+               ret = AVERROR_INVALIDDATA;
+               goto fail;
             }
             if ((ret = avio_seek(pb, -8, SEEK_CUR)) < 0)
-                return ret;
+                goto fail;
             return 0;
         default:
             if ((ret = avio_seek(pb, -8, SEEK_CUR)) < 0 ||
                 (ret = append_extradata(st->codecpar, pb, len + 12)) < 0)
-                return ret;
+                goto fail;
         }
     }
+
+fail:
+    if (st->codecpar->extradata_size) {
+        av_freep(&st->codecpar->extradata);
+        st->codecpar->extradata_size = 0;
+    }
+    return ret;
 }
 
 static int decode_fctl_chunk(AVFormatContext *s, APNGDemuxContext *ctx, AVPacket *pkt)
@@ -330,10 +343,6 @@ static int apng_read_packet(AVFormatContext *s, AVPacket *pkt)
 
     len = avio_rb32(pb);
     tag = avio_rl32(pb);
-
-    if (avio_feof(pb))
-        return AVERROR_EOF;
-
     switch (tag) {
     case MKTAG('f', 'c', 'T', 'L'):
         if (len != 26)
@@ -381,8 +390,9 @@ static int apng_read_packet(AVFormatContext *s, AVPacket *pkt)
 
         if (ctx->is_key_frame)
             pkt->flags |= AV_PKT_FLAG_KEY;
-        pkt->pts = pkt->dts = AV_NOPTS_VALUE;
+        pkt->pts = ctx->pkt_pts;
         pkt->duration = ctx->pkt_duration;
+        ctx->pkt_pts += ctx->pkt_duration;
         return ret;
     case MKTAG('I', 'E', 'N', 'D'):
         ctx->cur_loop++;

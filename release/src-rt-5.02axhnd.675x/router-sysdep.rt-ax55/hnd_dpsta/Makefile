@@ -1,7 +1,7 @@
 #
 # Makefile for the Dualband Proxy STA
 #
-# Copyright (C) 2022, Broadcom. All Rights Reserved.
+# Copyright (C) 2021, Broadcom. All Rights Reserved.
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -20,6 +20,12 @@
 # $Id$
 #
 include ../../.config
+
+ifeq ($(strip $(USE_WLAN_SHARED)), 1)
+ifneq ($(strip $(WLAN_SHARED_DIR)),)
+-include $(WLAN_SHARED_DIR)/wifi_cfg_common.mk
+endif
+endif
 
 obj-${CONFIG_BCM_WLAN} := dpsta.o
 

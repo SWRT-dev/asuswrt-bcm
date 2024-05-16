@@ -33,6 +33,7 @@
 #include "libavutil/opt.h"
 #include "libavutil/imgutils.h"
 #include "libavutil/pixdesc.h"
+#include "libavutil/timer.h"
 #include "avcodec.h"
 #include "get_bits.h"
 #include "internal.h"
@@ -152,7 +153,9 @@ static av_always_inline int fold(int diff, int bits)
     if (bits == 8)
         diff = (int8_t)diff;
     else {
-        diff = sign_extend(diff, bits);
+        diff +=  1 << (bits  - 1);
+        diff  = av_mod_uintp2(diff, bits);
+        diff -=  1 << (bits  - 1);
     }
 
     return diff;
@@ -173,13 +176,19 @@ static inline void update_vlc_state(VlcState *const state, const int v)
     count++;
 
     if (drift <= -count) {
-        state->bias = FFMAX(state->bias - 1, -128);
+        if (state->bias > -128)
+            state->bias--;
 
-        drift = FFMAX(drift + count, -count + 1);
+        drift += count;
+        if (drift <= -count)
+            drift = -count + 1;
     } else if (drift > 0) {
-        state->bias = FFMIN(state->bias + 1, 127);
+        if (state->bias < 127)
+            state->bias++;
 
-        drift = FFMIN(drift - count, 0);
+        drift -= count;
+        if (drift > 0)
+            drift = 0;
     }
 
     state->drift = drift;

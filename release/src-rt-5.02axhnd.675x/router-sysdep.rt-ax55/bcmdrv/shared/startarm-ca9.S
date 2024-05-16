@@ -1,7 +1,7 @@
 /*
  * BCM53XXX ARM/Cortext A9 boot code for standalone apps.
  *
- * Copyright (C) 2022, Broadcom. All Rights Reserved.
+ * Copyright (C) 2021, Broadcom. All Rights Reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -48,7 +48,7 @@
 #error "CFG_STACK_SIZE not defined"
 #else
 #define STACK_SIZE	((CFG_STACK_SIZE+1023) & ~1023)
-#endif
+#endif // endif
 
 #define envram_ofs	0x1000
 
@@ -58,12 +58,12 @@
 #define FUNC(x)	THUMBLEAF(x)
 #else
 #define FUNC(x)	LEAF(x)
-#endif
+#endif // endif
 
 /* Debug macro */
 #ifdef TRACE
 #undef TRACE
-#endif
+#endif // endif
 #ifdef BCMDBG
 #define TRACE(x) \
 	ldr	r9,=(x); \
@@ -71,13 +71,13 @@
 	str	r9,[r10,#0x64]
 #else
 #define TRACE(x)
-#endif
+#endif // endif
 
 #define envram_ofs	0x400
 
 #if CFG_BIENDIAN
 #define CFE_EPTSEAL_REV 0x31454643
-#endif
+#endif // endif
 #define CFE_EPTSEAL 0x43464531
 #define cfe_command_restart 0
 
@@ -4245,7 +4245,7 @@ embedded_nvram:
 #else
 #define RUNTIME_RELOC_START	0
 #define RUNTIME_RELOC_STOP	0
-#endif
+#endif // endif
 
 #include "segtable.h"
 
@@ -5245,7 +5245,7 @@ call_c_main:
 	/* CFEZ: set return addr to argment ra */
 	ldr	r0,_theend_ofs
 	add	r0,r0,r2
-#endif
+#endif // endif
 	/* jump to it ... */
 	mov	pc,lr
 
@@ -5684,7 +5684,7 @@ END(__aeabi_unwind_cpp_pr0)
  */
 #ifdef CONFIG_XIP
 	.data
-#endif
+#endif // endif
 
 	DW(_memsize, 0)
 
@@ -5693,7 +5693,7 @@ END(__aeabi_unwind_cpp_pr0)
 
 #ifdef	CONFIG_XIP
 	.text
-#endif
+#endif // endif
 
 #ifdef _CFE_
 
@@ -5739,7 +5739,7 @@ FUNC(_cfe_flushcache)
 	mov	ip,lr			/* save lr across calls */
 	bl	cpu_flush_cache_all
 	mov	lr,ip			/* restore lr */
-#endif
+#endif // endif
 
 	mov pc, lr
 
@@ -5843,7 +5843,7 @@ FUNC(RunProgram)
 #if CFG_EMBEDDED_PIC
 	ldr r1,mem_textreloc	/* relocate table entry */
 	add r2,r2,r1
-#endif
+#endif // endif
 
 	mov r4,r0
 	mov r1,#0		/* A1 = 0 */

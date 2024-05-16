@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2008-2017 Tobias Brunner
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -94,19 +93,14 @@ METHOD(hasher_t, destroy, void,
  */
 const EVP_MD *openssl_get_md(hash_algorithm_t hash)
 {
-	const EVP_MD *md;
 	char *name;
 
-	name = strdupnull(enum_to_name(hash_algorithm_short_names, hash));
+	name = enum_to_name(hash_algorithm_short_names, hash);
 	if (!name)
 	{
 		return NULL;
 	}
-	/* for SHA3, we use underscores, while OpenSSL uses dashes */
-	translate(name, "_", "-");
-	md = EVP_get_digestbyname(name);
-	free(name);
-	return md;
+	return EVP_get_digestbyname(name);
 }
 
 /*

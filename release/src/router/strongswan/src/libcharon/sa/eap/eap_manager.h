@@ -1,8 +1,7 @@
 /*
  * Copyright (C) 2012 Tobias Brunner
  * Copyright (C) 2008 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -45,7 +44,7 @@ struct eap_manager_t {
 	 * @param role			EAP role of the registered method
 	 * @param constructor	constructor function, returns an eap_method_t
 	 */
-	void (*add_method)(eap_manager_t *this, eap_type_t type, pen_t vendor,
+	void (*add_method)(eap_manager_t *this, eap_type_t type, uint32_t vendor,
 					   eap_role_t role, eap_constructor_t constructor);
 
 	/**
@@ -62,7 +61,7 @@ struct eap_manager_t {
 	 * even though it is registered as method with this manager).
 	 *
 	 * @param role			EAP role of methods to enumerate
-	 * @return				enumerator over (eap_type_t type, pen_t vendor)
+	 * @return				enumerator over (eap_type_t type, uint32_t vendor)
 	 */
 	enumerator_t* (*create_enumerator)(eap_manager_t *this, eap_role_t role);
 
@@ -77,7 +76,7 @@ struct eap_manager_t {
 	 * @return				EAP method instance, NULL if no constructor found
 	 */
 	eap_method_t* (*create_instance)(eap_manager_t *this, eap_type_t type,
-									 pen_t vendor, eap_role_t role,
+									 uint32_t vendor, eap_role_t role,
 									 identification_t *server,
 									 identification_t *peer);
 

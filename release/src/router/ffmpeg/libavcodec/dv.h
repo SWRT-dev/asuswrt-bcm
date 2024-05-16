@@ -31,7 +31,6 @@
 #include "dv_profile.h"
 #include "me_cmp.h"
 #include "vlc.h"
-#include "idctdsp.h"
 
 typedef struct DVwork_chunk {
     uint16_t buf_offset;
@@ -53,7 +52,6 @@ typedef struct DVVideoContext {
     me_cmp_func ildct_cmp;
     DVwork_chunk work_chunks[4 * 12 * 27];
     uint32_t idct_factor[2 * 4 * 16 * 64];
-    IDCTDSPContext idsp;
 
     int quant_deadzone;
 } DVVideoContext;
@@ -83,7 +81,6 @@ enum dv_pack_type {
 
 #define DV_PROFILE_IS_HD(p) ((p)->video_stype & 0x10)
 #define DV_PROFILE_IS_1080i50(p) (((p)->video_stype == 0x14) && ((p)->dsf == 1))
-#define DV_PROFILE_IS_1080i60(p) (((p)->video_stype == 0x14) && ((p)->dsf == 0))
 #define DV_PROFILE_IS_720p50(p)  (((p)->video_stype == 0x18) && ((p)->dsf == 1))
 
 /**

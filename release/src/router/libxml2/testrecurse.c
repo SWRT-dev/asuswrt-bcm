@@ -10,10 +10,13 @@
  * daniel@veillard.com
  */
 
+#ifdef HAVE_CONFIG_H
 #include "libxml.h"
+#else
 #include <stdio.h>
+#endif
 
-#if !defined(_WIN32)
+#if !defined(_WIN32) || defined(__CYGWIN__)
 #include <unistd.h>
 #endif
 #include <string.h>
@@ -44,7 +47,7 @@ typedef int (*functest) (const char *filename, const char *result,
 typedef struct testDesc testDesc;
 typedef testDesc *testDescPtr;
 struct testDesc {
-    const char *desc; /* description of the test */
+    const char *desc; /* descripton of the test */
     functest    func; /* function implementing the test */
     const char *in;   /* glob to path for input files */
     const char *out;  /* output directory */
@@ -56,7 +59,7 @@ struct testDesc {
 static int checkTestFile(const char *filename);
 
 
-#if defined(_WIN32)
+#if defined(_WIN32) && !defined(__CYGWIN__)
 
 #include <windows.h>
 #include <io.h>
@@ -69,8 +72,8 @@ typedef struct
 } glob_t;
 
 #define GLOB_DOOFFS 0
-static int glob(const char *pattern, ATTRIBUTE_UNUSED int flags,
-                ATTRIBUTE_UNUSED int errfunc(const char *epath, int eerrno),
+static int glob(const char *pattern, int flags,
+                int errfunc(const char *epath, int eerrno),
                 glob_t *pglob) {
     glob_t *ret;
     WIN32_FIND_DATA FindFileData;
@@ -145,7 +148,8 @@ static void globfree(glob_t *pglob) {
              free(pglob->gl_pathv[i]);
     }
 }
-
+#define vsnprintf _vsnprintf
+#define snprintf _snprintf
 #else
 #include <glob.h>
 #endif
@@ -632,8 +636,8 @@ static char *resultFilename(const char *filename, const char *out,
       suffixbuff[0]='_';
 #endif
 
-    if (snprintf(res, 499, "%s%s%s", out, base, suffixbuff) >= 499)
-        res[499] = 0;
+    snprintf(res, 499, "%s%s%s", out, base, suffixbuff);
+    res[499] = 0;
     return(strdup(res));
 }
 
@@ -643,7 +647,7 @@ static int checkTestFile(const char *filename) {
     if (stat(filename, &buf) == -1)
         return(0);
 
-#if defined(_WIN32)
+#if defined(_WIN32) && !defined(__CYGWIN__)
     if (!(buf.st_mode & _S_IFREG))
         return(0);
 #else
@@ -680,10 +684,12 @@ recursiveDetectTest(const char *filename,
     xmlDocPtr doc;
     xmlParserCtxtPtr ctxt;
     int res = 0;
+    int mem;
 
     nb_tests++;
 
     ctxt = xmlNewParserCtxt();
+    mem = xmlMemUsed();
     /*
      * base of the test, parse with the old API
      */
@@ -719,10 +725,12 @@ notRecursiveDetectTest(const char *filename,
     xmlDocPtr doc;
     xmlParserCtxtPtr ctxt;
     int res = 0;
+    int mem;
 
     nb_tests++;
 
     ctxt = xmlNewParserCtxt();
+    mem = xmlMemUsed();
     /*
      * base of the test, parse with the old API
      */

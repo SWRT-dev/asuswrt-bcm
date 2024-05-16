@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2018 Tobias Brunner
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -24,14 +23,8 @@
  */
 static ike_cfg_t *create_ike_cfg()
 {
-	ike_cfg_create_t ike = {
-		.version = IKEV2,
-		.local = "127.0.0.1",
-		.local_port = 500,
-		.remote = "127.0.0.1",
-		.remote_port = 500,
-	};
-	return ike_cfg_create(&ike);
+	return ike_cfg_create(IKEV2, TRUE, FALSE, "127.0.0.1", 500,
+						  "127.0.0.1", 500, FRAGMENTATION_NO, 0);
 }
 
 /**

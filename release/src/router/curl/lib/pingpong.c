@@ -5,7 +5,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2022, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2021, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -17,8 +17,6 @@
  *
  * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
  * KIND, either express or implied.
- *
- * SPDX-License-Identifier: curl
  *
  *   'pingpong' is for generic back-and-forth support functions used by FTP,
  *   IMAP, POP3, SMTP and whatever more that likes them.
@@ -34,6 +32,7 @@
 #include "speedcheck.h"
 #include "pingpong.h"
 #include "multiif.h"
+#include "non-ascii.h"
 #include "vtls/vtls.h"
 
 /* The last 3 #include files should be in this order */
@@ -200,6 +199,11 @@ CURLcode Curl_pp_vsendf(struct Curl_easy *data,
   s = Curl_dyn_ptr(&pp->sendbuf);
   Curl_pp_init(data, pp);
 
+  result = Curl_convert_to_network(data, s, write_len);
+  /* Curl_convert_to_network calls failf if unsuccessful */
+  if(result)
+    return result;
+
 #ifdef HAVE_GSSAPI
   conn->data_prot = PROT_CMD;
 #endif
@@ -295,7 +299,7 @@ CURLcode Curl_pp_readresp(struct Curl_easy *data,
        */
       if((ptr + pp->cache_size) > (buf + data->set.buffer_size + 1)) {
         failf(data, "cached response data too big to handle");
-        return CURLE_WEIRD_SERVER_REPLY;
+        return CURLE_RECV_ERROR;
       }
       memcpy(ptr, pp->cache, pp->cache_size);
       gotbytes = (ssize_t)pp->cache_size;
@@ -319,6 +323,11 @@ CURLcode Curl_pp_readresp(struct Curl_easy *data,
 #endif
       if(result == CURLE_AGAIN)
         return CURLE_OK; /* return */
+
+      if(!result && (gotbytes > 0))
+        /* convert from the network encoding */
+        result = Curl_convert_from_network(data, ptr, gotbytes);
+      /* Curl_convert_from_network calls failf if unsuccessful */
 
       if(result)
         /* Set outer result variable to this error. */

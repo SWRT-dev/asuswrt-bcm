@@ -13,7 +13,7 @@ AM_CPPFLAGS = \
 	-I$(top_srcdir)/src/libstrongswan \
 	-I$(top_srcdir)/src/libtncif \
 	-I$(top_srcdir)/src/libimcv \
-	-DPLUGINS=\""random openssl wolfssl sqlite curl"\"
+	-DPLUGINS=\""random openssl sqlite curl"\"
 
 AM_CFLAGS = $(json_CFLAGS)
 

@@ -1,8 +1,7 @@
 /*
  * Copyright (C) 2009 Martin Willi
- * Copyright (C) 2009-2022 Andreas Steffen
- *
- * Copyright (C) secunet Security Networks AG
+ * Copyright (C) 2009-2017 Andreas Steffen
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -22,10 +21,9 @@
 
 #include <collections/linked_list.h>
 #include <credentials/certificates/certificate.h>
-#include <credentials/certificates/pkcs10.h>
 
 /**
- * Create a self-signed PKCS#10 certificate request.
+ * Create a self-signed PKCS#10 certificate requesst.
  */
 static int req()
 {
@@ -33,16 +31,13 @@ static int req()
 	key_type_t type = KEY_ANY;
 	hash_algorithm_t digest = HASH_UNKNOWN;
 	signature_params_t *scheme = NULL;
-	certificate_t *cert = NULL, *oldreq = NULL;
-	pkcs10_t *pkcs10;
+	certificate_t *cert = NULL;
 	private_key_t *private = NULL;
 	char *file = NULL, *keyid = NULL, *dn = NULL, *error = NULL;
-	char *oldreq_file = NULL;
 	identification_t *id = NULL;
 	linked_list_t *san;
 	chunk_t encoding = chunk_empty;
 	chunk_t challenge_password = chunk_empty;
-	chunk_t cert_type_ext = chunk_empty;
 	char *arg;
 	bool pss = lib->settings->get_bool(lib->settings, "%s.rsa_pss", FALSE,
 									   lib->ns);
@@ -53,9 +48,9 @@ static int req()
 	{
 		switch (command_getopt(&arg))
 		{
-			case 'h':       /* --help */
+			case 'h':
 				goto usage;
-			case 't':       /* --type */
+			case 't':
 				if (streq(arg, "rsa"))
 				{
 					type = KEY_RSA;
@@ -78,17 +73,16 @@ static int req()
 					goto usage;
 				}
 				continue;
-			case 'g':       /* --digest */
+			case 'g':
 				if (!enum_from_name(hash_algorithm_short_names, arg, &digest))
 				{
 					error = "invalid --digest type";
 					goto usage;
 				}
 				continue;
-			case 'R':       /* --rsa-padding */
+			case 'R':
 				if (streq(arg, "pss"))
 				{
-
 					pss = TRUE;
 				}
 				else if (!streq(arg, "pkcs1"))
@@ -97,33 +91,27 @@ static int req()
 					goto usage;
 				}
 				continue;
-			case 'i':       /* --in */
+			case 'i':
 				file = arg;
 				continue;
-			case 'd':       /* --dn */
+			case 'd':
 				dn = arg;
 				continue;
-			case 'a':       /* --san */
+			case 'a':
 				san->insert_last(san, identification_create_from_string(arg));
 				continue;
-			case 'P':       /* --profile */
-				cert_type_ext = chunk_create(arg, strlen(arg));
-				continue;
-			case 'p':       /* --password */
+			case 'p':
 				challenge_password = chunk_create(arg, strlen(arg));
 				continue;
-			case 'f':       /* --outform */
+			case 'f':
 				if (!get_form(arg, &form, CRED_CERTIFICATE))
 				{
 					error = "invalid output format";
 					goto usage;
 				}
 				continue;
-			case 'x':       /* --keyid */
+			case 'x':
 				keyid = arg;
-				continue;
-			case 'o':       /* --oldreq */
-				oldreq_file = arg;
 				continue;
 			case EOF:
 				break;
@@ -134,12 +122,17 @@ static int req()
 		break;
 	}
 
-	if (!dn && !oldreq_file)
+	if (!dn)
 	{
-		error = "--dn or --oldreq is required";
+		error = "--dn is required";
 		goto usage;
 	}
-
+	id = identification_create_from_string(dn);
+	if (id->get_type(id) != ID_DER_ASN1_DN)
+	{
+		error = "supplied --dn is not a distinguished name";
+		goto end;
+	}
 	if (file)
 	{
 		private = lib->creds->create(lib->creds, CRED_PRIVATE_KEY, type,
@@ -181,46 +174,17 @@ static int req()
 		goto end;
 	}
 
-	if (oldreq_file)
+	cert = lib->creds->create(lib->creds, CRED_CERTIFICATE, CERT_PKCS10_REQUEST,
+							  BUILD_SIGNING_KEY, private,
+							  BUILD_SUBJECT, id,
+							  BUILD_SUBJECT_ALTNAMES, san,
+							  BUILD_CHALLENGE_PWD, challenge_password,
+							  BUILD_SIGNATURE_SCHEME, scheme,
+							  BUILD_END);
+	if (!cert)
 	{
-		oldreq = lib->creds->create(lib->creds, CRED_CERTIFICATE,
-									CERT_PKCS10_REQUEST,
-									BUILD_FROM_FILE, oldreq_file, BUILD_END);
-		if (!oldreq)
-		{
-			error = "parsing certificate request failed";
-			goto end;
-		}
-		pkcs10 = (pkcs10_t*)oldreq;
-		cert = pkcs10->replace_key(pkcs10, private, scheme, challenge_password);
-		if (!cert)
-		{
-			error = "key replacement in certificate request failed";
-			oldreq->destroy(oldreq);
-			goto end;
-		}
-	}
-	else
-	{
-		id = identification_create_from_string(dn);
-		if (id->get_type(id) != ID_DER_ASN1_DN)
-		{
-			error = "supplied --dn is not a distinguished name";
-			goto end;
-		}
-		cert = lib->creds->create(lib->creds, CRED_CERTIFICATE, CERT_PKCS10_REQUEST,
-								  BUILD_SIGNING_KEY, private,
-								  BUILD_SUBJECT, id,
-								  BUILD_SUBJECT_ALTNAMES, san,
-								  BUILD_CHALLENGE_PWD, challenge_password,
-								  BUILD_CERT_TYPE_EXT, cert_type_ext,
-								  BUILD_SIGNATURE_SCHEME, scheme,
-								  BUILD_END);
-		if (!cert)
-		{
-			error = "generating certificate request failed";
-			goto end;
-		}
+		error = "generating certificate request failed";
+		goto end;
 	}
 	if (!cert->get_encoding(cert, form, &encoding))
 	{
@@ -262,24 +226,22 @@ static void __attribute__ ((constructor))reg()
 	command_register((command_t) {
 		req, 'r', "req",
 		"create a PKCS#10 certificate request",
-		{"[--in file|--keyid hex] [--type rsa|ecdsa|bliss|priv]",
-		 " --oldreq file|--dn distinguished-name [--san subjectAltName]+",
-		 "[--profile server|client|dual|ocsp] [--password challengePassword]",
-		 "[--digest sha1|sha224|sha256|sha384|sha512|sha3_224|sha3_256|sha3_384|sha3_512]",
-		 "[--rsa-padding pkcs1|pss] [--outform der|pem]"},
+		{"[--in file|--keyid hex] [--type rsa|ecdsa|bliss|priv] --dn distinguished-name",
+		 "[--san subjectAltName]+ [--password challengePassword]",
+		 "[--digest md5|sha1|sha224|sha256|sha384|sha512|sha3_224|sha3_256|sha3_384|sha3_512]",
+		 "[--rsa-padding pkcs1|pss]",
+		 "[--outform der|pem]"},
 		{
-			{"help",        'h', 0, "show usage information"},
-			{"in",          'i', 1, "private key input file, default: stdin"},
-			{"keyid",       'x', 1, "smartcard or TPM private key object handle"},
-			{"type",        't', 1, "type of input key, default: priv"},
-			{"oldreq",      'o', 1, "old certificate request to be used as a template"},
-			{"dn",          'd', 1, "subject distinguished name"},
-			{"san",         'a', 1, "subjectAltName to include in cert request"},
-			{"profile",     'P', 1, "certificate profile name to include in cert request"},
-			{"password",    'p', 1, "challengePassword to include in cert request"},
-			{"digest",      'g', 1, "digest for signature creation, default: key-specific"},
-			{"rsa-padding", 'R', 1, "padding for RSA signatures, default: pkcs1"},
-			{"outform",     'f', 1, "encoding of generated request, default: der"},
+			{"help",		'h', 0, "show usage information"},
+			{"in",			'i', 1, "private key input file, default: stdin"},
+			{"keyid",		'x', 1, "smartcard or TPM private key object handle"},
+			{"type",		't', 1, "type of input key, default: priv"},
+			{"dn",			'd', 1, "subject distinguished name"},
+			{"san",			'a', 1, "subjectAltName to include in cert request"},
+			{"password",	'p', 1, "challengePassword to include in cert request"},
+			{"digest",		'g', 1, "digest for signature creation, default: key-specific"},
+			{"rsa-padding",	'R', 1, "padding for RSA signatures, default: pkcs1"},
+			{"outform",		'f', 1, "encoding of generated request, default: der"},
 		}
 	});
 }

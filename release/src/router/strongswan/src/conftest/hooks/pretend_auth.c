@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2010 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * Copyright (C) 2010 revosec AG
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -306,12 +305,12 @@ static void process_auth_response(private_pretend_auth_t *this,
 	if (this->tsi)
 	{
 		message->add_payload(message, (payload_t*)
-					ts_payload_create_from_traffic_selectors(TRUE, this->tsi, NULL));
+					ts_payload_create_from_traffic_selectors(TRUE, this->tsi));
 	}
 	if (this->tsr)
 	{
 		message->add_payload(message, (payload_t*)
-					ts_payload_create_from_traffic_selectors(FALSE, this->tsr, NULL));
+					ts_payload_create_from_traffic_selectors(FALSE, this->tsr));
 	}
 }
 

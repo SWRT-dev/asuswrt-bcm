@@ -1,8 +1,9 @@
 /*
  * Copyright (C) 2015 Tobias Brunner
- * Copyright (C) 2012 Martin Willi
+ * HSR Hochschule fuer Technik Rapperswil
  *
- * Copyright (C) secunet Security Networks AG
+ * Copyright (C) 2012 Martin Willi
+ * Copyright (C) 2012 revosec AG
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -211,8 +212,8 @@ METHOD(job_t, execute, job_requeue_t,
 													  this->id);
 			if (ike_sa)
 			{
-				while (children->remove_first(children,
-											  (void**)&child_sa) == SUCCESS)
+				while (children->remove_last(children,
+											 (void**)&child_sa) == SUCCESS)
 				{
 					ike_sa->add_child_sa(ike_sa, child_sa);
 				}
@@ -252,7 +253,7 @@ METHOD(job_t, execute, job_requeue_t,
 					task->migrate(task, ike_sa);
 					ike_sa->queue_task(ike_sa, task);
 				}
-				if (ike_sa->initiate(ike_sa, NULL, NULL) == DESTROY_ME)
+				if (ike_sa->initiate(ike_sa, NULL, 0, NULL, NULL) == DESTROY_ME)
 				{
 					charon->ike_sa_manager->checkin_and_destroy(
 											charon->ike_sa_manager, ike_sa);

@@ -24,6 +24,7 @@ libstrongswan_kernel_netlink_la_LIBADD = $(DLLIB)
 
 libstrongswan_kernel_netlink_la_LDFLAGS = -module -avoid-version
 
+
 TESTS = kernel_netlink_tests
 
 check_PROGRAMS = $(TESTS)

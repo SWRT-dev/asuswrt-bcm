@@ -51,7 +51,7 @@ enum {
     MPEG2_EXTENSION_PICTURE_CODING            = 0x8,
     MPEG2_EXTENSION_PICTURE_SPATIAL_SCALABLE  = 0x9,
     MPEG2_EXTENSION_PICTURE_TEMPORAL_SCALABLE = 0xa,
-    MPEG2_EXTENSION_CAMERA_PARAMETERS         = 0xb,
+    MPEG2_EXTENSION_CAMAERA_PARAMETERS        = 0xb,
     MPEG2_EXTENSION_ITU_T                     = 0xc,
 };
 
@@ -76,9 +76,9 @@ typedef struct MPEG2RawSequenceHeader {
 typedef struct MPEG2RawUserData {
     uint8_t user_data_start_code;
 
-    uint8_t     *user_data;
+    uint8_t *user_data;
+    size_t user_data_length;
     AVBufferRef *user_data_ref;
-    size_t       user_data_length;
 } MPEG2RawUserData;
 
 typedef struct MPEG2RawSequenceExtension {
@@ -114,12 +114,6 @@ typedef struct MPEG2RawGroupOfPicturesHeader {
     uint8_t broken_link;
 } MPEG2RawGroupOfPicturesHeader;
 
-typedef struct MPEG2RawExtraInformation {
-    uint8_t     *extra_information;
-    AVBufferRef *extra_information_ref;
-    size_t       extra_information_length;
-} MPEG2RawExtraInformation;
-
 typedef struct MPEG2RawPictureHeader {
     uint8_t picture_start_code;
 
@@ -132,7 +126,7 @@ typedef struct MPEG2RawPictureHeader {
     uint8_t full_pel_backward_vector;
     uint8_t backward_f_code;
 
-    MPEG2RawExtraInformation extra_information_picture;
+    uint8_t extra_bit_picture;
 } MPEG2RawPictureHeader;
 
 typedef struct MPEG2RawPictureCodingExtension {
@@ -170,8 +164,8 @@ typedef struct MPEG2RawQuantMatrixExtension {
 } MPEG2RawQuantMatrixExtension;
 
 typedef struct MPEG2RawPictureDisplayExtension {
-    int16_t frame_centre_horizontal_offset[3];
-    int16_t frame_centre_vertical_offset[3];
+    uint16_t frame_centre_horizontal_offset[3];
+    uint16_t frame_centre_vertical_offset[3];
 } MPEG2RawPictureDisplayExtension;
 
 typedef struct MPEG2RawExtensionData {
@@ -200,21 +194,21 @@ typedef struct MPEG2RawSliceHeader {
     uint8_t slice_picture_id_enable;
     uint8_t slice_picture_id;
 
-    MPEG2RawExtraInformation extra_information_slice;
+    uint8_t extra_bit_slice;
+
+    size_t extra_information_length;
+    uint8_t *extra_information;
+    AVBufferRef *extra_information_ref;
 } MPEG2RawSliceHeader;
 
 typedef struct MPEG2RawSlice {
     MPEG2RawSliceHeader header;
 
-    uint8_t     *data;
+    uint8_t *data;
+    size_t   data_size;
+    int      data_bit_start;
     AVBufferRef *data_ref;
-    size_t       data_size;
-    int          data_bit_start;
 } MPEG2RawSlice;
-
-typedef struct MPEG2RawSequenceEnd {
-    uint8_t sequence_end_code;
-} MPEG2RawSequenceEnd;
 
 
 typedef struct CodedBitstreamMPEG2Context {
@@ -225,6 +219,10 @@ typedef struct CodedBitstreamMPEG2Context {
     uint8_t scalable_mode;
     uint8_t progressive_sequence;
     uint8_t number_of_frame_centre_offsets;
+
+    // Write buffer.
+    uint8_t *write_buffer;
+    size_t write_buffer_size;
 } CodedBitstreamMPEG2Context;
 
 

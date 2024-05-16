@@ -1,8 +1,9 @@
 /*
  * Copyright (C) 2012-2017 Tobias Brunner
- * Copyright (C) 2012 Martin Willi
+ * HSR Hochschule fuer Technik Rapperswil
  *
- * Copyright (C) secunet Security Networks AG
+ * Copyright (C) 2012 Martin Willi
+ * Copyright (C) 2012 revosec AG
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -63,7 +64,7 @@ struct private_phase1_t {
 	/**
 	 * DH exchange
 	 */
-	key_exchange_t *dh;
+	diffie_hellman_t *dh;
 
 	/**
 	 * Keymat derivation (from SA)
@@ -87,7 +88,7 @@ struct private_phase1_t {
 };
 
 /**
- * Get the first authentication config from peer config
+ * Get the first authentcation config from peer config
  */
 static auth_cfg_t *get_auth_cfg(peer_cfg_t *peer_cfg, bool local)
 {
@@ -142,10 +143,11 @@ static shared_key_t *lookup_shared_key(private_phase1_t *this,
 
 	if (peer_cfg)
 	{	/* as initiator or aggressive responder, use identities */
+		my_auth = get_auth_cfg(peer_cfg, TRUE);
 		other_auth = get_auth_cfg(peer_cfg, FALSE);
-		if (other_auth)
+		if (my_auth && other_auth)
 		{
-			my_id = this->ike_sa->get_my_id(this->ike_sa);
+			my_id = my_auth->get(my_auth, AUTH_RULE_IDENTITY);
 			if (peer_cfg->use_aggressive(peer_cfg))
 			{
 				other_id = this->ike_sa->get_other_id(this->ike_sa);
@@ -154,7 +156,10 @@ static shared_key_t *lookup_shared_key(private_phase1_t *this,
 			{
 				other_id = other_auth->get(other_auth, AUTH_RULE_IDENTITY);
 			}
-			shared_key = find_shared_key(my_id, me, other_id, other);
+			if (my_id)
+			{
+				shared_key = find_shared_key(my_id, me, other_id, other);
+			}
 		}
 	}
 	else
@@ -210,9 +215,9 @@ METHOD(phase1_t, create_hasher, bool,
 }
 
 METHOD(phase1_t, create_dh, bool,
-	private_phase1_t *this, key_exchange_method_t group)
+	private_phase1_t *this, diffie_hellman_group_t group)
 {
-	this->dh = this->keymat->keymat.create_ke(&this->keymat->keymat, group);
+	this->dh = this->keymat->keymat.create_dh(&this->keymat->keymat, group);
 	return this->dh != NULL;
 }
 
@@ -624,7 +629,6 @@ METHOD(phase1_t, get_id, identification_t*,
 			if (!me->is_anyaddr(me))
 			{
 				id = identification_create_from_sockaddr(me->get_sockaddr(me));
-				auth = this->ike_sa->get_auth_cfg(this->ike_sa, TRUE);
 				auth->add(auth, AUTH_RULE_IDENTITY, id);
 			}
 		}
@@ -705,8 +709,8 @@ METHOD(phase1_t, add_nonce_ke, bool,
 	nonce_gen_t *nonceg;
 	chunk_t nonce;
 
-	ke_payload = ke_payload_create_from_key_exchange(PLV1_KEY_EXCHANGE,
-													 this->dh);
+	ke_payload = ke_payload_create_from_diffie_hellman(PLV1_KEY_EXCHANGE,
+													   this->dh);
 	if (!ke_payload)
 	{
 		DBG1(DBG_IKE, "creating KE payload failed");
@@ -756,7 +760,7 @@ METHOD(phase1_t, get_nonce_ke, bool,
 		return FALSE;
 	}
 	this->dh_value = chunk_clone(ke_payload->get_key_exchange_data(ke_payload));
-	if (!this->dh->set_public_key(this->dh, this->dh_value))
+	if (!this->dh->set_other_public_value(this->dh, this->dh_value))
 	{
 		DBG1(DBG_IKE, "unable to apply received KE value");
 		return FALSE;

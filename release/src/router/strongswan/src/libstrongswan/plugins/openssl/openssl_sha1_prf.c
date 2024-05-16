@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2010 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -14,15 +13,9 @@
  * for more details.
  */
 
-/* direct access to the state and the SHA1_* API have been deprecated with
- * OpenSSL 3, so at some point this won't work anymore */
-#define OPENSSL_SUPPRESS_DEPRECATED
-
-#include <openssl/opensslv.h>
 #include <openssl/opensslconf.h>
 
-#if !defined(OPENSSL_NO_SHA1) && \
-	(OPENSSL_VERSION_NUMBER < 0x30000000L || !defined(OPENSSL_NO_DEPRECATED))
+#ifndef OPENSSL_NO_SHA1
 
 #include "openssl_sha1_prf.h"
 
@@ -50,10 +43,14 @@ struct private_openssl_sha1_prf_t {
 METHOD(prf_t, get_bytes, bool,
 	private_openssl_sha1_prf_t *this, chunk_t seed, uint8_t *bytes)
 {
+#if OPENSSL_VERSION_NUMBER >= 0x10000000L
 	if (!SHA1_Update(&this->ctx, seed.ptr, seed.len))
 	{
 		return FALSE;
 	}
+#else /* OPENSSL_VERSION_NUMBER < 1.0 */
+	SHA1_Update(&this->ctx, seed.ptr, seed.len);
+#endif
 
 	if (bytes)
 	{
@@ -95,10 +92,14 @@ METHOD(prf_t, get_key_size, size_t,
 METHOD(prf_t, set_key, bool,
 	private_openssl_sha1_prf_t *this, chunk_t key)
 {
+#if OPENSSL_VERSION_NUMBER >= 0x10000000L
 	if (!SHA1_Init(&this->ctx))
 	{
 		return FALSE;
 	}
+#else /* OPENSSL_VERSION_NUMBER < 1.0 */
+	SHA1_Init(&this->ctx);
+#endif
 
 	if (key.len % 4)
 	{
@@ -161,4 +162,4 @@ openssl_sha1_prf_t *openssl_sha1_prf_create(pseudo_random_function_t algo)
 	return &this->public;
 }
 
-#endif /* !OPENSSL_NO_SHA1 && SHA_LONG */
+#endif /* OPENSSL_NO_SHA1 */

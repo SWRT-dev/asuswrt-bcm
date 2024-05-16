@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2012 Tobias Brunner
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -27,6 +28,8 @@
 
 /**
  * Initialize the NetworkManager backend.
+ *
+ * @return		TRUE, if initialization was successful
  */
 void nm_backend_register();
 

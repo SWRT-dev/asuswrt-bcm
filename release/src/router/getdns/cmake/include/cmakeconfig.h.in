@@ -58,10 +58,6 @@
 #cmakedefine HAVE_OPENSSL_RAND_H        1
 #cmakedefine HAVE_OPENSSL_CONF_H        1
 #cmakedefine HAVE_OPENSSL_ENGINE_H      1
-#cmakedefine HAVE_OPENSSL_BN_H          1
-#cmakedefine HAVE_OPENSSL_DSA_H         1
-#cmakedefine HAVE_OPENSSL_RSA_H         1
-#cmakedefine HAVE_OPENSSL_PARAM_BUILD_H 1
 
 #cmakedefine HAVE_DSA_SIG_SET0		1
 #cmakedefine HAVE_DSA_SET0_PQG		1
@@ -92,12 +88,10 @@
 #cmakedefine HAVE_OPENSSL_VERSION	1
 
 #cmakedefine HAVE_SSL_CTX_DANE_ENABLE	1
-#cmakedefine HAVE_SSL_CTX_SET_CIPHERSUITES	1
-#cmakedefine HAVE_SSL_SET_CIPHERSUITES	1
+#cmakedefine HAVE_SSL_CTX_SET_CIPHERSUITS	1
+#cmakedefine HAVE_SSL_SET_CIPHERSUITS	1
 
 #cmakedefine HAVE_OPENSSL_INIT_CRYPTO	1
-
-#cmakedefine HAVE_OSSL_PARAM_BLD_NEW	1
 
 #cmakedefine HAVE_SSL_DANE_ENABLE			1
 #cmakedefine HAVE_DECL_SSL_CTX_SET1_CURVES_LIST		1
@@ -218,8 +212,6 @@
 #cmakedefine USE_ED448			1
 
 #cmakedefine USE_OSX_TCP_FASTOPEN	1
-
-#cmakedefine HAVE_DECL_TCP_USER_TIMEOUT	1
 
 #cmakedefine HAVE_NEW_UV_TIMER_CB	1
 
@@ -457,7 +449,7 @@ static inline int _gldns_custom_vsnprintf(char *str, size_t size, const char *fo
 #  define ATTR_UNUSED(x)  x
 #elif defined(__cplusplus)
 #  define ATTR_UNUSED(x)
-#elif defined(__GNUC__)
+#elif defined(HAVE_ATTR_UNUSED)
 #  define ATTR_UNUSED(x)  x __attribute__((unused))
 #else /* !HAVE_ATTR_UNUSED */
 #  define ATTR_UNUSED(x)  x

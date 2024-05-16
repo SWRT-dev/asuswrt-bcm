@@ -26,8 +26,6 @@
  * @see http://wiki.multimedia.cx/index.php?title=Electronic_Arts_TQI
  */
 
-#include "libavutil/mem_internal.h"
-
 #include "avcodec.h"
 #include "blockdsp.h"
 #include "bswapdsp.h"
@@ -85,7 +83,7 @@ static int tqi_decode_mb(TqiContext *t, int16_t (*block)[64])
         if (ret < 0) {
             av_log(t->avctx, AV_LOG_ERROR, "ac-tex damaged at %d %d\n",
                    t->mb_x, t->mb_y);
-            return ret;
+            return -1;
         }
     }
 
@@ -132,9 +130,6 @@ static int tqi_decode_frame(AVCodecContext *avctx,
     TqiContext *t = avctx->priv_data;
     AVFrame *frame = data;
     int ret, w, h;
-
-    if (buf_size < 12)
-        return AVERROR_INVALIDDATA;
 
     t->avctx = avctx;
 
@@ -191,5 +186,4 @@ AVCodec ff_eatqi_decoder = {
     .close          = tqi_decode_end,
     .decode         = tqi_decode_frame,
     .capabilities   = AV_CODEC_CAP_DR1,
-    .caps_internal  = FF_CODEC_CAP_INIT_THREADSAFE,
 };

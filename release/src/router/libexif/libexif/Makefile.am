@@ -2,8 +2,6 @@ EXTRA_DIST =
 lib_LTLIBRARIES =
 noinst_LTLIBRARIES =
 
-# apple makernote currently cannot save itself, which is required functionality... reenable once it does.
-# include apple/Makefile-files
 include canon/Makefile-files
 include fuji/Makefile-files
 include olympus/Makefile-files
@@ -31,10 +29,7 @@ libexif_la_SOURCES =		\
 	exif-mnote-data-priv.h	\
 	exif-tag.c		\
 	exif-utils.c		\
-	i18n.h          \
-	exif-gps-ifd.c  \
-	exif-gps-ifd.h
-
+	i18n.h
 libexif_la_DEPENDENCIES = \
 	$(srcdir)/libexif.sym \
 	libmnote-canon.la		\

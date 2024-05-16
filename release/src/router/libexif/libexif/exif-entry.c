@@ -25,8 +25,6 @@
 #include <libexif/exif-utils.h>
 #include <libexif/i18n.h>
 
-#include <libexif/exif-gps-ifd.h>
-
 #include <ctype.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -166,13 +164,6 @@ exif_entry_free (ExifEntry *e)
 		exif_mem_free (mem, e);
 		exif_mem_unref (mem);
 	}
-}
-
-static void
-clear_entry (ExifEntry *e)
-{
-	e->components = 0;
-	e->size = 0;
 }
 
 /*! Get a value and convert it to an ExifShort.
@@ -376,7 +367,8 @@ exif_entry_fix (ExifEntry *e)
 		if (e->size < 8) {
 			e->data = exif_entry_realloc (e, e->data, 8 + e->size);
 			if (!e->data) {
-				clear_entry(e);
+				e->size = 0;
+				e->components = 0;
 				return;
 			}
 
@@ -418,7 +410,8 @@ exif_entry_fix (ExifEntry *e)
 		    memcmp (e->data, "\0\0\0\0\0\0\0\0", 8)) {
 			e->data = exif_entry_realloc (e, e->data, 8 + e->size);
 			if (!e->data) {
-				clear_entry(e);
+				e->size = 0;
+				e->components = 0;
 				break;
 			}
 
@@ -440,12 +433,13 @@ exif_entry_fix (ExifEntry *e)
 }
 
 /*! Format the value of an ExifEntry for human display in a generic way.
- * The output is localized. The formatting is independent of the tag number
- * and is based entirely on the data type.
+ * The output is localized. The formatting is independent of the tag number.
+ * \pre The buffer at val is entirely cleared to 0. This guarantees that the
+ *      resulting string will be NUL terminated.
  * \pre The ExifEntry is already a member of an ExifData.
  * \param[in] e EXIF entry
  * \param[out] val buffer in which to store value
- * \param[in] maxlen the length of the buffer val
+ * \param[in] maxlen one less than the length of the buffer val
  */
 static void
 exif_entry_format_value(ExifEntry *e, char *val, size_t maxlen)
@@ -457,11 +451,11 @@ exif_entry_format_value(ExifEntry *e, char *val, size_t maxlen)
 	ExifRational v_rat;
 	ExifSRational v_srat;
 	ExifSLong v_slong;
+	char b[64];
 	unsigned int i;
-	size_t len;
 	const ExifByteOrder o = exif_data_get_byte_order (e->parent->parent);
 
-	if (!e->size || !maxlen)
+	if (!e->size)
 		return;
 	switch (e->format) {
 	case EXIF_FORMAT_UNDEFINED:
@@ -471,118 +465,123 @@ exif_entry_format_value(ExifEntry *e, char *val, size_t maxlen)
 	case EXIF_FORMAT_SBYTE:
 		v_byte = e->data[0];
 		snprintf (val, maxlen, "0x%02x", v_byte);
-		len = strlen (val);
+		maxlen -= strlen (val);
 		for (i = 1; i < e->components; i++) {
 			v_byte = e->data[i];
-			snprintf (val+len, maxlen-len, ", 0x%02x", v_byte);
-			len += strlen (val+len);
-			if (len >= maxlen-1) break;
+			snprintf (b, sizeof (b), ", 0x%02x", v_byte);
+			strncat (val, b, maxlen);
+			maxlen -= strlen (b);
+			if ((signed)maxlen <= 0) break;
 		}
 		break;
 	case EXIF_FORMAT_SHORT:
 		v_short = exif_get_short (e->data, o);
 		snprintf (val, maxlen, "%u", v_short);
-		len = strlen (val);
+		maxlen -= strlen (val);
 		for (i = 1; i < e->components; i++) {
 			v_short = exif_get_short (e->data +
 				exif_format_get_size (e->format) * i, o);
-			snprintf (val+len, maxlen-len, ", %u", v_short);
-			len += strlen (val+len);
-			if (len >= maxlen-1) break;
+			snprintf (b, sizeof (b), ", %u", v_short);
+			strncat (val, b, maxlen);
+			maxlen -= strlen (b);
+			if ((signed)maxlen <= 0) break;
 		}
 		break;
 	case EXIF_FORMAT_SSHORT:
 		v_sshort = exif_get_sshort (e->data, o);
 		snprintf (val, maxlen, "%i", v_sshort);
-		len = strlen (val);
+		maxlen -= strlen (val);
 		for (i = 1; i < e->components; i++) {
 			v_sshort = exif_get_short (e->data +
 				exif_format_get_size (e->format) *
 				i, o);
-			snprintf (val+len, maxlen-len, ", %i", v_sshort);
-			len += strlen (val+len);
-			if (len >= maxlen-1) break;
+			snprintf (b, sizeof (b), ", %i", v_sshort);
+			strncat (val, b, maxlen);
+			maxlen -= strlen (b);
+			if ((signed)maxlen <= 0) break;
 		}
 		break;
 	case EXIF_FORMAT_LONG:
 		v_long = exif_get_long (e->data, o);
-		snprintf (val, maxlen, "%lu", (unsigned long) v_long);
-		len = strlen (val);
+		snprintf (val, maxlen, "%lu", (long int) v_long);
+		maxlen -= strlen (val);
 		for (i = 1; i < e->components; i++) {
 			v_long = exif_get_long (e->data +
 				exif_format_get_size (e->format) *
 				i, o);
-			snprintf (val+len, maxlen-len, ", %lu", (unsigned long) v_long);
-			len += strlen (val+len);
-			if (len >= maxlen-1) break;
+			snprintf (b, sizeof (b), ", %lu", (long int) v_long);
+			strncat (val, b, maxlen);
+			maxlen -= strlen (b);
+			if ((signed)maxlen <= 0) break;
 		}
 		break;
 	case EXIF_FORMAT_SLONG:
 		v_slong = exif_get_slong (e->data, o);
 		snprintf (val, maxlen, "%li", (long) v_slong);
-		len = strlen (val);
+		maxlen -= strlen (val);
 		for (i = 1; i < e->components; i++) {
 			v_slong = exif_get_slong (e->data +
 				exif_format_get_size (e->format) * i, o);
-			snprintf (val+len, maxlen-len, ", %li", (long) v_slong);
-			len += strlen (val+len);
-			if (len >= maxlen-1) break;
+			snprintf (b, sizeof (b), ", %li", (long) v_slong);
+			strncat (val, b, maxlen);
+			maxlen -= strlen (b);
+			if ((signed)maxlen <= 0) break;
 		}
 		break;
 	case EXIF_FORMAT_ASCII:
-		strncpy (val, (char *) e->data, MIN (maxlen-1, e->size));
-		val[MIN (maxlen-1, e->size)] = 0;
+		strncpy (val, (char *) e->data, MIN (maxlen, e->size));
 		break;
 	case EXIF_FORMAT_RATIONAL:
-		len = 0;
-		for (i = 0; i < e->components; i++) {
-			if (i > 0) {
-				snprintf (val+len, maxlen-len, ", ");
-				len += strlen (val+len);
-			}
-			v_rat = exif_get_rational (
-				e->data + 8 * i, o);
-			if (v_rat.denominator) {
-				/*
-				 * Choose the number of significant digits to
-				 * display based on the size of the denominator.
-				 * It is scaled so that denominators within the
-				 * range 13..120 will show 2 decimal points.
-				 */
-				int decimals = (int)(log10(v_rat.denominator)-0.08+1.0);
-				snprintf (val+len, maxlen-len, "%2.*f",
-					  decimals,
-					  (double) v_rat.numerator /
-					  (double) v_rat.denominator);
-			} else
-				snprintf (val+len, maxlen-len, "%lu/%lu",
+		v_rat = exif_get_rational (e->data, o);
+		if (v_rat.denominator)
+			snprintf (val, maxlen, "%2.2lf",
+				  (double) v_rat.numerator /
+				  (double) v_rat.denominator);
+		else
+			snprintf (val, maxlen, "%lu/%lu",
 				  (unsigned long) v_rat.numerator,
 				  (unsigned long) v_rat.denominator);
-			len += strlen (val+len);
-			if (len >= maxlen-1) break;
+		maxlen -= strlen (val);
+		for (i = 1; i < e->components; i++) {
+			v_rat = exif_get_rational (
+				e->data + 8 * i, o);
+			if (v_rat.denominator)
+				snprintf (b, sizeof (b), ", %2.2lf",
+					  (double) v_rat.numerator /
+					  (double) v_rat.denominator);
+			else
+				snprintf (b, sizeof (b), ", %lu/%lu",
+				  (unsigned long) v_rat.numerator,
+				  (unsigned long) v_rat.denominator);
+			strncat (val, b, maxlen);
+			maxlen -= strlen (b);
+			if ((signed) maxlen <= 0) break;
 		}
 		break;
 	case EXIF_FORMAT_SRATIONAL:
-		len = 0;
-		for (i = 0; i < e->components; i++) {
-			if (i > 0) {
-				snprintf (val+len, maxlen-len, ", ");
-				len += strlen (val+len);
-			}
-			v_srat = exif_get_srational (
-				e->data + 8 * i, o);
-			if (v_srat.denominator) {
-				int decimals = (int)(log10(abs(v_srat.denominator))-0.08+1.0);
-				snprintf (val+len, maxlen-len, "%2.*f",
-					  decimals,
-					  (double) v_srat.numerator /
-					  (double) v_srat.denominator);
-			} else
-				snprintf (val+len, maxlen-len, "%li/%li",
+		v_srat = exif_get_srational (e->data, o);
+		if (v_srat.denominator) {
+			snprintf (val, maxlen, "%2.2f",
+				  (double)v_srat.numerator / v_srat.denominator);
+		} else {
+			snprintf (val, maxlen, "%li/%li",
 				  (long) v_srat.numerator,
 				  (long) v_srat.denominator);
-			len += strlen (val+len);
-			if (len >= maxlen-1) break;
+		}
+		maxlen -= strlen (val);
+		for (i = 1; i < e->components; i++) {
+			v_srat = exif_get_srational (
+				e->data + 8 * i, o);
+			if (v_srat.denominator)
+				snprintf (b, sizeof (b), ", %2.2f",
+					  (double)v_srat.numerator / v_srat.denominator);
+			else
+				snprintf (b, sizeof (b), ", %li/%li",
+					  (long) v_srat.numerator,
+					  (long) v_srat.denominator);
+			strncat (val, b, maxlen);
+			maxlen -= strlen (b);
+			if ((signed) maxlen <= 0) break;
 		}
 		break;
 	case EXIF_FORMAT_DOUBLE:
@@ -599,46 +598,22 @@ exif_entry_dump (ExifEntry *e, unsigned int indent)
 {
 	char buf[1024];
 	char value[1024];
-	unsigned int l;
+	unsigned int i;
+
+	for (i = 0; i < 2 * indent; i++)
+		buf[i] = ' ';
+	buf[i] = '\0';
 
 	if (!e)
 		return;
 
-	l = MIN(sizeof(buf)-1, 2*indent);
-	memset(buf, ' ', l);
-	buf[l] = '\0';
-
 	printf ("%sTag: 0x%x ('%s')\n", buf, e->tag,
-		exif_tag_get_name_in_ifd (e->tag, exif_entry_get_ifd(e)));
+		exif_tag_get_name (e->tag));
 	printf ("%s  Format: %i ('%s')\n", buf, e->format,
 		exif_format_get_name (e->format));
 	printf ("%s  Components: %i\n", buf, (int) e->components);
 	printf ("%s  Size: %i\n", buf, e->size);
 	printf ("%s  Value: %s\n", buf, exif_entry_get_value (e, value, sizeof(value)));
-}
-
-/*! Check if a string consists entirely of a single, repeated character.
- * Up to first n bytes are checked.
- * 
- * \param[in] data pointer of string to check
- * \param[in] ch character to match
- * \param[in] n maximum number of characters to match
- *
- * \return 0 if the string matches or is of zero length, nonzero otherwise
- */
-static int
-match_repeated_char(const unsigned char *data, unsigned char ch, size_t n)
-{
-	int i;
-	for (i=n; i; --i, ++data) {
-		if (*data == 0) {
-			i = 0;	/* all bytes before NUL matched */
-			break;
-		}
-		if (*data != ch)
-			break;
-	}
-	return i;
 }
 
 #define CF(entry,target,v,maxlen)					\
@@ -672,18 +647,18 @@ static const struct {
 } list[] = {
 #ifndef NO_VERBOSE_TAG_DATA
   { EXIF_TAG_PLANAR_CONFIGURATION,
-    { N_("Chunky format"), N_("Planar format"), NULL}},
+    { N_("chunky format"), N_("planar format"), NULL}},
   { EXIF_TAG_SENSING_METHOD,
     { "", N_("Not defined"), N_("One-chip color area sensor"),
       N_("Two-chip color area sensor"), N_("Three-chip color area sensor"),
       N_("Color sequential area sensor"), "", N_("Trilinear sensor"),
       N_("Color sequential linear sensor"), NULL}},
   { EXIF_TAG_ORIENTATION,
-    { "", N_("Top-left"), N_("Top-right"), N_("Bottom-right"),
-      N_("Bottom-left"), N_("Left-top"), N_("Right-top"),
-      N_("Right-bottom"), N_("Left-bottom"), NULL}},
+    { "", N_("top - left"), N_("top - right"), N_("bottom - right"),
+      N_("bottom - left"), N_("left - top"), N_("right - top"),
+      N_("right - bottom"), N_("left - bottom"), NULL}},
   { EXIF_TAG_YCBCR_POSITIONING,
-    { "", N_("Centered"), N_("Co-sited"), NULL}},
+    { "", N_("centered"), N_("co-sited"), NULL}},
   { EXIF_TAG_PHOTOMETRIC_INTERPRETATION,
     { N_("Reversed mono"), N_("Normal mono"), N_("RGB"), N_("Palette"), "",
       N_("CMYK"), N_("YCbCr"), "", N_("CieLAB"), NULL}},
@@ -710,19 +685,17 @@ static const struct {
 static const struct {
   ExifTag tag;
   struct {
-    ExifShort index;
-    const char *values[4]; /*!< list of progressively shorter string
-			    descriptions; the longest one that fits will be
-			    selected */
+    int index;
+    const char *values[4];
   } elem[25];
 } list2[] = {
 #ifndef NO_VERBOSE_TAG_DATA
   { EXIF_TAG_METERING_MODE,
     { {  0, {N_("Unknown"), NULL}},
-      {  1, {N_("Average"), N_("Avg"), NULL}},
-      {  2, {N_("Center-weighted average"), N_("Center-weight"), NULL}},
+      {  1, {N_("Average"), N_("avg"), NULL}},
+      {  2, {N_("Center-Weighted Average"), N_("Center-Weight"), NULL}},
       {  3, {N_("Spot"), NULL}},
-      {  4, {N_("Multi spot"), NULL}},
+      {  4, {N_("Multi Spot"), NULL}},
       {  5, {N_("Pattern"), NULL}},
       {  6, {N_("Partial"), NULL}},
       {255, {N_("Other"), NULL}},
@@ -780,22 +753,12 @@ static const struct {
       {8, {N_("Landscape mode (for landscape photos with the background "
 	      "in focus)"), N_("Landscape"), NULL}},
       {0, {NULL}}}},
-  { EXIF_TAG_SENSITIVITY_TYPE,
-    { {0, {N_("Unknown"), NULL}},
-      {1, {N_("Standard output sensitivity (SOS)"), NULL}},
-      {2, {N_("Recommended exposure index (REI)"), NULL}},
-      {3, {N_("ISO speed"), NULL}},
-      {4, {N_("Standard output sensitivity (SOS) and recommended exposure index (REI)"), NULL}},
-      {5, {N_("Standard output sensitivity (SOS) and ISO speed"), NULL}},
-      {6, {N_("Recommended exposure index (REI) and ISO speed"), NULL}},
-      {7, {N_("Standard output sensitivity (SOS) and recommended exposure index (REI) and ISO speed"), NULL}},
-      {0, {NULL}}}},
   { EXIF_TAG_FLASH,
-    { {0x0000, {N_("Flash did not fire"), N_("No flash"), NULL}},
-      {0x0001, {N_("Flash fired"), N_("Flash"), N_("Yes"), NULL}},
-      {0x0005, {N_("Strobe return light not detected"), N_("Without strobe"),
+    { {0x0000, {N_("Flash did not fire"), N_("no flash"), NULL}},
+      {0x0001, {N_("Flash fired"), N_("flash"), N_("Yes"), NULL}},
+      {0x0005, {N_("Strobe return light not detected"), N_("W/o strobe"),
 		NULL}},
-      {0x0007, {N_("Strobe return light detected"), N_("With strobe"), NULL}},
+      {0x0007, {N_("Strobe return light detected"), N_("W. strobe"), NULL}},
       {0x0008, {N_("Flash did not fire"), NULL}}, /* Olympus E-330 */
       {0x0009, {N_("Flash fired, compulsory flash mode"), NULL}},
       {0x000d, {N_("Flash fired, compulsory flash mode, return light "
@@ -838,12 +801,6 @@ static const struct {
       {2, {N_("Adobe RGB"), NULL}},
       {0xffff, {N_("Uncalibrated"), NULL}},
       {0x0000, {NULL}}}},
-  { EXIF_TAG_COMPOSITE_IMAGE,
-    { {0, {N_("Unknown"), NULL}},
-      {1, {N_("Not a composite image"), NULL}},
-      {2, {N_("General composite image"), NULL}},
-      {3, {N_("Composite image captured while shooting"), NULL}},
-      {0, {NULL}}}},
 #endif
   {0, { { 0, {NULL}}} }
 };
@@ -852,6 +809,7 @@ const char *
 exif_entry_get_value (ExifEntry *e, char *val, unsigned int maxlen)
 {
 	unsigned int i, j, k;
+	const unsigned char *t;
 	ExifShort v_short, v_short2, v_short3, v_short4;
 	ExifByte v_byte;
 	ExifRational v_rat;
@@ -871,23 +829,26 @@ exif_entry_get_value (ExifEntry *e, char *val, unsigned int maxlen)
 		{"0210", 2,  1},
 		{"0220", 2,  2},
 		{"0221", 2, 21},
-		{"0230", 2,  3},
-		{"0231", 2, 31},
-		{"0232", 2, 32},
 		{""    , 0,  0}
 	};
 
-	(void) bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);
-
-	if (!e || !e->parent || !e->parent->parent || !maxlen || !val)
-		return val;
+	/* FIXME: This belongs to somewhere else. */
+	/* libexif should use the default system locale.
+	 * If an application specifically requires UTF-8, then we
+	 * must give the application a way to tell libexif that.
+	 * 
+	 * bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
+	 */
+	bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);
 
 	/* make sure the returned string is zero terminated */
-	/* FIXME: this is inefficient in the case of long buffers and should
-	 * instead be taken care of on each write instead. */
 	memset (val, 0, maxlen);
+	maxlen--;
+	memset (b, 0, sizeof (b));
 
 	/* We need the byte order */
+	if (!e || !e->parent || !e->parent->parent)
+		return val;
 	o = exif_data_get_byte_order (e->parent->parent);
 
 	/* Sanity check */
@@ -921,11 +882,11 @@ exif_entry_get_value (ExifEntry *e, char *val, unsigned int maxlen)
 		 * NULL terminated.
 		 */
 		if ((e->size >= 8) && !memcmp (e->data, "ASCII\0\0\0", 8)) {
-			strncpy (val, (char *) e->data + 8, MIN (e->size - 8, maxlen-1));
+			strncpy (val, (char *) e->data + 8, MIN (e->size - 8, maxlen));
 			break;
 		}
 		if ((e->size >= 8) && !memcmp (e->data, "UNICODE\0", 8)) {
-			strncpy (val, _("Unsupported UNICODE string"), maxlen-1);
+			strncpy (val, _("Unsupported UNICODE string"), maxlen);
 		/* FIXME: use iconv to convert into the locale encoding.
 		 * EXIF 2.2 implies (but does not say) that this encoding is
 		 * UCS-2.
@@ -933,7 +894,7 @@ exif_entry_get_value (ExifEntry *e, char *val, unsigned int maxlen)
 			break;
 		}
 		if ((e->size >= 8) && !memcmp (e->data, "JIS\0\0\0\0\0", 8)) {
-			strncpy (val, _("Unsupported JIS string"), maxlen-1);
+			strncpy (val, _("Unsupported JIS string"), maxlen);
 		/* FIXME: use iconv to convert into the locale encoding */
 			break;
 		}
@@ -945,24 +906,24 @@ exif_entry_get_value (ExifEntry *e, char *val, unsigned int maxlen)
 
 		/*
 		 * If we reach this point, the tag does not
- 		 * comply with the standard but seems to contain data.
+		 * comply with the standard and seems to contain data.
 		 * Print as much as possible.
-		 * Note: make sure we do not overwrite the final \0 at maxlen-1
 		 */
 		exif_entry_log (e, EXIF_LOG_CODE_DEBUG,
-			_("Tag UserComment contains data but is "
-			  "against specification."));
- 		for (j = 0; (i < e->size) && (j < maxlen-1); i++, j++) {
+			_("Tag UserComment does not comply "
+			"with standard but contains data."));
+		for (; (i < e->size)  && (strlen (val) < maxlen - 1); i++) {
 			exif_entry_log (e, EXIF_LOG_CODE_DEBUG,
 				_("Byte at position %i: 0x%02x"), i, e->data[i]);
- 			val[j] = isprint (e->data[i]) ? e->data[i] : '.';
+			val[strlen (val)] =
+				isprint (e->data[i]) ? e->data[i] : '.';
 		}
 		break;
 
 	case EXIF_TAG_EXIF_VERSION:
 		CF (e, EXIF_FORMAT_UNDEFINED, val, maxlen);
 		CC (e, 4, val, maxlen);
-		strncpy (val, _("Unknown Exif Version"), maxlen-1);
+		strncpy (val, _("Unknown Exif Version"), maxlen);
 		for (i = 0; *versions[i].label; i++) {
 			if (!memcmp (e->data, versions[i].label, 4)) {
     				snprintf (val, maxlen,
@@ -977,11 +938,11 @@ exif_entry_get_value (ExifEntry *e, char *val, unsigned int maxlen)
 		CF (e, EXIF_FORMAT_UNDEFINED, val, maxlen);
 		CC (e, 4, val, maxlen);
 		if (!memcmp (e->data, "0100", 4))
-			strncpy (val, _("FlashPix Version 1.0"), maxlen-1);
+			strncpy (val, _("FlashPix Version 1.0"), maxlen);
 		else if (!memcmp (e->data, "0101", 4))
-			strncpy (val, _("FlashPix Version 1.01"), maxlen-1);
+			strncpy (val, _("FlashPix Version 1.01"), maxlen);
 		else
-			strncpy (val, _("Unknown FlashPix Version"), maxlen-1);
+			strncpy (val, _("Unknown FlashPix Version"), maxlen);
 		break;
 	case EXIF_TAG_COPYRIGHT:
 		CF (e, EXIF_FORMAT_ASCII, val, maxlen);
@@ -989,33 +950,28 @@ exif_entry_get_value (ExifEntry *e, char *val, unsigned int maxlen)
 		/*
 		 * First part: Photographer.
 		 * Some cameras store a string like "   " here. Ignore it.
-		 * Remember that a corrupted tag might not be NUL-terminated
 		 */
-		if (e->size && e->data && match_repeated_char(e->data, ' ', e->size))
-			strncpy (val, (char *) e->data, MIN (maxlen-1, e->size));
+		if (e->size && e->data &&
+		    (strspn ((char *)e->data, " ") != strlen ((char *) e->data)))
+			strncpy (val, (char *) e->data, MIN (maxlen, e->size));
 		else
-			strncpy (val, _("[None]"), maxlen-1);
-		strncat (val, " ", maxlen-1 - strlen (val));
-		strncat (val, _("(Photographer)"), maxlen-1 - strlen (val));
+			strncpy (val, _("[None]"), maxlen);
+		strncat (val, " ", maxlen - strlen (val));
+		strncat (val, _("(Photographer)"), maxlen - strlen (val));
 
 		/* Second part: Editor. */
-		strncat (val, " - ", maxlen-1 - strlen (val));
-		k = 0;
+		strncat (val, " - ", maxlen - strlen (val));
 		if (e->size && e->data) {
-			const unsigned char *tagdata = memchr(e->data, 0, e->size);
-			if (tagdata++) {
-				unsigned int editor_ofs = tagdata - e->data;
-				unsigned int remaining = e->size - editor_ofs;
-				if (match_repeated_char(tagdata, ' ', remaining)) {
-					strncat (val, (const char*)tagdata, MIN (maxlen-1 - strlen (val), remaining));
-					++k;
-				}
-			}
+			size_t ts;
+			t = e->data + strlen ((char *) e->data) + 1;
+			ts = e->data + e->size - t;
+			if ((ts > 0) && (strspn ((char *)t, " ") != ts))
+				strncat (val, (char *)t, MIN (maxlen - strlen (val), ts));
+		} else {
+			strncat (val, _("[None]"), maxlen - strlen (val));
 		}
-		if (!k)
-			strncat (val, _("[None]"), maxlen-1 - strlen (val));
-		strncat (val, " ", maxlen-1 - strlen (val));
-		strncat (val, _("(Editor)"), maxlen-1 - strlen (val));
+		strncat (val, " ", maxlen - strlen (val));
+		strncat (val, _("(Editor)"), maxlen - strlen (val));
 
 		break;
 	case EXIF_TAG_FNUMBER:
@@ -1027,21 +983,22 @@ exif_entry_get_value (ExifEntry *e, char *val, unsigned int maxlen)
 			break;
 		}
 		d = (double) v_rat.numerator / (double) v_rat.denominator;
-		snprintf (val, maxlen, "f/%.01f", d);
+		snprintf (val, maxlen, "f/%.01lf", d);
 		break;
 	case EXIF_TAG_APERTURE_VALUE:
 	case EXIF_TAG_MAX_APERTURE_VALUE:
 		CF (e, EXIF_FORMAT_RATIONAL, val, maxlen);
 		CC (e, 1, val, maxlen);
 		v_rat = exif_get_rational (e->data, o);
-		if (!v_rat.denominator || (0x80000000 == v_rat.numerator)) {
+		if (!v_rat.denominator) {
 			exif_entry_format_value(e, val, maxlen);
 			break;
 		}
 		d = (double) v_rat.numerator / (double) v_rat.denominator;
-		snprintf (val, maxlen, _("%.02f EV"), d);
+		snprintf (val, maxlen, _("%.02lf EV"), d);
 		snprintf (b, sizeof (b), _(" (f/%.01f)"), pow (2, d / 2.));
-		strncat (val, b, maxlen-1 - strlen (val));
+		if (maxlen > strlen (val) + strlen (b))
+			strncat (val, b, maxlen - strlen (val));
 		break;
 	case EXIF_TAG_FOCAL_LENGTH:
 		CF (e, EXIF_FORMAT_RATIONAL, val, maxlen);
@@ -1060,12 +1017,12 @@ exif_entry_get_value (ExifEntry *e, char *val, unsigned int maxlen)
 		d = 0.;
 		entry = exif_content_get_entry (
 			e->parent->parent->ifd[EXIF_IFD_0], EXIF_TAG_MAKE);
-		if (entry && entry->data && entry->size >= 7 &&
+		if (entry && entry->data &&
 		    !strncmp ((char *)entry->data, "Minolta", 7)) {
 			entry = exif_content_get_entry (
 					e->parent->parent->ifd[EXIF_IFD_0],
 					EXIF_TAG_MODEL);
-			if (entry && entry->data && entry->size >= 8) {
+			if (entry && entry->data) {
 				if (!strncmp ((char *)entry->data, "DiMAGE 7", 8))
 					d = 3.9;
 				else if (!strncmp ((char *)entry->data, "DiMAGE 5", 8))
@@ -1073,15 +1030,14 @@ exif_entry_get_value (ExifEntry *e, char *val, unsigned int maxlen)
 			}
 		}
 		if (d)
-			snprintf (b, sizeof (b), _(" (35 equivalent: %.0f mm)"),
-				  (d * (double) v_rat.numerator /
-				       (double) v_rat.denominator));
-		else
-			b[0] = 0;
+			snprintf (b, sizeof (b), _(" (35 equivalent: %d mm)"),
+				  (int) (d * (double) v_rat.numerator /
+				  	     (double) v_rat.denominator));
 
 		d = (double) v_rat.numerator / (double) v_rat.denominator;
-		snprintf (val, maxlen, "%.1f mm", d);
-		strncat (val, b, maxlen-1 - strlen (val));
+		snprintf (val, maxlen, "%.1lf mm", d);
+		if (maxlen > strlen (val) + strlen (b))
+			strncat (val, b, maxlen - strlen (val));
 		break;
 	case EXIF_TAG_SUBJECT_DISTANCE:
 		CF (e, EXIF_FORMAT_RATIONAL, val, maxlen);
@@ -1092,7 +1048,7 @@ exif_entry_get_value (ExifEntry *e, char *val, unsigned int maxlen)
 			break;
 		}
 		d = (double) v_rat.numerator / (double) v_rat.denominator;
-		snprintf (val, maxlen, "%.1f m", d);
+		snprintf (val, maxlen, "%.1lf m", d);
 		break;
 	case EXIF_TAG_EXPOSURE_TIME:
 		CF (e, EXIF_FORMAT_RATIONAL, val, maxlen);
@@ -1103,11 +1059,12 @@ exif_entry_get_value (ExifEntry *e, char *val, unsigned int maxlen)
 			break;
 		}
 		d = (double) v_rat.numerator / (double) v_rat.denominator;
-		if (d < 1 && d)
-			snprintf (val, maxlen, _("1/%.0f"), 1. / d);
+		if (d < 1)
+			snprintf (val, maxlen, _("1/%i"), (int) (0.5 + 1. / d));
 		else
-			snprintf (val, maxlen, "%.0f", d);
-		strncat (val, _(" sec."), maxlen-1 - strlen (val));
+			snprintf (val, maxlen, "%i", (int) d);
+		if (maxlen > strlen (val) + strlen (_(" sec.")))
+			strncat (val, _(" sec."), maxlen - strlen (val));
 		break;
 	case EXIF_TAG_SHUTTER_SPEED_VALUE:
 		CF (e, EXIF_FORMAT_SRATIONAL, val, maxlen);
@@ -1119,13 +1076,12 @@ exif_entry_get_value (ExifEntry *e, char *val, unsigned int maxlen)
 		}
 		d = (double) v_srat.numerator / (double) v_srat.denominator;
 		snprintf (val, maxlen, _("%.02f EV"), d);
-		if (pow (2, d))
-			d = 1. / pow (2, d);
-		if (d < 1 && d)
-		  snprintf (b, sizeof (b), _(" (1/%.0f sec.)"), 1. / d);
+		d = 1. / pow (2, d);
+		if (d < 1)
+		  snprintf (b, sizeof (b), _(" (1/%d sec.)"), (int) (1. / d));
 		else
-		  snprintf (b, sizeof (b), _(" (%.0f sec.)"), d);
-		strncat (val, b, maxlen-1 - strlen (val));
+		  snprintf (b, sizeof (b), _(" (%d sec.)"), (int) d);
+		strncat (val, b, maxlen - strlen (val));
 		break;
 	case EXIF_TAG_BRIGHTNESS_VALUE:
 		CF (e, EXIF_FORMAT_SRATIONAL, val, maxlen);
@@ -1139,14 +1095,15 @@ exif_entry_get_value (ExifEntry *e, char *val, unsigned int maxlen)
 		snprintf (val, maxlen, _("%.02f EV"), d);
 		snprintf (b, sizeof (b), _(" (%.02f cd/m^2)"),
 			1. / (M_PI * 0.3048 * 0.3048) * pow (2, d));
-		strncat (val, b, maxlen-1 - strlen (val));
+		if (maxlen > strlen (val) + strlen (b))
+			strncat (val, b, maxlen - strlen (val));
 		break;
 	case EXIF_TAG_FILE_SOURCE:
 		CF (e, EXIF_FORMAT_UNDEFINED, val, maxlen);
 		CC (e, 1, val, maxlen);
 		v_byte = e->data[0];
 		if (v_byte == 3)
-			strncpy (val, _("DSC"), maxlen-1);
+			strncpy (val, _("DSC"), maxlen);
 		else
 			snprintf (val, maxlen, _("Internal error (unknown "
 				  "value %i)"), v_byte);
@@ -1163,11 +1120,11 @@ exif_entry_get_value (ExifEntry *e, char *val, unsigned int maxlen)
 			case 4: c = _("R"); break;
 			case 5: c = _("G"); break;
 			case 6: c = _("B"); break;
-			default: c = _("Reserved"); break;
+			default: c = _("reserved"); break;
 			}
-			strncat (val, c, maxlen-1 - strlen (val));
+			strncat (val, c, maxlen - strlen (val));
 			if (i < 3)
-				strncat (val, " ", maxlen-1 - strlen (val));
+				strncat (val, " ", maxlen - strlen (val));
 		}
 		break;
 	case EXIF_TAG_EXPOSURE_BIAS_VALUE:
@@ -1186,7 +1143,7 @@ exif_entry_get_value (ExifEntry *e, char *val, unsigned int maxlen)
 		CC (e, 1, val, maxlen);
 		v_byte = e->data[0];
 		if (v_byte == 1)
-			strncpy (val, _("Directly photographed"), maxlen-1);
+			strncpy (val, _("Directly photographed"), maxlen);
 		else
 			snprintf (val, maxlen, _("Internal error (unknown "
 				  "value %i)"), v_byte);
@@ -1199,9 +1156,9 @@ exif_entry_get_value (ExifEntry *e, char *val, unsigned int maxlen)
 			e->data + exif_format_get_size (e->format),
 			o);
 		if ((v_short == 2) && (v_short2 == 1))
-			strncpy (val, _("YCbCr4:2:2"), maxlen-1);
+			strncpy (val, _("YCbCr4:2:2"), maxlen);
 		else if ((v_short == 2) && (v_short2 == 2))
-			strncpy (val, _("YCbCr4:2:0"), maxlen-1);
+			strncpy (val, _("YCbCr4:2:0"), maxlen);
 		else
 			snprintf (val, maxlen, "%u, %u", v_short, v_short2);
 		break;
@@ -1244,17 +1201,20 @@ exif_entry_get_value (ExifEntry *e, char *val, unsigned int maxlen)
 		CC (e, 4, val, maxlen);
 		v_byte = e->data[0];
 		snprintf (val, maxlen, "%u", v_byte);
+		maxlen -= strlen (val);
 		for (i = 1; i < e->components; i++) {
 			v_byte = e->data[i];
 			snprintf (b, sizeof (b), ".%u", v_byte);
-			strncat (val, b, maxlen-1 - strlen (val));
+			strncat (val, b, maxlen);
+			maxlen -= strlen (b);
+			if ((signed)maxlen <= 0) break;
 		}
 		break;
 	case EXIF_TAG_INTEROPERABILITY_VERSION:
 	/* a.k.a. case EXIF_TAG_GPS_LATITUDE: */
 		/* This tag occurs in EXIF_IFD_INTEROPERABILITY */
 		if (e->format == EXIF_FORMAT_UNDEFINED) {
-			strncpy (val, (char *) e->data, MIN (maxlen-1, e->size));
+			strncpy (val, (char *) e->data, MIN (maxlen, e->size));
 			break;
 		}
 		/* EXIF_TAG_GPS_LATITUDE is the same numerically as
@@ -1268,9 +1228,9 @@ exif_entry_get_value (ExifEntry *e, char *val, unsigned int maxlen)
 		CC (e, 1, val, maxlen);
 		v_byte = e->data[0];
 		if (v_byte == 0)
-			strncpy (val, _("Sea level"), maxlen-1);
+			strncpy (val, _("Sea level"), maxlen);
 		else if (v_byte == 1)
-			strncpy (val, _("Sea level reference"), maxlen-1);
+			strncpy (val, _("Sea level reference"), maxlen);
 		else
 			snprintf (val, maxlen, _("Internal error (unknown "
 				  "value %i)"), v_byte);
@@ -1313,11 +1273,9 @@ exif_entry_get_value (ExifEntry *e, char *val, unsigned int maxlen)
 	case EXIF_TAG_FOCAL_PLANE_RESOLUTION_UNIT:
 	case EXIF_TAG_RESOLUTION_UNIT:
 	case EXIF_TAG_EXPOSURE_PROGRAM:
-	case EXIF_TAG_SENSITIVITY_TYPE:
 	case EXIF_TAG_FLASH:
 	case EXIF_TAG_SUBJECT_DISTANCE_RANGE:
 	case EXIF_TAG_COLOR_SPACE:
-	case EXIF_TAG_COMPOSITE_IMAGE:
 		CF (e,EXIF_FORMAT_SHORT, val, maxlen);
 		CC (e, 1, val, maxlen);
 		v_short = exif_get_short (e->data, o);
@@ -1344,7 +1302,7 @@ exif_entry_get_value (ExifEntry *e, char *val, unsigned int maxlen)
 		for (k = 0; list2[i].elem[j].values[k]; k++) {
 			size_t l = strlen (_(list2[i].elem[j].values[k]));
 			if ((maxlen > l) && (strlen (val) < l))
-				strncpy (val, _(list2[i].elem[j].values[k]), maxlen-1);
+				strncpy (val, _(list2[i].elem[j].values[k]), maxlen);
 		}
 		if (!val[0]) snprintf (val, maxlen, "%i", v_short);
 
@@ -1382,7 +1340,7 @@ exif_entry_get_value (ExifEntry *e, char *val, unsigned int maxlen)
 		else if (!*list[i].strings[j])
 			snprintf (val, maxlen, _("Unknown value %i"), v_short);
 		else
-			strncpy (val, _(list[i].strings[j]), maxlen-1);
+			strncpy (val, _(list[i].strings[j]), maxlen);
 		break;
 
 	case EXIF_TAG_XP_TITLE:
@@ -1390,32 +1348,10 @@ exif_entry_get_value (ExifEntry *e, char *val, unsigned int maxlen)
 	case EXIF_TAG_XP_AUTHOR:
 	case EXIF_TAG_XP_KEYWORDS:
 	case EXIF_TAG_XP_SUBJECT:
-	{
-		unsigned char *utf16;
-
-		/* Sanity check the size to prevent overflow. Note EXIF files are 64kb at most. */
-		if (e->size >= 65536 - sizeof(uint16_t)*2) break;
-
-		/* The tag may not be U+0000-terminated , so make a local
-		   U+0000-terminated copy before converting it */
-		utf16 = exif_mem_alloc (e->priv->mem, e->size+sizeof(uint16_t)+1);
-		if (!utf16) break;
-		memcpy(utf16, e->data, e->size);
-
-		/* NUL terminate the string. If the size is odd (which isn't possible
-		 * for a valid UTF16 string), then this will overwrite the high byte of
-		 * the final half word, plus add a full zero NUL word at the end.
-		 */
-		utf16[e->size] = 0;
-		utf16[e->size+1] = 0;
-		utf16[e->size+2] = 0;
-
 		/* Warning! The texts are converted from UTF16 to UTF8 */
 		/* FIXME: use iconv to convert into the locale encoding */
-		exif_convert_utf16_to_utf8(val, utf16, maxlen);
-		exif_mem_free(e->priv->mem, utf16);
+		exif_convert_utf16_to_utf8(val, (unsigned short*)e->data, MIN(maxlen, e->size));
 		break;
-	}
 
 	default:
 		/* Use a generic value formatting */
@@ -1425,39 +1361,6 @@ exif_entry_get_value (ExifEntry *e, char *val, unsigned int maxlen)
 	return val;
 }
 
-static
-void exif_entry_initialize_gps(ExifEntry *e, ExifTag tag) {
-  const ExifGPSIfdTagInfo* info = exif_get_gps_tag_info(tag);
-
-  if(!info) {
-    e->components = 0;
-    e->format = EXIF_FORMAT_UNDEFINED;
-    e->size = 0;
-    e->data = NULL;
-    return;
-  }
-
-  e->format = info->format;
-  e->components = info->components;
-
-  if(info->components == 0) {
-    /* No pre-allocation */
-    e->size = 0;
-    e->data = NULL;
-  } else {
-    int hasDefault = (info->default_size && info->default_value);
-    int allocSize = hasDefault ? info->default_size : (exif_format_get_size (e->format) * e->components);
-    e->size = allocSize;
-    e->data = exif_entry_alloc (e, e->size);
-    if(!e->data) {
-      clear_entry(e);
-      return;
-    }
-    if(hasDefault) {
-      memcpy(e->data, info->default_value, info->default_size);
-    }
-  }
-}
 
 /*!
  * \bug Log and report failed exif_mem_malloc() calls.
@@ -1474,12 +1377,6 @@ exif_entry_initialize (ExifEntry *e, ExifTag tag)
 	o = exif_data_get_byte_order (e->parent->parent);
 
 	e->tag = tag;
-
-	if(exif_entry_get_ifd(e) == EXIF_IFD_GPS) {
-	  exif_entry_initialize_gps(e, tag);
-      return;
-	}
-
 	switch (tag) {
 
 	/* LONG, 1 component, no default */
@@ -1490,16 +1387,11 @@ exif_entry_initialize (ExifEntry *e, ExifTag tag)
 	case EXIF_TAG_INTEROPERABILITY_IFD_POINTER:
 	case EXIF_TAG_JPEG_INTERCHANGE_FORMAT_LENGTH:
 	case EXIF_TAG_JPEG_INTERCHANGE_FORMAT:
-	case EXIF_TAG_STANDARD_OUTPUT_SENSITIVITY:
-	case EXIF_TAG_RECOMMENDED_EXPOSURE_INDEX:
-	case EXIF_TAG_ISO_SPEED:
-	case EXIF_TAG_ISO_SPEEDLatitudeYYY:
-	case EXIF_TAG_ISO_SPEEDLatitudeZZZ:
 		e->components = 1;
 		e->format = EXIF_FORMAT_LONG;
 		e->size = exif_format_get_size (e->format) * e->components;
 		e->data = exif_entry_alloc (e, e->size);
-		if (!e->data) { clear_entry(e); break; }
+		if (!e->data) break;
 		break;
 
 	/* SHORT, 1 component, no default */
@@ -1514,8 +1406,6 @@ exif_entry_initialize (ExifEntry *e, ExifTag tag)
 	case EXIF_TAG_SUBJECT_DISTANCE_RANGE:
 	case EXIF_TAG_FLASH:
 	case EXIF_TAG_ISO_SPEED_RATINGS:
-	case EXIF_TAG_SENSITIVITY_TYPE:
-	case EXIF_TAG_COMPOSITE_IMAGE:
 
 	/* SHORT, 1 component, default 0 */
 	case EXIF_TAG_IMAGE_WIDTH:
@@ -1532,7 +1422,7 @@ exif_entry_initialize (ExifEntry *e, ExifTag tag)
 		e->format = EXIF_FORMAT_SHORT;
 		e->size = exif_format_get_size (e->format) * e->components;
 		e->data = exif_entry_alloc (e, e->size);
-		if (!e->data) { clear_entry(e); break; }
+		if (!e->data) break;
 		exif_set_short (e->data, o, 0);
 		break;
 
@@ -1544,7 +1434,7 @@ exif_entry_initialize (ExifEntry *e, ExifTag tag)
 		e->format = EXIF_FORMAT_SHORT;
 		e->size = exif_format_get_size (e->format) * e->components;
 		e->data = exif_entry_alloc (e, e->size);
-		if (!e->data) { clear_entry(e); break; }
+		if (!e->data) break;
 		exif_set_short (e->data, o, 1);
 		break;
 
@@ -1555,7 +1445,7 @@ exif_entry_initialize (ExifEntry *e, ExifTag tag)
 		e->format = EXIF_FORMAT_SHORT;
 		e->size = exif_format_get_size (e->format) * e->components;
 		e->data = exif_entry_alloc (e, e->size);
-		if (!e->data) { clear_entry(e); break; }
+		if (!e->data) break;
 		exif_set_short (e->data, o, 2);
 		break;
 
@@ -1565,27 +1455,26 @@ exif_entry_initialize (ExifEntry *e, ExifTag tag)
 		e->format = EXIF_FORMAT_SHORT;
 		e->size = exif_format_get_size (e->format) * e->components;
 		e->data = exif_entry_alloc (e, e->size);
-		if (!e->data) { clear_entry(e); break; }
+		if (!e->data) break;
 		exif_set_short (e->data, o, 3);
 		break;
 
-	/* SHORT, 1 component, default 0xffff */
 	case EXIF_TAG_COLOR_SPACE:
+	/* SHORT, 1 component, default 0xffff */
 		e->components = 1;
 		e->format = EXIF_FORMAT_SHORT;
 		e->size = exif_format_get_size (e->format) * e->components;
 		e->data = exif_entry_alloc (e, e->size);
-		if (!e->data) { clear_entry(e); break; }
+		if (!e->data) break;
 		exif_set_short (e->data, o, 0xffff);
 		break;
 
-	/* SHORT, 3 components, default 8 8 8 */
 	case EXIF_TAG_BITS_PER_SAMPLE:
 		e->components = 3;
 		e->format = EXIF_FORMAT_SHORT;
 		e->size = exif_format_get_size (e->format) * e->components;
 		e->data = exif_entry_alloc (e, e->size);
-		if (!e->data) { clear_entry(e); break; }
+		if (!e->data) break;
 		exif_set_short (e->data, o, 8);
 		exif_set_short (
 			e->data + exif_format_get_size (e->format),
@@ -1595,26 +1484,12 @@ exif_entry_initialize (ExifEntry *e, ExifTag tag)
 			o, 8);
 		break;
 
-	/* SHORT, 2 components, default 0 0 */
-	case EXIF_TAG_SOURCE_IMAGE_NUMBER_OF_COMPOSITE_IMAGE:
-		e->components = 2;
-		e->format = EXIF_FORMAT_SHORT;
-		e->size = exif_format_get_size (e->format) * e->components;
-		e->data = exif_entry_alloc (e, e->size);
-		if (!e->data) { clear_entry(e); break; }
-		exif_set_short (e->data, o, 0);
-		exif_set_short (
-			e->data + exif_format_get_size (e->format),
-			o, 0);
-		break;
-
-	/* SHORT, 2 components, default 2 1 */
 	case EXIF_TAG_YCBCR_SUB_SAMPLING:
 		e->components = 2;
 		e->format = EXIF_FORMAT_SHORT;
 		e->size = exif_format_get_size (e->format) * e->components;
 		e->data = exif_entry_alloc (e, e->size);
-		if (!e->data) { clear_entry(e); break; }
+		if (!e->data) break;
 		exif_set_short (e->data, o, 2);
 		exif_set_short (
 			e->data + exif_format_get_size (e->format),
@@ -1629,7 +1504,7 @@ exif_entry_initialize (ExifEntry *e, ExifTag tag)
 		e->format = EXIF_FORMAT_SRATIONAL;
 		e->size = exif_format_get_size (e->format) * e->components;
 		e->data = exif_entry_alloc (e, e->size);
-		if (!e->data) { clear_entry(e); break; }
+		if (!e->data) break;
 		break;
 
 	/* RATIONAL, 1 component, no default */
@@ -1646,12 +1521,11 @@ exif_entry_initialize (ExifEntry *e, ExifTag tag)
 	case EXIF_TAG_COMPRESSED_BITS_PER_PIXEL:
 	case EXIF_TAG_PRIMARY_CHROMATICITIES:
 	case EXIF_TAG_DIGITAL_ZOOM_RATIO:
-	case EXIF_TAG_GAMMA:
 		e->components = 1;
 		e->format = EXIF_FORMAT_RATIONAL;
 		e->size = exif_format_get_size (e->format) * e->components;
 		e->data = exif_entry_alloc (e, e->size);
-		if (!e->data) { clear_entry(e); break; }
+		if (!e->data) break;
 		break;
 
 	/* RATIONAL, 1 component, default 72/1 */
@@ -1661,7 +1535,7 @@ exif_entry_initialize (ExifEntry *e, ExifTag tag)
 		e->format = EXIF_FORMAT_RATIONAL;
 		e->size = exif_format_get_size (e->format) * e->components;
 		e->data = exif_entry_alloc (e, e->size);
-		if (!e->data) { clear_entry(e); break; }
+		if (!e->data) break;
 		r.numerator = 72;
 		r.denominator = 1;
 		exif_set_rational (e->data, o, r);
@@ -1673,16 +1547,7 @@ exif_entry_initialize (ExifEntry *e, ExifTag tag)
 		e->format = EXIF_FORMAT_RATIONAL;
 		e->size = exif_format_get_size (e->format) * e->components;
 		e->data = exif_entry_alloc (e, e->size);
-		if (!e->data) { clear_entry(e); break; }
-		break;
-
-	/* RATIONAL, 4 components, no default */
-	case EXIF_TAG_LENS_SPECIFICATION:
-		e->components = 4;
-		e->format = EXIF_FORMAT_RATIONAL;
-		e->size = exif_format_get_size (e->format) * e->components;
-		e->data = exif_entry_alloc (e, e->size);
-		if (!e->data) { clear_entry(e); break; }
+		if (!e->data) break;
 		break;
 
 	/* RATIONAL, 6 components */
@@ -1691,7 +1556,7 @@ exif_entry_initialize (ExifEntry *e, ExifTag tag)
 		e->format = EXIF_FORMAT_RATIONAL;
 		e->size = exif_format_get_size (e->format) * e->components;
 		e->data = exif_entry_alloc (e, e->size);
-		if (!e->data) { clear_entry(e); break; }
+		if (!e->data) break;
 		r.denominator = 1;
 		r.numerator = 0;
 		exif_set_rational (e->data, o, r);
@@ -1718,7 +1583,7 @@ exif_entry_initialize (ExifEntry *e, ExifTag tag)
 	case EXIF_TAG_DATE_TIME_DIGITIZED:
 	{
 		time_t t;
-#if defined(HAVE_LOCALTIME_R) || defined(HAVE_LOCALTIME_S)
+#ifdef HAVE_LOCALTIME_R
 		struct tm tms;
 #endif
 		struct tm *tm;
@@ -1726,9 +1591,6 @@ exif_entry_initialize (ExifEntry *e, ExifTag tag)
 		t = time (NULL);
 #ifdef HAVE_LOCALTIME_R
 		tm = localtime_r (&t, &tms);
-#elif defined(HAVE_LOCALTIME_S)
-		localtime_s (&tms, &t);
-		tm = &tms;
 #else
 		tm = localtime (&t);
 #endif
@@ -1736,7 +1598,7 @@ exif_entry_initialize (ExifEntry *e, ExifTag tag)
 		e->format = EXIF_FORMAT_ASCII;
 		e->size = exif_format_get_size (e->format) * e->components;
 		e->data = exif_entry_alloc (e, e->size);
-		if (!e->data) { clear_entry(e); break; }
+		if (!e->data) break;
 		snprintf ((char *) e->data, e->size,
 			  "%04i:%02i:%02i %02i:%02i:%02i",
 			  tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday,
@@ -1748,96 +1610,32 @@ exif_entry_initialize (ExifEntry *e, ExifTag tag)
 	case EXIF_TAG_SUB_SEC_TIME:
 	case EXIF_TAG_SUB_SEC_TIME_ORIGINAL:
 	case EXIF_TAG_SUB_SEC_TIME_DIGITIZED:
-	case EXIF_TAG_OFFSET_TIME:
-	case EXIF_TAG_OFFSET_TIME_ORIGINAL:
-	case EXIF_TAG_OFFSET_TIME_DIGITIZED:
 		e->components = 0;
 		e->format = EXIF_FORMAT_ASCII;
 		e->size = 0;
 		e->data = NULL;
 		break;
-
-	/* ASCII, default "[None]" */
 	case EXIF_TAG_IMAGE_DESCRIPTION:
 	case EXIF_TAG_MAKE:
 	case EXIF_TAG_MODEL:
 	case EXIF_TAG_SOFTWARE:
 	case EXIF_TAG_ARTIST:
-	case EXIF_TAG_CAMERA_OWNER_NAME:
-	case EXIF_TAG_BODY_SERIAL_NUMBER:
-	case EXIF_TAG_LENS_MAKE:
-	case EXIF_TAG_LENS_MODEL:
-	case EXIF_TAG_LENS_SERIAL_NUMBER:
 		e->components = strlen (_("[None]")) + 1;
 		e->format = EXIF_FORMAT_ASCII;
 		e->size = exif_format_get_size (e->format) * e->components;
 		e->data = exif_entry_alloc (e, e->size);
-		if (!e->data) { clear_entry(e); break; }
+		if (!e->data) break;
 		strncpy ((char *)e->data, _("[None]"), e->size);
 		break;
-	/* ASCII, default "[None]\0[None]\0" */
 	case EXIF_TAG_COPYRIGHT:
 		e->components = (strlen (_("[None]")) + 1) * 2;
 		e->format = EXIF_FORMAT_ASCII;
 		e->size = exif_format_get_size (e->format) * e->components;
 		e->data = exif_entry_alloc (e, e->size);
-		if (!e->data) { clear_entry(e); break; }
+		if (!e->data) break;
 		strcpy (((char *)e->data) + 0, _("[None]"));
 		strcpy (((char *)e->data) + strlen (_("[None]")) + 1, _("[None]"));
 		break;
-
-	/* UNDEFINED, 1 component, default 1 */
-	case EXIF_TAG_SCENE_TYPE:
-		e->components = 1;
-		e->format = EXIF_FORMAT_UNDEFINED;
-		e->size = exif_format_get_size (e->format) * e->components;
-		e->data = exif_entry_alloc (e, e->size);
-		if (!e->data) { clear_entry(e); break; }
-		e->data[0] = 0x01;
-		break;
-
-	/* UNDEFINED, 1 component, default 3 */
-	case EXIF_TAG_FILE_SOURCE:
-		e->components = 1;
-		e->format = EXIF_FORMAT_UNDEFINED;
-		e->size = exif_format_get_size (e->format) * e->components;
-		e->data = exif_entry_alloc (e, e->size);
-		if (!e->data) { clear_entry(e); break; }
-		e->data[0] = 0x03;
-		break;
-
-	/* UNDEFINED, 4 components, default 48 49 48 48 */
-        case EXIF_TAG_FLASH_PIX_VERSION:
-                e->components = 4;
-                e->format = EXIF_FORMAT_UNDEFINED;
-                e->size = exif_format_get_size (e->format) * e->components;
-                e->data = exif_entry_alloc (e, e->size);
-                if (!e->data) { clear_entry(e); break; }
-                memcpy (e->data, "0100", 4);
-                break;
-
-        /* UNDEFINED, 4 components, default 48 50 49 48 */
-        case EXIF_TAG_EXIF_VERSION:
-                e->components = 4;
-                e->format = EXIF_FORMAT_UNDEFINED;
-                e->size = exif_format_get_size (e->format) * e->components;
-                e->data = exif_entry_alloc (e, e->size);
-                if (!e->data) { clear_entry(e); break; }
-                memcpy (e->data, "0210", 4);
-                break;
-
-        /* UNDEFINED, 4 components, default 1 2 3 0 */
-        case EXIF_TAG_COMPONENTS_CONFIGURATION:
-                e->components = 4;
-                e->format = EXIF_FORMAT_UNDEFINED;
-                e->size = exif_format_get_size (e->format) * e->components;
-                e->data = exif_entry_alloc (e, e->size);
-                if (!e->data) { clear_entry(e); break; }
-		e->data[0] = 1;
-		e->data[1] = 2;
-		e->data[2] = 3;
-		e->data[3] = 0;
-                break;
 
 	/* UNDEFINED, no components, no default */
 	/* Use this if the tag is otherwise unsupported */
@@ -1849,5 +1647,58 @@ exif_entry_initialize (ExifEntry *e, ExifTag tag)
 		e->size = 0;
 		e->data = NULL;
 		break;
+
+	/* UNDEFINED, 1 component, default 1 */
+	case EXIF_TAG_SCENE_TYPE:
+		e->components = 1;
+		e->format = EXIF_FORMAT_UNDEFINED;
+		e->size = exif_format_get_size (e->format) * e->components;
+		e->data = exif_entry_alloc (e, e->size);
+		if (!e->data) break;
+		e->data[0] = 0x01;
+		break;
+
+	/* UNDEFINED, 1 component, default 3 */
+	case EXIF_TAG_FILE_SOURCE:
+		e->components = 1;
+		e->format = EXIF_FORMAT_UNDEFINED;
+		e->size = exif_format_get_size (e->format) * e->components;
+		e->data = exif_entry_alloc (e, e->size);
+		if (!e->data) break;
+		e->data[0] = 0x03;
+		break;
+
+	/* UNDEFINED, 4 components, default 0 1 0 0 */
+        case EXIF_TAG_FLASH_PIX_VERSION:
+                e->components = 4;
+                e->format = EXIF_FORMAT_UNDEFINED;
+                e->size = exif_format_get_size (e->format) * e->components;
+                e->data = exif_entry_alloc (e, e->size);
+		if (!e->data) break;
+                memcpy (e->data, "0100", 4);
+                break;
+
+        /* UNDEFINED, 4 components, default 0 2 1 0 */
+        case EXIF_TAG_EXIF_VERSION:
+                e->components = 4;
+                e->format = EXIF_FORMAT_UNDEFINED;
+                e->size = exif_format_get_size (e->format) * e->components;
+                e->data = exif_entry_alloc (e, e->size);
+		if (!e->data) break;
+                memcpy (e->data, "0210", 4);
+                break;
+
+        /* UNDEFINED, 4 components, default 1,2,3,0 */
+        case EXIF_TAG_COMPONENTS_CONFIGURATION:
+                e->components = 4;
+                e->format = EXIF_FORMAT_UNDEFINED;
+                e->size = exif_format_get_size (e->format) * e->components;
+                e->data = exif_entry_alloc (e, e->size);
+		if (!e->data) break;
+		e->data[0] = 1;
+		e->data[1] = 2;
+		e->data[2] = 3;
+		e->data[3] = 0;
+                break;
 	}
 }

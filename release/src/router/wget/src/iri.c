@@ -189,10 +189,9 @@ do_conversion (const char *tocode, const char *fromcode, char const *in_org, siz
         {
           tooshort++;
           done = len;
-	  len = done + inlen * 2;
-	  s = xrealloc (s, len + 1);
-	  *out = s + done - outlen;
-	  outlen += inlen * 2;
+          len = outlen = done + inlen * 2;
+          s = xrealloc (s, outlen + 1);
+          *out = s + done;
         }
       else /* Weird, we got an unspecified error */
         {

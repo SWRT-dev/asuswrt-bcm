@@ -37,7 +37,6 @@ typedef struct CropDetectContext {
     int x1, y1, x2, y2;
     float limit;
     int round;
-    int skip;
     int reset_count;
     int frame_nb;
     int max_pixsteps[4];
@@ -128,10 +127,10 @@ static av_cold int init(AVFilterContext *ctx)
 {
     CropDetectContext *s = ctx->priv;
 
-    s->frame_nb = -1 * s->skip;
+    s->frame_nb = -2;
 
-    av_log(ctx, AV_LOG_VERBOSE, "limit:%f round:%d skip:%d reset_count:%d\n",
-           s->limit, s->round, s->skip, s->reset_count);
+    av_log(ctx, AV_LOG_VERBOSE, "limit:%f round:%d reset_count:%d\n",
+           s->limit, s->round, s->reset_count);
 
     return 0;
 }
@@ -168,7 +167,7 @@ static int filter_frame(AVFilterLink *inlink, AVFrame *frame)
     int outliers, last_y;
     int limit = lrint(s->limit);
 
-    // ignore first s->skip frames
+    // ignore first 2 frames - they may be empty
     if (++s->frame_nb > 0) {
         metadata = &frame->metadata;
 
@@ -248,7 +247,6 @@ static const AVOption cropdetect_options[] = {
     { "limit", "Threshold below which the pixel is considered black", OFFSET(limit),       AV_OPT_TYPE_FLOAT, { .dbl = 24.0/255 }, 0, 65535, FLAGS },
     { "round", "Value by which the width/height should be divisible", OFFSET(round),       AV_OPT_TYPE_INT, { .i64 = 16 }, 0, INT_MAX, FLAGS },
     { "reset", "Recalculate the crop area after this many frames",    OFFSET(reset_count), AV_OPT_TYPE_INT, { .i64 = 0 },  0, INT_MAX, FLAGS },
-    { "skip",  "Number of initial frames to skip",                    OFFSET(skip),        AV_OPT_TYPE_INT, { .i64 = 2 },  0, INT_MAX, FLAGS },
     { "reset_count", "Recalculate the crop area after this many frames",OFFSET(reset_count),AV_OPT_TYPE_INT,{ .i64 = 0 },  0, INT_MAX, FLAGS },
     { "max_outliers", "Threshold count of outliers",                  OFFSET(max_outliers),AV_OPT_TYPE_INT, { .i64 = 0 },  0, INT_MAX, FLAGS },
     { NULL }

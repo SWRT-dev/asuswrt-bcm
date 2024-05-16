@@ -45,7 +45,6 @@
 typedef struct {
    char name[PROC_THREAD_NAME_LEN];
    char status;  /**< a single letter: R, S, Z, etc */
-   int  totalMemKB;  /**< total size of the app in KB, includes code and heap */
 } ProcThreadInfo;
 
 

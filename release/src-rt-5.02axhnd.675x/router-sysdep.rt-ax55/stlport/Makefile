@@ -60,10 +60,8 @@ PREFIX=$(BCM_FSBUILD_DIR)/public
 unexport CC
 unexport CXX
 ifneq ($(strip $(DESKTOP_LINUX)),y)
-CXXFLAGS := -std=gnu++98 --sysroot=$(TOOLCHAIN_SYSROOT)
-CFLAGS := -std=gnu++98 --sysroot=$(TOOLCHAIN_SYSROOT)
+CXXFLAGS := -std=gnu++98
 export CXXFLAGS
-export CFLAGS
 endif
 
 # STLPORT makefiles get confused if the toolchain is not in PATH, but we don't want the toolchain's

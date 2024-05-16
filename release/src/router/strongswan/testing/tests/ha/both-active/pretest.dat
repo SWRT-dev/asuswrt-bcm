@@ -9,14 +9,12 @@ moon::iptables-restore < /etc/iptables.rules
 alice::iptables-restore < /etc/iptables.rules
 carol::iptables-restore < /etc/iptables.rules
 dave::iptables-restore < /etc/iptables.rules
-moon::cd /etc/swanctl; rm rsa/moonKey.pem x509/moonCert.pem
-alice::cd /etc/swanctl; rm rsa/aliceKey.pem x509/aliceCert.pem
-moon::systemctl start strongswan
-alice::systemctl start strongswan
+moon::ipsec start
+alice::ipsec start
 alice::sleep 1
-carol::systemctl start strongswan
-dave::systemctl start strongswan
+carol::ipsec start
+dave::ipsec start
 carol::expect-connection home
 dave::expect-connection home
-carol::swanctl --initiate --child home
-dave::swanctl --initiate --child home
+carol::ipsec up home
+dave::ipsec up home

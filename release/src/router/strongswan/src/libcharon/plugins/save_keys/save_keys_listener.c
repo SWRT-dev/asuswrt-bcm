@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2018 Tobias Brunner
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -235,7 +234,6 @@ static algo_map_t esp_integ[] = {
 	{ AUTH_HMAC_SHA2_384_192,  -1, "HMAC-SHA-384-192 [RFC4868]"               },
 	{ AUTH_HMAC_SHA2_512_256,  -1, "HMAC-SHA-512-256 [RFC4868]"               },
 	{ AUTH_HMAC_SHA2_256_96,   -1, "HMAC-SHA-256-96 [draft-ietf-ipsec-ciph-sha-256-00]" },
-	{ AUTH_HMAC_SHA2_256_256,  -1, "ANY 256 bit authentication [no checking]" },
 	{ AUTH_UNDEFINED,          64, "ANY 64 bit authentication [no checking]"  },
 	{ AUTH_UNDEFINED,          96, "ANY 96 bit authentication [no checking]"  },
 	{ AUTH_UNDEFINED,         128, "ANY 128 bit authentication [no checking]" },
@@ -265,7 +263,7 @@ static inline void esp_names(proposal_t *proposal, const char **enc,
 				len = 64;
 				break;
 			case ENCR_AES_GCM_ICV12:
-				len = 96;
+				len = 64;
 				break;
 			case ENCR_AES_GCM_ICV16:
 				len = 128;
@@ -277,9 +275,8 @@ static inline void esp_names(proposal_t *proposal, const char **enc,
 }
 
 METHOD(listener_t, ike_derived_keys, bool,
-	private_save_keys_listener_t *this, ike_sa_t *ike_sa, chunk_t sk_d,
-	chunk_t sk_ai, chunk_t sk_ar, chunk_t sk_ei, chunk_t sk_er, chunk_t sk_pi,
-	chunk_t sk_pr)
+	private_save_keys_listener_t *this, ike_sa_t *ike_sa, chunk_t sk_ei,
+	chunk_t sk_er, chunk_t sk_ai, chunk_t sk_ar)
 {
 	ike_version_t version;
 	ike_sa_id_t *id;

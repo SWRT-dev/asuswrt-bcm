@@ -23,8 +23,6 @@
 #include "libavutil/channel_layout.h"
 #include "libavutil/ffmath.h"
 #include "libavutil/float_dsp.h"
-#include "libavutil/mem_internal.h"
-
 #include "avcodec.h"
 #include "bytestream.h"
 #include "fft.h"
@@ -171,7 +169,7 @@ static int on2avc_decode_band_scales(On2AVCContext *c, GetBitContext *gb)
                 scale = get_bits(gb, 7);
                 first = 0;
             } else {
-                scale += get_vlc2(gb, c->scale_diff.table, 9, 3);
+                scale += get_vlc2(gb, c->scale_diff.table, 9, 3) - 60;
             }
             if (scale < 0 || scale > 127) {
                 av_log(c->avctx, AV_LOG_ERROR, "Invalid scale value %d\n",
@@ -197,7 +195,7 @@ static int on2avc_decode_quads(On2AVCContext *c, GetBitContext *gb, float *dst,
     int i, j, val, val1;
 
     for (i = 0; i < dst_size; i += 4) {
-        val = get_vlc2(gb, c->cb_vlc[type].table, 9, 2);
+        val = get_vlc2(gb, c->cb_vlc[type].table, 9, 3);
 
         for (j = 0; j < 4; j++) {
             val1 = sign_extend((val >> (12 - j * 4)) & 0xF, 4);
@@ -230,7 +228,7 @@ static int on2avc_decode_pairs(On2AVCContext *c, GetBitContext *gb, float *dst,
     int i, val, val1, val2, sign;
 
     for (i = 0; i < dst_size; i += 2) {
-        val = get_vlc2(gb, c->cb_vlc[type].table, 9, 2);
+        val = get_vlc2(gb, c->cb_vlc[type].table, 9, 3);
 
         val1 = sign_extend(val >> 8,   8);
         val2 = sign_extend(val & 0xFF, 8);
@@ -908,9 +906,7 @@ static av_cold void on2avc_free_vlcs(On2AVCContext *c)
 static av_cold int on2avc_decode_init(AVCodecContext *avctx)
 {
     On2AVCContext *c = avctx->priv_data;
-    const uint8_t  *lens = ff_on2avc_cb_lens;
-    const uint16_t *syms = ff_on2avc_cb_syms;
-    int i, ret;
+    int i;
 
     if (avctx->channels > 2U) {
         avpriv_request_sample(avctx, "Decoding more than 2 channels");
@@ -960,26 +956,36 @@ static av_cold int on2avc_decode_init(AVCodecContext *avctx)
     if (!c->fdsp)
         return AVERROR(ENOMEM);
 
-    ret = ff_init_vlc_from_lengths(&c->scale_diff, 9, ON2AVC_SCALE_DIFFS,
-                                   ff_on2avc_scale_diff_bits, 1,
-                                   ff_on2avc_scale_diff_syms, 1, 1, -60, 0, avctx);
-    if (ret < 0)
+    if (init_vlc(&c->scale_diff, 9, ON2AVC_SCALE_DIFFS,
+                 ff_on2avc_scale_diff_bits,  1, 1,
+                 ff_on2avc_scale_diff_codes, 4, 4, 0)) {
         goto vlc_fail;
-    for (i = 1; i < 16; i++) {
+    }
+    for (i = 1; i < 9; i++) {
         int idx = i - 1;
-        ret = ff_init_vlc_from_lengths(&c->cb_vlc[i], 9, ff_on2avc_cb_elems[idx],
-                                       lens, 1,
-                                       syms, 2, 2, 0, 0, avctx);
-        if (ret < 0)
+        if (ff_init_vlc_sparse(&c->cb_vlc[i], 9, ff_on2avc_quad_cb_elems[idx],
+                               ff_on2avc_quad_cb_bits[idx],  1, 1,
+                               ff_on2avc_quad_cb_codes[idx], 4, 4,
+                               ff_on2avc_quad_cb_syms[idx],  2, 2, 0)) {
             goto vlc_fail;
-        lens += ff_on2avc_cb_elems[idx];
-        syms += ff_on2avc_cb_elems[idx];
+        }
+    }
+    for (i = 9; i < 16; i++) {
+        int idx = i - 9;
+        if (ff_init_vlc_sparse(&c->cb_vlc[i], 9, ff_on2avc_pair_cb_elems[idx],
+                               ff_on2avc_pair_cb_bits[idx],  1, 1,
+                               ff_on2avc_pair_cb_codes[idx], 2, 2,
+                               ff_on2avc_pair_cb_syms[idx],  2, 2, 0)) {
+            goto vlc_fail;
+        }
     }
 
     return 0;
 vlc_fail:
     av_log(avctx, AV_LOG_ERROR, "Cannot init VLC\n");
-    return ret;
+    on2avc_free_vlcs(c);
+    av_freep(&c->fdsp);
+    return AVERROR(ENOMEM);
 }
 
 static av_cold int on2avc_decode_close(AVCodecContext *avctx)
@@ -1012,7 +1018,6 @@ AVCodec ff_on2avc_decoder = {
     .decode         = on2avc_decode_frame,
     .close          = on2avc_decode_close,
     .capabilities   = AV_CODEC_CAP_DR1,
-    .caps_internal  = FF_CODEC_CAP_INIT_CLEANUP,
     .sample_fmts    = (const enum AVSampleFormat[]) { AV_SAMPLE_FMT_FLTP,
                                                       AV_SAMPLE_FMT_NONE },
 };

@@ -11,8 +11,6 @@
 #
 
 DM_UBI_VOLUME=crash_logs
-SYSTEM_INFO_INDICATOR=$(cat /proc/nvram/wl_nand_manufacturer)
-SYSTEM_UBOOT=$(($SYSTEM_INFO_INDICATOR & 8))
 
 error_exit()
 {
@@ -163,28 +161,14 @@ if [ $# -eq 4 ]; then
 	UMOUNT_DIR=$4
 fi
 
-if [[ $SYSTEM_UBOOT -gt 0 ]]; then
-    _root_fs_dev=`/rom/etc/get_rootfs_dev.sh`
-    if [[ ! -z $(echo $_root_fs_dev|grep mmcblk) ]]; then
-        FLASHTYPE="eMMC"
-        FSTYPE=ext4
-    elif [[ ! -z $(echo $_root_fs_dev|grep ubi)  ]]; then
-        FLASHTYPE="NAND"
-        FSTYPE=ubifs
-    else
-        FLASHTYPE="NOR"
-    fi
+if [ /dev/root -ef /dev/rootfs1 ] || [ /dev/root -ef /dev/rootfs2 ]; then
+	FLASHTYPE="eMMC"
+	FSTYPE=ext4
+elif [ /dev/root -ef /dev/mtdblock0 ]; then 
+	FLASHTYPE="NOR"
 else
-
-	if [ /dev/root -ef /dev/rootfs1 ] || [ /dev/root -ef /dev/rootfs2 ]; then
-		FLASHTYPE="eMMC"
-		FSTYPE=ext4
-	elif [ /dev/root -ef /dev/mtdblock0 ]; then
-		FLASHTYPE="NOR"
-	else
-		FLASHTYPE="NAND"
-		FSTYPE=ubifs
-	fi
+	FLASHTYPE="NAND"
+	FSTYPE=ubifs
 fi
 
 if [ "$FLASHTYPE" == "" ] || [ "$FLASHTYPE" == "NOR" ]; then

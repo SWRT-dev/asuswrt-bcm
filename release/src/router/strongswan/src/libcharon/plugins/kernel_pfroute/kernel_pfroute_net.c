@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2009-2016 Tobias Brunner
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -58,9 +57,6 @@
 
 /** delay before reinstalling routes (ms) */
 #define ROUTE_DELAY 100
-
-/** default MTU for TUN devices */
-#define TUN_DEFAULT_MTU 1400
 
 typedef struct addr_entry_t addr_entry_t;
 
@@ -327,7 +323,7 @@ struct private_kernel_pfroute_net_t
 	/**
 	 * Map for IP addresses to iface_entry_t objects (addr_map_entry_t)
 	 */
-	hashlist_t *addrs;
+	hashtable_t *addrs;
 
 	/**
 	 * List of tun devices we installed for virtual IPs
@@ -413,11 +409,6 @@ struct private_kernel_pfroute_net_t
 	 * Time in ms to wait for IP addresses to appear/disappear
 	 */
 	int vip_wait;
-
-	/**
-	 * MTU to set on TUN devices
-	 */
-	uint32_t mtu;
 
 	/**
 	 * whether to actually install virtual IPs
@@ -533,7 +524,7 @@ static void addr_map_entry_add(private_kernel_pfroute_net_t *this,
 		.addr = addr,
 		.iface = iface,
 	);
-	entry = this->addrs->ht.put(&this->addrs->ht, entry, entry);
+	entry = this->addrs->put(this->addrs, entry, entry);
 	free(entry);
 }
 
@@ -550,7 +541,7 @@ static void addr_map_entry_remove(addr_entry_t *addr, iface_entry_t *iface,
 		.iface = iface,
 	};
 
-	entry = this->addrs->ht.remove(&this->addrs->ht, &lookup);
+	entry = this->addrs->remove(this->addrs, &lookup);
 	free(entry);
 }
 
@@ -1244,8 +1235,7 @@ METHOD(kernel_net_t, add_ip, status_t,
 	{
 		prefix = vip->get_address(vip).len * 8;
 	}
-	if (!tun->up(tun) || !tun->set_address(tun, vip, prefix) ||
-		!tun->set_mtu(tun, this->mtu))
+	if (!tun->up(tun) || !tun->set_address(tun, vip, prefix))
 	{
 		tun->destroy(tun);
 		return FAILED;
@@ -1504,7 +1494,7 @@ static status_t manage_route(private_kernel_pfroute_net_t *this, int op,
 
 METHOD(kernel_net_t, add_route, status_t,
 	private_kernel_pfroute_net_t *this, chunk_t dst_net, uint8_t prefixlen,
-	host_t *gateway, host_t *src_ip, char *if_name, bool pass)
+	host_t *gateway, host_t *src_ip, char *if_name)
 {
 	status_t status;
 	route_entry_t *found, route = {
@@ -1533,7 +1523,7 @@ METHOD(kernel_net_t, add_route, status_t,
 
 METHOD(kernel_net_t, del_route, status_t,
 	private_kernel_pfroute_net_t *this, chunk_t dst_net, uint8_t prefixlen,
-	host_t *gateway, host_t *src_ip, char *if_name, bool pass)
+	host_t *gateway, host_t *src_ip, char *if_name)
 {
 	status_t status;
 	route_entry_t *found, route = {
@@ -2023,6 +2013,7 @@ METHOD(kernel_net_t, destroy, void,
 {
 	enumerator_t *enumerator;
 	route_entry_t *route;
+	addr_entry_t *addr;
 
 	enumerator = this->routes->create_enumerator(this->routes);
 	while (enumerator->enumerate(enumerator, NULL, (void**)&route))
@@ -2045,7 +2036,13 @@ METHOD(kernel_net_t, destroy, void,
 	this->net_changes->destroy(this->net_changes);
 	this->net_changes_lock->destroy(this->net_changes_lock);
 
-	this->addrs->ht.destroy_function(&this->addrs->ht, (void*)free);
+	enumerator = this->addrs->create_enumerator(this->addrs);
+	while (enumerator->enumerate(enumerator, NULL, (void**)&addr))
+	{
+		free(addr);
+	}
+	enumerator->destroy(enumerator);
+	this->addrs->destroy(this->addrs);
 	this->ifaces->destroy_function(this->ifaces, (void*)iface_entry_destroy);
 	this->tuns->destroy(this->tuns);
 	this->lock->destroy(this->lock);
@@ -2081,7 +2078,7 @@ kernel_pfroute_net_t *kernel_pfroute_net_create()
 		},
 		.pid = getpid(),
 		.ifaces = linked_list_create(),
-		.addrs = hashlist_create(
+		.addrs = hashtable_create(
 								(hashtable_hash_t)addr_map_entry_hash,
 								(hashtable_equals_t)addr_map_entry_equals, 16),
 		.routes = hashtable_create((hashtable_hash_t)route_entry_hash,
@@ -2098,8 +2095,6 @@ kernel_pfroute_net_t *kernel_pfroute_net_create()
 		.roam_lock = spinlock_create(),
 		.vip_wait = lib->settings->get_int(lib->settings,
 						"%s.plugins.kernel-pfroute.vip_wait", 1000, lib->ns),
-		.mtu = lib->settings->get_int(lib->settings,
-						"%s.plugins.kernel-pfroute.mtu", TUN_DEFAULT_MTU, lib->ns),
 		.install_virtual_ip = lib->settings->get_bool(lib->settings,
 						"%s.install_virtual_ip", TRUE, lib->ns),
 	);

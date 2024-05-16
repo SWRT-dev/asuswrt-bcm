@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2018 Andreas Steffen
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -52,7 +51,6 @@ ENUM_NEXT(tpm_alg_id_names, TPM2_ALG_SM3_256, TPM2_ALG_ECMQV, TPM2_ALG_NULL,
 	"OAEP",
 	"ECDSA",
 	"ECDH",
-	"ECDAA",
 	"SM2",
 	"ECSCHNORR",
 	"ECMQV"
@@ -63,15 +61,11 @@ ENUM_NEXT(tpm_alg_id_names, TPM2_ALG_KDF1_SP800_56A, TPM2_ALG_ECC, TPM2_ALG_ECMQ
 	"KDF1_SP800_108",
 	"ECC"
 );
-ENUM_NEXT(tpm_alg_id_names, TPM2_ALG_SYMCIPHER, TPM2_ALG_SHA3_512, TPM2_ALG_ECC,
+ENUM_NEXT(tpm_alg_id_names, TPM2_ALG_SYMCIPHER, TPM2_ALG_CAMELLIA, TPM2_ALG_ECC,
 	"SYMCIPHER",
-	"CAMELLIA",
-	"SHA3_256",
-	"SHA3_384",
-	"SHA3_512"
+	"CAMELLIA"
 );
-ENUM_NEXT(tpm_alg_id_names, TPM2_ALG_CMAC, TPM2_ALG_ECB, TPM2_ALG_SHA3_512,
-	"CMAC",
+ENUM_NEXT(tpm_alg_id_names, TPM2_ALG_CTR, TPM2_ALG_ECB, TPM2_ALG_CAMELLIA,
 	"CTR",
 	"OFB",
 	"CBC",

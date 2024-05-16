@@ -1,8 +1,7 @@
 /*
  * Copyright (C) 2012-2013 Reto Buerki
  * Copyright (C) 2012-2013 Adrian-Ken Rueegsegger
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the

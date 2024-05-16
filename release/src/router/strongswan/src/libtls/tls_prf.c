@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2010 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * Copyright (C) 2010 revosec AG
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -183,7 +182,7 @@ METHOD(tls_prf_t, destroy10, void,
 /**
  * See header
  */
-tls_prf_t *tls_prf_create_10()
+tls_prf_t *tls_prf_create_10(pseudo_random_function_t prf)
 {
 	private_tls_prf10_t *this;
 

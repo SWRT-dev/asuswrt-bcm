@@ -1,8 +1,7 @@
 /*
  * Copyright (C) 2013-2018 Tobias Brunner
  * Copyright (C) 2006 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -56,12 +55,12 @@ typedef enum task_queue_t task_queue_t;
 /**
  * Interval for mobike routability checks in ms.
  */
-#define ROUTABILITY_CHECK_INTERVAL 2500
+#define ROUTEABILITY_CHECK_INTERVAL 2500
 
 /**
  * Number of routability checks before giving up
  */
-#define ROUTABILITY_CHECK_TRIES 10
+#define ROUTEABILITY_CHECK_TRIES 10
 
 /**
  * Type of task queues the task manager uses to handle tasks
@@ -173,10 +172,12 @@ struct task_manager_t {
 	 * Queue CHILD_SA establishing tasks.
 	 *
 	 * @param cfg			CHILD_SA config to establish
-	 * @param args			optional arguments for the initiation
+	 * @param reqid			reqid to use for CHILD_SA
+	 * @param tsi			initiator traffic selector, if packet-triggered
+	 * @param tsr			responder traffic selector, if packet-triggered
 	 */
-	void (*queue_child)(task_manager_t *this, child_cfg_t *cfg,
-						child_init_args_t *args);
+	void (*queue_child)(task_manager_t *this, child_cfg_t *cfg, uint32_t reqid,
+						traffic_selector_t *tsi, traffic_selector_t *tsr);
 
 	/**
 	 * Queue CHILD_SA rekeying tasks.
@@ -232,7 +233,7 @@ struct task_manager_t {
 	 * If a message is processed outside of the manager, this call increments
 	 * the message ID counters of the task manager.
 	 *
-	 * @param initiate		TRUE to increment the initiating ID
+	 * @param inititate		TRUE to increment the initiating ID
 	 */
 	void (*incr_mid)(task_manager_t *this, bool initiate);
 
@@ -279,7 +280,7 @@ struct task_manager_t {
 	/**
 	 * Remove the task the given enumerator points to.
 	 *
-	 * @note This should be used with caution, in particular, for tasks in the
+	 * @note This should be used with caution, in partciular, for tasks in the
 	 * active and passive queues.
 	 *
 	 * @param enumerator	enumerator created with the method above
@@ -292,7 +293,7 @@ struct task_manager_t {
 	void (*flush)(task_manager_t *this);
 
 	/**
-	 * Flush a queue, canceling all tasks.
+	 * Flush a queue, cancelling all tasks.
 	 *
 	 * @param queue			queue to flush
 	 */

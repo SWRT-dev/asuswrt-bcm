@@ -34,28 +34,12 @@ TODO
 
 """
 
-__author__  = "Stéphane Bidoul <sbi@skynet.be>"
+__author__  = u"Stéphane Bidoul <sbi@skynet.be>"
 __version__ = "0.3"
 
-import sys
 import codecs
-
-if sys.version_info[0] < 3:
-    __author__  = codecs.unicode_escape_decode(__author__)[0]
-
-    StringTypes = (str, unicode)
-    # libxml2 returns strings as UTF8
-    _decoder = codecs.lookup("utf8")[1]
-    def _d(s):
-        if s is None:
-            return s
-        else:
-            return _decoder(s)[0]
-else:
-    StringTypes = str
-    # s is Unicode `str` already
-    def _d(s):
-        return s
+from types import StringType, UnicodeType
+StringTypes = (StringType,UnicodeType)
 
 from xml.sax._exceptions import *
 from xml.sax import xmlreader, saxutils
@@ -71,11 +55,19 @@ from xml.sax.handler import \
      property_dom_node, \
      property_xml_string
 
+# libxml2 returns strings as UTF8
+_decoder = codecs.lookup("utf8")[1]
+def _d(s):
+    if s is None:
+        return s
+    else:
+        return _decoder(s)[0]
+
 try:
     import libxml2
-except ImportError:
+except ImportError, e:
     raise SAXReaderNotAvailable("libxml2 not available: " \
-                                "import error was: %s" % sys.exc_info()[1])
+                                "import error was: %s" % e)
 
 class Locator(xmlreader.Locator):
     """SAX Locator adapter for libxml2.xmlTextReaderLocator"""
@@ -142,7 +134,7 @@ class LibXml2Reader(xmlreader.XMLReader):
         self.__parsing = 1
         try:
             # prepare source and create reader
-            if isinstance(source, StringTypes):
+            if type(source) in StringTypes:
                 reader = libxml2.newTextReaderFilename(source)
             else:
                 source = saxutils.prepare_input_source(source)

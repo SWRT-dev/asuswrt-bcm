@@ -1,8 +1,7 @@
 /*
  * Copyright (C) 2008-2014 Tobias Brunner
  * Copyright (C) 2008 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -22,10 +21,6 @@
 
 #ifndef MEMORY_H_
 #define MEMORY_H_
-
-#ifdef HAVE_EXPLICIT_BZERO
-#include <string.h>
-#endif
 
 /**
  * Helper function that compares two binary blobs for equality
@@ -87,15 +82,6 @@ static inline void *memset_noop(void *s, int c, size_t n)
  */
 void memxor(uint8_t dest[], const uint8_t src[], size_t n);
 
-#ifdef HAVE_EXPLICIT_BZERO
-static inline void memwipe(void *ptr, size_t n)
-{
-	if (ptr)
-	{
-		explicit_bzero(ptr, n);
-	}
-}
-#else /* HAVE_EXPLICIT_BZERO */
 /**
  * Safely overwrite n bytes of memory at ptr with zero, non-inlining variant.
  */
@@ -147,7 +133,6 @@ static inline void memwipe(void *ptr, size_t n)
 		memwipe_noinline(ptr, n);
 	}
 }
-#endif /* HAVE_EXPLICIT_BZERO */
 
 /**
  * A variant of strstr with the characteristics of memchr, where haystack is not

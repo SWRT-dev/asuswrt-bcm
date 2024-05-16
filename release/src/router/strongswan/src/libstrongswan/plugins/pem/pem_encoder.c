@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2010-2016 Andreas Steffen
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -121,7 +120,7 @@ bool pem_encoder_encode(cred_encoding_type_t type, chunk_t *encoding,
 			}
 			if (cred_encoding_args(args, CRED_PART_PKCS10_ASN1_DER,
 								   &asn1, CRED_PART_END))
-			{	/* PEM encode PKCS10 certificate request */
+			{	/* PEM encode PKCS10 certificate reqeuest */
 				label = "CERTIFICATE REQUEST";
 				break;
 			}

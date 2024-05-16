@@ -4,7 +4,8 @@ default: all
 
 
 CURR_DIR := $(shell pwd)
-BUILD_DIR:=$(HND_SRC)
+BUILD_DIR:=$(subst /userspace, /userspace,$(CURR_DIR))
+BUILD_DIR:=$(word 1, $(BUILD_DIR))
 include $(BUILD_DIR)/make.common
 
 ARCH=$(PROFILE_ARCH)
@@ -18,8 +19,7 @@ ALLOWED_INCLUDE_PATHS := -I. \
                          -I$(INC_BRCMSHARED_PUB_PATH)/$(BRCM_BOARD)  \
                          -I$(INC_BRCMSHARED_PUB_PATH)/../flash  \
                          -I$(INC_BRCMDRIVER_PUB_PATH)/$(BRCM_BOARD)  \
-                         -I$(INC_BRCMDRIVER_PRIV_PATH)/$(BRCM_BOARD)  \
-                         -I$(HND_SRC)/router-sysdep/fdt/dtc-1.5.1
+                         -I$(INC_BRCMDRIVER_PRIV_PATH)/$(BRCM_BOARD) 
 
 CFLAGS += -DCHIP_FAMILY_ID_HEX=0x$(BRCM_CHIP) 
 
@@ -40,10 +40,6 @@ ifeq ($(strip $(DESKTOP_LINUX)),)
 ifneq ($(strip $(BRCM_INCREMENTAL_IMAGE_LOAD)),)
 CFLAGS += -DSUPPORT_INCREMENTAL_FLASHING
 endif
-endif
-
-ifneq ($(strip $(BUILD_NAND_UBIFS_SINGLE_IMAGE)),)
-CFLAGS += -DCUSTOM_NAND_SINGLE_IMAGE=1
 endif
 
 export ARCH CFLAGS LIB_INSTALL_DIR HEADER_INSTALL_DIR ETC_INSTALL_DIR \

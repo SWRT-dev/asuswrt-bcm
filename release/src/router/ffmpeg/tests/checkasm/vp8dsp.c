@@ -25,7 +25,6 @@
 
 #include "libavutil/common.h"
 #include "libavutil/intreadwrite.h"
-#include "libavutil/mem_internal.h"
 
 #include "checkasm.h"
 

@@ -24,7 +24,6 @@
 #include <stdint.h>
 
 #include "libavutil/frame.h"
-#include "libavutil/mem_internal.h"
 
 #include "avcodec.h"
 #include "hpeldsp.h"

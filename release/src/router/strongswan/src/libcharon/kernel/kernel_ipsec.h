@@ -4,8 +4,7 @@
  * Copyright (C) 2006 Daniel Roethlisberger
  * Copyright (C) 2005-2006 Martin Willi
  * Copyright (C) 2005 Jan Hutter
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -39,7 +38,6 @@ typedef struct kernel_ipsec_query_policy_t kernel_ipsec_query_policy_t;
 #include <networking/host.h>
 #include <ipsec/ipsec_types.h>
 #include <selectors/traffic_selector.h>
-#include <selectors/sec_label.h>
 #include <plugins/plugin.h>
 #include <kernel/kernel_interface.h>
 
@@ -57,8 +55,6 @@ struct kernel_ipsec_sa_id_t {
 	uint8_t proto;
 	/** Optional mark */
 	mark_t mark;
-	/** Optional interface ID */
-	uint32_t if_id;
 };
 
 /**
@@ -99,8 +95,6 @@ struct kernel_ipsec_add_sa_t {
 	hw_offload_t hw_offload;
 	/** Mark the SA should apply to packets after processing */
 	mark_t mark;
-	/** Security label to match or apply */
-	sec_label_t *label;
 	/** TRUE to use Extended Sequence Numbers */
 	bool esn;
 	/** TRUE to copy the DF bit to the outer IPv4 header in tunnel mode */
@@ -131,8 +125,6 @@ struct kernel_ipsec_update_sa_t {
 	bool encap;
 	/** TRUE to enable UDP encapsulation */
 	bool new_encap;
-	/** New reqid, or 0 if unchanged */
-	uint32_t new_reqid;
 };
 
 /**
@@ -162,12 +154,8 @@ struct kernel_ipsec_policy_id_t {
 	traffic_selector_t *dst_ts;
 	/** Optional mark */
 	mark_t mark;
-	/** Optional interface ID */
-	uint32_t if_id;
 	/** Network interface restricting policy */
 	char *interface;
-	/** Security label restricting policy */
-	sec_label_t *label;
 };
 
 /**

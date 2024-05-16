@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2016 Tobias Brunner
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -63,7 +62,7 @@ static void check_sig_constraints(auth_cfg_t *cfg, auth_rule_t type,
 	ck_assert(!expected[i]);
 }
 
-START_TEST(test_sig_constraints)
+START_TEST(test_sig_contraints)
 {
 	auth_cfg_t *cfg;
 	signature_scheme_t none[] = {0};
@@ -85,7 +84,7 @@ START_TEST(test_sig_constraints)
 }
 END_TEST
 
-START_TEST(test_ike_constraints_fallback)
+START_TEST(test_ike_contraints_fallback)
 {
 	auth_cfg_t *cfg;
 
@@ -164,7 +163,7 @@ static void check_sig_constraints_params(auth_cfg_t *cfg, auth_rule_t type,
 	ck_assert(!scheme[i]);
 }
 
-START_TEST(test_sig_constraints_params)
+START_TEST(test_sig_contraints_params)
 {
 	auth_cfg_t *cfg;
 
@@ -188,7 +187,7 @@ struct {
 		{ .pss = { .hash = HASH_SHA256, .mgf1_hash = HASH_SHA256, .salt_len = HASH_SIZE_SHA256, }}, {}}},
 };
 
-START_TEST(test_sig_constraints_rsa_pss)
+START_TEST(test_sig_contraints_rsa_pss)
 {
 	auth_cfg_t *cfg;
 
@@ -211,13 +210,13 @@ Suite *auth_cfg_suite_create()
 	s = suite_create("auth_cfg");
 
 	tc = tcase_create("add_pubkey_constraints");
-	tcase_add_loop_test(tc, test_sig_constraints, 0, countof(sig_constraints_tests));
-	tcase_add_loop_test(tc, test_ike_constraints_fallback, 0, countof(sig_constraints_tests));
+	tcase_add_loop_test(tc, test_sig_contraints, 0, countof(sig_constraints_tests));
+	tcase_add_loop_test(tc, test_ike_contraints_fallback, 0, countof(sig_constraints_tests));
 	suite_add_tcase(s, tc);
 
 	tc = tcase_create("add_pubkey_constraints parameters");
-	tcase_add_loop_test(tc, test_sig_constraints_params, 0, countof(sig_constraints_params_tests));
-	tcase_add_loop_test(tc, test_sig_constraints_rsa_pss, 0, countof(sig_constraints_rsa_pss_tests));
+	tcase_add_loop_test(tc, test_sig_contraints_params, 0, countof(sig_constraints_params_tests));
+	tcase_add_loop_test(tc, test_sig_contraints_rsa_pss, 0, countof(sig_constraints_rsa_pss_tests));
 	suite_add_tcase(s, tc);
 
 	return s;

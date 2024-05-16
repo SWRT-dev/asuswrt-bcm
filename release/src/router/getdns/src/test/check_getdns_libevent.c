@@ -49,7 +49,7 @@
 
 void run_event_loop_impl(struct getdns_context* context, void* eventloop) {
     struct event_base* base = (struct event_base*) eventloop;
-    (void)context; /* unused parameter */
+    (void)context;
     event_base_dispatch(base);
 }
 

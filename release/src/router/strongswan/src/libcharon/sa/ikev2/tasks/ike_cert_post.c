@@ -1,8 +1,7 @@
 /*
- * Copyright (C) 2008-2019 Tobias Brunner
+ * Copyright (C) 2008 Tobias Brunner
  * Copyright (C) 2006-2009 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -50,57 +49,16 @@ struct private_ike_cert_post_t {
 };
 
 /**
- * Generate the payload for a hash-and-URL encoded certificate
- */
-static bool build_hash_url_payload(char *base, certificate_t *cert,
-								   cert_payload_t **payload)
-{
-	hasher_t *hasher;
-	chunk_t hash, encoded;
-	char *url, *hex_hash;
-
-	hasher = lib->crypto->create_hasher(lib->crypto, HASH_SHA1);
-	if (!hasher)
-	{
-		DBG1(DBG_IKE, "unable to use hash-and-url: SHA-1 not supported");
-		return FALSE;
-	}
-
-	if (!cert->get_encoding(cert, CERT_ASN1_DER, &encoded))
-	{
-		hasher->destroy(hasher);
-		return FALSE;
-	}
-	if (!hasher->allocate_hash(hasher, encoded, &hash))
-	{
-		hasher->destroy(hasher);
-		chunk_free(&encoded);
-		return FALSE;
-	}
-	chunk_free(&encoded);
-	hasher->destroy(hasher);
-
-	url = malloc(strlen(base) + 40 + 1);
-	strcpy(url, base);
-	hex_hash = chunk_to_hex(hash, NULL, FALSE).ptr;
-	strncat(url, hex_hash, 40);
-	free(hex_hash);
-
-	DBG1(DBG_IKE, "sending hash-and-url \"%s\"", url);
-	*payload = cert_payload_create_from_hash_and_url(hash, url);
-	chunk_free(&hash);
-	free(url);
-	return TRUE;
-}
-
-/**
  * Generates the cert payload, if possible with "Hash and URL"
  */
 static cert_payload_t *build_cert_payload(private_ike_cert_post_t *this,
 										 certificate_t *cert)
 {
+	hasher_t *hasher;
+	identification_t *id;
+	chunk_t hash, encoded ;
 	enumerator_t *enumerator;
-	char *base;
+	char *url;
 	cert_payload_t *payload = NULL;
 
 	if (!this->ike_sa->supports_extension(this->ike_sa, EXT_HASH_AND_URL))
@@ -108,14 +66,42 @@ static cert_payload_t *build_cert_payload(private_ike_cert_post_t *this,
 		return cert_payload_create_from_cert(PLV2_CERTIFICATE, cert);
 	}
 
-	enumerator = lib->credmgr->create_cdp_enumerator(lib->credmgr, CERT_X509,
-													 cert->get_issuer(cert));
-	if (!enumerator->enumerate(enumerator, &base) ||
-		!build_hash_url_payload(base, cert, &payload))
+	hasher = lib->crypto->create_hasher(lib->crypto, HASH_SHA1);
+	if (!hasher)
+	{
+		DBG1(DBG_IKE, "unable to use hash-and-url: sha1 not supported");
+		return cert_payload_create_from_cert(PLV2_CERTIFICATE, cert);
+	}
+
+	if (!cert->get_encoding(cert, CERT_ASN1_DER, &encoded))
+	{
+		DBG1(DBG_IKE, "encoding certificate for cert payload failed");
+		hasher->destroy(hasher);
+		return NULL;
+	}
+	if (!hasher->allocate_hash(hasher, encoded, &hash))
+	{
+		hasher->destroy(hasher);
+		chunk_free(&encoded);
+		return cert_payload_create_from_cert(PLV2_CERTIFICATE, cert);
+	}
+	chunk_free(&encoded);
+	hasher->destroy(hasher);
+	id = identification_create_from_encoding(ID_KEY_ID, hash);
+
+	enumerator = lib->credmgr->create_cdp_enumerator(lib->credmgr, CERT_X509, id);
+	if (enumerator->enumerate(enumerator, &url))
+	{
+		payload = cert_payload_create_from_hash_and_url(hash, url);
+		DBG1(DBG_IKE, "sending hash-and-url \"%s\"", url);
+	}
+	else
 	{
 		payload = cert_payload_create_from_cert(PLV2_CERTIFICATE, cert);
 	}
 	enumerator->destroy(enumerator);
+	chunk_free(&hash);
+	id->destroy(id);
 	return payload;
 }
 
@@ -159,7 +145,7 @@ static void add_im_certs(private_ike_cert_post_t *this, auth_cfg_t *auth,
 	{
 		if (type == AUTH_RULE_IM_CERT)
 		{
-			payload = build_cert_payload(this, cert);
+			payload = cert_payload_create_from_cert(PLV2_CERTIFICATE, cert);
 			if (payload)
 			{
 				DBG1(DBG_IKE, "sending issuer cert \"%Y\"",
@@ -255,10 +241,8 @@ static void build_certs(private_ike_cert_post_t *this, message_t *message)
 METHOD(task_t, build_i, status_t,
 	private_ike_cert_post_t *this, message_t *message)
 {
-	if (message->get_exchange_type(message) == IKE_AUTH)
-	{
-		build_certs(this, message);
-	}
+	build_certs(this, message);
+
 	return NEED_MORE;
 }
 
@@ -271,11 +255,9 @@ METHOD(task_t, process_r, status_t,
 METHOD(task_t, build_r, status_t,
 	private_ike_cert_post_t *this, message_t *message)
 {
-	if (message->get_exchange_type(message) == IKE_AUTH)
-	{
-		build_certs(this, message);
-	}
-	if (!this->ike_sa->has_condition(this->ike_sa, COND_AUTHENTICATED))
+	build_certs(this, message);
+
+	if (this->ike_sa->get_state(this->ike_sa) != IKE_ESTABLISHED)
 	{	/* stay alive, we might have additional rounds with certs */
 		return NEED_MORE;
 	}
@@ -285,7 +267,7 @@ METHOD(task_t, build_r, status_t,
 METHOD(task_t, process_i, status_t,
 	private_ike_cert_post_t *this, message_t *message)
 {
-	if (!this->ike_sa->has_condition(this->ike_sa, COND_AUTHENTICATED))
+	if (this->ike_sa->get_state(this->ike_sa) != IKE_ESTABLISHED)
 	{	/* stay alive, we might have additional rounds with CERTS */
 		return NEED_MORE;
 	}

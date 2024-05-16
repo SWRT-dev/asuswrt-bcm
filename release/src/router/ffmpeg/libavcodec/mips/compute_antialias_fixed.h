@@ -59,8 +59,7 @@
 static void compute_antialias_mips_fixed(MPADecodeContext *s,
                                         GranuleDef *g)
 {
-    const int32_t *csa;
-    int32_t *ptr;
+    int32_t *ptr, *csa;
     int n, i;
     int MAX_lo = 0xffffffff;
 

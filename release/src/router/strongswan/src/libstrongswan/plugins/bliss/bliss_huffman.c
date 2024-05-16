@@ -1,8 +1,7 @@
 /*
  * Copyright (C) 2014 Tobias Brunner
  * Copyright (C) 2014 Andreas Steffen
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -113,6 +112,7 @@ static void write_header(void)
 {
 	printf("/*\n");
 	printf(" * Copyright (C) 2014 Andreas Steffen\n");
+	printf(" * HSR Hochschule fuer Technik Rapperswil\n");
 	printf(" *\n");
 	printf(" * Optimum Huffman code for BLISS-X signatures\n");
 	printf(" *\n");

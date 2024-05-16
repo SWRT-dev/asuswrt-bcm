@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2013 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * Copyright (C) 2013 revosec AG
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -30,7 +29,7 @@ typedef struct sasl_mechanism_t sasl_mechanism_t;
 #include <library.h>
 
 /**
- * Constructor function for SASL mechanism.
+ * Constructor function for SASL mechansims.
  *
  * @param name			name of the requested SASL mechanism
  * @param client		client identity, NULL to act as server

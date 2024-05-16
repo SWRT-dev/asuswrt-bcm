@@ -95,11 +95,7 @@ struct video_data {
     int (*open_f)(const char *file, int oflag, ...);
     int (*close_f)(int fd);
     int (*dup_f)(int fd);
-#ifdef __GLIBC__
     int (*ioctl_f)(int fd, unsigned long int request, ...);
-#else
-    int (*ioctl_f)(int fd, int request, ...);
-#endif
     ssize_t (*read_f)(int fd, void *buffer, size_t n);
     void *(*mmap_f)(void *start, size_t length, int prot, int flags, int fd, int64_t offset);
     int (*munmap_f)(void *_start, size_t length);
@@ -538,10 +534,11 @@ static int mmap_read_frame(AVFormatContext *ctx, AVPacket *pkt)
             s->frame_size = buf.bytesused;
 
         if (s->frame_size > 0 && buf.bytesused != s->frame_size) {
-            av_log(ctx, AV_LOG_WARNING,
+            av_log(ctx, AV_LOG_ERROR,
                    "Dequeued v4l2 buffer contains %d bytes, but %d were expected. Flags: 0x%08X.\n",
                    buf.bytesused, s->frame_size, buf.flags);
-            buf.bytesused = 0;
+            enqueue_buffer(s, &buf);
+            return AVERROR_INVALIDDATA;
         }
     }
 
@@ -811,12 +808,11 @@ static int device_try_init(AVFormatContext *ctx,
     }
 
     *codec_id = ff_fmt_v4l2codec(*desired_format);
-    if (*codec_id == AV_CODEC_ID_NONE)
-        av_assert0(ret == AVERROR(EINVAL));
+    av_assert0(*codec_id != AV_CODEC_ID_NONE);
     return ret;
 }
 
-static int v4l2_read_probe(const AVProbeData *p)
+static int v4l2_read_probe(AVProbeData *p)
 {
     if (av_strstart(p->filename, "/dev/video", NULL))
         return AVPROBE_SCORE_MAX - 1;

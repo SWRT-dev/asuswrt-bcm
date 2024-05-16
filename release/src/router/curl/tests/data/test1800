@@ -23,9 +23,6 @@ Content-Type: text/html
 
 # Client-side
 <client>
-<features>
-h2c
-</features>
 <server>
 http
 </server>

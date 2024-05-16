@@ -1,8 +1,7 @@
 /*
  * Copyright (C) 2005-2006 Martin Willi
  * Copyright (C) 2005 Jan Hutter
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -29,7 +28,7 @@ typedef struct transform_substructure_t transform_substructure_t;
 #include <encoding/payloads/payload.h>
 #include <encoding/payloads/transform_attribute.h>
 #include <collections/linked_list.h>
-#include <crypto/key_exchange.h>
+#include <crypto/diffie_hellman.h>
 #include <crypto/signers/signer.h>
 #include <crypto/prfs/prf.h>
 #include <crypto/crypters/crypter.h>

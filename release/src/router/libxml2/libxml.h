@@ -9,10 +9,6 @@
 #ifndef __XML_LIBXML_H__
 #define __XML_LIBXML_H__
 
-/*
- * These macros must be defined before including system headers.
- * Do not add any #include directives above this block.
- */
 #ifndef NO_LARGEFILE_SOURCE
 #ifndef _LARGEFILE_SOURCE
 #define _LARGEFILE_SOURCE
@@ -22,17 +18,19 @@
 #endif
 #endif
 
+#if defined(macintosh)
+#include "config-mac.h"
+#elif defined(_WIN32_WCE)
 /*
- * Currently supported platforms use either autoconf or
- * copy to config.h own "preset" configuration file.
- * As result ifdef HAVE_CONFIG_H is omitted here.
+ * Windows CE compatibility definitions and functions
+ * This is needed to compile libxml2 for Windows CE.
+ * At least I tested it with WinCE 5.0 for Emulator and WinCE 4.2/SH4 target
  */
+#include <win32config.h>
+#include <libxml/xmlversion.h>
+#else
 #include "config.h"
 #include <libxml/xmlversion.h>
-#include <libxml/xmlstring.h>
-
-#ifndef SYSCONFDIR
-  #define SYSCONFDIR "/etc"
 #endif
 
 #if defined(__Lynx__)
@@ -48,30 +46,11 @@ int vfprintf(FILE *, const char *, va_list);
 /**
  * TRIO_REPLACE_STDIO:
  *
- * This macro is defined if the trio string formatting functions are to
+ * This macro is defined if teh trio string formatting functions are to
  * be used instead of the default stdio ones.
  */
 #define TRIO_REPLACE_STDIO
 #include "trio.h"
-#endif
-
-#if defined(__clang__) || \
-    (defined(__GNUC__) && (__GNUC__ * 100 + __GNUC_MINOR__ >= 406))
-#define XML_IGNORE_PEDANTIC_WARNINGS \
-    _Pragma("GCC diagnostic push") \
-    _Pragma("GCC diagnostic ignored \"-Wpedantic\"")
-#define XML_POP_WARNINGS \
-    _Pragma("GCC diagnostic pop")
-#else
-#define XML_IGNORE_PEDANTIC_WARNINGS
-#define XML_POP_WARNINGS
-#endif
-
-#if defined(__clang__) || \
-    (defined(__GNUC__) && (__GNUC__ >= 8))
-#define ATTRIBUTE_NO_SANITIZE(arg) __attribute__((no_sanitize(arg)))
-#else
-#define ATTRIBUTE_NO_SANITIZE(arg)
 #endif
 
 /*
@@ -81,10 +60,10 @@ int vfprintf(FILE *, const char *, va_list);
  */
 extern int __xmlRegisterCallbacks;
 /*
- * internal error reporting routines, shared but not part of the API.
+ * internal error reporting routines, shared but not partof the API.
  */
 void __xmlIOErr(int domain, int code, const char *extra);
-void __xmlLoaderErr(void *ctx, const char *msg, const char *filename) LIBXML_ATTR_FORMAT(2,0);
+void __xmlLoaderErr(void *ctx, const char *msg, const char *filename);
 #ifdef LIBXML_HTML_ENABLED
 /*
  * internal function of HTML parser needed for xmlParseInNodeContext
@@ -100,17 +79,18 @@ void __xmlGlobalInitMutexLock(void);
 void __xmlGlobalInitMutexUnlock(void);
 void __xmlGlobalInitMutexDestroy(void);
 
-int __xmlInitializeDict(void);
-
-/*
- * internal thread safe random function
- */
-int __xmlRandom(void);
-
-XMLPUBFUN xmlChar * XMLCALL xmlEscapeFormatString(xmlChar **msg);
-int xmlInputReadCallbackNop(void *context, char *buffer, int len);
-
-#if !defined(PIC) && !defined(NOLIBTOOL) && !defined(LIBXML_STATIC)
+#ifdef IN_LIBXML
+#ifdef __GNUC__
+#ifdef PIC
+#ifdef linux
+#if (__GNUC__ == 3 && __GNUC_MINOR__ >= 3) || (__GNUC__ > 3)
+#include "elfgcchack.h"
+#endif
+#endif
+#endif
+#endif
+#endif
+#ifndef PIC
 #  define LIBXML_STATIC
 #endif
 #endif /* ! __XML_LIBXML_H__ */

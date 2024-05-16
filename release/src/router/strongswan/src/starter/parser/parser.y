@@ -1,6 +1,7 @@
 %{
 /*
  * Copyright (C) 2013-2014 Tobias Brunner
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -47,27 +48,20 @@ static void conf_parser_error(parser_helper_t *ctx, const char *s);
  * Make sure to call lexer with the proper context
  */
 #undef yylex
-static int yylex(CONF_PARSER_STYPE *yylval, parser_helper_t *ctx)
+static int yylex(YYSTYPE *lvalp, parser_helper_t *ctx)
 {
-	return conf_parser_lex(yylval, ctx->scanner);
+	return conf_parser_lex(lvalp, ctx->scanner);
 }
 
 %}
 %debug
 
 /* generate verbose error messages */
-%define parse.error verbose
+%error-verbose
 /* generate a reentrant parser */
 %define api.pure
 /* prefix function/variable declarations */
-%define api.prefix {conf_parser_}
-/* make sure flex uses the right definition */
-%code provides
-{
-	#define YY_DECL \
-		int conf_parser_lex(CONF_PARSER_STYPE *yylval, void *yyscanner)
-	YY_DECL;
-}
+%name-prefix "conf_parser_"
 
 /* interact properly with the reentrant lexer */
 %lex-param {parser_helper_t *ctx}
@@ -211,7 +205,14 @@ value:
  */
 static void conf_parser_error(parser_helper_t *ctx, const char *s)
 {
-	PARSER_DBG1(ctx, "%s", s);
+	char *text = conf_parser_get_text(ctx->scanner);
+	int len = conf_parser_get_leng(ctx->scanner);
+
+	if (len && text[len-1] == '\n')
+	{	/* cut off newline at the end to avoid muti-line log messages */
+		len--;
+	}
+	PARSER_DBG1(ctx, "%s [%.*s]", s, (int)len, text);
 }
 
 /**

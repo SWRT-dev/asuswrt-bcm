@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2006-2009 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -31,29 +30,34 @@ struct private_acquire_job_t {
 	acquire_job_t public;
 
 	/**
-	 * reqid of the triggered policy
+	 * reqid of the child to rekey
 	 */
 	uint32_t reqid;
 
 	/**
-	 * Data from the acquire
+	 * acquired source traffic selector
 	 */
-	kernel_acquire_data_t data;
+	traffic_selector_t *src_ts;
+
+	/**
+	 * acquired destination traffic selector
+	 */
+	traffic_selector_t *dst_ts;
 };
 
 METHOD(job_t, destroy, void,
 	private_acquire_job_t *this)
 {
-	DESTROY_IF(this->data.src);
-	DESTROY_IF(this->data.dst);
-	DESTROY_IF(this->data.label);
+	DESTROY_IF(this->src_ts);
+	DESTROY_IF(this->dst_ts);
 	free(this);
 }
 
 METHOD(job_t, execute, job_requeue_t,
 	private_acquire_job_t *this)
 {
-	charon->traps->acquire(charon->traps, this->reqid, &this->data);
+	charon->traps->acquire(charon->traps, this->reqid,
+						   this->src_ts, this->dst_ts);
 	return JOB_REQUEUE_NONE;
 }
 
@@ -66,7 +70,9 @@ METHOD(job_t, get_priority, job_priority_t,
 /*
  * Described in header
  */
-acquire_job_t *acquire_job_create(uint32_t reqid, kernel_acquire_data_t *data)
+acquire_job_t *acquire_job_create(uint32_t reqid,
+								  traffic_selector_t *src_ts,
+								  traffic_selector_t *dst_ts)
 {
 	private_acquire_job_t *this;
 
@@ -79,21 +85,10 @@ acquire_job_t *acquire_job_create(uint32_t reqid, kernel_acquire_data_t *data)
 			},
 		},
 		.reqid = reqid,
-		.data = *data,
+		.src_ts = src_ts,
+		.dst_ts = dst_ts,
 	);
-
-	if (this->data.src)
-	{
-		this->data.src = this->data.src->clone(this->data.src);
-	}
-	if (this->data.dst)
-	{
-		this->data.dst = this->data.dst->clone(this->data.dst);
-	}
-	if (this->data.label)
-	{
-		this->data.label = this->data.label->clone(this->data.label);
-	}
 
 	return &this->public;
 }
+

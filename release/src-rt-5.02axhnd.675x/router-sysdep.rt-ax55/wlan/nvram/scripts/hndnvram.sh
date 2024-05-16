@@ -1,22 +1,15 @@
 #!/bin/sh
 
-echo "hndnvram.sh: mount /tmp/mnt/defaults"
-mkdir /tmp/mnt/defaults
-mount -t ubifs ubi:defaults /tmp/mnt/defaults
-
 MFG_NVRAM_PARTITION=misc1
 DEFAULTS_MNT_DIR=/mnt/defaults
 DEFAULTS_DIR_MFG_NVRAM=$DEFAULTS_MNT_DIR/wl
 DIR_MFG_NVRAM=/mnt/nvram
 FILE_MFG_NVRAM=nvram.nvm
-build_rdk=BUILD_RDKWIFI_HOLDER
 original_kernel_nvram_file="/rom/etc/wlan/KERNEL_NVRAM_FILE_NAME"
 kernel_nvram_file="/data/.KERNEL_NVRAM_FILE_NAME"
-wl_srom_nm=".wlsromcustomerfile.nvm"    #wl calibration file name
-SYSTEM_INFO_INDICATOR=$(cat /proc/nvram/wl_nand_manufacturer)
-SYSTEM_UBOOT=$(($SYSTEM_INFO_INDICATOR & 8))
+HNDROUTER_ALONE=n
 
-# user_nvram_file is required for UNFWLCFG. In BASESHELL build,
+# user_nvram_file is required for UNFWLCFG. In NOCMS build,
 # we would store nvram configurations accessed by userspace into the file
 user_nvram_file=""
 
@@ -257,17 +250,6 @@ check_mfg_nvram_partition()
 	return 0
 }
 
-#$1 remout options rw/ro
-mfg_remount_defaults()
-{
-	echo "MOUNT defaults for " $1
-	if [ "$FLASHTYPE" == "eMMC" ]; then
-		mount -t $FSTYPE -o remount,$1 /dev/defaults $DEFAULTS_MNT_DIR
-	elif [ $FLASHTYPE == "NAND" ]; then
-		mount -t ubifs ubi:defaults $DEFAULTS_MNT_DIR -oremount,$1
-	fi
-}
-
 mount_mfg_nvram_fs()
 {
 	if [ "$NEEDMOUNT" == "1" ]
@@ -278,7 +260,7 @@ mount_mfg_nvram_fs()
 	    [ "$1" == "-r" ] && FS_ACCESS_TYPE="read-only"
 	    echo "[$0]: Mounting manufacturing default NVRAM UBI fs on MTD partition $MFG_NVRAM_PARTITION as $FS_ACCESS_TYPE..."
 
-	    check_mfg_nvram_partition
+        check_mfg_nvram_partition
 
 	    if [ "$?" != "1" ]; then
 	        # mounting manufacturing NVRAM UBI file system as read/write.
@@ -289,12 +271,6 @@ mount_mfg_nvram_fs()
 	        else
 	            mount_nor_mfg_nvram_fs
 	        fi
-	    fi
-	else
-	    # uBoot, /mnt/nvram -> /mnt/defaults has been already present
-	    # make /mnt/defaults writable
-	    if [ -d $DEFAULTS_MNT_DIR ]; then
-		mfg_remount_defaults "rw"
 	    fi
 	fi
 
@@ -316,13 +292,8 @@ umount_mfg_nvram_fs()
 	    fi
 	else
 	    rm $DIR_MFG_NVRAM
-	    # make /mnt/defaults read-only if write_defaults is not set
-	    if [ -d $DEFAULTS_MNT_DIR ] && [ ! -r /proc/environment/write_defaults ]; then
-		mfg_remount_defaults "ro"
-	    fi
 	fi
-	echo "umount_mfg_nvram_fs"
-	sync
+
 	return 0
 }
 
@@ -341,33 +312,17 @@ else
 fi
 
 # Get flash type
-if  [[ $SYSTEM_UBOOT -gt 0 ]]; then 
-    _root_fs_dev=`/rom/etc/get_rootfs_dev.sh`
-    if [[ ! -z $(echo $_root_fs_dev|grep mmcblk) ]]; then
-        FLASHTYPE="eMMC"
-        FSTYPE=ext4
-    elif [[ ! -z $(echo $_root_fs_dev|grep ubi)  ]]; then 
-        FLASHTYPE="NAND"
-        FSTYPE=ubifs
-    else
-        FLASHTYPE="NOR"
-        FSTYPE=jffs2
-        MFG_NVRAM_PARTITION=data
-    fi
+if [ /dev/root -ef /dev/rootfs1 ] || [ /dev/root -ef /dev/rootfs2 ]; then
+	FLASHTYPE="eMMC"
+	FSTYPE=ext4
+elif [ /dev/root -ef /dev/mtdblock0 ]; then
+	FLASHTYPE="NOR"
+	FSTYPE=jffs2
+	MFG_NVRAM_PARTITION=data
 else
-	if [ /dev/root -ef /dev/rootfs1 ] || [ /dev/root -ef /dev/rootfs2 ]; then
-		FLASHTYPE="eMMC"
-		FSTYPE=ext4
-	elif [ /dev/root -ef /dev/mtdblock0 ]; then
-		FLASHTYPE="NOR"
-		FSTYPE=jffs2
-		MFG_NVRAM_PARTITION=data
-	else
-		FLASHTYPE="NAND"
-		FSTYPE=ubifs
-	fi
+	FLASHTYPE="NAND"
+	FSTYPE=ubifs
 fi
-
 
 if [ "$FLASHTYPE" == "" ]; then
 	echo "[$0]: Un supported flash type, exiting"
@@ -385,52 +340,34 @@ case "$1" in
 		cp $original_kernel_nvram_file $kernel_nvram_file
 		sync
 
-		if [ "$NEEDMOUNT" == "1" ]
-		then
-	    		# defaults does not exist, need to mount
-	    		mount_mfg_nvram_fs
-	    		MNTNOK=$? 
-	    		NEEDUMOUNT=1
-		fi
-		if [ "$MNTNOK" != "0" ]; then
-	    		# mount fails.
-	    		echo "*** Could not mount mfg partition"
-            		STILLNOK=1
-		else
-	    
-	    		if  [ -f $DIR_MFG_NVRAM/$FILE_MFG_NVRAM ]; then
-	        		# restore from default manufacturing NVRAM file.
-	        		nvram_mfg_restore_default
-	    		else
-	        		echo  "*** Manufacturing NVRAM file doen not exist. ***"
-                		STILLNOK=1
-	    		fi
-
-	    		umount_mfg_nvram_fs
-		fi
+	if [ "$NEEDMOUNT" == "1" ]
+	then
+	    # defaults does not exist, need to mount
+	    mount_mfg_nvram_fs
+	    MNTNOK=$? 
+	    NEEDUMOUNT=1
 	fi
-
-	if  [ ! -f /data/$wl_srom_nm ]; then
-	    # If custom calibrated nvram does not exist, trying to restore
-	    # it from default location.
-	    if [ -f $DEFAULTS_DIR_MFG_NVRAM/$wl_srom_nm ]; then
-		echo "/data/$wl_srom_nm does not exist, restore from $DEFAULTS_DIR_MFG_NVRAM/$wl_srom_nm"
-		cp -f $DEFAULTS_DIR_MFG_NVRAM/$wl_srom_nm /data/$wl_srom_nm
-		sync
-	    fi
-	fi
-	if  [[ $SYSTEM_UBOOT -gt 0 ]]; then 
-	   image_default_nvram_file="/rom/etc/wlan/nvram/"`cat /proc/environment/boardid`".nvm"
-	   if [ -f /proc/environment/wlnvram ]; then
-		image_default_nvram_file="/rom/etc/wlan/nvram/"`cat /proc/environment/wlnvram`
-	   fi
+	if [ "$MNTNOK" != "0" ]; then
+	    # mount fails.
+	    echo "*** Could not mount mfg partition"
+            STILLNOK=1
 	else
-	   image_default_nvram_file="/rom/etc/wlan/nvram/"`cat /proc/nvram/boardid`".nvm"
+	    
+	    if  [ -f $DIR_MFG_NVRAM/$FILE_MFG_NVRAM ]; then
+	        # restore from default manufacturing NVRAM file.
+	        nvram_mfg_restore_default
+	    else
+	        echo  "*** Manufacturing NVRAM file doen not exist. ***"
+                STILLNOK=1
+	    fi
+
+	    umount_mfg_nvram_fs
 	fi
+	fi
+	image_default_nvram_file="/rom/etc/wlan/nvram/"`cat /proc/nvram/boardid`".nvm"
 	if  [ -n "$STILLNOK" ] && [ -f $image_default_nvram_file ]; then
-	   echo  "*** Using $image_default_nvram_file NVRAM file from image ***"
-	   mkdir -p $DIR_MFG_NVRAM
-		cp $image_default_nvram_file $DEFAULTS_DIR_MFG_NVRAM/$FILE_MFG_NVRAM
+	   echo  "*** Using Board NVRAM file from image ***"
+           mkdir -p $DIR_MFG_NVRAM
 	   ln -sf $image_default_nvram_file $DIR_MFG_NVRAM/$FILE_MFG_NVRAM
 	   nvram_mfg_restore_default
 	fi
@@ -445,11 +382,6 @@ case "$1" in
 		echo -n "" > $user_nvram_file
 		sync
 	fi
-	
-	if [ $build_rdk -eq 1 ]; then
-		mkdir -p /data/rdklogs/logs
-	fi
-
 	exit 0
 	;;
     stop)

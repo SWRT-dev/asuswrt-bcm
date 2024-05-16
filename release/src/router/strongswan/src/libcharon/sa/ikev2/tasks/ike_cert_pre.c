@@ -1,8 +1,7 @@
 /*
- * Copyright (C) 2008-2018 Tobias Brunner
+ * Copyright (C) 2008 Tobias Brunner
  * Copyright (C) 2006-2009 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -50,6 +49,11 @@ struct private_ike_cert_pre_t {
 	 * Do we accept HTTP certificate lookup requests
 	 */
 	bool do_http_lookup;
+
+	/**
+	 * whether this is the final authentication round
+	 */
+	bool final;
 };
 
 /**
@@ -464,17 +468,24 @@ static void build_certreqs(private_ike_cert_pre_t *this, message_t *message)
  */
 static bool final_auth(message_t *message)
 {
-	return message->get_payload(message, PLV2_AUTH) != NULL &&
-		   !message->get_notify(message, ANOTHER_AUTH_FOLLOWS);
+	/* we check for an AUTH payload without a ANOTHER_AUTH_FOLLOWS notify */
+	if (message->get_payload(message, PLV2_AUTH) == NULL)
+	{
+		return FALSE;
+	}
+	if (message->get_notify(message, ANOTHER_AUTH_FOLLOWS))
+	{
+		return FALSE;
+	}
+	return TRUE;
 }
 
 METHOD(task_t, build_i, status_t,
 	private_ike_cert_pre_t *this, message_t *message)
 {
-	if (message->get_exchange_type(message) == IKE_AUTH)
-	{	/* initiator sends CERTREQs in first IKE_AUTH only */
+	if (message->get_message_id(message) == 1)
+	{	/* initiator sends CERTREQs in first IKE_AUTH */
 		build_certreqs(this, message);
-		this->public.task.build = (void*)return_need_more;
 	}
 	return NEED_MORE;
 }
@@ -482,15 +493,12 @@ METHOD(task_t, build_i, status_t,
 METHOD(task_t, process_r, status_t,
 	private_ike_cert_pre_t *this, message_t *message)
 {
-	if (message->get_exchange_type(message) == IKE_AUTH)
+	if (message->get_exchange_type(message) != IKE_SA_INIT)
 	{	/* handle certreqs/certs in any IKE_AUTH, just in case */
 		process_certreqs(this, message);
 		process_certs(this, message);
-		if (final_auth(message))
-		{
-			return SUCCESS;
-		}
 	}
+	this->final = final_auth(message);
 	return NEED_MORE;
 }
 
@@ -501,26 +509,25 @@ METHOD(task_t, build_r, status_t,
 	{
 		build_certreqs(this, message);
 	}
+	if (this->final)
+	{
+		return SUCCESS;
+	}
 	return NEED_MORE;
 }
 
 METHOD(task_t, process_i, status_t,
 	private_ike_cert_pre_t *this, message_t *message)
 {
-	switch (message->get_exchange_type(message))
+	if (message->get_exchange_type(message) == IKE_SA_INIT)
 	{
-		case IKE_SA_INIT:
-			process_certreqs(this, message);
-			break;
-		case IKE_AUTH:
-			process_certs(this, message);
-			if (final_auth(message))
-			{
-				return SUCCESS;
-			}
-			break;
-		default:
-			break;
+		process_certreqs(this, message);
+	}
+	process_certs(this, message);
+
+	if (final_auth(message))
+	{
+		return SUCCESS;
 	}
 	return NEED_MORE;
 }
@@ -535,7 +542,6 @@ METHOD(task_t, migrate, void,
 	private_ike_cert_pre_t *this, ike_sa_t *ike_sa)
 {
 	this->ike_sa = ike_sa;
-	this->public.task.build = _build_i;
 }
 
 METHOD(task_t, destroy, void,

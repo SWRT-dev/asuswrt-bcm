@@ -3,8 +3,7 @@
  * Copyright (C) 2006 Daniel Roethlisberger
  * Copyright (C) 2005-2008 Martin Willi
  * Copyright (C) 2005 Jan Hutter
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -36,7 +35,7 @@ typedef struct host_t host_t;
 #include <sys/types.h>
 
 /**
- * Represents a Host
+ * Representates a Host
  *
  * Host object, identifies a address:port pair and defines some
  * useful functions on it.

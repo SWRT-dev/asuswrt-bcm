@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2013-2014 Andreas Steffen
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -13,12 +14,12 @@
  */
 
 #include "ntru_ke.h"
+#include "ntru_drbg.h"
 #include "ntru_param_set.h"
 #include "ntru_private_key.h"
 #include "ntru_public_key.h"
 
-#include <crypto/key_exchange.h>
-#include <crypto/drbgs/drbg.h>
+#include <crypto/diffie_hellman.h>
 #include <utils/debug.h>
 
 typedef struct private_ntru_ke_t private_ntru_ke_t;
@@ -55,7 +56,7 @@ struct private_ntru_ke_t {
 	/**
 	 * Diffie Hellman group number.
 	 */
-	key_exchange_method_t group;
+	diffie_hellman_group_t group;
 
 	/**
 	 * NTRU Parameter Set
@@ -105,10 +106,10 @@ struct private_ntru_ke_t {
 	/**
 	 * Deterministic Random Bit Generator
 	 */
-	drbg_t *drbg;
+	ntru_drbg_t *drbg;
 };
 
-METHOD(key_exchange_t, get_public_key, bool,
+METHOD(diffie_hellman_t, get_my_public_value, bool,
 	private_ntru_ke_t *this, chunk_t *value)
 {
 	*value = chunk_empty;
@@ -128,7 +129,7 @@ METHOD(key_exchange_t, get_public_key, bool,
 			this->privkey = ntru_private_key_create(this->drbg, this->param_set);
 			if (!this->privkey)
 			{
-				DBG1(DBG_LIB, "NTRU key pair generation failed");
+				DBG1(DBG_LIB, "NTRU keypair generation failed");
 				return FALSE;
 			}
 			this->pubkey = this->privkey->get_public_key(this->privkey);
@@ -139,7 +140,7 @@ METHOD(key_exchange_t, get_public_key, bool,
 	return TRUE;
 }
 
-METHOD(key_exchange_t, get_shared_secret, bool,
+METHOD(diffie_hellman_t, get_shared_secret, bool,
 	private_ntru_ke_t *this, chunk_t *secret)
 {
 	if (!this->computed || !this->shared_secret.len)
@@ -152,7 +153,7 @@ METHOD(key_exchange_t, get_shared_secret, bool,
 	return TRUE;
 }
 
-METHOD(key_exchange_t, set_public_key, bool,
+METHOD(diffie_hellman_t, set_other_public_value, bool,
 	private_ntru_ke_t *this, chunk_t value)
 {
 	if (this->privkey)
@@ -198,8 +199,8 @@ METHOD(key_exchange_t, set_public_key, bool,
 		this->shared_secret = chunk_alloc(2 * this->strength / BITS_PER_BYTE);
 
 		/* generate the random shared secret */
-		if (!this->drbg->generate(this->drbg, this->shared_secret.len,
-											  this->shared_secret.ptr))
+		if (!this->drbg->generate(this->drbg, this->strength,
+				this->shared_secret.len, this->shared_secret.ptr))
 		{
 			DBG1(DBG_LIB, "generation of shared secret failed");
 			chunk_free(&this->shared_secret);
@@ -218,18 +219,19 @@ METHOD(key_exchange_t, set_public_key, bool,
 	return this->computed;
 }
 
-METHOD(key_exchange_t, get_method, key_exchange_method_t,
+METHOD(diffie_hellman_t, get_dh_group, diffie_hellman_group_t,
 	private_ntru_ke_t *this)
 {
 	return this->group;
 }
 
-METHOD(key_exchange_t, destroy, void,
+METHOD(diffie_hellman_t, destroy, void,
 	private_ntru_ke_t *this)
 {
 	DESTROY_IF(this->privkey);
 	DESTROY_IF(this->pubkey);
 	this->drbg->destroy(this->drbg);
+	this->entropy->destroy(this->entropy);
 	chunk_free(&this->ciphertext);
 	chunk_clear(&this->shared_secret);
 	free(this);
@@ -238,13 +240,13 @@ METHOD(key_exchange_t, destroy, void,
 /*
  * Described in header.
  */
-ntru_ke_t *ntru_ke_create(key_exchange_method_t group, chunk_t g, chunk_t p)
+ntru_ke_t *ntru_ke_create(diffie_hellman_group_t group, chunk_t g, chunk_t p)
 {
 	private_ntru_ke_t *this;
 	const ntru_param_set_id_t *param_sets;
 	ntru_param_set_id_t param_set_id;
 	rng_t *entropy;
-	drbg_t *drbg;
+	ntru_drbg_t *drbg;
 	char *parameter_set;
 	uint32_t strength;
 
@@ -292,7 +294,6 @@ ntru_ke_t *ntru_ke_create(key_exchange_method_t group, chunk_t g, chunk_t p)
 	DBG1(DBG_LIB, "%u bit %s NTRU parameter set %N selected", strength,
 				   parameter_set, ntru_param_set_id_names, param_set_id);
 
-	/* entropy will be owned by drbg */
 	entropy = lib->crypto->create_rng(lib->crypto, RNG_TRUE);
 	if (!entropy)
 	{
@@ -300,8 +301,7 @@ ntru_ke_t *ntru_ke_create(key_exchange_method_t group, chunk_t g, chunk_t p)
 		return NULL;
 	}
 
-	drbg = lib->crypto->create_drbg(lib->crypto, DRBG_HMAC_SHA256, strength,
-									entropy, chunk_from_str("IKE NTRU-KE"));
+	drbg = ntru_drbg_create(strength, chunk_from_str("IKE NTRU-KE"), entropy);
 	if (!drbg)
 	{
 		DBG1(DBG_LIB, "could not instantiate DRBG at %u bit security", strength);
@@ -311,11 +311,11 @@ ntru_ke_t *ntru_ke_create(key_exchange_method_t group, chunk_t g, chunk_t p)
 
 	INIT(this,
 		.public = {
-			.ke = {
+			.dh = {
 				.get_shared_secret = _get_shared_secret,
-				.set_public_key = _set_public_key,
-				.get_public_key = _get_public_key,
-				.get_method = _get_method,
+				.set_other_public_value = _set_other_public_value,
+				.get_my_public_value = _get_my_public_value,
+				.get_dh_group = _get_dh_group,
 				.destroy = _destroy,
 			},
 		},

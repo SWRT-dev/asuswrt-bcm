@@ -31,6 +31,7 @@
 #include "sbr.h"
 #include "aacsbr.h"
 #include "aacsbrdata.h"
+#include "aacsbr_tablegen.h"
 #include "fft.h"
 #include "internal.h"
 #include "aacps.h"
@@ -38,7 +39,6 @@
 #include "libavutil/internal.h"
 #include "libavutil/libm.h"
 #include "libavutil/avassert.h"
-#include "libavutil/mem_internal.h"
 
 #include <stdint.h>
 #include <float.h>

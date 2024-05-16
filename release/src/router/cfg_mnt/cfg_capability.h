@@ -56,9 +56,11 @@ enum capabilityType {
 	CONN_EAP_MODE = 23,
 #endif
 
+#ifdef RTCONFIG_BANDINDEX_NEW
 #ifdef RTCONFIG_AMAS_WGN
 	GUEST_NETWORK_NO_6G = 24, 	
 #endif
+#endif	
 	CAPABILITY_MAX
 };
 
@@ -83,7 +85,7 @@ enum capabilityType {
 /* for RC_SUPPORT */
 #define USBX			BIT(0)
 #define GUEST_NETWORK		BIT(1)
-#define CFG_MNT_WPA3		BIT(2)	/* amas-utils.h has a WPA3 definition with different value. */
+#define WPA3			BIT(2)
 #define VIF_ONBOARDING			BIT(3)
 #define WL_SCHED_V2		BIT(4)
 #define WIFI_RADIO		BIT(5)

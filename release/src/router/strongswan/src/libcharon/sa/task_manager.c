@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2011 Tobias Brunner
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -26,7 +25,7 @@
 u_int task_manager_total_retransmit_timeout()
 {
 	double timeout, base, limit = 0, total = 0;
-	int tries, max_tries = 0, i;
+	int tries, i;
 
 	tries = lib->settings->get_int(lib->settings, "%s.retransmit_tries",
 								   RETRANSMIT_TRIES, lib->ns);
@@ -37,18 +36,9 @@ u_int task_manager_total_retransmit_timeout()
 	limit = lib->settings->get_double(lib->settings, "%s.retransmit_limit",
 									  0, lib->ns);
 
-	if (base > 1)
-	{
-		max_tries = log(UINT32_MAX/(1000.0 * timeout))/log(base);
-	}
-
 	for (i = 0; i <= tries; i++)
 	{
-		double interval = UINT32_MAX/1000.0;
-		if (max_tries && i <= max_tries)
-		{
-			interval = timeout * pow(base, i);
-		}
+		double interval = timeout * pow(base, i);
 		if (limit)
 		{
 			interval = min(interval, limit);

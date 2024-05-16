@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2013 Andreas Steffen
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -30,9 +31,9 @@ typedef struct ntru_ke_t ntru_ke_t;
 struct ntru_ke_t {
 
 	/**
-	 * Implements key_exchange_t interface.
+	 * Implements diffie_hellman_t interface.
 	 */
-	key_exchange_t ke;
+	diffie_hellman_t dh;
 };
 
 /**
@@ -43,7 +44,7 @@ struct ntru_ke_t {
  * @param p				not used
  * @return				ntru_ke_t object, NULL if not supported
  */
-ntru_ke_t *ntru_ke_create(key_exchange_method_t group, chunk_t g, chunk_t p);
+ntru_ke_t *ntru_ke_create(diffie_hellman_group_t group, chunk_t g, chunk_t p);
 
 #endif /** NTRU_KE_H_ @}*/
 

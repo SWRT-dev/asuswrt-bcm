@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2011 Tobias Brunner
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -44,7 +43,7 @@ struct keymat_v1_t {
 	 * crypters and authentication functions.
 	 *
 	 * @param proposal		selected algorithms
-	 * @param dh			diffie hellman key allocated by create_ke()
+	 * @param dh			diffie hellman key allocated by create_dh()
 	 * @param dh_other		public DH value from other peer
 	 * @param nonce_i		initiators nonce value
 	 * @param nonce_r		responders nonce value
@@ -54,7 +53,7 @@ struct keymat_v1_t {
 	 * @return				TRUE on success
 	 */
 	bool (*derive_ike_keys)(keymat_v1_t *this, proposal_t *proposal,
-							key_exchange_t *dh, chunk_t dh_other,
+							diffie_hellman_t *dh, chunk_t dh_other,
 							chunk_t nonce_i, chunk_t nonce_r, ike_sa_id_t *id,
 							auth_method_t auth, shared_key_t *shared_key);
 
@@ -63,7 +62,7 @@ struct keymat_v1_t {
 	 *
 	 * @param proposal		selected algorithms
 	 * @param dh			diffie hellman key, NULL if none used
-	 * @param spi_i			SPI chosen by initiator
+	 * @param spi_i			SPI chosen by initiatior
 	 * @param spi_r			SPI chosen by responder
 	 * @param nonce_i		quick mode initiator nonce
 	 * @param nonce_r		quick mode responder nonce
@@ -73,7 +72,7 @@ struct keymat_v1_t {
 	 * @param integ_r		allocated responders integrity key
 	 */
 	bool (*derive_child_keys)(keymat_v1_t *this, proposal_t *proposal,
-						key_exchange_t *dh, uint32_t spi_i, uint32_t spi_r,
+						diffie_hellman_t *dh, uint32_t spi_i, uint32_t spi_r,
 						chunk_t nonce_i, chunk_t nonce_r,
 						chunk_t *encr_i, chunk_t *integ_i,
 						chunk_t *encr_r, chunk_t *integ_r);
@@ -96,7 +95,7 @@ struct keymat_v1_t {
 	/**
 	 * Get HASH data for authentication.
 	 *
-	 * @param initiator		TRUE to create HASH_I, FALSE for HASH_R
+	 * @param initiatior	TRUE to create HASH_I, FALSE for HASH_R
 	 * @param dh			public DH value of peer to create HASH for
 	 * @param dh_other		others public DH value
 	 * @param ike_sa_id		IKE_SA identifier

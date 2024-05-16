@@ -1,8 +1,7 @@
 /*
  * Copyright (C) 2017 Tobias Brunner
  * Copyright (C) 2007 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -68,13 +67,12 @@ struct private_key_t {
 	 * Decrypt a chunk of data.
 	 *
 	 * @param scheme	expected encryption scheme used
-	 * @param params	optional parameters required by the specified scheme
 	 * @param crypto	chunk containing encrypted data
 	 * @param plain		where to allocate decrypted data
 	 * @return			TRUE if data decrypted and plaintext allocated
 	 */
 	bool (*decrypt)(private_key_t *this, encryption_scheme_t scheme,
-					void *params, chunk_t crypto, chunk_t *plain);
+					chunk_t crypto, chunk_t *plain);
 
 	/**
 	 * Get the strength of the key in bits.
@@ -148,7 +146,7 @@ struct private_key_t {
 };
 
 /**
- * Generic private key equals() implementation, usable by implementers.
+ * Generic private key equals() implementation, usable by implementors.
  *
  * @param private		private key to check
  * @param other			key to compare
@@ -157,7 +155,7 @@ struct private_key_t {
 bool private_key_equals(private_key_t *private, private_key_t *other);
 
 /**
- * Generic private key belongs_to() implementation, usable by implementers.
+ * Generic private key belongs_to() implementation, usable by implementors.
  *
  * @param private		private key to check
  * @param public		public key to compare
@@ -166,7 +164,7 @@ bool private_key_equals(private_key_t *private, private_key_t *other);
 bool private_key_belongs_to(private_key_t *private, public_key_t *public);
 
 /**
- * Generic private key has_fingerprint() implementation, usable by implementers.
+ * Generic private key has_fingerprint() implementation, usable by implementors.
  *
  * @param private		private key to check
  * @param fingerprint	fingerprint to check

@@ -109,8 +109,6 @@ int main(void)
     TEST_STRIREPLACE(haystack, needle [2], "Education consists mainly in what we have instead.");
     TEST_STRIREPLACE(haystack, needle [1], "Education consists mainly in what we have instead");
 
-#if FF_API_D2STR
-FF_DISABLE_DEPRECATION_WARNINGS
     /*Testing av_d2str()*/
     #define TEST_D2STR(value, expected) \
         if((ptr = av_d2str(value)) == NULL){ \
@@ -123,7 +121,5 @@ FF_DISABLE_DEPRECATION_WARNINGS
     TEST_D2STR(0         ,  "0.000000");
     TEST_D2STR(-1.2333234, "-1.233323");
     TEST_D2STR(-1.2333237, "-1.233324");
-FF_ENABLE_DEPRECATION_WARNINGS
-#endif
     return 0;
 }

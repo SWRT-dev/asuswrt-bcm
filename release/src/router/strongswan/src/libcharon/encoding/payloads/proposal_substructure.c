@@ -1,9 +1,8 @@
 /*
- * Copyright (C) 2012-2020 Tobias Brunner
+ * Copyright (C) 2012-2014 Tobias Brunner
  * Copyright (C) 2005-2010 Martin Willi
  * Copyright (C) 2005 Jan Hutter
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -904,7 +903,7 @@ static void add_to_proposal_v1_ike(proposal_t *proposal,
 						get_alg_from_ikev1(PSEUDO_RANDOM_FUNCTION, value), 0);
 				break;
 			case TATTR_PH1_GROUP:
-				proposal->add_algorithm(proposal, KEY_EXCHANGE_METHOD,
+				proposal->add_algorithm(proposal, DIFFIE_HELLMAN_GROUP,
 						value, 0);
 				break;
 			default:
@@ -951,7 +950,7 @@ static void add_to_proposal_v1(proposal_t *proposal,
 										get_alg_from_ikev1_auth(value), 0);
 				break;
 			case TATTR_PH2_GROUP:
-				proposal->add_algorithm(proposal, KEY_EXCHANGE_METHOD,
+				proposal->add_algorithm(proposal, DIFFIE_HELLMAN_GROUP,
 						value, 0);
 				break;
 			case TATTR_PH2_EXT_SEQ_NUMBER:
@@ -1005,25 +1004,18 @@ METHOD(proposal_substructure_t, get_proposals, void,
 	enumerator = this->transforms->create_enumerator(this->transforms);
 	while (enumerator->enumerate(enumerator, &transform))
 	{
+		if (!proposal)
+		{
+			proposal = proposal_create(this->protocol_id, this->proposal_number);
+			proposal->set_spi(proposal, spi);
+			proposals->insert_last(proposals, proposal);
+		}
 		if (this->type == PLV2_PROPOSAL_SUBSTRUCTURE)
 		{
-			if (!proposal)
-			{
-				proposal = proposal_create(this->protocol_id,
-										   this->proposal_number);
-				proposal->set_spi(proposal, spi);
-				proposals->insert_last(proposals, proposal);
-			}
 			add_to_proposal_v2(proposal, transform);
 		}
 		else
 		{
-			/* create a new proposal for each transform in IKEv1 */
-			proposal = proposal_create_v1(
-							this->protocol_id, this->proposal_number,
-							transform->get_transform_type_or_number(transform));
-			proposal->set_spi(proposal, spi);
-			proposals->insert_last(proposals, proposal);
 			switch (this->protocol_id)
 			{
 				case PROTO_IKE:
@@ -1036,6 +1028,8 @@ METHOD(proposal_substructure_t, get_proposals, void,
 				default:
 					break;
 			}
+			/* create a new proposal for each transform in IKEv1 */
+			proposal = NULL;
 		}
 	}
 	enumerator->destroy(enumerator);
@@ -1080,8 +1074,8 @@ static uint64_t get_attr(private_proposal_substructure_t *this,
  * Look up a lifetime duration of a given kind in all transforms
  */
 static uint64_t get_life_duration(private_proposal_substructure_t *this,
-				uint8_t number, transform_attribute_type_t type_attr,
-				ikev1_life_type_t type, transform_attribute_type_t dur_attr)
+				transform_attribute_type_t type_attr, ikev1_life_type_t type,
+				transform_attribute_type_t dur_attr)
 {
 	enumerator_t *transforms, *attributes;
 	transform_substructure_t *transform;
@@ -1090,10 +1084,6 @@ static uint64_t get_life_duration(private_proposal_substructure_t *this,
 	transforms = this->transforms->create_enumerator(this->transforms);
 	while (transforms->enumerate(transforms, &transform))
 	{
-		if (transform->get_transform_type_or_number(transform) != number)
-		{
-			continue;
-		}
 		attributes = transform->create_attribute_enumerator(transform);
 		while (attributes->enumerate(attributes, &attr))
 		{
@@ -1118,20 +1108,19 @@ static uint64_t get_life_duration(private_proposal_substructure_t *this,
 }
 
 METHOD(proposal_substructure_t, get_lifetime, uint32_t,
-	private_proposal_substructure_t *this, uint8_t transform)
+	private_proposal_substructure_t *this)
 {
 	uint32_t duration;
 
 	switch (this->protocol_id)
 	{
 		case PROTO_IKE:
-			return get_life_duration(this, transform, TATTR_PH1_LIFE_TYPE,
-							IKEV1_LIFE_TYPE_SECONDS, TATTR_PH1_LIFE_DURATION);
+			return get_life_duration(this, TATTR_PH1_LIFE_TYPE,
+						IKEV1_LIFE_TYPE_SECONDS, TATTR_PH1_LIFE_DURATION);
 		case PROTO_ESP:
 		case PROTO_AH:
-			duration = get_life_duration(this, transform,
-							TATTR_PH2_SA_LIFE_TYPE, IKEV1_LIFE_TYPE_SECONDS,
-							TATTR_PH2_SA_LIFE_DURATION);
+			duration = get_life_duration(this, TATTR_PH2_SA_LIFE_TYPE,
+						IKEV1_LIFE_TYPE_SECONDS, TATTR_PH2_SA_LIFE_DURATION);
 			if (!duration)
 			{	/* default to 8 hours, RFC 2407 */
 				return 28800;
@@ -1143,15 +1132,14 @@ METHOD(proposal_substructure_t, get_lifetime, uint32_t,
 }
 
 METHOD(proposal_substructure_t, get_lifebytes, uint64_t,
-	private_proposal_substructure_t *this, uint8_t transform)
+	private_proposal_substructure_t *this)
 {
 	switch (this->protocol_id)
 	{
 		case PROTO_ESP:
 		case PROTO_AH:
-			return 1000 * get_life_duration(this, transform,
-							TATTR_PH2_SA_LIFE_TYPE, IKEV1_LIFE_TYPE_KILOBYTES,
-							TATTR_PH2_SA_LIFE_DURATION);
+			return 1000 * get_life_duration(this, TATTR_PH2_SA_LIFE_TYPE,
+					IKEV1_LIFE_TYPE_KILOBYTES, TATTR_PH2_SA_LIFE_DURATION);
 		case PROTO_IKE:
 		default:
 			return 0;
@@ -1318,7 +1306,7 @@ static void set_from_proposal_v1_ike(private_proposal_substructure_t *this,
 	}
 	enumerator->destroy(enumerator);
 
-	enumerator = proposal->create_enumerator(proposal, KEY_EXCHANGE_METHOD);
+	enumerator = proposal->create_enumerator(proposal, DIFFIE_HELLMAN_GROUP);
 	if (enumerator->enumerate(enumerator, &alg, &key_size))
 	{
 		transform->add_transform_attribute(transform,
@@ -1396,7 +1384,7 @@ static void set_from_proposal_v1(private_proposal_substructure_t *this,
 		return;
 	}
 
-	enumerator = proposal->create_enumerator(proposal, KEY_EXCHANGE_METHOD);
+	enumerator = proposal->create_enumerator(proposal, DIFFIE_HELLMAN_GROUP);
 	if (enumerator->enumerate(enumerator, &alg, &key_size))
 	{
 		transform->add_transform_attribute(transform,
@@ -1489,11 +1477,11 @@ static void set_from_proposal_v2(private_proposal_substructure_t *this,
 	enumerator->destroy(enumerator);
 
 	/* dh groups */
-	enumerator = proposal->create_enumerator(proposal, KEY_EXCHANGE_METHOD);
+	enumerator = proposal->create_enumerator(proposal, DIFFIE_HELLMAN_GROUP);
 	while (enumerator->enumerate(enumerator, &alg, NULL))
 	{
 		transform = transform_substructure_create_type(PLV2_TRANSFORM_SUBSTRUCTURE,
-												KEY_EXCHANGE_METHOD, alg);
+												DIFFIE_HELLMAN_GROUP, alg);
 		add_transform_substructure(this, transform);
 	}
 	enumerator->destroy(enumerator);
@@ -1537,9 +1525,7 @@ static void set_data(private_proposal_substructure_t *this, proposal_t *proposal
 		default:
 			break;
 	}
-	/* default to 1 if no number is set (mainly for IKEv1, for IKEv2 the numbers
-	 * are explicitly set when proposals are added to the SA payload) */
-	this->proposal_number = proposal->get_number(proposal) ?: 1;
+	this->proposal_number = proposal->get_number(proposal);
 	this->protocol_id = proposal->get_protocol(proposal);
 	compute_length(this);
 }
@@ -1553,7 +1539,7 @@ proposal_substructure_t *proposal_substructure_create_from_proposal_v2(
 	private_proposal_substructure_t *this;
 
 	this = (private_proposal_substructure_t*)
-						proposal_substructure_create(PLV2_PROPOSAL_SUBSTRUCTURE);
+							proposal_substructure_create(PLV2_SECURITY_ASSOCIATION);
 	set_from_proposal_v2(this, proposal);
 	set_data(this, proposal);
 
@@ -1561,11 +1547,11 @@ proposal_substructure_t *proposal_substructure_create_from_proposal_v2(
 }
 
 /**
- * Creates an IKEv1 proposal_substructure_t from a proposal_t.
+ * See header.
  */
-static proposal_substructure_t *proposal_substructure_create_from_proposal_v1(
+proposal_substructure_t *proposal_substructure_create_from_proposal_v1(
 			proposal_t *proposal, uint32_t lifetime, uint64_t lifebytes,
-			auth_method_t auth, ipsec_mode_t mode, encap_t udp, uint8_t number)
+			auth_method_t auth, ipsec_mode_t mode, encap_t udp)
 {
 	private_proposal_substructure_t *this;
 
@@ -1574,12 +1560,12 @@ static proposal_substructure_t *proposal_substructure_create_from_proposal_v1(
 	switch (proposal->get_protocol(proposal))
 	{
 		case PROTO_IKE:
-			set_from_proposal_v1_ike(this, proposal, lifetime, auth, number);
+			set_from_proposal_v1_ike(this, proposal, lifetime, auth, 1);
 			break;
 		case PROTO_ESP:
 		case PROTO_AH:
 			set_from_proposal_v1(this, proposal, lifetime,
-								 lifebytes, mode, udp, number);
+								 lifebytes, mode, udp, 1);
 			break;
 		default:
 			break;
@@ -1599,18 +1585,17 @@ proposal_substructure_t *proposal_substructure_create_from_proposals_v1(
 	private_proposal_substructure_t *this = NULL;
 	enumerator_t *enumerator;
 	proposal_t *proposal;
-	int number = 1;
+	int number = 0;
 
 	enumerator = proposals->create_enumerator(proposals);
 	while (enumerator->enumerate(enumerator, &proposal))
 	{
 		if (!this)
-		{	/* as responder the transform number is set and we only have a
-			 * single proposal, start with 1 otherwise */
+		{
 			this = (private_proposal_substructure_t*)
 						proposal_substructure_create_from_proposal_v1(
-							proposal, lifetime, lifebytes, auth, mode, udp,
-							proposal->get_transform_number(proposal) ?: number);
+								proposal, lifetime, lifebytes, auth, mode, udp);
+			++number;
 		}
 		else
 		{

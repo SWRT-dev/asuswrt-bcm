@@ -42,14 +42,15 @@ static int ifmt##_to_##ofmt##_neon_wrapper(SwsContext *c, const uint8_t *src[], 
                                            uint8_t *dst[], int dstStride[]) {               \
     const int16_t yuv2rgb_table[] = { YUV_TO_RGB_TABLE };                                   \
                                                                                             \
-    return ff_##ifmt##_to_##ofmt##_neon(c->srcW, srcSliceH,                                 \
-                                        dst[0] + srcSliceY * dstStride[0], dstStride[0],    \
-                                        src[0], srcStride[0],                               \
-                                        src[1], srcStride[1],                               \
-                                        src[2], srcStride[2],                               \
-                                        yuv2rgb_table,                                      \
-                                        c->yuv2rgb_y_offset >> 6,                           \
-                                        c->yuv2rgb_y_coeff);                                \
+    ff_##ifmt##_to_##ofmt##_neon(c->srcW, srcSliceH,                                        \
+                                 dst[0] + srcSliceY * dstStride[0], dstStride[0],           \
+                                 src[0], srcStride[0],                                      \
+                                 src[1], srcStride[1],                                      \
+                                 src[2], srcStride[2],                                      \
+                                 yuv2rgb_table,                                             \
+                                 c->yuv2rgb_y_offset >> 6,                                  \
+                                 c->yuv2rgb_y_coeff);                                       \
+    return 0;                                                                               \
 }                                                                                           \
 
 #define DECLARE_FF_YUVX_TO_ALL_RGBX_FUNCS(yuvx)                                             \
@@ -75,12 +76,14 @@ static int ifmt##_to_##ofmt##_neon_wrapper(SwsContext *c, const uint8_t *src[], 
                                            uint8_t *dst[], int dstStride[]) {               \
     const int16_t yuv2rgb_table[] = { YUV_TO_RGB_TABLE };                                   \
                                                                                             \
-    return ff_##ifmt##_to_##ofmt##_neon(c->srcW, srcSliceH,                                 \
-                                        dst[0] + srcSliceY * dstStride[0], dstStride[0],    \
-                                        src[0], srcStride[0], src[1], srcStride[1],         \
-                                        yuv2rgb_table,                                      \
-                                        c->yuv2rgb_y_offset >> 6,                           \
-                                        c->yuv2rgb_y_coeff);                                \
+    ff_##ifmt##_to_##ofmt##_neon(c->srcW, srcSliceH,                                        \
+                                 dst[0] + srcSliceY * dstStride[0], dstStride[0],           \
+                                 src[0], srcStride[0], src[1], srcStride[1],                \
+                                 yuv2rgb_table,                                             \
+                                 c->yuv2rgb_y_offset >> 6,                                  \
+                                 c->yuv2rgb_y_coeff);                                       \
+                                                                                            \
+    return 0;                                                                               \
 }                                                                                           \
 
 #define DECLARE_FF_NVX_TO_ALL_RGBX_FUNCS(nvx)                                               \

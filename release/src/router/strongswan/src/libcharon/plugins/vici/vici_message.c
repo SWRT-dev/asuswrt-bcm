@@ -1,8 +1,9 @@
 /*
  * Copyright (C) 2015 Tobias Brunner
- * Copyright (C) 2014 Martin Willi
+ * HSR Hochschule fuer Technik Rapperswil
  *
- * Copyright (C) secunet Security Networks AG
+ * Copyright (C) 2014 Martin Willi
+ * Copyright (C) 2014 revosec AG
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -643,13 +644,6 @@ METHOD(vici_message_t, dump, bool,
 	return FALSE;
 }
 
-CALLBACK(clear_strings, void,
-	char *str)
-{
-	memwipe(str, strlen(str));
-	free(str);
-}
-
 METHOD(vici_message_t, destroy, void,
 	private_vici_message_t *this)
 {
@@ -657,7 +651,7 @@ METHOD(vici_message_t, destroy, void,
 	{
 		chunk_clear(&this->encoding);
 	}
-	this->strings->destroy_function(this->strings, clear_strings);
+	this->strings->destroy_function(this->strings, free);
 	free(this);
 }
 

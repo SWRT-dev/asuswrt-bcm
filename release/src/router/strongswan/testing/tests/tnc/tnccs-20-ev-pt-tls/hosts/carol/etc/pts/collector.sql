@@ -23,17 +23,17 @@ INSERT INTO sw_identifiers (
 INSERT INTO sw_events (
   eid, sw_id, action
 ) VALUES (
-  3, 1, 2
+  2, 1, 2
 );
 
 INSERT INTO sw_events (
   eid, sw_id, action
 ) VALUES (
-  3, 2, 2
+  2, 2, 2
 );
 
 INSERT INTO sw_events (
   eid, sw_id, action
 ) VALUES (
-  3, 3, 2
+  2, 3, 2
 );

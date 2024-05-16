@@ -26,7 +26,7 @@ int ff_sws_alphablendaway(SwsContext *c, const uint8_t *src[],
 {
     const AVPixFmtDescriptor *desc = av_pix_fmt_desc_get(c->srcFormat);
     int nb_components = desc->nb_components;
-    int plane, x, ysrc;
+    int plane, x, y;
     int plane_count = isGray(c->srcFormat) ? 1 : 3;
     int sixteen_bits = desc->comp[0].depth >= 9;
     unsigned off    = 1<<(desc->comp[0].depth - 1);
@@ -50,15 +50,14 @@ int ff_sws_alphablendaway(SwsContext *c, const uint8_t *src[],
             int w = plane ? c->chrSrcW : c->srcW;
             int x_subsample = plane ? desc->log2_chroma_w: 0;
             int y_subsample = plane ? desc->log2_chroma_h: 0;
-            for (ysrc = 0; ysrc < AV_CEIL_RSHIFT(srcSliceH, y_subsample); ysrc++) {
-                int y = ysrc + (srcSliceY >> y_subsample);
+            for (y = srcSliceY >> y_subsample; y < AV_CEIL_RSHIFT(srcSliceH, y_subsample); y++) {
                 if (x_subsample || y_subsample) {
                     int alpha;
                     unsigned u;
                     if (sixteen_bits) {
                         ptrdiff_t alpha_step = srcStride[plane_count] >> 1;
-                        const uint16_t *s = (const uint16_t *)(src[plane      ] +  srcStride[plane      ] * ysrc);
-                        const uint16_t *a = (const uint16_t *)(src[plane_count] + (srcStride[plane_count] * ysrc << y_subsample));
+                        const uint16_t *s = (const uint16_t *)(src[plane      ] +  srcStride[plane      ] * y);
+                        const uint16_t *a = (const uint16_t *)(src[plane_count] + (srcStride[plane_count] * y << y_subsample));
                               uint16_t *d = (      uint16_t *)(dst[plane      ] +  dstStride[plane      ] * y);
                         if ((!isBE(c->srcFormat)) == !HAVE_BIGENDIAN) {
                             for (x = 0; x < w; x++) {
@@ -83,8 +82,8 @@ int ff_sws_alphablendaway(SwsContext *c, const uint8_t *src[],
                         }
                     } else {
                         ptrdiff_t alpha_step = srcStride[plane_count];
-                        const uint8_t *s = src[plane      ] + srcStride[plane] * ysrc;
-                        const uint8_t *a = src[plane_count] + (srcStride[plane_count] * ysrc << y_subsample);
+                        const uint8_t *s = src[plane      ] + srcStride[plane] * y;
+                        const uint8_t *a = src[plane_count] + (srcStride[plane_count] * y << y_subsample);
                               uint8_t *d = dst[plane      ] + dstStride[plane] * y;
                         for (x = 0; x < w; x++) {
                             if (y_subsample) {
@@ -98,8 +97,8 @@ int ff_sws_alphablendaway(SwsContext *c, const uint8_t *src[],
                     }
                 } else {
                 if (sixteen_bits) {
-                    const uint16_t *s = (const uint16_t *)(src[plane      ] + srcStride[plane      ] * ysrc);
-                    const uint16_t *a = (const uint16_t *)(src[plane_count] + srcStride[plane_count] * ysrc);
+                    const uint16_t *s = (const uint16_t *)(src[plane      ] + srcStride[plane      ] * y);
+                    const uint16_t *a = (const uint16_t *)(src[plane_count] + srcStride[plane_count] * y);
                           uint16_t *d = (      uint16_t *)(dst[plane      ] + dstStride[plane      ] * y);
                     if ((!isBE(c->srcFormat)) == !HAVE_BIGENDIAN) {
                         for (x = 0; x < w; x++) {
@@ -114,8 +113,8 @@ int ff_sws_alphablendaway(SwsContext *c, const uint8_t *src[],
                         }
                     }
                 } else {
-                    const uint8_t *s = src[plane      ] + srcStride[plane] * ysrc;
-                    const uint8_t *a = src[plane_count] + srcStride[plane_count] * ysrc;
+                    const uint8_t *s = src[plane      ] + srcStride[plane] * y;
+                    const uint8_t *a = src[plane_count] + srcStride[plane_count] * y;
                           uint8_t *d = dst[plane      ] + dstStride[plane] * y;
                     for (x = 0; x < w; x++) {
                         unsigned u = s[x]*a[x] + target_table[((x^y)>>5)&1][plane]*(255-a[x]) + 128;
@@ -128,11 +127,10 @@ int ff_sws_alphablendaway(SwsContext *c, const uint8_t *src[],
     } else {
         int alpha_pos = desc->comp[plane_count].offset;
         int w = c->srcW;
-        for (ysrc = 0; ysrc < srcSliceH; ysrc++) {
-            int y = ysrc + srcSliceY;
+        for (y = srcSliceY; y < srcSliceH; y++) {
             if (sixteen_bits) {
-                const uint16_t *s = (const uint16_t *)(src[0] + srcStride[0] * ysrc + 2*!alpha_pos);
-                const uint16_t *a = (const uint16_t *)(src[0] + srcStride[0] * ysrc +    alpha_pos);
+                const uint16_t *s = (const uint16_t *)(src[0] + srcStride[0] * y + 2*!alpha_pos);
+                const uint16_t *a = (const uint16_t *)(src[0] + srcStride[0] * y +    alpha_pos);
                       uint16_t *d = (      uint16_t *)(dst[0] + dstStride[0] * y);
                 if ((!isBE(c->srcFormat)) == !HAVE_BIGENDIAN) {
                     for (x = 0; x < w; x++) {
@@ -153,8 +151,8 @@ int ff_sws_alphablendaway(SwsContext *c, const uint8_t *src[],
                     }
                 }
             } else {
-                const uint8_t *s = src[0] + srcStride[0] * ysrc + !alpha_pos;
-                const uint8_t *a = src[0] + srcStride[0] * ysrc + alpha_pos;
+                const uint8_t *s = src[0] + srcStride[0] * y + !alpha_pos;
+                const uint8_t *a = src[0] + srcStride[0] * y + alpha_pos;
                       uint8_t *d = dst[0] + dstStride[0] * y;
                 for (x = 0; x < w; x++) {
                     for (plane = 0; plane < plane_count; plane++) {

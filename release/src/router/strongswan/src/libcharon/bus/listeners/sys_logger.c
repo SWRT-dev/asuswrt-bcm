@@ -1,8 +1,7 @@
 /*
- * Copyright (C) 2012-2020 Tobias Brunner
+ * Copyright (C) 2012 Tobias Brunner
  * Copyright (C) 2006 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -52,16 +51,6 @@ struct private_sys_logger_t {
 	bool ike_name;
 
 	/**
-	 * Print the log level
-	 */
-	bool log_level;
-
-	/**
-	 * Map strongSwan loglevels to syslog levels, -1 to disable
-	 */
-	int map_level;
-
-	/**
 	 * Mutex to ensure multi-line log messages are not torn apart
 	 */
 	mutex_t *mutex;
@@ -76,30 +65,13 @@ METHOD(logger_t, log_, void,
 	private_sys_logger_t *this, debug_t group, level_t level, int thread,
 	ike_sa_t* ike_sa, const char *message)
 {
-	char groupstr[5], namestr[128] = "";
+	char groupstr[4], namestr[128] = "";
 	const char *current = message, *next;
-	int priority = this->facility;
 
 	/* cache group name and optional name string */
-	this->lock->read_lock(this->lock);
-	if (this->map_level < 0)
-	{
-		priority |= LOG_INFO;
-	}
-	else
-	{
-		priority |= min(LOG_DEBUG, this->map_level + level);
-	}
-	if (this->log_level)
-	{
-		snprintf(groupstr, sizeof(groupstr), "%N%d", debug_names, group,
-				 level);
-	}
-	else
-	{
-		snprintf(groupstr, sizeof(groupstr), "%N", debug_names, group);
-	}
+	snprintf(groupstr, sizeof(groupstr), "%N", debug_names, group);
 
+	this->lock->read_lock(this->lock);
 	if (this->ike_name && ike_sa)
 	{
 		if (ike_sa->get_peer_cfg(ike_sa))
@@ -122,11 +94,11 @@ METHOD(logger_t, log_, void,
 		next = strchr(current, '\n');
 		if (next == NULL)
 		{
-			syslog(priority, "%.2d[%s]%s %s\n",
+			syslog(this->facility | LOG_INFO, "%.2d[%s]%s %s\n",
 				   thread, groupstr, namestr, current);
 			break;
 		}
-		syslog(priority, "%.2d[%s]%s %.*s\n",
+		syslog(this->facility | LOG_INFO, "%.2d[%s]%s %.*s\n",
 			   thread, groupstr, namestr, (int)(next - current), current);
 		current = next + 1;
 	}
@@ -163,12 +135,10 @@ METHOD(sys_logger_t, set_level, void,
 }
 
 METHOD(sys_logger_t, set_options, void,
-	private_sys_logger_t *this, bool ike_name, bool log_level, int map_level)
+	private_sys_logger_t *this, bool ike_name)
 {
 	this->lock->write_lock(this->lock);
 	this->ike_name = ike_name;
-	this->log_level = log_level;
-	this->map_level = map_level;
 	this->lock->unlock(this->lock);
 }
 
@@ -198,13 +168,12 @@ sys_logger_t *sys_logger_create(int facility)
 			.destroy = _destroy,
 		},
 		.facility = facility,
-		.map_level = -1,
 		.mutex = mutex_create(MUTEX_TYPE_DEFAULT),
 		.lock = rwlock_create(RWLOCK_TYPE_DEFAULT),
 	);
 
 	set_level(this, DBG_ANY, LEVEL_SILENT);
-	setlogmask(LOG_UPTO(LOG_DEBUG));
+	setlogmask(LOG_UPTO(LOG_INFO));
 
 	return &this->public;
 }

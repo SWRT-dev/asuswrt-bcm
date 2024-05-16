@@ -147,7 +147,6 @@ netreq_reset(getdns_network_req *net_req)
 	net_req->dnssec_status = GETDNS_DNSSEC_INDETERMINATE;
 	net_req->tsig_status = GETDNS_DNSSEC_INDETERMINATE;
 	net_req->response_len = 0;
-	net_req->response_opt = NULL;
 	/* Some fields to record info for return_call_reporting */
 	net_req->debug_start_time = 0;
 	net_req->debug_end_time = 0;
@@ -209,9 +208,6 @@ network_req_init(getdns_network_req *net_req, getdns_dns_req *owner,
 	net_req->transport_current = 0;
 	memset(&net_req->event, 0, sizeof(net_req->event));
 	net_req->keepalive_sent = 0;
-	net_req->badcookie_retry = 0;
-	net_req->cookie_sent = 0;
-	memset(&net_req->client_cookie, 0, sizeof(net_req->client_cookie));
 	net_req->write_queue_tail = NULL;
 	/* Some fields to record info for return_call_reporting */
 	net_req->debug_tls_auth_status = GETDNS_AUTH_NONE;
@@ -312,7 +308,6 @@ _getdns_network_req_clear_upstream_options(getdns_network_req * req)
 	  req->response = req->opt + 11 + req->base_query_option_sz;
 	  pktlen = req->response - req->query;
 	  gldns_write_uint16(req->query - 2, (uint16_t) pktlen);
-	  req->response_opt = NULL;
   }
 }
 
@@ -322,9 +317,6 @@ _getdns_netreq_reinit(getdns_network_req *netreq)
 	uint8_t *base_opt_backup;
 	size_t base_opt_rr_sz;
 
-	if (netreq->response && (netreq->response < netreq->wire_data ||
-	    netreq->response > netreq->wire_data+ netreq->wire_data_sz))
-		GETDNS_NULL_FREE(netreq->owner->my_mf, netreq->response);
 	if (!netreq->query) {
 		(void) netreq_reset(netreq);
 		return;
@@ -484,7 +476,7 @@ void
 _getdns_network_validate_tsig(getdns_network_req *req)
 {
 #if defined(HAVE_NSS) || defined(HAVE_NETTLE)
-	(void)req; /* unused parameter */
+	(void)req;
 #else
 	_getdns_rr_iter  rr_spc, *rr;
 	_getdns_rdf_iter rdf_spc, *rdf;
@@ -500,9 +492,7 @@ _getdns_network_validate_tsig(getdns_network_req *req)
 	unsigned char  *result_mac;
 	size_t result_mac_len;
 	uint16_t original_id;
-	size_t data_size;
-	uint8_t *data;
-
+	_getdns_tls_hmac *hmac;
 
 	DEBUG_STUB("%s %-35s: Validate TSIG\n", STUB_DEBUG_TSIG, __FUNC__);
 	for ( rr = _getdns_rr_iter_init(&rr_spc, req->query,
@@ -609,33 +599,19 @@ _getdns_network_validate_tsig(getdns_network_req *req)
 	    gldns_read_uint16(req->response + 10) - 1);
 	gldns_write_uint16(req->response, original_id);
 
-	data_size = request_mac_len + 2
-	          + (size_t)(rr->pos - req->response) 
-	          + gldns_buffer_position(&gbuf);
-	data = GETDNS_XMALLOC(req->owner->my_mf, uint8_t, data_size);
-	if (!data) {
-		DEBUG_STUB("%s %-35s: Error allocating %d bytes\n",
-			   STUB_DEBUG_TSIG, __FUNC__, (int)(data_size));
+	hmac = _getdns_tls_hmac_new(&req->owner->my_mf, req->upstream->tsig_alg, req->upstream->tsig_key, req->upstream->tsig_size);
+	if (!hmac)
 		return;
-	}
-	memcpy(data , request_mac - 2 , request_mac_len + 2);
-	memcpy(data + request_mac_len + 2, req->response, rr->pos - req->response);
-	memcpy(data + request_mac_len + 2 + (size_t)(rr->pos - req->response)
-	                                 , tsig_vars, gldns_buffer_position(&gbuf));
 
-	result_mac = _getdns_tls_hmac_hash(&req->owner->my_mf
-	                                  , req->upstream->tsig_alg
-					  , req->upstream->tsig_key
-					  , req->upstream->tsig_size
-					  , data, data_size , &result_mac_len);
-	GETDNS_FREE(req->owner->my_mf, data);
-	if (!result_mac) {
-		DEBUG_STUB("%s %-35s: Error calculating TSIG digest\n",
-			   STUB_DEBUG_TSIG, __FUNC__);
+	_getdns_tls_hmac_add(hmac, request_mac - 2, request_mac_len + 2);
+	_getdns_tls_hmac_add(hmac, req->response, rr->pos - req->response);
+	_getdns_tls_hmac_add(hmac, tsig_vars, gldns_buffer_position(&gbuf));
+	result_mac = _getdns_tls_hmac_end(&req->owner->my_mf, hmac, &result_mac_len);
+	if (!result_mac)
 		return;
-	}
-	DEBUG_STUB("%s %-35s: Result MAC length: %d for %d bytes of data\n",
-	           STUB_DEBUG_TSIG, __FUNC__, (int)(result_mac_len), (int)data_size);
+
+	DEBUG_STUB("%s %-35s: Result MAC length: %d\n",
+	           STUB_DEBUG_TSIG, __FUNC__, (int)(result_mac_len));
 	if (result_mac_len == response_mac_len &&
 	    memcmp(result_mac, response_mac, result_mac_len) == 0)
 		req->tsig_status = GETDNS_DNSSEC_SECURE;

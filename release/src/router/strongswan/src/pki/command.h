@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2009 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -25,7 +24,7 @@
 /**
  * Maximum number of commands (+1).
  */
-#define MAX_COMMANDS 18
+#define MAX_COMMANDS 14
 
 /**
  * Maximum number of options in a command (+3)
@@ -35,7 +34,7 @@
 /**
  * Maximum number of usage summary lines (+1)
  */
-#define MAX_LINES 13
+#define MAX_LINES 12
 
 typedef struct command_t command_t;
 typedef struct command_option_t command_option_t;

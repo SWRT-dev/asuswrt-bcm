@@ -1,7 +1,7 @@
 #
 # Makefile for the Broadcom EMF Layer
 #
-# Copyright (C) 2022, Broadcom. All Rights Reserved.
+# Copyright (C) 2021, Broadcom. All Rights Reserved.
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -56,11 +56,6 @@ ifeq ($(REBUILD_EMF_MODULE),1)
 EMF_OBJS := $(EMFCSRCDIR)/emfc.o        $(EMFSRCDIR)/emf_linux.o
 
 ifeq ($(BUILD_NBUFF_WLMCAST_IPV6),y)
-EMF_OBJS += $(EMFCSRCDIR)/emfc_ipv6.o
-endif
-
-ifneq ($(CMWIFI_WMF_IPV6),)
-EXTRA_CFLAGS += -DCMWIFI_WMF_IPV6
 EMF_OBJS += $(EMFCSRCDIR)/emfc_ipv6.o
 endif
 

@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2010 Andreas Steffen
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -135,10 +134,13 @@ METHOD(pb_tnc_state_machine_t, receive_batch, bool,
 			}
 			return FALSE;
 		case PB_STATE_CLIENT_WORKING:
-			if (this->is_server &&
-					(type == PB_BATCH_CDATA || type == PB_BATCH_CRETRY))
+			if (this->is_server && type == PB_BATCH_CDATA)
 			{
 				this->state = PB_STATE_SERVER_WORKING;
+				break;
+			}
+			if (this->is_server && type == PB_BATCH_CRETRY)
+			{
 				break;
 			}
 			if (type == PB_BATCH_CLOSE)

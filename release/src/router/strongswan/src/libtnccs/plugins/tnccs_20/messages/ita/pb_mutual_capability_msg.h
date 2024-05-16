@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2015 Andreas Steffen
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -31,8 +30,8 @@ typedef struct pb_mutual_capability_msg_t pb_mutual_capability_msg_t;
  * PB-TNC mutual protocol types
  */
 enum pb_tnc_mutual_protocol_type_t {
-	PB_MUTUAL_FULL_DUPLEX =	(1 << 30),
 	PB_MUTUAL_HALF_DUPLEX =	(1 << 31),
+	PB_MUTUAL_FULL_DUPLEX =	(1 << 30)
 };
 
 /**

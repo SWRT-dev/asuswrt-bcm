@@ -40,6 +40,8 @@
  *
  */
 
+#include <stdlib.h>
+
 #include "config.h"
 #include "util/storage/lruhash.h"
 #include "util/fptr_wlist.h"
@@ -399,12 +401,12 @@ lruhash_remove(struct lruhash* table, hashvalue_type hash, void* key)
 	}
 	table->num--;
 	table->space_used -= (*table->sizefunc)(entry->key, entry->data);
+	lock_quick_unlock(&table->lock);
 	lock_rw_wrlock(&entry->lock);
 	if(table->markdelfunc)
 		(*table->markdelfunc)(entry->key);
 	lock_rw_unlock(&entry->lock);
 	lock_quick_unlock(&bin->lock);
-	lock_quick_unlock(&table->lock);
 	/* finish removal */
 	d = entry->data;
 	(*table->delkeyfunc)(entry->key, table->cb_arg);

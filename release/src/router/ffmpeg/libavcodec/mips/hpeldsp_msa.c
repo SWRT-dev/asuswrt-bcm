@@ -49,7 +49,7 @@
     PCKEV_B2_UB(in2, in1, in4, in3, tmp0_m, tmp1_m);                    \
     PCKEV_D2_UB(dst1, dst0, dst3, dst2, tmp2_m, tmp3_m);                \
     AVER_UB2_UB(tmp0_m, tmp2_m, tmp1_m, tmp3_m, tmp0_m, tmp1_m);        \
-    ST_D4(tmp0_m, tmp1_m, 0, 1, 0, 1, pdst_m, stride);                  \
+    ST8x4_UB(tmp0_m, tmp1_m, pdst_m, stride);                           \
 }
 
 static void common_hz_bil_4w_msa(const uint8_t *src, int32_t src_stride,
@@ -59,13 +59,12 @@ static void common_hz_bil_4w_msa(const uint8_t *src, int32_t src_stride,
     uint8_t loop_cnt;
     uint32_t out0, out1;
     v16u8 src0, src1, src0_sld1, src1_sld1, res0, res1;
-    v16i8 zeros = { 0 };
 
     for (loop_cnt = (height >> 1); loop_cnt--;) {
         LD_UB2(src, src_stride, src0, src1);
         src += (2 * src_stride);
 
-        SLDI_B2_UB(zeros, src0, zeros, src1, 1, src0_sld1, src1_sld1);
+        SLDI_B2_0_UB(src0, src1, src0_sld1, src1_sld1, 1);
         AVER_UB2_UB(src0_sld1, src0, src1_sld1, src1, res0, res1);
 
         out0 = __msa_copy_u_w((v4i32) res0, 0);
@@ -83,14 +82,13 @@ static void common_hz_bil_8w_msa(const uint8_t *src, int32_t src_stride,
 {
     uint8_t loop_cnt;
     v16i8 src0, src1, src2, src3, src0_sld1, src1_sld1, src2_sld1, src3_sld1;
-    v16i8 zeros = { 0 };
 
     for (loop_cnt = (height >> 2); loop_cnt--;) {
         LD_SB4(src, src_stride, src0, src1, src2, src3);
         src += (4 * src_stride);
 
-        SLDI_B4_SB(zeros, src0, zeros, src1, zeros, src2, zeros, src3, 1,
-                   src0_sld1, src1_sld1, src2_sld1, src3_sld1);
+        SLDI_B4_0_SB(src0, src1, src2, src3,
+                     src0_sld1, src1_sld1, src2_sld1, src3_sld1, 1);
         AVER_ST8x4_UB(src0, src0_sld1, src1, src1_sld1,
                       src2, src2_sld1, src3, src3_sld1, dst, dst_stride);
         dst += (4 * dst_stride);
@@ -127,15 +125,14 @@ static void common_hz_bil_no_rnd_8x8_msa(const uint8_t *src, int32_t src_stride,
     v16i8 src0, src1, src2, src3, src4, src5, src6, src7;
     v16i8 src0_sld1, src1_sld1, src2_sld1, src3_sld1;
     v16i8 src4_sld1, src5_sld1, src6_sld1, src7_sld1;
-    v16i8 zeros = { 0 };
 
     LD_SB8(src, src_stride, src0, src1, src2, src3, src4, src5, src6, src7);
     src += (8 * src_stride);
 
-    SLDI_B4_SB(zeros, src0, zeros, src1, zeros, src2, zeros, src3, 1,
-               src0_sld1, src1_sld1, src2_sld1, src3_sld1);
-    SLDI_B4_SB(zeros, src4, zeros, src5, zeros, src6, zeros, src7, 1,
-               src4_sld1, src5_sld1, src6_sld1, src7_sld1);
+    SLDI_B4_0_SB(src0, src1, src2, src3,
+                 src0_sld1, src1_sld1, src2_sld1, src3_sld1, 1);
+    SLDI_B4_0_SB(src4, src5, src6, src7,
+                 src4_sld1, src5_sld1, src6_sld1, src7_sld1, 1);
 
     AVE_ST8x4_UB(src0, src0_sld1, src1, src1_sld1,
                  src2, src2_sld1, src3, src3_sld1, dst, dst_stride);
@@ -148,11 +145,10 @@ static void common_hz_bil_no_rnd_4x8_msa(const uint8_t *src, int32_t src_stride,
                                          uint8_t *dst, int32_t dst_stride)
 {
     v16i8 src0, src1, src2, src3, src0_sld1, src1_sld1, src2_sld1, src3_sld1;
-    v16i8 zeros = { 0 };
 
     LD_SB4(src, src_stride, src0, src1, src2, src3);
-    SLDI_B4_SB(zeros, src0, zeros, src1, zeros, src2, zeros, src3, 1,
-               src0_sld1, src1_sld1, src2_sld1, src3_sld1);
+    SLDI_B4_0_SB(src0, src1, src2, src3,
+                 src0_sld1, src1_sld1, src2_sld1, src3_sld1, 1);
     AVE_ST8x4_UB(src0, src0_sld1, src1, src1_sld1,
                  src2, src2_sld1, src3, src3_sld1, dst, dst_stride);
 }
@@ -220,13 +216,12 @@ static void common_hz_bil_and_aver_dst_4w_msa(const uint8_t *src,
     v16u8 src0, src1, src0_sld1, src1_sld1, res0, res1;
     v16u8 tmp0 = { 0 };
     v16u8 tmp1 = { 0 };
-    v16i8 zeros = { 0 };
 
     for (loop_cnt = (height >> 1); loop_cnt--;) {
         LD_UB2(src, src_stride, src0, src1);
         src += (2 * src_stride);
 
-        SLDI_B2_UB(zeros, src0, zeros, src1, 1, src0_sld1, src1_sld1);
+        SLDI_B2_0_UB(src0, src1, src0_sld1, src1_sld1, 1);
 
         dst0 = LW(dst);
         dst1 = LW(dst + dst_stride);
@@ -252,14 +247,13 @@ static void common_hz_bil_and_aver_dst_8w_msa(const uint8_t *src,
 {
     uint8_t loop_cnt;
     v16i8 src0, src1, src2, src3, src0_sld1, src1_sld1, src2_sld1, src3_sld1;
-    v16i8 zeros = { 0 };
 
     for (loop_cnt = (height >> 2); loop_cnt--;) {
         LD_SB4(src, src_stride, src0, src1, src2, src3);
         src += (4 * src_stride);
 
-        SLDI_B4_SB(zeros, src0, zeros, src1, zeros, src2, zeros, src3, 1,
-                   src0_sld1, src1_sld1, src2_sld1, src3_sld1);
+        SLDI_B4_0_SB(src0, src1, src2, src3,
+                     src0_sld1, src1_sld1, src2_sld1, src3_sld1, 1);
 
         AVER_DST_ST8x4_UB(src0, src0_sld1, src1, src1_sld1, src2, src2_sld1,
                           src3, src3_sld1, dst, dst_stride);
@@ -535,7 +529,6 @@ static void common_hv_bil_4w_msa(const uint8_t *src, int32_t src_stride,
     v16i8 src0, src1, src2, src0_sld1, src1_sld1, src2_sld1;
     v16u8 src0_r, src1_r, src2_r, res;
     v8u16 add0, add1, add2, sum0, sum1;
-    v16i8 zeros = { 0 };
 
     src0 = LD_SB(src);
     src += src_stride;
@@ -544,8 +537,7 @@ static void common_hv_bil_4w_msa(const uint8_t *src, int32_t src_stride,
         LD_SB2(src, src_stride, src1, src2);
         src += (2 * src_stride);
 
-        SLDI_B3_SB(zeros, src0, zeros, src1, zeros, src2, 1, src0_sld1,
-                   src1_sld1, src2_sld1);
+        SLDI_B3_0_SB(src0, src1, src2, src0_sld1, src1_sld1, src2_sld1, 1);
         ILVR_B3_UB(src0_sld1, src0, src1_sld1, src1, src2_sld1, src2,
                    src0_r, src1_r, src2_r);
         HADD_UB3_UH(src0_r, src1_r, src2_r, add0, add1, add2);
@@ -573,7 +565,6 @@ static void common_hv_bil_8w_msa(const uint8_t *src, int32_t src_stride,
     v16u8 src0_r, src1_r, src2_r, src3_r, src4_r;
     v8u16 add0, add1, add2, add3, add4;
     v8u16 sum0, sum1, sum2, sum3;
-    v16i8 zeros = { 0 };
 
     src0 = LD_SB(src);
     src += src_stride;
@@ -582,9 +573,8 @@ static void common_hv_bil_8w_msa(const uint8_t *src, int32_t src_stride,
         LD_SB4(src, src_stride, src1, src2, src3, src4);
         src += (4 * src_stride);
 
-        SLDI_B3_SB(zeros, src0, zeros, src1, zeros, src2, 1, src0_sld1,
-                   src1_sld1, src2_sld1);
-        SLDI_B2_SB(zeros, src3, zeros, src4, 1, src3_sld1, src4_sld1);
+        SLDI_B3_0_SB(src0, src1, src2, src0_sld1, src1_sld1, src2_sld1, 1);
+        SLDI_B2_0_SB(src3, src4, src3_sld1, src4_sld1, 1);
         ILVR_B3_UB(src0_sld1, src0, src1_sld1, src1, src2_sld1, src2, src0_r,
                    src1_r, src2_r);
         ILVR_B2_UB(src3_sld1, src3, src4_sld1, src4, src3_r, src4_r);
@@ -594,7 +584,7 @@ static void common_hv_bil_8w_msa(const uint8_t *src, int32_t src_stride,
              sum0, sum1, sum2, sum3);
         SRARI_H4_UH(sum0, sum1, sum2, sum3, 2);
         PCKEV_B2_SB(sum1, sum0, sum3, sum2, src0, src1);
-        ST_D4(src0, src1, 0, 1, 0, 1, dst, dst_stride);
+        ST8x4_UB(src0, src1, dst, dst_stride);
         dst += (4 * dst_stride);
         src0 = src4;
     }
@@ -669,17 +659,15 @@ static void common_hv_bil_no_rnd_8x8_msa(const uint8_t *src, int32_t src_stride,
     v8u16 add0, add1, add2, add3, add4, add5, add6, add7, add8;
     v8u16 sum0, sum1, sum2, sum3, sum4, sum5, sum6, sum7;
     v16i8 out0, out1;
-    v16i8 zeros = { 0 };
 
     LD_UB8(src, src_stride, src0, src1, src2, src3, src4, src5, src6, src7);
     src += (8 * src_stride);
     src8 = LD_UB(src);
 
-    SLDI_B4_UB(zeros, src0, zeros, src1, zeros, src2, zeros, src3, 1,
-               src0_sld1, src1_sld1, src2_sld1, src3_sld1);
-    SLDI_B3_UB(zeros, src4, zeros, src5, zeros, src6, 1, src4_sld1,
-               src5_sld1, src6_sld1);
-    SLDI_B2_UB(zeros, src7, zeros, src8, 1, src7_sld1, src8_sld1);
+    SLDI_B4_0_UB(src0, src1, src2, src3, src0_sld1, src1_sld1, src2_sld1,
+                 src3_sld1, 1);
+    SLDI_B3_0_UB(src4, src5, src6, src4_sld1, src5_sld1, src6_sld1, 1);
+    SLDI_B2_0_UB(src7, src8, src7_sld1, src8_sld1, 1);
     ILVR_B4_UH(src0_sld1, src0, src1_sld1, src1, src2_sld1, src2, src3_sld1,
                src3, src0_r, src1_r, src2_r, src3_r);
     ILVR_B3_UH(src4_sld1, src4, src5_sld1, src5, src6_sld1, src6, src4_r,
@@ -701,9 +689,9 @@ static void common_hv_bil_no_rnd_8x8_msa(const uint8_t *src, int32_t src_stride,
     SRA_4V(sum0, sum1, sum2, sum3, 2);
     SRA_4V(sum4, sum5, sum6, sum7, 2);
     PCKEV_B2_SB(sum1, sum0, sum3, sum2, out0, out1);
-    ST_D4(out0, out1, 0, 1, 0, 1, dst, dst_stride);
+    ST8x4_UB(out0, out1, dst, dst_stride);
     PCKEV_B2_SB(sum5, sum4, sum7, sum6, out0, out1);
-    ST_D4(out0, out1, 0, 1, 0, 1, dst + 4 * dst_stride, dst_stride);
+    ST8x4_UB(out0, out1, dst + 4 * dst_stride, dst_stride);
 }
 
 static void common_hv_bil_no_rnd_4x8_msa(const uint8_t *src, int32_t src_stride,
@@ -715,15 +703,13 @@ static void common_hv_bil_no_rnd_4x8_msa(const uint8_t *src, int32_t src_stride,
     v8u16 add0, add1, add2, add3, add4;
     v8u16 sum0, sum1, sum2, sum3;
     v16i8 out0, out1;
-    v16i8 zeros = { 0 };
 
     LD_SB4(src, src_stride, src0, src1, src2, src3);
     src += (4 * src_stride);
     src4 = LD_SB(src);
 
-    SLDI_B3_SB(zeros, src0, zeros, src1, zeros, src2, 1, src0_sld1,
-               src1_sld1, src2_sld1);
-    SLDI_B2_SB(zeros, src3, zeros, src4, 1, src3_sld1, src4_sld1);
+    SLDI_B3_0_SB(src0, src1, src2, src0_sld1, src1_sld1, src2_sld1, 1);
+    SLDI_B2_0_SB(src3, src4, src3_sld1, src4_sld1, 1);
     ILVR_B3_UH(src0_sld1, src0, src1_sld1, src1, src2_sld1, src2, src0_r,
                src1_r, src2_r);
     ILVR_B2_UH(src3_sld1, src3, src4_sld1, src4, src3_r, src4_r);
@@ -737,7 +723,7 @@ static void common_hv_bil_no_rnd_4x8_msa(const uint8_t *src, int32_t src_stride,
 
     SRA_4V(sum0, sum1, sum2, sum3, 2);
     PCKEV_B2_SB(sum1, sum0, sum3, sum2, out0, out1);
-    ST_D4(out0, out1, 0, 1, 0, 1, dst, dst_stride);
+    ST8x4_UB(out0, out1, dst, dst_stride);
 }
 
 static void common_hv_bil_no_rnd_16x16_msa(const uint8_t *src,
@@ -932,7 +918,6 @@ static void common_hv_bil_and_aver_dst_4w_msa(const uint8_t *src,
     v16u8 src0_r, src1_r, src2_r;
     v8u16 add0, add1, add2, sum0, sum1;
     v16u8 dst0, dst1, res0, res1;
-    v16i8 zeros = { 0 };
 
     src0 = LD_SB(src);
     src += src_stride;
@@ -942,8 +927,7 @@ static void common_hv_bil_and_aver_dst_4w_msa(const uint8_t *src,
         src += (2 * src_stride);
 
         LD_UB2(dst, dst_stride, dst0, dst1);
-        SLDI_B3_SB(zeros, src0, zeros, src1, zeros, src2, 1, src0_sld1,
-                   src1_sld1, src2_sld1);
+        SLDI_B3_0_SB(src0, src1, src2, src0_sld1, src1_sld1, src2_sld1, 1);
         ILVR_B3_UB(src0_sld1, src0, src1_sld1, src1, src2_sld1, src2, src0_r,
                    src1_r, src2_r);
         HADD_UB3_UH(src0_r, src1_r, src2_r, add0, add1, add2);
@@ -975,7 +959,6 @@ static void common_hv_bil_and_aver_dst_8w_msa(const uint8_t *src,
     v16u8 src0_r, src1_r, src2_r, src3_r, src4_r;
     v8u16 add0, add1, add2, add3, add4;
     v8u16 sum0, sum1, sum2, sum3;
-    v16i8 zeros = { 0 };
 
     src0 = LD_SB(src);
     src += src_stride;
@@ -985,9 +968,8 @@ static void common_hv_bil_and_aver_dst_8w_msa(const uint8_t *src,
         src += (4 * src_stride);
 
         LD_UB4(dst, dst_stride, dst0, dst1, dst2, dst3);
-        SLDI_B3_SB(zeros, src0, zeros, src1, zeros, src2, 1, src0_sld1,
-                   src1_sld1, src2_sld1);
-        SLDI_B2_SB(zeros, src3, zeros, src4, 1, src3_sld1, src4_sld1);
+        SLDI_B3_0_SB(src0, src1, src2, src0_sld1, src1_sld1, src2_sld1, 1);
+        SLDI_B2_0_SB(src3, src4, src3_sld1, src4_sld1, 1);
         ILVR_B3_UB(src0_sld1, src0, src1_sld1, src1, src2_sld1, src2, src0_r,
                    src1_r, src2_r);
         ILVR_B2_UB(src3_sld1, src3, src4_sld1, src4, src3_r, src4_r);

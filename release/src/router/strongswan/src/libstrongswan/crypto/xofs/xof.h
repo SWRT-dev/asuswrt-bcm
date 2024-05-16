@@ -1,8 +1,7 @@
 /*
  * Copyright (C) 2017 Tobias Brunner
  * Copyright (C) 2016 Andreas Steffen
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -105,7 +104,7 @@ struct xof_t {
 	/**
 	 * Set the key for this xof_t object.
 	 *
-	 * @param seed		seed to set
+	 * @param sed		seed to set
 	 * @return			TRUE if XOF initialized with seed successfully
 	 */
 	bool (*set_seed)(xof_t *this,

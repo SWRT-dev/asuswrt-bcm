@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2014 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * Copyright (C) 2014 revosec AG
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -192,7 +191,6 @@ static entry_t* find_entry(private_vici_socket_t *this, stream_t *stream,
 			}
 			if (entry->disconnecting)
 			{
-				entry->cond->signal(entry->cond);
 				continue;
 			}
 			candidate = TRUE;
@@ -246,7 +244,6 @@ static entry_t* remove_entry(private_vici_socket_t *this, u_int id)
 					break;
 				}
 				this->connections->remove_at(this->connections, enumerator);
-				entry->cond->broadcast(entry->cond);
 				found = entry;
 				break;
 			}
@@ -313,7 +310,7 @@ static void disconnect(private_vici_socket_t *this, u_int id)
  * Write queued output data
  */
 static bool do_write(private_vici_socket_t *this, entry_t *entry,
-					 stream_t *stream, char *errmsg, size_t errlen, bool block)
+					 stream_t *stream, char *errmsg, size_t errlen)
 {
 	msg_buf_t *out;
 	ssize_t len;
@@ -324,7 +321,7 @@ static bool do_write(private_vici_socket_t *this, entry_t *entry,
 		while (out->hdrlen < sizeof(out->hdr))
 		{
 			len = stream->write(stream, out->hdr + out->hdrlen,
-								sizeof(out->hdr) - out->hdrlen, block);
+								sizeof(out->hdr) - out->hdrlen, FALSE);
 			if (len == 0)
 			{
 				return FALSE;
@@ -346,7 +343,7 @@ static bool do_write(private_vici_socket_t *this, entry_t *entry,
 		while (out->buf.len > out->done)
 		{
 			len = stream->write(stream, out->buf.ptr + out->done,
-								out->buf.len - out->done, block);
+								out->buf.len - out->done, FALSE);
 			if (len == 0)
 			{
 				snprintf(errmsg, errlen, "premature vici disconnect");
@@ -386,7 +383,7 @@ CALLBACK(on_write, bool,
 	entry = find_entry(this, stream, 0, FALSE, TRUE);
 	if (entry)
 	{
-		ret = do_write(this, entry, stream, errmsg, sizeof(errmsg), FALSE);
+		ret = do_write(this, entry, stream, errmsg, sizeof(errmsg));
 		if (ret)
 		{
 			/* unregister if we have no more messages to send */
@@ -409,7 +406,7 @@ CALLBACK(on_write, bool,
 }
 
 /**
- * Read in available header with data, non-blocking accumulating to buffer
+ * Read in available header with data, non-blocking cumulating to buffer
  */
 static bool do_read(private_vici_socket_t *this, entry_t *entry,
 					stream_t *stream, char *errmsg, size_t errlen)
@@ -477,7 +474,7 @@ static bool do_read(private_vici_socket_t *this, entry_t *entry,
 }
 
 /**
- * Callback processing incoming requests in strict order
+ * Callback processing incoming requestes in strict order
  */
 CALLBACK(process_queue, job_requeue_t,
 	entry_selector_t *sel)
@@ -507,7 +504,7 @@ CALLBACK(process_queue, job_requeue_t,
 			break;
 		}
 
-		thread_cleanup_push((void*)chunk_clear, &chunk);
+		thread_cleanup_push(free, chunk.ptr);
 		sel->this->inbound(sel->this->user, id, chunk);
 		thread_cleanup_pop(TRUE);
 	}
@@ -659,30 +656,10 @@ METHOD(vici_socket_t, send_, void,
 	}
 }
 
-CALLBACK(flush_messages, void,
-	entry_t *entry, va_list args)
-{
-	private_vici_socket_t *this;
-	char errmsg[256] = "";
-	bool ret;
-
-	VA_ARGS_VGET(args, this);
-
-	/* no need for any locking as no other threads are running, the connections
-	 * all get disconnected afterwards, so error handling is simple too */
-	ret = do_write(this, entry, entry->stream, errmsg, sizeof(errmsg), TRUE);
-
-	if (!ret && errmsg[0])
-	{
-		DBG1(DBG_CFG, errmsg);
-	}
-}
-
 METHOD(vici_socket_t, destroy, void,
 	private_vici_socket_t *this)
 {
 	DESTROY_IF(this->service);
-	this->connections->invoke_function(this->connections, flush_messages, this);
 	this->connections->destroy_function(this->connections, destroy_entry);
 	this->mutex->destroy(this->mutex);
 	free(this);

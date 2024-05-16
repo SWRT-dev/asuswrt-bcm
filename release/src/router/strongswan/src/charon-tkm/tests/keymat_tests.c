@@ -1,8 +1,7 @@
 /*
  * Copyright (C) 2012 Reto Buerki
  * Copyright (C) 2012 Adrian-Ken Rueegsegger
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -52,25 +51,25 @@ START_TEST(test_derive_ike_keys)
 
 	/* Use the same pubvalue for both sides */
 	chunk_t pubvalue;
-	ck_assert(dh->ke.get_public_key(&dh->ke, &pubvalue));
-	ck_assert(dh->ke.set_public_key(&dh->ke, pubvalue));
+	ck_assert(dh->dh.get_my_public_value(&dh->dh, &pubvalue));
+	ck_assert(dh->dh.set_other_public_value(&dh->dh, pubvalue));
 
 	fail_unless(keymat->keymat_v2.derive_ike_keys(&keymat->keymat_v2, proposal,
-				&dh->ke, nonce, nonce, ike_sa_id, PRF_UNDEFINED, chunk_empty),
+				&dh->dh, nonce, nonce, ike_sa_id, PRF_UNDEFINED, chunk_empty),
 				"Key derivation failed");
 	chunk_free(&nonce);
 
 	aead_t * const aead = keymat->keymat_v2.keymat.get_aead(&keymat->keymat_v2.keymat, TRUE);
 	fail_if(!aead, "AEAD is NULL");
 
-	fail_if(aead->get_key_size(aead) != 1, "Key size mismatch %d",
+	fail_if(aead->get_key_size(aead) != 96, "Key size mismatch %d",
 			aead->get_key_size(aead));
 	fail_if(aead->get_block_size(aead) != 16, "Block size mismatch %d",
 			aead->get_block_size(aead));
 
 	ng->nonce_gen.destroy(&ng->nonce_gen);
 	proposal->destroy(proposal);
-	dh->ke.destroy(&dh->ke);
+	dh->dh.destroy(&dh->dh);
 	ike_sa_id->destroy(ike_sa_id);
 	keymat->keymat_v2.keymat.destroy(&keymat->keymat_v2.keymat);
 	chunk_free(&pubvalue);
@@ -93,7 +92,7 @@ START_TEST(test_derive_child_keys)
 	chunk_t nonce = chunk_from_chars("test chunk");
 
 	fail_unless(keymat->keymat_v2.derive_child_keys(&keymat->keymat_v2, proposal,
-													&dh->ke,
+													(diffie_hellman_t *)dh,
 													nonce, nonce, &encr_i,
 													&integ_i, &encr_r, &integ_r),
 				"Child key derivation failed");
@@ -133,7 +132,7 @@ START_TEST(test_derive_child_keys)
 	chunk_free(&info->nonce_r);
 
 	proposal->destroy(proposal);
-	dh->ke.destroy(&dh->ke);
+	dh->dh.destroy(&dh->dh);
 	keymat->keymat_v2.keymat.destroy(&keymat->keymat_v2.keymat);
 	chunk_free(&encr_i);
 	chunk_free(&encr_r);

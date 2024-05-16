@@ -22,7 +22,6 @@
  */
 
 #include "botan_rng.h"
-#include "botan_util.h"
 
 #include <botan/build.h>
 
@@ -84,12 +83,29 @@ METHOD(rng_t, destroy, void,
 botan_random_t *botan_rng_create(rng_quality_t quality)
 {
 	private_botan_random_t *this;
-	const char *rng_name;
+	const char* rng_name;
 
-	rng_name = botan_map_rng_quality(quality);
-	if (!rng_name)
+	switch (quality)
 	{
-		return NULL;
+		case RNG_WEAK:
+		case RNG_STRONG:
+			/* some rng_t instances of this class (e.g. in the ike-sa-manager)
+			 * may be called concurrently by different threads. the Botan RNGs
+			 * are not reentrant, by default, so use the threadsafe version.
+			 * because we build without threading support when running tests
+			 * with leak-detective (lots of reports of frees of unknown memory)
+			 * there is a fallback to the default */
+#ifdef BOTAN_TARGET_OS_HAS_THREADS
+			rng_name = "user-threadsafe";
+#else
+			rng_name = "user";
+#endif
+			break;
+		case RNG_TRUE:
+			rng_name = "system";
+			break;
+		default:
+			return NULL;
 	}
 
 	INIT(this,

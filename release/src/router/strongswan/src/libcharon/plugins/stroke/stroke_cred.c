@@ -1,8 +1,7 @@
 /*
  * Copyright (C) 2008-2017 Tobias Brunner
  * Copyright (C) 2008 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -1355,7 +1354,7 @@ static void load_secrets(private_stroke_cred_t *this, mem_cred_t *secrets,
 			break;
 		}
 	}
-	chunk_unmap_clear(src);
+	chunk_unmap(src);
 
 	if (level == 0)
 	{	/* replace secrets in active credential set */

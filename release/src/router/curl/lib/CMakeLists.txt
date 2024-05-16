@@ -5,7 +5,7 @@
 #                            | (__| |_| |  _ <| |___
 #                             \___|\___/|_| \_\_____|
 #
-# Copyright (C) 1998 - 2022, Daniel Stenberg, <daniel@haxx.se>, et al.
+# Copyright (C) 1998 - 2021, Daniel Stenberg, <daniel@haxx.se>, et al.
 #
 # This software is licensed as described in the file COPYING, which
 # you should have received as part of this distribution. The terms
@@ -17,8 +17,6 @@
 #
 # This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
 # KIND, either express or implied.
-#
-# SPDX-License-Identifier: curl
 #
 ###########################################################################
 set(LIB_NAME libcurl)
@@ -42,7 +40,7 @@ list(APPEND HHEADERS
   ${CMAKE_CURRENT_BINARY_DIR}/curl_config.h
   )
 
-if(WIN32 AND NOT CURL_STATICLIB)
+if(WIN32)
   list(APPEND CSOURCES libcurl.rc)
 endif()
 
@@ -97,6 +95,10 @@ endif()
 
 target_link_libraries(${LIB_NAME} ${CURL_LIBS})
 
+if(WIN32)
+  add_definitions(-D_USRDLL)
+endif()
+
 set_target_properties(${LIB_NAME} PROPERTIES
   COMPILE_DEFINITIONS BUILDING_LIBCURL
   OUTPUT_NAME ${LIBCURL_OUTPUT_NAME}
@@ -119,7 +121,6 @@ endif()
 
 if(WIN32)
   if(BUILD_SHARED_LIBS)
-    set_property(TARGET ${LIB_NAME} APPEND PROPERTY COMPILE_DEFINITIONS "_USRDLL")
     if(MSVC)
       # Add "_imp" as a suffix before the extension to avoid conflicting with
       # the statically linked "libcurl.lib"

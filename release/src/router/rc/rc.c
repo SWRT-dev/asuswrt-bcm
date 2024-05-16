@@ -11,7 +11,6 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <inttypes.h>
 #include <string.h>
 #include <time.h>
 #include <limits.h>
@@ -34,11 +33,8 @@
 
 #if defined(RTCONFIG_SOC_IPQ8074)
 #include <sys/vfs.h>
+#include <inttypes.h>
 #include <sys/reboot.h>
-#endif
-
-#if defined(RTCONFIG_TUNNEL) && defined(RTCONFIG_ACCOUNT_BINDING)
-#include <json.h>
 #endif
 
 #if defined(RTCONFIG_SWRT)
@@ -50,10 +46,6 @@
 #endif
 
 #include <model.h>
-
-#if defined(RTCONFIG_TUNNEL) && defined(RTCONFIG_ACCOUNT_BINDING)
-#include <aae_ipc.h>
-#endif
 
 #ifndef ARRAYSIZE
 #define ARRAYSIZE(a) (sizeof(a) / sizeof(a[0]))
@@ -440,18 +432,12 @@ static int rctest_main(int argc, char *argv[])
 	else if (strcmp(argv[1], "rc_service")==0) {
 		notify_rc(argv[2]);
 	}
-#ifdef RTCONFIG_HND_ROUTER_AX
+#if defined(CONFIG_BCMWL5) && defined(HND_ROUTER)
 	else if (strcmp(argv[1], "gpy211")==0) {
 		GPY211_INIT_SPEED();
 	}
-	else if (strcmp(argv[1], "gpy211_1g")==0) {
-		GPY211_SPEED_WAR_1G();
-	}
-	else if (strcmp(argv[1], "gpy211_auto")==0) {
-		GPY211_SPEED_WAR_AUTO();
-	}
-	else if (strcmp(argv[1], "gpy211_aneg")==0) {
-		GPY211_WAR_ANEG();
+	else if (strcmp(argv[1], "gpy211_wan")==0) {
+		GPY211_WAN_SPEED();
 	}
 #endif
 #if defined(RTCONFIG_FRS_FEEDBACK)
@@ -495,63 +481,6 @@ static int rctest_main(int argc, char *argv[])
 		const char *dws[]={"dw", argv[2]};
 		_memaccess(2, dws);
 	}
-#ifdef RTCONFIG_RTL_UMGMT
-	else if (strcmp(argv[1], "rtl_vadd")==0) {
-        	char ethif[5], ifname[12];
-        	int vid, prio, p_mode, i;
-		char nvbuf[12];
-		int ext_ports = 4;
-
-        	zero_extrtl_vlan();
-
-		_dprintf("rtl vlan test add:\n");
-		for(i = 0; i < ext_ports; ++i) {
-			sprintf(nvbuf, "p%d_vid", i);
-			vid = nvram_get_int(nvbuf);
-
-			sprintf(nvbuf, "p%d_prio", i);
-			prio = nvram_get_int(nvbuf);
-
-			sprintf(ifname, "ethsw_%d", i);
-
-			sprintf(nvbuf, "p%d_mode", i);
-        		p_mode = nvram_get_int(nvbuf);
-
-			if(vid) {
-        			add_extrtl_vlan(vid, prio, ifname, p_mode, ethif);
-        			_dprintf("setup vid[%d], prio[%d], ifname[%s], p_mode[%d], ethif[%s]\n", vid, prio, ifname, p_mode, ethif);
-			}
-		}
-
-        	dump_extVlan();
-        	start_extrtl_vlan();	
-		_dprintf("done\n");
-	}
-	else if (strcmp(argv[1], "rtl_vrem")==0) {
-        	char ethif[5], ifname[12];
-        	int vid, prio, p_mode, i;
-		char nvbuf[12];
-		int ext_ports = 4;
-		int ret = 0;
-
-		_dprintf("rtl vlan test rem:\n");
-		for(i = 0; i < ext_ports; ++i) {
-			sprintf(nvbuf, "p%d_vid_rm", i);
-			vid = nvram_get_int(nvbuf);
-
-			sprintf(ifname, "ethsw_%d", i);
-
-			if(vid) {
-        			ret = rem_extrtl_vlan(vid, ifname, ethif);
-        			_dprintf("remv(%d): from vid[%d], ifname[%s], ethif[%s]\n", ret, vid, ifname, ethif);
-			}
-		}
-
-        	dump_extVlan();
-        	start_extrtl_vlan();	
-		_dprintf("done\n");
-	}
-#endif
 #endif
 	else if (strcmp(argv[1], "get_phy_status")==0) {
 		int mask;
@@ -613,42 +542,6 @@ static int rctest_main(int argc, char *argv[])
 #endif
 #endif
 #ifdef HND_ROUTER
-	else if (strcmp(argv[1], "dump_defaults")==0) {
-		struct nvram_tuple *t;
-		char *substr = NULL;
-		int total = 0;
-		FILE *fp;
-		char buf[256];
-
-		if(argv[2] && *argv[2])
-			substr = argv[2];
-
-		fp = fopen("/tmp/defaults.txt", "w");
-		if(!fp)
-			return 0;
-
-		_dprintf("dump router_defaults w/ substr[%s]\n", substr?:"[none]");
-
-		for (t = router_defaults; t->name; t++) {
-			if(substr) {
-				if(strncmp(t->name, substr, strlen(substr)) == 0) {
-					sprintf(buf, "%s\n", t->name);
-					fwrite(buf, 1, strlen(buf), fp);
-					total++;
-				}
-			} else {
-				sprintf(buf, "%s\n", t->name);
-				fwrite(buf, 1, strlen(buf), fp);
-				total++;
-			}
-		}
-		sprintf(buf, "totally printed %d defaults\n", total);
-		fwrite(buf, 1, strlen(buf), fp);
-		if(fp)
-			fclose(fp);
-
-		_dprintf("totally printed %d defaults\n", total);
-	}
 	else if (strcmp(argv[1], "regr")==0) {
 		unsigned int reg;
 		sscanf(argv[2], "%x", &reg);
@@ -665,14 +558,14 @@ static int rctest_main(int argc, char *argv[])
 	else if (strcmp(argv[1], "pregr")==0) {
 		unsigned int reg;
 		sscanf(argv[2], "%x", &reg);
-		_dprintf("pmdioaccess rd 0x%x\n", reg);
+		_dprintf("pregaccess rd 0x%x\n", reg);
 		hnd_ethswctl(PMDIOACCESS, reg, 2, 0, 0);
 	}
 	else if (strcmp(argv[1], "pregw")==0) {
 		unsigned int reg, data;
 		sscanf(argv[2], "%x", &reg);
 		sscanf(argv[3], "%x", &data);
-		_dprintf("pmdioaccess wr 0x%x, 0x%x\n", reg, data);
+		_dprintf("pregaccess wr 0x%x, 0x%x\n", reg, data);
 		hnd_ethswctl(PMDIOACCESS, reg, 2, 1, data);
 	}
 	else if (strcmp(argv[1], "set_phy_ctrl")==0) {
@@ -693,7 +586,7 @@ static int rctest_main(int argc, char *argv[])
 	else if (strcmp(argv[1], "lanports_ctrl")==0) {
 		int val;
 		val = atoi(argv[2]);
-		_dprintf("Lan ctrl %d\n", lanport_ctrl(val));
+		_dprintf("lan ctrl %d\n", lanport_ctrl(val));
 	}
 	else if (strcmp(argv[1], "handle_notifications")==0) {
 		handle_notifications();
@@ -749,7 +642,6 @@ static int rctest_main(int argc, char *argv[])
 		int utime = atoi(argv[3])?:0;
 		int no_fork = atoi(argv[4]);
 
-		pid = getpid();
 		if(no_fork) {
 			begin = clock();
 			for(i=0; i<loops; ++i) {
@@ -757,60 +649,53 @@ static int rctest_main(int argc, char *argv[])
 				nvp = nvram_safe_get("ppap1\n");
 				if(nvram_get_int("ppap1")!=1) {
 					err++;
-					printf("pid_%d get wrong nv_ppap1=%s(%d)\n", pid, nvp, err);
+					_dprintf("pid_%d get wrong nv_ppap1=%s(%d)\n", pid, nvp, err);
 				}
 				if(utime)
 					usleep(utime);
 			}
 			end = clock();
-			printf("pid_%d, clock counts=%d\n", pid, (int)(end-begin));
-			fflush(stdout);
+			_dprintf("pid_%d, clock counts=%d\n", pid, (int)(end-begin));
 			return 0;
 		} 
 
-		printf("fork nv test w/ loops(%d), usleep(%d)\n", loops, utime);
-		fflush(stdout);
+		_dprintf("(NVP)fork nv test w/ loops(%d), usleep(%d)\n", loops, utime);
 
 		pid = fork();
 
 		if(pid == 0) {
-			printf("child start\n");
 			begin = clock();
 			for(i=0; i<loops; ++i) {
 				nvram_set("ppap1", "1");
 				nvp = nvram_safe_get("ppap1\n");
 				if(nvram_get_int("ppap1")!=1) {
 					err++;
-					printf("child get wrong nv_ppap1=%s(%d)\n", nvp, err);
+					_dprintf("pid_%d get wrong nv_ppap1=%s(%d)\n", pid, nvp, err);
 				}
 				if(utime)
 					usleep(utime);
 			}
 			end = clock();
-			printf("child, clock counts=%d\n", (int)(end-begin));
-			fflush(stdout);
+			_dprintf("pid_%d, clock counts=%d\n", pid, (int)(end-begin));
 		} else if(pid > 0) {
-			printf("parent start\n");
 			begin = clock();
 			for(i=0; i<loops; ++i) {
 				nvram_set("ppap2", "2");
 				nvp = nvram_safe_get("ppap2\n");
 				if(nvram_get_int("ppap2")!=2) {
 					err++;
-					printf("parent get wrong nv_ppap2=%s(%d)\n", nvp, err);
+					_dprintf("pid_%d get wrong nv_ppap2=%s(%d)\n", pid, nvp, err);
 				}
 				if(utime)
 					usleep(utime);
 			}
 			end = clock();
-			printf("parent, clock counts=%d\n", (int)(end-begin));
-			fflush(stdout);
+			_dprintf("pid_%d, clock counts=%d\n", pid, (int)(end-begin));
 		} else {
-			printf("wrong fork.\n");
+			_dprintf("wrong fork.\n");
 		}
 
-		printf("%s exit\n", pid?"parent":"child");
-		fflush(stdout);
+		_dprintf("pid_%d exit\n", pid);
 	}
 #endif
 	else if (strcmp(argv[1], "nvramhex")==0) {
@@ -848,65 +733,6 @@ static int rctest_main(int argc, char *argv[])
 		//} else
 		//	_dprintf("GetPhyStatus failed (%d): ", ret);
 		_dprintf("\n");
-	}
-#if defined(RTCONFIG_TUNNEL) && defined(RTCONFIG_ACCOUNT_BINDING)
-   	else if (strcmp(argv[1], "aae_refresh_userticket")==0) {
-        	char event[AAE_MAX_IPC_PACKET_SIZE];
-       	 	char out[AAE_MAX_IPC_PACKET_SIZE];
-        	snprintf(event, sizeof(event), AAE_DDNS_GENERIC_MSG, AAE_EID_DDNS_REFRESH_TOKEN);
-        	aae_sendIpcMsgAndWaitResp(MASTIFF_IPC_SOCKET_PATH, event, strlen(event), out, sizeof(out), 10);
-        	json_object *root = NULL;
-        	json_object *ddnsObj = NULL;
-        	json_object *eidObj = NULL;
-        	json_object *stsObj = NULL;
-        	root = json_tokener_parse((char *)out);
-        	json_object_object_get_ex(root, AAE_DDNS_PREFIX, &ddnsObj);
-        	json_object_object_get_ex(ddnsObj, AAE_IPC_EVENT_ID, &eidObj);
-        	json_object_object_get_ex(ddnsObj, AAE_IPC_STATUS, &stsObj);
-        	if (!ddnsObj || !eidObj || !stsObj)
-            		printf("Failed to aae_refresh_userticket\n");
-        	else {
-            		int eid = json_object_get_int(eidObj);
-            		const char *status = json_object_get_string(stsObj);
-            		if ((eid == AAE_EID_DDNS_REFRESH_TOKEN) && (!strcmp(status, "0")))
-                		printf("Success to aae_refresh_userticket\n");
-            		else
-                		printf("Failed to aae_refresh_userticket\n");
-        	}
-        	json_object_put(root);
-    	}
-	else if (strcmp(argv[1], "aae_refresh_deviceticket")==0) {
-        	char event[AAE_MAX_IPC_PACKET_SIZE];
-        	char out[AAE_MAX_IPC_PACKET_SIZE];
-        	snprintf(event, sizeof(event), AAE_NTC_GENERIC_MSG, AAE_EID_NTC_REFRESH_DEVICE_TICKET);
-        	aae_sendIpcMsgAndWaitResp(MASTIFF_IPC_SOCKET_PATH, event, strlen(event), out, sizeof(out), 10);
-        	json_object *root = NULL;
-        	json_object *ntcObj = NULL;
-        	json_object *eidObj = NULL;
-        	json_object *stsObj = NULL;
-        	root = json_tokener_parse((char *)out);
-        	json_object_object_get_ex(root, AAE_NTC_PREFIX, &ntcObj);
-        	json_object_object_get_ex(ntcObj, AAE_IPC_EVENT_ID, &eidObj);
-        	json_object_object_get_ex(ntcObj, AAE_IPC_STATUS, &stsObj);
-        	if (!ntcObj || !eidObj || !stsObj)
-            		printf("Failed to aae_refresh_deviceticket\n");
-        	else {
-            		int eid = json_object_get_int(eidObj);
-           	 	const char *status = json_object_get_string(stsObj);
-            		if ((eid == AAE_EID_NTC_REFRESH_DEVICE_TICKET) && (!strcmp(status, "0")))
-                		printf("Success to aae_refresh_deviceticket\n");
-            		else
-                		printf("Failed to aae_refresh_deviceticket\n");
-        	}
-        	json_object_put(root);
-    	}
-#endif
-	else if (strcmp(argv[1], "diag_stainfo")==0) {
-		char *stainfo_buf = NULL;
-		if(argv[2] && query_stainfo((!strcmp(argv[2], "all") ? NULL : argv[2]), &stainfo_buf) > 0){
-			fprintf(stderr, "%s\n", stainfo_buf);
-			free_stainfo(&stainfo_buf);
-		}
 	}
 	else {
 		on = atoi(argv[2]);
@@ -1082,79 +908,12 @@ static int rctest_main(int argc, char *argv[])
 		}
 #endif
 		else if (strcmp(argv[1], "gpiow") == 0) {
-#ifdef HND_ROUTER
-			if (argc>=4) set_gpio_rc(atoi(argv[2]), atoi(argv[3]));
-#else
 			if (argc>=4) set_gpio(atoi(argv[2]), atoi(argv[3]));
-#endif
 		}
 		else if (strcmp(argv[1], "gpior") == 0) {
-#ifdef HND_ROUTER
-			printf("%d\n", get_gpio_rc(atoi(argv[2])));
-#else
 			printf("%d\n", get_gpio(atoi(argv[2])));
-#endif
 		}
-#ifdef HND_ROUTER
-#if defined(RTCONFIG_BONDING) && defined(RTCONFIG_HND_ROUTER_AX)
-		else if (strcmp(argv[1], "get_bonding_port_status") == 0) {
-			int port = atoi(argv[2]);
-			int ret = 0;
-
-			ret = get_bonding_port_status(port);
-			printf("get bonding port [%d] status is %d\n", port, ret);
-		}
-#endif
-#if defined(RTCONFIG_HND_ROUTER_AX_6710) || defined(BCM4912) || defined(BCM6756) || defined(BCM4906_504)
-		else if (strcmp(argv[1], "hnd_phy_status") == 0) {
-			char *hnd_phy = argv[2];
-
-			if(hnd_phy)
-				printf("[%s] phy status is %d\n", hnd_phy, hnd_get_phy_status(hnd_phy));
-
-		} else if (strcmp(argv[1], "hnd_phy_speed") == 0) {
-			char *hnd_phy = argv[2];
-
-			if(hnd_phy) {
-				printf("[%s] phy speed is %d\n", hnd_phy, hnd_get_phy_speed(hnd_phy));
-			}
-
-		} else if (strcmp(argv[1], "hnd_phy_duplex") == 0) {
-			char *hnd_phy = argv[2];
-
-			if(hnd_phy)
-				printf("[%s] phy duplex is %d\n", hnd_phy, hnd_get_phy_duplex(hnd_phy));
-
-		} else if (strcmp(argv[1], "hnd_phy_mib") == 0) {
-			char *hnd_phy = argv[2];
-			char *type = argv[3];
-
-			if(hnd_phy && type)
-				printf("[%s] phy mib[%s] is %d\n", hnd_phy, type, hnd_get_phy_mib(hnd_phy, type));
-
-		} 
-#endif
-		else if (strcmp(argv[1], "gled") == 0) {
-			int gpio = atoi(argv[2]);
-			int act_low = _gpio_active_low(gpio & 0xff);
-			int on = !strcmp(argv[3], "on")?1:0;
-
-			if (argc>=4) {
-				printf("turn %s gpio led %d\n", on?"on":"off", atoi(argv[2]));
-				set_gpio_rc(gpio, on?(act_low?0:1):(act_low?1:0));	
-			}
-		}
-		else if (strcmp(argv[1], "nvsize") == 0) {
-			printf("NVRAM_SIZE=%d, MAX=%d\n", NVRAM_SPACE, MAX_NVRAM_SPACE);
-		}
-		else if (strcmp(argv[1], "band") == 0) {
-			printf("band: %d\n", wl_get_band(argv[2]));
-		}
-		else if (strcmp(argv[1], "ch_band") == 0) {
-			printf("ch_band of %s: %d\n", argv[2], wl_get_chlist_band(argv[2]));
-		}
-#endif
-#if defined(RTCONFIG_HND_ROUTER_AX_6710) || defined(RTAX58U) || defined(TUFAX3000) || defined(TUFAX5400) || defined(RTAX82U) || defined(RTAX82_XD6) || defined(RTAX82_XD6S) || defined(GSAX3000) || defined(GSAX5400) || defined(BCM6756) || defined(GTAX6000) || defined(RTAX86U_PRO) || defined(BCM6855) || defined(RTAX82U_V2) || defined(TUFAX5400_V2) || defined(RTAX88U_PRO) || defined(XD6_V2) || defined(RTAX5400)
+#if defined(RTCONFIG_HND_ROUTER_AX_6710) || defined(RTAX58U) || defined(TUFAX3000) || defined(TUFAX5400) || defined(RTAX82U) || defined(RTAX82_XD6) || defined(RTAX82_XD6S) || defined(GSAX3000) || defined(GSAX5400) || defined(BCM6756) || defined(GTAX6000) || defined(RTAX86U_PRO) || defined(BCM6855) || defined(RTAX82U_V2)
 		else if (strcmp(argv[1], "gpio2r") == 0) {
 			printf("%d\n", get_gpio2(atoi(argv[2])));
 		}
@@ -1266,12 +1025,6 @@ static int rctest_main(int argc, char *argv[])
 			_dprintf("chk txpwr_target_max of unit-%d is %f ...\n", unit, max_txpwr);
 		}
 #endif
-#if defined(RTCONFIG_BCM_MFG)
-		else if (strcmp(argv[1], "ate_dev_status") == 0) {
-			ate_dev_status();
-			puts(nvram_safe_get("Ate_dev_status"));
-		}
-#endif
 		else {
 			printf("what?\n");
 		}
@@ -1316,10 +1069,10 @@ char *fix_fw_name(char *orig_fw_name)
 static inline char *fix_fw_name(char *orig_fw_name) { return orig_fw_name; }
 #endif
 
-#if defined(RTCONFIG_QCA) || defined(RTCONFIG_LANTIQ) || defined(RTAX95Q) || defined(XT8PRO) || defined(BM68) || defined(XT8_V2) || defined(RTAXE95Q) || defined(ET8PRO) || defined(ET8_V2) || defined(RTAX56_XD4) || defined(XD4PRO) || defined(RTAX55) || defined(RTAX1800) || defined(BC109) || defined(EBG19) || defined(EBG19_504)
+#if defined(RTCONFIG_QCA) || defined(RTCONFIG_LANTIQ) || defined(RTAX95Q) || defined(XT8PRO) || defined(XT8_V2) || defined(RTAXE95Q) || defined(ET8PRO) || defined(RTAX56_XD4) || defined(XD4PRO) || defined(RTAX55) || defined(RTAX1800)
 /* download firmware */
 #ifndef FIRMWARE_DIR
-#if defined(RTCONFIG_QCA) || defined(RTAX95Q) || defined(XT8PRO) || defined(BM68) || defined(XT8_V2) || defined(RTAXE95Q) || defined(ET8PRO) || defined(ET8_V2) || defined(RTAX56_XD4) || defined(XD4PRO) || defined(RTAX55) || defined(RTAX1800) || defined(BC109) || defined(EBG19) || defined(EBG19_504)
+#if defined(RTCONFIG_QCA) || defined(RTAX95Q) || defined(XT8PRO) || defined(XT8_V2) || defined(RTAXE95Q) || defined(ET8PRO) || defined(RTAX56_XD4) || defined(XD4PRO) || defined(RTAX55) || defined(RTAX1800)
 #define FIRMWARE_DIR	"/lib/firmware"
 #else
 #define FIRMWARE_DIR	"/tmp"
@@ -1427,19 +1180,12 @@ err_exit1:
 #endif
 
 #if defined(RTCONFIG_SOC_IPQ8074)
-static int count_q6mem_size(const char *basedir, const struct dirent *de, size_t de_size, void *arg)
+static int count_q6mem_size(const char *basedir, const struct dirent *de, void *arg)
 {
 	uint64_t *space = arg;
 	struct stat s = { 0 };
 	char path[sizeof("/jffs/dmesg_YYYYMMDD_HHMMSS.txtXXX")];
 
-	if (sizeof(*de) != de_size) {
-		/* If size of struct dirent mismatch, make sure readdir_wrapper() and this function see same struct dirent.h.
-		 * e.g., it's different in uclibc if _FILE_OFFSET_BITS=64 is defined or not.
-		 */
-		dbg("%s: size of struct dirent mismatch (%u v.s. %u)!\n", __func__, sizeof(*de), de_size);
-		return -1;
-	}
 	if (!basedir || !de || !arg)
 		return -1;
 
@@ -1454,17 +1200,10 @@ static int count_q6mem_size(const char *basedir, const struct dirent *de, size_t
 	return 0;
 }
 
-static int del_q6mem(const char *basedir, const struct dirent *de, size_t de_size, void *arg)
+static int del_q6mem(const char *basedir, const struct dirent *de, void *arg)
 {
 	char path[sizeof("/jffs/dmesg_YYYYMMDD_HHMMSS.txtXXX")];
 
-	if (sizeof(*de) != de_size) {
-		/* If size of struct dirent mismatch, make sure readdir_wrapper() and this function see same struct dirent.h.
-		 * e.g., it's different in uclibc if _FILE_OFFSET_BITS=64 is defined or not.
-		 */
-		dbg("%s: size of struct dirent mismatch (%u v.s. %u)!\n", __func__, sizeof(*de), de_size);
-		return -1;
-	}
 	if (!basedir || !de)
 		return -1;
 
@@ -1749,7 +1488,7 @@ static int hotplug_main(int argc, char *argv[])
 			return coma_uevent();
 #endif /* LINUX_2_6_36 */
 #endif
-#if defined(RTCONFIG_QCA) || defined(RTCONFIG_LANTIQ) || defined(RTAX95Q) || defined(XT8PRO) || defined(BM68) || defined(XT8_V2) || defined(RTAXE95Q) || defined(ET8PRO) || defined(ET8_V2) || defined(RTAX56_XD4) || defined(XD4PRO) || defined(RTAX55) || defined(RTAX1800) || defined(BC109) || defined(EBG19) || defined(EBG19_504)
+#if defined(RTCONFIG_QCA) || defined(RTCONFIG_LANTIQ) || defined(RTAX95Q) || defined(XT8PRO) || defined(XT8_V2) || defined(RTAXE95Q) || defined(ET8PRO) || defined(RTAX56_XD4) || defined(XD4PRO) || defined(RTAX55) || defined(RTAX1800)
 		else if(!strcmp(argv[1], "firmware")) {
 			hotplug_firmware();
 		}
@@ -2027,12 +1766,9 @@ static const applets_t applets[] = {
 	{ "netool", 			netool_main			},
 #endif
 #ifdef RTCONFIG_SOFTWIRE46
-	{ "auto46det", 			auto46det_main			},
-	{ "v6plusd", 			v6plusd_main			},
-	{ "ocnvcd", 			ocnvcd_main			},
-	{ "dslited", 			dslited_main			},
+	{ "s46map_rptd", 		s46map_rptd_main		},
 #endif
-#if defined(RTCONFIG_RALINK) || defined(RTCONFIG_EXT_RTL8365MB) || defined(RTCONFIG_EXT_RTL8370MB) || defined(RTAX55) || defined(RTAX1800) || defined(RTAX58U_V2) || defined(RTAX3000N) || defined(BR63)
+#if defined(RTCONFIG_RALINK) || defined(RTCONFIG_EXT_RTL8365MB) || defined(RTCONFIG_EXT_RTL8370MB) || defined(RTAX55) || defined(RTAX1800) || defined(RTAX58U_V2) || defined(RTAX3000N)
 	{ "rtkswitch",			config_rtkswitch		},
 #if defined(RTAC53) || defined(RTAC51UP)
 	{ "mtkswitch",			config_mtkswitch		},
@@ -2080,7 +1816,7 @@ static const applets_t applets[] = {
 	{ "firmware_enc_crc",		firmware_enc_crc_main		},
 	{ "fw_check",			fw_check_main			},
 #endif
-#if defined(RTAX82U) || defined(GSAX3000) || defined(GSAX5400) || defined(TUFAX5400) || defined(GTAX11000_PRO) || defined(GTAXE16000) || defined(GTAX6000) || defined(GT10) || defined(RTAX82U_V2) || defined(TUFAX5400_V2)
+#if defined(RTAX82U) || defined(GSAX3000) || defined(GSAX5400) || defined(TUFAX5400) || defined(GTAX11000_PRO) || defined(GTAXE16000) || defined(GTAX6000) || defined(GT10) || defined(RTAX82U_V2)
 	{ "ledg",			ledg_main			},
 	{ "ledbtn",			ledbtn_main			},
 #endif
@@ -2175,11 +1911,8 @@ static const applets_t applets[] = {
 #ifdef RTCONFIG_ISP_CUSTOMIZE_TOOL
 	{ "tci",			tci_main		},
 #endif
-#if defined(RTCONFIG_TUNNEL) && defined(RTCONFIG_ACCOUNT_BINDING)
+#ifdef RTCONFIG_ASUSDDNS_ACCOUNT_BASE
 	{ "update_asus_ddns_token",		update_asus_ddns_token_main			},
-#endif
-#ifdef RTCONFIG_HND_ROUTER_AX
-	{ "gpy211_monitor",		gpy211_monitor_main      },
 #endif
 	{ "toolbox",			swrt_toolbox		},
 	{NULL, NULL}
@@ -2991,6 +2724,12 @@ int main(int argc, char **argv)
 		_start_telnetd(1);
 		return 0;
 	}
+#if defined(K3)
+	else if(!strcmp(base, "k3screen")) {
+		start_k3screen();
+		return 0;
+	}
+#endif
 #ifdef RTCONFIG_SSH
 	else if (!strcmp(base, "run_sshd")) {
 		start_sshd();
@@ -3452,19 +3191,6 @@ int main(int argc, char **argv)
 	}
 #endif
 #if RTCONFIG_SOFTWIRE46
-	else if (!strcmp(base, "init_wan46")) {
-		init_wan46();
-		return 0;
-	}
-	else if (!strcmp(base, "s46reset")) {
-		if (argc != 2) {
-			printf("Usage: %s <wan unit>.\n", argv[0]);
-			return 0;
-		}
-		s46reset(atoi(argv[1]));
-		printf("WAN Unit:[%d] MAP nvarm is reset.\n", atoi(argv[1]));
-		return 0;
-	}
 	else if (!strcmp(base, "mapcalc")) {
 		char peerbuf[INET6_ADDRSTRLEN];
 		char addr6buf[INET6_ADDRSTRLEN];
@@ -3478,13 +3204,11 @@ int main(int argc, char **argv)
 			wan_proto = WAN_MAPE;
 		else if (!strcmp(argv[2], "lw4o6"))
 			wan_proto = WAN_LW4O6;
-		else if (!strcmp(argv[2], "v6plus"))
-			wan_proto = WAN_V6PLUS;
 		else
-			wan_proto = WAN_OCNVC;
+			wan_proto = WAN_V6PLUS;
 
 		while (fgets(rules, sizeof(rules), stdin) != NULL) {
-			if (s46_mapcalc(0, wan_proto, rules, peerbuf, sizeof(peerbuf), addr6buf, sizeof(addr6buf),
+			if (s46_mapcalc(wan_proto, rules, peerbuf, sizeof(peerbuf), addr6buf, sizeof(addr6buf),
 					addr4buf, sizeof(addr4buf), &offset, &psidlen, &psid, &fmrs, draft) <= 0) {
 				peerbuf[0] = addr6buf[0] = addr4buf[0] = '\0';
 				offset = 0, psidlen = 0, psid = 0;

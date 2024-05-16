@@ -51,6 +51,7 @@
 	};
 
 	phy_cascade0:cascade0 {
+		compatible = "brcm,intelphy";
 		phy-type = "GPY211";
 		reg = <25>;
 		status = "okay";

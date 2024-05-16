@@ -77,6 +77,7 @@ static int write_header(AVFormatContext *s)
             avio_printf(s->pb, "[Events]\r\nFormat: %s, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\r\n",
                         ass->ssa_mode ? "Marked" : "Layer");
     }
+    avio_flush(s->pb);
 
     return 0;
 }
@@ -94,7 +95,7 @@ static void purge_dialogues(AVFormatContext *s, int force)
                    ass->expected_readorder, dialogue->readorder);
             ass->expected_readorder = dialogue->readorder;
         }
-        avio_print(s->pb, "Dialogue: ", dialogue->line, "\r\n");
+        avio_printf(s->pb, "Dialogue: %s\r\n", dialogue->line);
         if (dialogue == ass->last_added_dialogue)
             ass->last_added_dialogue = next;
         av_freep(&dialogue->line);

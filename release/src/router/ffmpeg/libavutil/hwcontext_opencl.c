@@ -46,11 +46,9 @@
 #endif
 
 #if HAVE_OPENCL_VAAPI_INTEL_MEDIA
-#if CONFIG_LIBMFX
 #include <mfx/mfxstructures.h>
-#endif
 #include <va/va.h>
-#include <CL/cl_va_api_media_sharing_intel.h>
+#include <CL/va_ext.h>
 #include "hwcontext_vaapi.h"
 #endif
 
@@ -143,10 +141,9 @@ typedef struct OpenCLFramesContext {
 } OpenCLFramesContext;
 
 
-static void CL_CALLBACK opencl_error_callback(const char *errinfo,
-                                              const void *private_info,
-                                              size_t cb,
-                                              void *user_data)
+static void opencl_error_callback(const char *errinfo,
+                                  const void *private_info, size_t cb,
+                                  void *user_data)
 {
     AVHWDeviceContext *ctx = user_data;
     av_log(ctx, AV_LOG_ERROR, "OpenCL error: %s\n", errinfo);
@@ -500,9 +497,6 @@ static int opencl_device_create_internal(AVHWDeviceContext *hwdev,
          *device_name_src   = NULL;
     int err, found, p, d;
 
-    av_assert0(selector->enumerate_platforms &&
-               selector->enumerate_devices);
-
     err = selector->enumerate_platforms(hwdev, &nb_platforms, &platforms,
                                         selector->context);
     if (err)
@@ -534,9 +528,9 @@ static int opencl_device_create_internal(AVHWDeviceContext *hwdev,
                 continue;
         }
 
-        err = selector->enumerate_devices(hwdev, platforms[p], platform_name,
-                                          &nb_devices, &devices,
-                                          selector->context);
+        err = opencl_enumerate_devices(hwdev, platforms[p], platform_name,
+                                       &nb_devices, &devices,
+                                       selector->context);
         if (err < 0)
             continue;
 
@@ -931,6 +925,7 @@ static int opencl_enumerate_intel_media_vaapi_devices(AVHWDeviceContext *hwdev,
     clGetDeviceIDsFromVA_APIMediaAdapterINTEL_fn
         clGetDeviceIDsFromVA_APIMediaAdapterINTEL;
     cl_int cle;
+    int err;
 
     clGetDeviceIDsFromVA_APIMediaAdapterINTEL =
         clGetExtensionFunctionAddressForPlatform(platform_id,
@@ -1194,7 +1189,7 @@ static int opencl_filter_drm_arm_device(AVHWDeviceContext *hwdev,
 #endif
 
 static int opencl_device_derive(AVHWDeviceContext *hwdev,
-                                AVHWDeviceContext *src_ctx, AVDictionary *opts,
+                                AVHWDeviceContext *src_ctx,
                                 int flags)
 {
     int err;
@@ -1207,16 +1202,16 @@ static int opencl_device_derive(AVHWDeviceContext *hwdev,
             // Surface mapping works via DRM PRIME fds with no special
             // initialisation required in advance.  This just finds the
             // Beignet ICD by name.
-            AVDictionary *selector_opts = NULL;
+            AVDictionary *opts = NULL;
 
-            err = av_dict_set(&selector_opts, "platform_vendor", "Intel", 0);
+            err = av_dict_set(&opts, "platform_vendor", "Intel", 0);
             if (err >= 0)
-                err = av_dict_set(&selector_opts, "platform_version", "beignet", 0);
+                err = av_dict_set(&opts, "platform_version", "beignet", 0);
             if (err >= 0) {
                 OpenCLDeviceSelector selector = {
                     .platform_index      = -1,
                     .device_index        = 0,
-                    .context             = selector_opts,
+                    .context             = opts,
                     .enumerate_platforms = &opencl_enumerate_platforms,
                     .filter_platform     = &opencl_filter_platform,
                     .enumerate_devices   = &opencl_enumerate_devices,
@@ -1224,7 +1219,7 @@ static int opencl_device_derive(AVHWDeviceContext *hwdev,
                 };
                 err = opencl_device_create_internal(hwdev, &selector, NULL);
             }
-            av_dict_free(&selector_opts);
+            av_dict_free(&opts);
         }
         break;
 #endif
@@ -1363,7 +1358,10 @@ static int opencl_device_derive(AVHWDeviceContext *hwdev,
         break;
     }
 
-    return err;
+    if (err < 0)
+        return err;
+
+    return opencl_device_init(hwdev);
 }
 
 static int opencl_get_plane_format(enum AVPixelFormat pixfmt,
@@ -1419,9 +1417,8 @@ static int opencl_get_plane_format(enum AVPixelFormat pixfmt,
         // from the same component.
         if (step && comp->step != step)
             return AVERROR(EINVAL);
-
+        order = order * 10 + c + 1;
         depth = comp->depth;
-        order = order * 10 + comp->offset / ((depth + 7) / 8) + 1;
         step  = comp->step;
         alpha = (desc->flags & AV_PIX_FMT_FLAG_ALPHA &&
                  c == desc->nb_components - 1);
@@ -1457,10 +1454,14 @@ static int opencl_get_plane_format(enum AVPixelFormat pixfmt,
     case order: image_format->image_channel_order = type; break;
     switch (order) {
         CHANNEL_ORDER(1,    CL_R);
+        CHANNEL_ORDER(2,    CL_R);
+        CHANNEL_ORDER(3,    CL_R);
+        CHANNEL_ORDER(4,    CL_R);
         CHANNEL_ORDER(12,   CL_RG);
+        CHANNEL_ORDER(23,   CL_RG);
         CHANNEL_ORDER(1234, CL_RGBA);
-        CHANNEL_ORDER(2341, CL_ARGB);
         CHANNEL_ORDER(3214, CL_BGRA);
+        CHANNEL_ORDER(4123, CL_ARGB);
 #ifdef CL_ABGR
         CHANNEL_ORDER(4321, CL_ABGR);
 #endif
@@ -1617,7 +1618,7 @@ static void opencl_pool_free(void *opaque, uint8_t *data)
     av_free(desc);
 }
 
-static AVBufferRef *opencl_pool_alloc(void *opaque, buffer_size_t size)
+static AVBufferRef *opencl_pool_alloc(void *opaque, int size)
 {
     AVHWFramesContext      *hwfc = opaque;
     AVOpenCLDeviceContext *hwctx = hwfc->device_ctx->hwctx;
@@ -1726,13 +1727,10 @@ static void opencl_frames_uninit(AVHWFramesContext *hwfc)
     av_freep(&priv->mapped_frames);
 #endif
 
-    if (priv->command_queue) {
-        cle = clReleaseCommandQueue(priv->command_queue);
-        if (cle != CL_SUCCESS) {
-            av_log(hwfc, AV_LOG_ERROR, "Failed to release frame "
-                   "command queue: %d.\n", cle);
-        }
-        priv->command_queue = NULL;
+    cle = clReleaseCommandQueue(priv->command_queue);
+    if (cle != CL_SUCCESS) {
+        av_log(hwfc, AV_LOG_ERROR, "Failed to release frame "
+               "command queue: %d.\n", cle);
     }
 }
 
@@ -2155,6 +2153,7 @@ static int opencl_map_from_vaapi(AVHWFramesContext *dst_fc,
                                  AVFrame *dst, const AVFrame *src,
                                  int flags)
 {
+    HWMapDescriptor *hwmap;
     AVFrame *tmp;
     int err;
 
@@ -2172,7 +2171,10 @@ static int opencl_map_from_vaapi(AVHWFramesContext *dst_fc,
     if (err < 0)
         goto fail;
 
-    err = ff_hwframe_map_replace(dst, src);
+    // Adjust the map descriptor so that unmap works correctly.
+    hwmap = (HWMapDescriptor*)dst->buf[0]->data;
+    av_frame_unref(hwmap->source);
+    err = av_frame_ref(hwmap->source, src);
 
 fail:
     av_frame_free(&tmp);
@@ -2246,13 +2248,10 @@ static int opencl_map_from_qsv(AVHWFramesContext *dst_fc, AVFrame *dst,
     cl_int cle;
     int err, p;
 
-#if CONFIG_LIBMFX
     if (src->format == AV_PIX_FMT_QSV) {
         mfxFrameSurface1 *mfx_surface = (mfxFrameSurface1*)src->data[3];
         va_surface = *(VASurfaceID*)mfx_surface->Data.MemId;
-    } else
-#endif
-        if (src->format == AV_PIX_FMT_VAAPI) {
+    } else if (src->format == AV_PIX_FMT_VAAPI) {
         va_surface = (VASurfaceID)(uintptr_t)src->data[3];
     } else {
         return AVERROR(ENOSYS);
@@ -2810,7 +2809,7 @@ static int opencl_map_from(AVHWFramesContext *hwfc, AVFrame *dst,
 static int opencl_map_to(AVHWFramesContext *hwfc, AVFrame *dst,
                          const AVFrame *src, int flags)
 {
-    av_unused OpenCLDeviceContext *priv = hwfc->device_ctx->internal->priv;
+    OpenCLDeviceContext *priv = hwfc->device_ctx->internal->priv;
     av_assert0(dst->format == AV_PIX_FMT_OPENCL);
     switch (src->format) {
 #if HAVE_OPENCL_DRM_BEIGNET
@@ -2851,7 +2850,7 @@ static int opencl_map_to(AVHWFramesContext *hwfc, AVFrame *dst,
 static int opencl_frames_derive_to(AVHWFramesContext *dst_fc,
                                    AVHWFramesContext *src_fc, int flags)
 {
-    av_unused OpenCLDeviceContext *priv = dst_fc->device_ctx->internal->priv;
+    OpenCLDeviceContext *priv = dst_fc->device_ctx->internal->priv;
     switch (src_fc->device_ctx->type) {
 #if HAVE_OPENCL_DRM_BEIGNET
     case AV_HWDEVICE_TYPE_DRM:

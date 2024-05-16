@@ -61,7 +61,7 @@ static inline int __resolveVeipSpeed(char *buf)
 int bcmNet_getRouteInfoToServer(const char *serverIp, char* intfName,
                                 char *intfIp, int *upSpeed, int *downSpeed)
 {
-    char buf[512], *bufp, cmd[128] = {0}, tmp[32], macAddr[18] = {0};
+    char buf[512], cmd[128] = {0}, tmp[32], macAddr[18] = {0};
     FILE *p = NULL;
     int ret = 0, portNumber = -1;
     unsigned long int tmpSpeed = 0;
@@ -69,23 +69,13 @@ int bcmNet_getRouteInfoToServer(const char *serverIp, char* intfName,
     /* get the local interface that can reach to the given server IP */
     snprintf(buf, sizeof(buf), "/bin/ip route get %s", serverIp);
     p = popen(buf, "r");
-    if ((NULL == p) || (NULL == fgets(buf, 512, p)))
+    if ((NULL == p) || (EOF == fscanf(p, "%s dev %s  src %s", tmp, intfName, intfIp)))
     {
         bcmuLog_notice("Failed to get local interface that can reach %s", serverIp);
         ret = -1;
     }
     if (p)
         pclose(p);
-    if (ret != -1)
-    {
-        bufp = strstr(buf, "dev");
-        if (bufp)
-            sscanf(bufp + strlen("dev"), " %s", intfName);
-
-        bufp = strstr(buf, "src");
-        if (bufp)
-            sscanf(bufp + strlen("src"), " %s", intfIp);
-    }
 
     if (strstr(intfName, "br") != NULL)
     {
@@ -175,48 +165,33 @@ int bcmNet_getRouteInfoToServer(const char *serverIp, char* intfName,
             fclose(p);
         *downSpeed = *upSpeed = *upSpeed * 1000;
     }
-    else if (strstr(intfName, "ptm") != NULL || strstr(intfName, "atm") != NULL)
+    else if (strstr(intfName, "ptm") != NULL)
     {
-        int currUpSpeed = 0, currDownSpeed = 0; 
-        *upSpeed = *downSpeed = 0;
-
+        *upSpeed = *downSpeed = 100000; /* set DSL max speed to 100M if nothing works out */
         p = popen("/bin/xtm datapath --status", "r");
         if (NULL != p)
         {
             while (fgets(buf, sizeof(buf), p))
             {
                 printf("%s", buf);
-                bufp = strstr(buf, "US Rate");
-                if (bufp) {
-                    bufp = strstr(bufp, "=");
-                    if (EOF != sscanf(bufp, "= %lu bps", &tmpSpeed)) {
-                        currUpSpeed = tmpSpeed/1000;
+                if (strstr(buf, "US Rate")) {
+                    if (EOF != sscanf(buf, "US Rate = %lu bps", &tmpSpeed)) {
+                        *upSpeed = tmpSpeed/1000;
                     } else {
                         bcmuLog_notice("Failed to get US rate for %s\n", intfName);
                         ret = -1;
                     }
                 }
-                bufp = strstr(buf, "DS Rate");
-                if (bufp) {
-                    bufp = strstr(bufp, "=");
-                    if (EOF != sscanf(bufp, "= %lu bps", &tmpSpeed)) {
-                        currDownSpeed = tmpSpeed/1000;
+                if (strstr(buf, "DS Rate")) {
+                    if (EOF != sscanf(buf, "DS Rate = %lu bps", &tmpSpeed)) {
+                        *downSpeed = tmpSpeed/1000;
                     } else {
                         bcmuLog_notice("Failed to get DS rate for %s\n", intfName);
                         ret = -1;
                     }
                 }
-                if (*upSpeed < currUpSpeed)
-                    *upSpeed = currUpSpeed;
-                if (*downSpeed < currDownSpeed)
-                    *downSpeed = currDownSpeed;
             }
             pclose(p);
-            /* set speed to 1G if nothing works out */
-            if (!*upSpeed)
-                *upSpeed = 1000000;
-            if (!*downSpeed)
-                *downSpeed = 1000000; 
         }
         else
         {
@@ -251,60 +226,4 @@ int bcmNet_getRouteInfoToServer(const char *serverIp, char* intfName,
                    serverIp, intfName, intfIp, *upSpeed, *downSpeed);
 
     return ret;
-}
-
-/* This function gets the uboot ipaddr/netmask environment parameters.
- * If the netmaks isn't specified, it will assigned it accordingly.
- * e.g.  192.168.1.x->255.255.255.0; 10.x.x.x->255.0.0.0; 172.x->255.240.0.0; others->255.255.0.0
- * If failed to get the values from uboot, it assigned the default setting which is 
- * 192.168.1.1/255.255.255.0
- */
-void bcmNet_getDefaultLanIpInfo(char *ipaddr, int iplen, char* netmask, int masklen)
-{
-   FILE* fs;  
-   /* Try to use the ipaddress/netmask from uboot environment parameters */
-   fs = fopen("/proc/environment/ipaddr", "r");
-   if ( fs != NULL ) {
-       if ( fgets(ipaddr, iplen, fs) != NULL )
-           bcmuLog_notice("Failed to get ipaddr.");
-       fclose(fs);
-#if 0  //TODO: move cmsUtl_isValidIpv4Address to bcmUtl.
-       if ( ! cmsUtl_isValidIpv4Address(ipaddr))
-       {
-           snprintf(ipaddr, iplen, "%s", "192.168.1.1");
-       }
-#endif
-   }
-   else
-   {
-       snprintf(ipaddr, iplen, "%s", "192.168.1.1");
-   }
-   fs = fopen("/proc/environment/netmask", "r");
-   if ( fs != NULL ) {
-       if ( fgets(netmask, masklen, fs) != NULL )
-           bcmuLog_notice("Failed to get netmask.");
-       fclose(fs);
-#if 0  //TODO: move cmsUtl_isValidIpv4Address to bcmUtl.
-       if ( ! cmsUtl_isValidIpv4Address(netmask))
-       {
-           snprintf(netmask, masklen, "%s", "255.255.255.0");
-       }
-#endif
-   }
-   else
-   {
-       if ( !strncmp(ipaddr, "10.", strlen("10.")))
-       {
-           snprintf(netmask, masklen, "%s", "255.0.0.0");
-       }
-       else if ( !strncmp(ipaddr, "172.16.", strlen("172.16.")))
-       {
-           snprintf(netmask, masklen, "%s", "255.255.0.0");
-       }
-       else
-       {
-           snprintf(netmask, masklen, "%s", "255.255.255.0");
-       }
-   }
-   return;
 }

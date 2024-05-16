@@ -23,8 +23,6 @@
 #ifndef AVCODEC_OPUS_PVQ_H
 #define AVCODEC_OPUS_PVQ_H
 
-#include "libavutil/mem_internal.h"
-
 #include "opus_celt.h"
 
 #define QUANT_FN(name) uint32_t (name)(struct CeltPVQ *pvq, CeltFrame *f,            \
@@ -42,7 +40,7 @@ struct CeltPVQ {
     QUANT_FN(*quant_band);
 };
 
-void ff_celt_pvq_init_x86(struct CeltPVQ *s);
+void ff_opus_dsp_init_x86(struct CeltPVQ *s);
 
 int  ff_celt_pvq_init(struct CeltPVQ **pvq, int encode);
 void ff_celt_pvq_uninit(struct CeltPVQ **pvq);

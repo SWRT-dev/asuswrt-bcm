@@ -1,8 +1,7 @@
 /*
- * Copyright (C) 2010-2019 Tobias Brunner
+ * Copyright (C) 2010 Tobias Brunner
  * Copyright (C) 2008 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -222,10 +221,10 @@ typedef struct {
 	enumerator_t public;
 	/** inner SQL enumerator */
 	enumerator_t *inner;
-	/** own identity is defined */
-	bool me_defined;
-	/** remote identity is defined */
-	bool other_defined;
+	/** own identity */
+	identification_t *me;
+	/** remote identity */
+	identification_t *other;
 	/** currently enumerated private key */
 	shared_key_t *current;
 } shared_enumerator_t;
@@ -249,11 +248,11 @@ METHOD(enumerator_t, shared_enumerator_enumerate, bool,
 			*shared = this->current;
 			if (me)
 			{
-				*me = this->me_defined ? ID_MATCH_PERFECT : ID_MATCH_ANY;
+				*me = this->me ? ID_MATCH_PERFECT : ID_MATCH_ANY;
 			}
 			if (other)
 			{
-				*other = this->other_defined ? ID_MATCH_PERFECT : ID_MATCH_ANY;
+				*other = this->other ? ID_MATCH_PERFECT : ID_MATCH_ANY;
 			}
 			return TRUE;
 		}
@@ -275,10 +274,6 @@ METHOD(credential_set_t, create_shared_enumerator, enumerator_t*,
 	   identification_t *me, identification_t *other)
 {
 	shared_enumerator_t *e;
-	bool me_defined, other_defined;
-
-	me_defined = me && me->get_type(me) != ID_ANY;
-	other_defined = other && other->get_type(other) != ID_ANY;
 
 	INIT(e,
 		.public = {
@@ -286,10 +281,10 @@ METHOD(credential_set_t, create_shared_enumerator, enumerator_t*,
 			.venumerate = _shared_enumerator_enumerate,
 			.destroy = _shared_enumerator_destroy,
 		},
-		.me_defined = me_defined,
-		.other_defined = other_defined,
+		.me = me,
+		.other = other,
 	);
-	if (!me_defined && !other_defined)
+	if (!me && !other)
 	{
 		e->inner = this->db->query(this->db,
 				"SELECT s.type, s.data FROM shared_secrets AS s "
@@ -297,7 +292,7 @@ METHOD(credential_set_t, create_shared_enumerator, enumerator_t*,
 				DB_INT, type == SHARED_ANY, DB_INT, type,
 				DB_INT, DB_BLOB);
 	}
-	else if (me_defined && other_defined)
+	else if (me && other)
 	{
 		e->inner = this->db->query(this->db,
 				"SELECT s.type, s.data FROM shared_secrets AS s "
@@ -314,7 +309,7 @@ METHOD(credential_set_t, create_shared_enumerator, enumerator_t*,
 	}
 	else
 	{
-		identification_t *id = me_defined ? me : other;
+		identification_t *id = me ? me : other;
 
 		e->inner = this->db->query(this->db,
 				"SELECT s.type, s.data FROM shared_secrets AS s "
@@ -474,3 +469,4 @@ sql_cred_t *sql_cred_create(database_t *db)
 
 	return &this->public;
 }
+

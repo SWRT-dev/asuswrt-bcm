@@ -60,7 +60,7 @@ typedef struct LZWEncodeState {
     int output_bytes;        ///< Number of written bytes
     int last_code;           ///< Value of last output code or LZW_PREFIX_EMPTY
     enum FF_LZW_MODES mode;  ///< TIFF or GIF
-    int little_endian;       ///< GIF is LE while TIFF is BE
+    void (*put_bits)(PutBitContext *, int, unsigned); ///< GIF is LE while TIFF is BE
 }LZWEncodeState;
 
 
@@ -113,10 +113,7 @@ static inline int hashOffset(const int head)
 static inline void writeCode(LZWEncodeState * s, int c)
 {
     av_assert2(0 <= c && c < 1 << s->bits);
-    if (s->little_endian)
-        put_bits_le(&s->pb, s->bits, c);
-    else
-        put_bits(&s->pb, s->bits, c);
+    s->put_bits(&s->pb, s->bits, c);
 }
 
 
@@ -203,7 +200,8 @@ static int writtenBytes(LZWEncodeState *s){
  * @param maxbits Maximum length of code
  */
 void ff_lzw_encode_init(LZWEncodeState *s, uint8_t *outbuf, int outsize,
-                        int maxbits, enum FF_LZW_MODES mode, int little_endian)
+                        int maxbits, enum FF_LZW_MODES mode,
+                        void (*lzw_put_bits)(PutBitContext *, int, unsigned))
 {
     s->clear_code = 256;
     s->end_code = 257;
@@ -216,7 +214,7 @@ void ff_lzw_encode_init(LZWEncodeState *s, uint8_t *outbuf, int outsize,
     s->last_code = LZW_PREFIX_EMPTY;
     s->bits = 9;
     s->mode = mode;
-    s->little_endian = little_endian;
+    s->put_bits = lzw_put_bits;
 }
 
 /**
@@ -259,22 +257,16 @@ int ff_lzw_encode(LZWEncodeState * s, const uint8_t * inbuf, int insize)
  * @param s LZW state
  * @return Number of bytes written or -1 on error
  */
-int ff_lzw_encode_flush(LZWEncodeState *s)
+int ff_lzw_encode_flush(LZWEncodeState *s,
+                        void (*lzw_flush_put_bits)(PutBitContext *))
 {
     if (s->last_code != -1)
         writeCode(s, s->last_code);
     writeCode(s, s->end_code);
-    if (s->little_endian) {
-        if (s->mode == FF_LZW_GIF)
-            put_bits_le(&s->pb, 1, 0);
+    if (s->mode == FF_LZW_GIF)
+        s->put_bits(&s->pb, 1, 0);
 
-        flush_put_bits_le(&s->pb);
-    } else {
-        if (s->mode == FF_LZW_GIF)
-            put_bits(&s->pb, 1, 0);
-
-        flush_put_bits(&s->pb);
-    }
+    lzw_flush_put_bits(&s->pb);
     s->last_code = -1;
 
     return writtenBytes(s);

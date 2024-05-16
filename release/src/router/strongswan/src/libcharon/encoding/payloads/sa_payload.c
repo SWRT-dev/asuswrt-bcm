@@ -1,9 +1,8 @@
 /*
- * Copyright (C) 2012-2020 Tobias Brunner
+ * Copyright (C) 2012-2014 Tobias Brunner
  * Copyright (C) 2005-2010 Martin Willi
  * Copyright (C) 2005 Jan Hutter
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -405,22 +404,16 @@ METHOD(sa_payload_t, create_substructure_enumerator, enumerator_t*,
 }
 
 METHOD(sa_payload_t, get_lifetime, uint32_t,
-	private_sa_payload_t *this, proposal_t *proposal)
+	private_sa_payload_t *this)
 {
 	proposal_substructure_t *substruct;
 	enumerator_t *enumerator;
-	uint8_t number = proposal->get_number(proposal);
 	uint32_t lifetime = 0;
 
 	enumerator = this->proposals->create_enumerator(this->proposals);
-	while (enumerator->enumerate(enumerator, &substruct))
+	if (enumerator->enumerate(enumerator, &substruct))
 	{
-		if (substruct->get_proposal_number(substruct) == number)
-		{
-			lifetime = substruct->get_lifetime(substruct,
-									proposal->get_transform_number(proposal));
-			break;
-		}
+		lifetime = substruct->get_lifetime(substruct);
 	}
 	enumerator->destroy(enumerator);
 
@@ -428,22 +421,16 @@ METHOD(sa_payload_t, get_lifetime, uint32_t,
 }
 
 METHOD(sa_payload_t, get_lifebytes, uint64_t,
-	private_sa_payload_t *this, proposal_t *proposal)
+	private_sa_payload_t *this)
 {
 	proposal_substructure_t *substruct;
 	enumerator_t *enumerator;
-	uint8_t number = proposal->get_number(proposal);
 	uint64_t lifebytes = 0;
 
 	enumerator = this->proposals->create_enumerator(this->proposals);
-	while (enumerator->enumerate(enumerator, &substruct))
+	if (enumerator->enumerate(enumerator, &substruct))
 	{
-		if (substruct->get_proposal_number(substruct) == number)
-		{
-			lifebytes = substruct->get_lifebytes(substruct,
-									proposal->get_transform_number(proposal));
-			break;
-		}
+		lifebytes = substruct->get_lifebytes(substruct);
 	}
 	enumerator->destroy(enumerator);
 

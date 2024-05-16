@@ -75,28 +75,6 @@ configure_tm() {
 	fi
 }
 
-# Try to set affinity for the IRQ. If it doesn't work, say, because
-# the interrupt is not tied to the GIC, do it for its interrupt
-# controller node.
-set_irq_affinity() {
-	# avoid disaster if we reached the end
-	if [[ "$1" == *"GIC"* ]]; then
-		return
-	fi
-
-	irq=`grep "$1$" /proc/interrupts | cut -d" " -f2 | cut -d":" -f1`
-
-	if [ -z "$irq" ]; then
-		return
-	fi
-
-	# if the command fails, try its parent.
-	if ! echo "$2" > /proc/irq/$irq/smp_affinity 2> /dev/null; then
-		controller=`grep "$1$" /proc/interrupts | sed -r 's/\s+/;/g' | cut -d";" -f7`
-		set_irq_affinity "$controller" "$2"
-	fi
-}
-
 disable_accelerators
 configure_tm
 
@@ -116,9 +94,8 @@ do
 
     # bind irq to CPU{x}
     wl=wl$radio
-    set_irq_affinity "$wl" "$affinity"
-    wlm2m=wlan_${radio}_m2m
-    set_irq_affinity "$wlm2m" "$affinity"
+    irq=`cat /proc/interrupts | grep $wl | cut -d" " -f2 | cut -d":" -f1`
+    echo $affinity > /proc/irq/$irq/smp_affinity
 
     radio=$((radio+1))
 done

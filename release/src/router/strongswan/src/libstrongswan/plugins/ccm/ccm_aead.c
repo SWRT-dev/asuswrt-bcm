@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2010 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * Copyright (C) 2010 revosec AG
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -418,7 +417,6 @@ ccm_aead_t *ccm_aead_create(encryption_algorithm_t algo,
 
 	if (!this->crypter)
 	{
-		this->iv_gen->destroy(this->iv_gen);
 		free(this);
 		return NULL;
 	}

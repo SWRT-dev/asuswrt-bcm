@@ -2,8 +2,7 @@
  * Copyright (C) 2013 Tobias Brunner
  * Copyright (C) 2009 Martin Willi
  * Copyright (C) 2001-2008 Andreas Steffen
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -148,7 +147,7 @@ static status_t pem_decrypt(chunk_t *blob, encryption_algorithm_t alg,
 	}
 	crypter->destroy(crypter);
 	memcpy(blob->ptr, decrypted.ptr, blob->len);
-	chunk_clear(&decrypted);
+	chunk_free(&decrypted);
 
 	/* determine amount of padding */
 	last_padding_pos = blob->ptr + blob->len - 1;
@@ -331,7 +330,7 @@ static status_t pem_to_bin(chunk_t *blob, bool *pgp)
 	/* set length to size of binary blob */
 	blob->len = dst.len;
 
-	if (state != PEM_POST || !blob->len)
+	if (state != PEM_POST)
 	{
 		DBG1(DBG_LIB, "  file coded in unknown format, discarded");
 		return PARSE_ERROR;
@@ -355,7 +354,7 @@ static status_t pem_to_bin(chunk_t *blob, bool *pgp)
 			memcpy(blob->ptr, chunk.ptr, chunk.len);
 			blob->len = chunk.len;
 		}
-		chunk_clear(&chunk);
+		free(chunk.ptr);
 		if (status != INVALID_ARG)
 		{	/* try again only if passphrase invalid */
 			break;
@@ -451,7 +450,7 @@ static void *load_from_file(char *file, credential_type_t type, int subtype,
 		return NULL;
 	}
 	cred = load_from_blob(*chunk, type, subtype, subject, flags);
-	chunk_unmap_clear(chunk);
+	chunk_unmap(chunk);
 	return cred;
 }
 

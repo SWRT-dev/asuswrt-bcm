@@ -1,8 +1,7 @@
 /*
  * Copyright (C) 2008-2014 Tobias Brunner
  * Copyright (C) 2005-2008 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -61,7 +60,6 @@ void memxor(uint8_t dst[], const uint8_t src[], size_t n)
 	}
 }
 
-#ifndef HAVE_EXPLICIT_BZERO
 /**
  * Described in header.
  */
@@ -69,7 +67,6 @@ void memwipe_noinline(void *ptr, size_t n)
 {
 	memwipe_inline(ptr, n);
 }
-#endif /* HAVE_EXPLICIT_BZERO */
 
 /**
  * Described in header.

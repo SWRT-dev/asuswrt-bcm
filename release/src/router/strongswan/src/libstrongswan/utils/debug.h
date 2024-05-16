@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2006 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -146,11 +145,8 @@ extern void (*dbg) (debug_t group, level_t level, char *fmt, ...);
 /** default logging function */
 void dbg_default(debug_t group, level_t level, char *fmt, ...);
 
-/** set the level logged by dbg_default() for all groups */
+/** set the level logged by dbg_default() */
 void dbg_default_set_level(level_t level);
-
-/** set the level logged by dbg_default() for a specific group */
-void dbg_default_set_level_group(debug_t group, level_t level);
 
 /** set the stream logged by dbg_default() to */
 void dbg_default_set_stream(FILE *stream);

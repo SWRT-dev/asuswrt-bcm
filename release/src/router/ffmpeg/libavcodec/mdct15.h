@@ -23,8 +23,6 @@
 
 #include <stddef.h>
 
-#include "libavutil/mem_internal.h"
-
 #include "fft.h"
 
 typedef struct MDCT15Context {

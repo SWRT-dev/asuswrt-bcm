@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2010 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * Copyright (C) 2010 revosec AG
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -34,7 +33,7 @@ typedef struct dhcp_provider_t dhcp_provider_t;
 struct dhcp_provider_t {
 
 	/**
-	 * Implements attribute_provider_t interface.
+	 * Implements attribute_provier_t interface.
 	 */
 	attribute_provider_t provider;
 

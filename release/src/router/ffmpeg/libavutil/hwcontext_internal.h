@@ -67,8 +67,7 @@ typedef struct HWContextType {
     int              (*device_create)(AVHWDeviceContext *ctx, const char *device,
                                       AVDictionary *opts, int flags);
     int              (*device_derive)(AVHWDeviceContext *dst_ctx,
-                                      AVHWDeviceContext *src_ctx,
-                                      AVDictionary *opts, int flags);
+                                      AVHWDeviceContext *src_ctx, int flags);
 
     int              (*device_init)(AVHWDeviceContext *ctx);
     void             (*device_uninit)(AVHWDeviceContext *ctx);
@@ -157,11 +156,6 @@ int ff_hwframe_map_create(AVBufferRef *hwframe_ref,
                                         HWMapDescriptor *hwmap),
                           void *priv);
 
-/**
- * Replace the current hwmap of dst with the one from src, used for indirect
- * mappings like VAAPI->(DRM)->OpenCL/Vulkan where a direct interop is missing
- */
-int ff_hwframe_map_replace(AVFrame *dst, const AVFrame *src);
 
 extern const HWContextType ff_hwcontext_type_cuda;
 extern const HWContextType ff_hwcontext_type_d3d11va;
@@ -173,6 +167,5 @@ extern const HWContextType ff_hwcontext_type_vaapi;
 extern const HWContextType ff_hwcontext_type_vdpau;
 extern const HWContextType ff_hwcontext_type_videotoolbox;
 extern const HWContextType ff_hwcontext_type_mediacodec;
-extern const HWContextType ff_hwcontext_type_vulkan;
 
 #endif /* AVUTIL_HWCONTEXT_INTERNAL_H */

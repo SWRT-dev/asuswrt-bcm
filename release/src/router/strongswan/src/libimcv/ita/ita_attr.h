@@ -1,7 +1,6 @@
 /*
- * Copyright (C) 2011-2020 Andreas Steffen
- *
- * Copyright (C) secunet Security Networks AG
+ * Copyright (C) 2011-2014 Andreas Steffen
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -39,9 +38,7 @@ enum ita_attr_t {
 	ITA_ATTR_START_ANGEL = 5,
 	ITA_ATTR_STOP_ANGEL = 6,
 	ITA_ATTR_ECHO = 7,
-	ITA_ATTR_DEVICE_ID = 8,
-	ITA_ATTR_GET_SYMLINKS = 9,
-	ITA_ATTR_SYMLINKS = 10
+	ITA_ATTR_DEVICE_ID = 8
 };
 
 /**

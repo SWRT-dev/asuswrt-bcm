@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2013 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * Copyright (C) 2013 revosec AG
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -136,6 +135,16 @@ int WINAPI inet_pton(int af, const char *src, void *dst);
 #endif
 
 /**
+ * Provided by printf hook backend
+ */
+int asprintf(char **strp, const char *fmt, ...);
+
+/**
+ * Provided by printf hook backend
+ */
+int vasprintf(char **strp, const char *fmt, va_list ap);
+
+/**
  * timeradd(3) from <sys/time.h>
  */
 static inline void timeradd(struct timeval *a, struct timeval *b,
@@ -212,11 +221,6 @@ static inline int setenv(const char *name, const char *value, int overwrite)
 	}
 	return 0;
 }
-
-/**
- * stat(2) behaves like lstat(2) for symbolic links on Windows
- */
-#define lstat stat
 
 /**
  * Lazy binding, ignored on Windows

@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2014-2016 Andreas Steffen
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -138,6 +137,7 @@ static void exit_aikgen(err_t message, ...)
 		fprintf(stderr, "aikgen error: %s\n", m);
 		status = -1;
 	}
+	library_deinit();
 	exit(status);
 }
 
@@ -194,23 +194,17 @@ int main(int argc, char *argv[])
 	chunk_t aik_blob;
 	hasher_t *hasher;
 
+	atexit(library_deinit);
 	if (!library_init(NULL, "aikgen"))
 	{
 		exit(SS_RC_LIBSTRONGSWAN_INTEGRITY);
 	}
-	atexit(library_deinit);
 	if (lib->integrity &&
 		!lib->integrity->check_file(lib->integrity, "aikgen", argv[0]))
 	{
 		fprintf(stderr, "integrity check of aikgen failed\n");
 		exit(SS_RC_DAEMON_INTEGRITY);
 	}
-	if (!libtpmtss_init())
-	{
-		fprintf(stderr, "libtpmtss initialization failed\n");
-		exit(SS_RC_INITIALIZATION_FAILED);
-	}
-	atexit(libtpmtss_deinit);
 
 	/* initialize global variables */
 	options = options_create();

@@ -15,12 +15,6 @@ include $(BUILD_DIR)/make.common
 
 APP = iproute2-4.3.0
 
-ifneq ($(findstring $(CUR_CHIP_PROFILE),4912),)
-CROSS_COMPILE := /opt/toolchains/crosstools-aarch64-gcc-9.2-linux-4.19-glibc-2.30-binutils-2.32/usr/bin/aarch64-buildroot-linux-gnu-
-CROSS_COMPILER := $(CROSS_COMPILE)
-CONFIGURE := ./configure LD=$(CROSS_COMPILE)ld --host=aarch64-buildroot-linux-gnu
-HOSTCONFIG := linux-aarch64 -DL_ENDIAN -march=armv8-a -fomit-frame-pointer -mabi=lp64 -ffixed-r8 -D__ARM_ARCH_8A__
-endif
 
 .PHONY: check_untar_patch_configure conditional_build check_versions
 
@@ -61,8 +55,6 @@ $(APP): check_config
 	#install -m 755 $(APP)/tc/tc  $(INSTALL_DIR)/bin/tc
 	#$(STRIP) $(INSTALL_DIR)/bin/tc
 	#$(STRIP) $(INSTALL_DIR)/bin/ip
-	-$(STRIP) $(APP)/ip/ip
-	-$(STRIP) $(APP)/tc/tc
 	@echo "Done building $(APP)"
 	
 else

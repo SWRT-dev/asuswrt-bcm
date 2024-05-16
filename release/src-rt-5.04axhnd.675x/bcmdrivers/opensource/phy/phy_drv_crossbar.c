@@ -267,9 +267,7 @@ static int crossbar_set_active_ext_ep_led(crossbar_group_t *crossbar, int ext_ep
         if (ledinfo[ext_ep_num].port_id != 0xff)
             ledinfo = &ledinfo[ext_ep_num];
 
-	if (crossbar->connected_phy->phy_drv->leds_init)
-		ret = crossbar->connected_phy->phy_drv->leds_init(crossbar->connected_phy, ledinfo);
-
+        ret = crossbar->connected_phy->phy_drv->leds_init(crossbar->connected_phy, ledinfo);
     }
     return ret;
 }

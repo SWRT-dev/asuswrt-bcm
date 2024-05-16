@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022, Broadcom. All Rights Reserved.
+ * Copyright (C) 2021, Broadcom. All Rights Reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -266,7 +266,7 @@ struct ctf_brc {
 #define IPADDR_U32_SZ		(IPV6_ADDR_LEN / sizeof(uint32))
 #else
 #define IPADDR_U32_SZ		1
-#endif
+#endif // endif
 
 struct ctf_conn_tuple {
 	uint32	sip[IPADDR_U32_SZ], dip[IPADDR_U32_SZ];

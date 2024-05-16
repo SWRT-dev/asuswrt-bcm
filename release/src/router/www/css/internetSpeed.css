@@ -144,9 +144,9 @@ body{
 }
 
 .test_result{
-	width: 80%;
+	width: 60%;
 	height: 72px;
-	font-size: 46px;
+	font-size: 54px;
 	color: #FFFFFF;
 	line-height: 72px;
 }
@@ -174,7 +174,7 @@ body{
 }
 
 .speedTest_btn_container{
-	width: 38%;
+	width: 40%;
 	line-height: 135px;
 	display: flex;
 	justify-content: center;
@@ -627,18 +627,6 @@ body{
 	justify-content: center;
 }
 
-.result_title_container{
-	width: 80%;
-	height: 15px;
-}
-
-.result_unit{
-	width: 80%;
-	height: 15px;
-	color:#B2BBC1;
-	margin-left: 5px;
-}
-
 .download_result_icon{
 	background-image: url(../images/speedtest/download.svg);
 	background-repeat: no-repeat;
@@ -984,14 +972,15 @@ body{
 }
 
 .go_speed_container{
-	width: 100%;
+	width: 98%;
+	margin-left: 2%;
 	height: auto;
 	display: flex;
 	justify-content: space-between;
 }
 
 .download_upload_container{
-	width: 55%;
+	width: 60%;
 	display: flex;
 }
 
@@ -1284,7 +1273,7 @@ body{
 	}
 
 	.download_upload_container{
-		width: 96%;
+		width: 100%;
 		height: 106px;
 		justify-content: space-around;
 	}
@@ -1548,16 +1537,7 @@ body{
 		text-align: right;
 	}
 
-	.result_title_container{
-		width: 60%;
-	}
-
-	.result_unit{
-		width: 60%;
-	}
-
 	.test_result{
-		width: 60%;
 		font-size: 40px;
 	}
 

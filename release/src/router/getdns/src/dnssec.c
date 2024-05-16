@@ -922,7 +922,7 @@ static getdns_dict *CD_extension(getdns_dns_req *dnsreq)
 	     ? dnssec_ok_checking_disabled_roadblock_avoidance
 	     : dnssec_ok_checking_disabled_avoid_roadblocks;
 #else
-	(void)dnsreq; /* unused parameter */
+	(void)dnsreq;
 	return dnssec_ok_checking_disabled;
 #endif
 }
@@ -1554,7 +1554,7 @@ static int _getdns_verify_rrsig(const struct mem_funcs *mf,
 		for ( rdf = _getdns_rdf_iter_init(&rdf_spc, &val_rrset[i])
 		    ; rdf
 		    ; rdf = _getdns_rdf_iter_next(rdf) ) {
-			if ((rdf->rdd_pos->type & GETDNS_RDF_N) != GETDNS_RDF_N) {
+			if (!(rdf->rdd_pos->type & GETDNS_RDF_N)) {
 				gldns_buffer_write(
 				    &valbuf, rdf->pos, rdf->nxt - rdf->pos);
 				continue;

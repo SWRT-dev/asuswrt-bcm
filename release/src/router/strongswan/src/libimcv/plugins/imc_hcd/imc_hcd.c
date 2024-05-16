@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2015 Andreas Steffen
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -107,7 +106,7 @@ TNC_Result TNC_IMC_API TNC_IMC_Initialize(TNC_IMCID imc_id,
 		return TNC_RESULT_FATAL;
 	}
 
-	os = imc_os_info_create(FALSE);
+	os = imc_os_info_create();
 	if (!os)
 	{
 		imc_hcd->destroy(imc_hcd);

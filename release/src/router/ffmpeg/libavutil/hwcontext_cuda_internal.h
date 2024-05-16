@@ -31,8 +31,6 @@
 struct AVCUDADeviceContextInternal {
     CudaFunctions *cuda_dl;
     int is_allocated;
-    CUdevice cuda_device;
-    int flags;
 };
 
 #endif /* AVUTIL_HWCONTEXT_CUDA_INTERNAL_H */

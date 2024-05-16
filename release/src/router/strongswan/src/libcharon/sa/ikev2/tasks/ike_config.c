@@ -1,9 +1,7 @@
 /*
- * Copyright (C) 2012-2018 Tobias Brunner
  * Copyright (C) 2007 Martin Willi
  * Copyright (C) 2006-2007 Fabian Hartmann, Noah Heusser
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -42,11 +40,6 @@ struct private_ike_config_t {
 	 * Are we the initiator?
 	 */
 	bool initiator;
-
-	/**
-	 * Did we request a virtual IP?
-	 */
-	bool vip_requested;
 
 	/**
 	 * Received list of virtual IPs, host_t*
@@ -156,12 +149,6 @@ static void process_attribute(private_ike_config_t *this,
 			/* fall */
 		case INTERNAL_IP6_ADDRESS:
 		{
-			if (this->initiator && !this->vip_requested)
-			{
-				handle_attribute(this, ca);
-				return;
-			}
-
 			addr = ca->get_chunk(ca);
 			if (addr.len == 0)
 			{
@@ -241,8 +228,8 @@ static void process_payloads(private_ike_config_t *this, message_t *message)
 METHOD(task_t, build_i, status_t,
 	private_ike_config_t *this, message_t *message)
 {
-	if (message->get_exchange_type(message) == IKE_AUTH)
-	{
+	if (message->get_message_id(message) == 1)
+	{	/* in first IKE_AUTH only */
 		cp_payload_t *cp = NULL;
 		enumerator_t *enumerator;
 		attribute_handler_t *handler;
@@ -251,10 +238,6 @@ METHOD(task_t, build_i, status_t,
 		chunk_t data;
 		linked_list_t *vips;
 		host_t *host;
-
-		/* add attributes to first IKE_AUTH only, keep registered until
-		 * attributes are received in the last IKE_AUTH */
-		this->public.task.build = (void*)return_need_more;
 
 		vips = linked_list_create();
 
@@ -287,7 +270,6 @@ METHOD(task_t, build_i, status_t,
 				cp->add_attribute(cp, build_vip(host));
 			}
 			enumerator->destroy(enumerator);
-			this->vip_requested = TRUE;
 		}
 
 		enumerator = charon->attributes->create_initiator_enumerator(
@@ -323,10 +305,6 @@ METHOD(task_t, build_i, status_t,
 		{
 			message->add_payload(message, (payload_t*)cp);
 		}
-		else
-		{	/* we don't expect a CFG_REPLY */
-			return SUCCESS;
-		}
 	}
 	return NEED_MORE;
 }
@@ -334,11 +312,9 @@ METHOD(task_t, build_i, status_t,
 METHOD(task_t, process_r, status_t,
 	private_ike_config_t *this, message_t *message)
 {
-	if (message->get_exchange_type(message) == IKE_AUTH)
-	{
+	if (message->get_message_id(message) == 1)
+	{	/* in first IKE_AUTH only */
 		process_payloads(this, message);
-		/* process attributes in first IKE_AUTH only */
-		this->public.task.process = (void*)return_need_more;
 	}
 	return NEED_MORE;
 }
@@ -346,7 +322,7 @@ METHOD(task_t, process_r, status_t,
 METHOD(task_t, build_r, status_t,
 	private_ike_config_t *this, message_t *message)
 {
-	if (this->ike_sa->has_condition(this->ike_sa, COND_AUTHENTICATED))
+	if (this->ike_sa->get_state(this->ike_sa) == IKE_ESTABLISHED)
 	{	/* in last IKE_AUTH exchange */
 		enumerator_t *enumerator;
 		configuration_attribute_type_t type;
@@ -454,7 +430,7 @@ METHOD(task_t, build_r, status_t,
 METHOD(task_t, process_i, status_t,
 	private_ike_config_t *this, message_t *message)
 {
-	if (this->ike_sa->has_condition(this->ike_sa, COND_AUTHENTICATED))
+	if (this->ike_sa->get_state(this->ike_sa) == IKE_ESTABLISHED)
 	{	/* in last IKE_AUTH exchange */
 		enumerator_t *enumerator;
 		host_t *host;
@@ -493,7 +469,6 @@ METHOD(task_t, migrate, void,
 	this->vips = linked_list_create();
 	this->requested->destroy_function(this->requested, free);
 	this->requested = linked_list_create();
-	this->public.task.build = _build_i;
 }
 
 METHOD(task_t, destroy, void,

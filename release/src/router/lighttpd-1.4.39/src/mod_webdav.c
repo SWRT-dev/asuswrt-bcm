@@ -77,7 +77,6 @@ extern int generate_sharelink(server* srv, connection *con, const char* filename
 extern void save_sharelink_list();
 extern void stop_arpping_process();
 extern int is_string_encode_as_integer( const char *s );
-extern int is_valid_string( const char* data );
 extern int string_starts_with( const char *a, const char *b );
 extern int file_exist(const char *filepath);
 extern void md5sum(char* output, int counter, ...);
@@ -789,17 +788,14 @@ static int get_thumb_image(char* path, plugin_data *p, char **out){
 
 	char* filename = NULL;	
 	extract_filename(path, &filename);
-	
-	int filename_len = strlen(filename);
 	const char *dot = strrchr(filename, '.');
-	int idx = dot - filename;
-	if (idx<=0) idx = filename_len;
-
+	int len = dot - filename;
+	
 	char* filepath = NULL;
 	extract_filepath(path, &filepath);
 					
 	strcat(thumb_dir, filepath);
-	strncat(thumb_dir, filename, idx);
+	strcat(thumb_dir, filename);
 	strcat(thumb_dir, ".jpg");
 	
 	free(filename);
@@ -822,11 +818,9 @@ static int get_thumb_image(char* path, plugin_data *p, char **out){
 	
 	char* filename = NULL;	
 	extract_filename(path, &filename);
-
-	int filename_len = strlen(filename);
 	const char *dot = strrchr(filename, '.');
 	int idx = dot - filename;
-	if (idx<=0) idx = filename_len;
+	//Cdbg(DBE,"dot = %s, index=%d", dot, index);
 	
 	char* filepath = NULL;
 	extract_filepath(path, &filepath);
@@ -834,7 +828,7 @@ static int get_thumb_image(char* path, plugin_data *p, char **out){
 	Cdbg(DBE,"filepath=%s, filename=%s", filepath, filename);
 	
 	strcat(thumb_dir, filepath);
-	strncat(thumb_dir, filename, idx);
+	strcat(thumb_dir, filename);
 	strcat(thumb_dir, ".jpg");
 	
 	free(filename);
@@ -2001,27 +1995,6 @@ static const char* change_webdav_file_path(server *srv, connection *con, const c
 	return source;
 }
 
-static int count_path_files(const char* file_path) {
-	char command[128];
-	char result[128];  
-	FILE *fp;
-	
-	snprintf(command, sizeof(command), "ls %s | wc -l", file_path);
-	
-	if ((fp = popen(command, "r")) == NULL) {
-		Cdbg(DBE, "fail to do count command=%s, result=%s", command, result); 
-		return 0; 
-	}  
-	
-	fgets(result, sizeof result, fp); 
-
-	pclose(fp);  
-
-	Cdbg(DBE, "count command=%s, result=%s", command, result);
-
-	return atoi(result); 
-}
-
 URIHANDLER_FUNC(mod_webdav_subrequest_handler) {
 	plugin_data *p = p_d;
 	buffer *b;
@@ -2033,8 +2006,7 @@ URIHANDLER_FUNC(mod_webdav_subrequest_handler) {
 	buffer *prop_404;
 	webdav_properties *req_props;
 	stat_cache_entry *sce = NULL;
-	char* referrer = NULL;
-	
+
 	UNUSED(srv);
 
 	if (!p->conf.enabled) return HANDLER_GO_ON;
@@ -2063,25 +2035,13 @@ URIHANDLER_FUNC(mod_webdav_subrequest_handler) {
 #endif
 
 
-	data_string *ds_referrer = (data_string *)array_get_element(con->request.headers, "Referer");
-	if (NULL != (ds = (data_string *)array_get_element(con->request.headers, "Referer"))) {
-		referrer = ds->value->ptr;
-	}
-
-	if (referrer!=NULL) {
-		if (NULL == strstr(referrer, con->request.http_host->ptr)) {
-			Cdbg(DBE, "403 error, referrer=%s, con->request.http_host=%s", referrer, con->request.http_host->ptr);
-			con->http_status = 403;
-			return HANDLER_FINISHED;
-		}
-	}
-
 	Cdbg(DBE, "http_method=[%d][%s], depth=[%d], con->url->path=[%s]", 
 		con->request.http_method, get_http_method_name(con->request.http_method), 
 		depth, con->url.path->ptr);	
 	
 	switch (con->request.http_method) {
 	case HTTP_METHOD_PROPFIND:	
+
 		/* they want to know the properties of the directory */
 		req_props = NULL;
 
@@ -2190,56 +2150,6 @@ URIHANDLER_FUNC(mod_webdav_subrequest_handler) {
 #endif
 		con->http_status = 207;
 
-		buffer* start = buffer_init_string("");
-		buffer* end = buffer_init_string("");
-
-		if (NULL != (ds = (data_string *)array_get_element(con->request.headers, "Start"))) {
-			start = ds->value;
-		}
-
-		if (NULL != (ds = (data_string *)array_get_element(con->request.headers, "End"))) {
-			end = ds->value;
-		}
-
-		//- start : Avoid SQL injection!
-		if (!buffer_is_empty(start) && 
-		    !is_string_encode_as_integer(start->ptr) &&
-		    atoi(start->ptr) < 0) {
-			Cdbg(DBE, "The paramter start is invalid!");
-			con->http_status = 207;
-			con->file_finished = 1;
-			return HANDLER_FINISHED;
-		}
-
-		//- end : Avoid SQL injection!
-		if (!buffer_is_empty(end) && 
-		    !is_string_encode_as_integer(end->ptr) &&
-		    atoi(end->ptr) < 0) {
-
-			Cdbg(DBE, "The paramter end is invalid!");
-			con->http_status = 207;
-			con->file_finished = 1;
-			return HANDLER_FINISHED;
-		}
-
-		int enable_query_segment = 0;
-		int query_start = -1;
-		int query_end = -1;
-		int query_index = 0;
-
-		if(!buffer_is_equal_string(start, "", 0) && !buffer_is_equal_string(end, "", 0)){
-			query_start = atoi(start->ptr);
-			query_end = atoi(end->ptr);
-			
-			if (query_start!=0 && query_end!=0 && query_start>=query_end) {
-				con->http_status = 207;
-				con->file_finished = 1;
-				return HANDLER_FINISHED;
-			}
-
-			enable_query_segment = 1;
-		}
-
 		response_header_overwrite(srv, con, CONST_STR_LEN("Content-Type"), CONST_STR_LEN("text/xml; charset=\"utf-8\""));
 
 		b = buffer_init();
@@ -2322,12 +2232,6 @@ URIHANDLER_FUNC(mod_webdav_subrequest_handler) {
 
 		buffer_append_string_len(b, CONST_STR_LEN("\" isusb=\"1"));
 	
-		int qcount = count_path_files(con->physical.path->ptr);
-		char tmp_qcount[10];
-		snprintf(tmp_qcount, sizeof(tmp_qcount), "%d", qcount);
-		buffer_append_string_len(b, CONST_STR_LEN("\" qcount=\""));	
-		buffer_append_string(b, tmp_qcount);
-
 		buffer_append_string_len(b,CONST_STR_LEN("\">\n"));
 
 		/* allprop */
@@ -2377,17 +2281,13 @@ URIHANDLER_FUNC(mod_webdav_subrequest_handler) {
 
 			break;
 		case 1:
-			
- 			if (NULL != (dir = opendir(con->physical.path->ptr))) {
-				
+			if (NULL != (dir = opendir(con->physical.path->ptr))) {
 				struct dirent *de;
 				physical d;
 				physical *dst = &(con->physical);
 
 				d.path = buffer_init();
 				d.rel_path = buffer_init();
-
-				Cdbg(DBE, "enable_query_segment=%d, query_start=%d, query_end=%d", enable_query_segment, query_start, query_end);
 
 				while(NULL != (de = readdir(dir))) {
 					if (de->d_name[0] == '.' && de->d_name[1] == '.' && de->d_name[2] == '\0') {
@@ -2402,15 +2302,6 @@ URIHANDLER_FUNC(mod_webdav_subrequest_handler) {
 					
 					if ( check_skip_folder_name(de->d_name) == 1 ) {
 						continue;
-					}
-
-					if ( enable_query_segment==1 && query_index < query_start) {
-						query_index++;
-						continue;
-					}
-
-					if ( enable_query_segment==1 && query_index > query_end) {
-						break;
 					}
 
 					buffer_copy_buffer(d.path, dst->path);
@@ -2503,8 +2394,6 @@ URIHANDLER_FUNC(mod_webdav_subrequest_handler) {
 					}
 
 					buffer_append_string_len(b,CONST_STR_LEN("</D:response>\n"));
-
-					query_index++;
 				}
 				closedir(dir);
 				buffer_free(d.path);
@@ -4428,10 +4317,6 @@ propmatch_cleanup:
 
 		if (NULL != (ds = (data_string *)array_get_element(con->request.headers, "Keyword"))) {
 			keyword = ds->value;
-
-			if(!buffer_is_empty(keyword)){			
-				buffer_urldecode_path(keyword);
-			}
 		}
 
 		if (NULL != (ds = (data_string *)array_get_element(con->request.headers, "Orderby"))) {
@@ -4518,13 +4403,24 @@ propmatch_cleanup:
 
 		//- keyword : Avoid SQL injection!
 		if (!buffer_is_empty(keyword) && 
-			(is_valid_string(keyword->ptr)!=0 || keyword->used > 200)) {
+		    (strstr(keyword->ptr, "'")!=NULL ||
+			keyword->used > 200)) {
 
 			Cdbg(DBE, "The paramter keyword is invalid!");
 			con->http_status = 207;
 			con->file_finished = 1;
 			return HANDLER_FINISHED;
 		}
+
+		//- Check paramter
+		// if( (keyword!=NULL && keyword->used > 200 ) ||
+		// 	(parentid!=NULL && parentid->used > 20 ) ){
+			
+		// 	Cdbg(DBE, "NULL value 'sql_minidlna'!");
+		// 	con->http_status = 207;
+		// 	con->file_finished = 1;
+		// 	return HANDLER_FINISHED;
+		// }
 
 		get_minidlna_db_path(p);
 		
@@ -4575,7 +4471,8 @@ propmatch_cleanup:
 		}
 	
 		if(!buffer_is_empty(keyword)){			
-			
+			buffer_urldecode_path(keyword);
+
 			if(strstr(keyword->ptr, "*")||strstr(keyword->ptr, "?")){
 				char buff[200];
 				replace_str(keyword->ptr, "*", "%", buff);

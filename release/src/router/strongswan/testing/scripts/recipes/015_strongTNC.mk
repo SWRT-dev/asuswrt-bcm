@@ -1,10 +1,8 @@
 #!/usr/bin/make
 
 PKG = strongTNC
-REV = 1.0
-DIR = $(PKG)-$(REV)
-ZIP = $(PKG)-$(REV).zip
-SRC = https://github.com/strongswan/$(PKG)/archive/$(REV).zip
+ZIP = $(PKG)-master.zip
+SRC = https://github.com/strongswan/$(PKG)/archive/master.zip
 DEPS = $(PKG)-deps
 
 all: install
@@ -12,15 +10,13 @@ all: install
 $(ZIP):
 	wget --ca-directory=/usr/share/ca-certificates/mozilla/ $(SRC) -O $(ZIP)
 
-.$(PKG)-unpacked-$(REV): $(ZIP)
-	[ -d $(DIR) ] || unzip $(ZIP)
-	@touch $@
+$(PKG)-master: $(ZIP)
+	unzip -u $(ZIP)
 
-.$(PKG)-deps-$(REV): .$(PKG)-unpacked-$(REV)
+$(DEPS): $(PKG)-master
 	mkdir -p $(DEPS)
-	pip3 download -d $(DEPS) -r $(DIR)/requirements.txt
-	@touch $@
+	pip install --download $(DEPS) -r $(PKG)-master/requirements.txt
 
-install: .$(PKG)-deps-$(REV)
-	pip3 install --no-index --find-links=file://`pwd`/$(DEPS) -r $(DIR)/requirements.txt
-	cp -r $(DIR) /var/www/tnc && chgrp -R www-data /var/www/tnc && chmod g+sw /var/www/tnc
+install: $(DEPS)
+	pip install --no-index --find-links=file://`pwd`/$(DEPS) -r $(PKG)-master/requirements.txt
+	cp -r $(PKG)-master /var/www/tnc && chgrp -R www-data /var/www/tnc && chmod g+sw /var/www/tnc

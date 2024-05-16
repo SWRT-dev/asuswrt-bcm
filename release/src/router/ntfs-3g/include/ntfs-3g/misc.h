@@ -25,8 +25,6 @@
 
 void *ntfs_calloc(size_t size);
 void *ntfs_malloc(size_t size);
-void *ntfs_realloc(void *ptr, size_t size);
-void ntfs_free(void *ptr);
 
 #endif /* _NTFS_MISC_H_ */
 

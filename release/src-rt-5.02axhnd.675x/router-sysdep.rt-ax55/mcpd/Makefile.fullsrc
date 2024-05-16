@@ -1,56 +1,117 @@
-OBJS = common.o obj_hndlr.o ssm_hndlr.o mcpd_main.o igmp_main.o igmp_proxy.o igmp_snooping.o
-OBJS += mcpd_mroute.o mcpd_nl.o mcpd_config.o mcpd_timer.o mcpd_ctl.o
-OBJS += mcpd_ulog.o
-ifneq ($(strip $(BUILD_IPV6)), )
-OBJS += mld_main.o mld_proxy.o mld_snooping.o mcpd_mroute6.o
-endif
+all dynamic install: conditional_build
 
+EXE = mcpd
+
+#
+# Set our CommEngine directory (by splitting the pwd into two words
+# at /userspace and taking the first word only).
+# Then include the common defines under CommEngine.
+#
+CURR_DIR := $(shell pwd)
+BUILD_DIR:=$(HND_SRC)
+
+include $(BUILD_DIR)/make.common
+
+OBJS = common.o obj_hndlr.o ssm_hndlr.o mcpd_main.o igmp_main.o igmp_proxy.o igmp_snooping.o 
+OBJS += mcpd_mroute.o mcpd_nl.o mcpd_config.o mcpd_timer.o mcpd_ctl.o 
+ifneq ($(strip $(BUILD_IPV6)), )
+OBJS += mld_main.o mld_proxy.o mld_snooping.o mcpd_mroute6.o 
+endif
+ifneq ($(strip $(BUILD_BRCM_CMS)),)
+OBJS += mcpd_cms.o 
+ifneq ($(strip $(BUILD_GPON)),)
+OBJS += mcpd_omci.o
+endif
+endif
 ifneq ($(strip $(BRCM_OVS_SUPPORT_MCAST)),)
+CFLAGS += -DCONFIG_BCM_OVS_MCAST
+CFLAGS += -DSUPPORT_OVS_BRIDGE_WAN_MCAST
 OBJS += mcpd_ovs.o
 endif
 
-
-LIBS = -L$(HND_SRC)/router-sysdep/bcmmcast/ -lbcmmcast -L$(HND_SRC)/router-sysdep/bridgeutil/ -lbridgeutil
-
-# mcpd to omcid integration is only available in CMS/BDK mode (not BaseShell)
-# mcpd_omci.o uses BCMIPC to communicate with omcid, so BCMIPC must be defined.
-# mcpd_omci.o does not use CMS Msg, but does use cms_util, which needs cms_msg,
-# so that is why we still need to link with cms_msg.
-ifneq ($(strip $(BUILD_BRCM_CMS))$(strip $(BUILD_BRCM_BDK)),)
-ifneq ($(strip $(BUILD_GPON)),)
-ifneq ($(strip $(BUILD_BCMIPC)),)
-OBJS   += mcpd_omci.o
-LIBS   += -lomciutil -lcms_msg $(CMS_COMMON_LIBS) -lbcmipc
-CFLAGS += -DBCMIPC_OMCID
-endif
-endif
+LIBS = -lbcmmcast -lbridgeutil
+ifneq ($(strip $(BUILD_BRCM_CMS)),)
+LIBS += -lcms_msg $(CMS_COMMON_LIBS) 
 endif
 
+clean: generic_clean
+	rm -f $(INSTALL_DIR)/bin/$(EXE) 
+
+binaryonly_dist_clean: clean generic_binaryonly_dist_clean
+	rm -f Makefile.fullsrc
+
+ifneq ($(strip $(BUILD_MCAST_PROXY)),)
+conditional_build: generic_exe_install
+else
+conditional_build:
+	@echo "skipping mcpd (not configured)"
+endif
+
+ifneq ($(strip $(BRCM_VOICE_SUPPORT)),)
+include $(BUILD_DIR)/make.voice
+endif
+
+ifneq ($(strip $(BUILD_IPV6)),)
+CUSTOM_CFLAGS += -DSUPPORT_MLD
+endif
+
+CUSTOM_CFLAGS+=$(SSP_TYP_COMPILER_OPTS)
 LIBS += $(SSP_TYP_LIBS)
 
-CFLAGS += -Werror -Wfatal-errors
-ifneq ($(strip $(BRCM_OVS_SUPPORT_MCAST)),)
-CFLAGS += -DCONFIG_BCM_OVS_MCAST
-endif
+
+#
+# Private apps and libs are allowed to include header files from the
+# private and public directories.
+#
+# WARNING: Do not modify this section unless you understand the
+# license implications of what you are doing.
+#
+ALLOWED_INCLUDE_PATHS := -I.\
+                         -I$(BUILD_DIR)/userspace/public/include  \
+                         -I$(BUILD_DIR)/userspace/public/include/$(OALDIR) \
+                         -I$(BUILD_DIR)/userspace/private/include  \
+                         -I$(BUILD_DIR)/userspace/private/include/$(OALDIR) \
+                         -I$(KERNEL_LINKS_DIR)
+
+
+
+#
+# Private apps and libs are allowed to link with libraries from the
+# private and public directories.
+#
+# WARNING: Do not modify this section unless you understand the
+# license implications of what you are doing.
+#
+ALLOWED_LIB_DIRS := /lib:/lib/private:/lib/public
+
+# treat all warnings as errors
+CUSTOM_CFLAGS += -Werror -Wfatal-errors
+
 CFLAGS += -I$(INC_BRCMDRIVER_PUB_PATH)/$(BRCM_BOARD)
 CFLAGS += -I$(INC_BRCMSHARED_PUB_PATH)/$(BRCM_BOARD)
 CFLAGS += -I$(KERNEL_LINKS_DIR)
-ifneq ($(strip $(BUILD_IPV6)),)
-CFLAGS += -DSUPPORT_MLD
-endif
 
-CFLAGS += $(SSP_TYP_COMPILER_OPTS)
-
-$(EXE): $(OBJS)
+#
+# Implicit rule will make the .c into a .o
+# Implicit rule is $(CC) -c $(CPPFLAGS) $(CFLAGS)
+# See Section 10.2 of Gnu Make manual
+# 
+$(EXE): $(OBJS) 
 	$(CC) $(BCM_LD_FLAGS) -o $@ $(OBJS) -Wl,-rpath,$(CMS_LIB_RPATH) $(CMS_LIB_PATH) $(LIBS)
 
 
-binaryonly_prepare:
-	-cp $(EXE) $(mdir)/$(SAVED)
-	-$(MAKE) -f $(name) clean
-	rm -f $(mdir)/*.c $(mdir)/*.h $(mdir)/Makefile.fullsrc
 
+#
+# Include the rule for making dependency files.
+# The '-' in front of the second include suppresses
+# error messages when make cannot find the .d files.
+# It will just regenerate them.
+# See Section 4.14 of Gnu Make.
+#
 
-# Generate and use dependencies.
-CFLAGS += -MD -I$(HND_SRC)/userspace/private/include/ -I$(HND_SRC)/userspace/public/include/ -I$(HND_SRC)/userspace/public/include/linux/
+include $(BUILD_DIR)/make.deprules
+
 -include $(OBJS:.o=.d)
+
+
+

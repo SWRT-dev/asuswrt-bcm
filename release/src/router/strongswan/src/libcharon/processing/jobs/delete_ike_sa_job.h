@@ -1,8 +1,7 @@
 /*
  * Copyright (C) 2005-2006 Martin Willi
  * Copyright (C) 2005 Jan Hutter
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -34,7 +33,7 @@ typedef struct delete_ike_sa_job_t delete_ike_sa_job_t;
  * Class representing an DELETE_IKE_SA Job.
  *
  * This job is responsible for deleting established or half open IKE_SAs.
- * A half open IKE_SA is every IKE_SA which hasn't reached the SA_ESTABLISHED
+ * A half open IKE_SA is every IKE_SA which hasn't reache the SA_ESTABLISHED
  * state.
  */
 struct delete_ike_sa_job_t {

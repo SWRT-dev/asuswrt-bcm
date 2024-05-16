@@ -1,8 +1,9 @@
 /*
  * Copyright (C) 2016 Tobias Brunner
- * Copyright (C) 2013 Martin Willi
+ * HSR Hochschule fuer Technik Rapperswil
  *
- * Copyright (C) secunet Security Networks AG
+ * Copyright (C) 2013 Martin Willi
+ * Copyright (C) 2013 revosec AG
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -185,12 +186,12 @@ static void update(private_watcher_t *this)
 }
 
 /**
- * Cleanup function if callback gets canceled
+ * Cleanup function if callback gets cancelled
  */
 static void unregister(notify_data_t *data)
 {
-	/* if a thread processing a callback gets canceled, we mark the entry
-	 * as canceled, like the callback would return FALSE. This is required
+	/* if a thread processing a callback gets cancelled, we mark the entry
+	 * as cancelled, like the callback would return FALSE. This is required
 	 * to not queue this watcher again if all threads have been gone. */
 	data->keep = FALSE;
 }
@@ -275,7 +276,7 @@ static void activate_all(private_watcher_t *this)
 {
 	entry_t *entry;
 
-	/* When the watcher thread gets canceled, we have to reactivate any entry
+	/* When the watcher thread gets cancelled, we have to reactivate any entry
 	 * and signal threads in remove() to go on. */
 
 	this->mutex->lock(this->mutex);
@@ -397,7 +398,7 @@ static job_requeue_t watch(private_watcher_t *this)
 		if (res == -1 && errno == EINTR)
 		{
 			/* LinuxThreads interrupts poll(), but does not make it a
-			 * cancellation point. Manually test if we got canceled. */
+			 * cancellation point. Manually test if we got cancelled. */
 			thread_cancellation_point();
 		}
 

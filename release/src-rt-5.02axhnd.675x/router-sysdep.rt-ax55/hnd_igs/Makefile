@@ -1,7 +1,7 @@
 #
 # Makefile for the Broadcom IGS Layer
 #
-# Copyright (C) 2022, Broadcom. All Rights Reserved.
+# Copyright (C) 2021, Broadcom. All Rights Reserved.
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -56,11 +56,6 @@ IGS_OBJS := $(IGSCSRCDIR)/igsc.o $(IGSCSRCDIR)/igsc_sdb.o $(IGSSRCDIR)/igs_linux
 
 ifeq ($(BUILD_NBUFF_WLMCAST_IPV6),y)
 IGS_OBJS += $(IGSCSRCDIR)/igsc_ipv6.o $(IGSCSRCDIR)/igsc_sdb_ipv6.o
-endif
-
-ifneq ($(CMWIFI_WMF_IPV6),)
-EXTRA_CFLAGS += -DCMWIFI_WMF_IPV6
-IGS_OBJS += $(IGSCSRCDIR)/igsc_sdb_ipv6.o
 endif
 
 # Search for sources under src/router/emf/igs

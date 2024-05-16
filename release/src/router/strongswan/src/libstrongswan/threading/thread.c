@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2009-2012 Tobias Brunner
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -49,7 +48,7 @@ struct private_thread_t {
 	thread_t public;
 
 	/**
-	 * Identifier of this thread (human-readable/thread ID).
+	 * Identificator of this thread (human-readable/thread ID).
 	 */
 	u_int id;
 
@@ -85,7 +84,7 @@ struct private_thread_t {
 	bool detached_or_joined;
 
 	/**
-	 * TRUE if the threads has terminated (canceled, via thread_exit or
+	 * TRUE if the threads has terminated (cancelled, via thread_exit or
 	 * returned from the main function)
 	 */
 	bool terminated;
@@ -131,7 +130,7 @@ static thread_value_t *current_thread;
 #endif
 
 /* the signal handler for SIG_CANCEL uses pthread_exit to terminate the
- * "canceled" thread */
+ * "cancelled" thread */
 static void cancel_signal_handler(int sig)
 {
 	pthread_exit(NULL);

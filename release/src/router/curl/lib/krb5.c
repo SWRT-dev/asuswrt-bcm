@@ -2,10 +2,8 @@
  *
  * Copyright (c) 1995, 1996, 1997, 1998, 1999 Kungliga Tekniska Högskolan
  * (Royal Institute of Technology, Stockholm, Sweden).
- * Copyright (c) 2004 - 2022 Daniel Stenberg
+ * Copyright (c) 2004 - 2021 Daniel Stenberg
  * All rights reserved.
- *
- * SPDX-License-Identifier: BSD-3-Clause
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -49,6 +47,7 @@
 #include "sendf.h"
 #include "curl_krb5.h"
 #include "warnless.h"
+#include "non-ascii.h"
 #include "strcase.h"
 #include "strdup.h"
 
@@ -81,6 +80,11 @@ static CURLcode ftpsend(struct Curl_easy *data, struct connectdata *conn,
   strcpy(&s[write_len], "\r\n"); /* append a trailing CRLF */
   write_len += 2;
   bytes_written = 0;
+
+  result = Curl_convert_to_network(data, s, write_len);
+  /* Curl_convert_to_network calls failf if unsuccessful */
+  if(result)
+    return result;
 
   for(;;) {
 #ifdef HAVE_GSSAPI
@@ -142,8 +146,11 @@ krb5_decode(void *app_data, void *buf, int len,
   enc.value = buf;
   enc.length = len;
   maj = gss_unwrap(&min, *context, &enc, &dec, NULL, NULL);
-  if(maj != GSS_S_COMPLETE)
+  if(maj != GSS_S_COMPLETE) {
+    if(len >= 4)
+      strcpy(buf, "599 ");
     return -1;
+  }
 
   memcpy(buf, dec.value, dec.length);
   len = curlx_uztosi(dec.length);
@@ -291,7 +298,7 @@ krb5_auth(void *app_data, struct Curl_easy *data, struct connectdata *conn)
       if(output_buffer.length) {
         char *cmd;
 
-        result = Curl_base64_encode((char *)output_buffer.value,
+        result = Curl_base64_encode(data, (char *)output_buffer.value,
                                     output_buffer.length, &p, &base64_sz);
         if(result) {
           infof(data, "base64-encoding: %s", curl_easy_strerror(result));
@@ -367,7 +374,7 @@ static void krb5_end(void *app_data)
     }
 }
 
-static const struct Curl_sec_client_mech Curl_krb5_client_mech = {
+static struct Curl_sec_client_mech Curl_krb5_client_mech = {
   "GSSAPI",
   sizeof(gss_ctx_id_t),
   krb5_init,
@@ -505,7 +512,6 @@ static CURLcode read_data(struct connectdata *conn,
 {
   int len;
   CURLcode result;
-  int nread;
 
   result = socket_read(fd, &len, sizeof(len));
   if(result)
@@ -514,10 +520,7 @@ static CURLcode read_data(struct connectdata *conn,
   if(len) {
     /* only realloc if there was a length */
     len = ntohl(len);
-    if(len > CURL_MAX_INPUT_LENGTH)
-      len = 0;
-    else
-      buf->data = Curl_saferealloc(buf->data, len);
+    buf->data = Curl_saferealloc(buf->data, len);
   }
   if(!len || !buf->data)
     return CURLE_OUT_OF_MEMORY;
@@ -525,11 +528,8 @@ static CURLcode read_data(struct connectdata *conn,
   result = socket_read(fd, buf->data, len);
   if(result)
     return result;
-  nread = conn->mech->decode(conn->app_data, buf->data, len,
-                             conn->data_prot, conn);
-  if(nread < 0)
-    return CURLE_RECV_ERROR;
-  buf->size = (size_t)nread;
+  buf->size = conn->mech->decode(conn->app_data, buf->data, len,
+                                 conn->data_prot, conn);
   buf->index = 0;
   return CURLE_OK;
 }
@@ -612,7 +612,7 @@ static void do_sec_send(struct Curl_easy *data, struct connectdata *conn,
     return; /* error */
 
   if(iscmd) {
-    error = Curl_base64_encode(buffer, curlx_sitouz(bytes),
+    error = Curl_base64_encode(data, buffer, curlx_sitouz(bytes),
                                &cmd_buffer, &cmd_size);
     if(error) {
       free(buffer);
@@ -684,7 +684,7 @@ int Curl_sec_read_msg(struct Curl_easy *data, struct connectdata *conn,
   (void) data;
 
   if(!conn->mech)
-    /* not initialized, return error */
+    /* not inititalized, return error */
     return -1;
 
   DEBUGASSERT(level > PROT_NONE && level < PROT_LAST);
@@ -768,7 +768,7 @@ static int sec_set_protection_level(struct Curl_easy *data)
     }
   }
 
-  /* Now try to negotiate the protection level. */
+  /* Now try to negiociate the protection level. */
   code = ftp_send_command(data, "PROT %c", level_to_char(level));
 
   if(code < 0)
@@ -880,7 +880,7 @@ Curl_sec_login(struct Curl_easy *data, struct connectdata *conn)
 void
 Curl_sec_end(struct connectdata *conn)
 {
-  if(conn->mech && conn->mech->end)
+  if(conn->mech != NULL && conn->mech->end)
     conn->mech->end(conn->app_data);
   free(conn->app_data);
   conn->app_data = NULL;

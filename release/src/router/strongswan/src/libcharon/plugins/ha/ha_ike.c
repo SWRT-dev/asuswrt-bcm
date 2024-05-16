@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2008 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -48,41 +47,31 @@ struct private_ha_ike_t {
 };
 
 /**
- * Copy conditions of IKE_SA to message as HA_CONDITIONS attribute
+ * Return condition if it is set on ike_sa
  */
-static void copy_conditions(ha_message_t *m, ike_sa_t *ike_sa)
+static ike_condition_t copy_condition(ike_sa_t *ike_sa, ike_condition_t cond)
 {
-	ike_condition_t i, conditions = 0;
-
-	for (i = 0; i < sizeof(i) * 8; ++i)
+	if (ike_sa->has_condition(ike_sa, cond))
 	{
-		ike_condition_t cond = (1 << i);
-
-		conditions |= (ike_sa->has_condition(ike_sa, cond) ? cond : 0);
+		return cond;
 	}
-
-	m->add_attribute(m, HA_CONDITIONS, (uint32_t)conditions);
+	return 0;
 }
 
 /**
- * Copy extensions of IKE_SA to message as HA_EXTENSIONS attribute
+ * Return extension if it is supported by peers IKE_SA
  */
-static void copy_extensions(ha_message_t *m, ike_sa_t *ike_sa)
+static ike_extension_t copy_extension(ike_sa_t *ike_sa, ike_extension_t ext)
 {
-	ike_extension_t i, extensions = 0;
-
-	for (i = 0; i < sizeof(i) * 8; ++i)
+	if (ike_sa->supports_extension(ike_sa, ext))
 	{
-		ike_extension_t ext = (1 << i);
-
-		extensions |= (ike_sa->supports_extension(ike_sa, ext) ? ext : 0);
+		return ext;
 	}
-
-	m->add_attribute(m, HA_EXTENSIONS, (uint32_t)extensions);
+	return 0;
 }
 
 METHOD(listener_t, ike_keys, bool,
-	private_ha_ike_t *this, ike_sa_t *ike_sa, key_exchange_t *dh,
+	private_ha_ike_t *this, ike_sa_t *ike_sa, diffie_hellman_t *dh,
 	chunk_t dh_other, chunk_t nonce_i, chunk_t nonce_r, ike_sa_t *rekey,
 	shared_key_t *shared, auth_method_t method)
 {
@@ -132,7 +121,7 @@ METHOD(listener_t, ike_keys, bool,
 	{
 		m->add_attribute(m, HA_ALG_PRF, alg);
 	}
-	if (proposal->get_algorithm(proposal, KEY_EXCHANGE_METHOD, &alg, NULL))
+	if (proposal->get_algorithm(proposal, DIFFIE_HELLMAN_GROUP, &alg, NULL))
 	{
 		m->add_attribute(m, HA_ALG_DH, alg);
 	}
@@ -142,7 +131,7 @@ METHOD(listener_t, ike_keys, bool,
 	chunk_clear(&secret);
 	if (ike_sa->get_version(ike_sa) == IKEV1)
 	{
-		if (dh->get_public_key(dh, &secret))
+		if (dh->get_my_public_value(dh, &secret))
 		{
 			m->add_attribute(m, HA_LOCAL_DH, secret);
 			chunk_free(&secret);
@@ -183,11 +172,33 @@ METHOD(listener_t, ike_updown, bool,
 	{
 		enumerator_t *enumerator;
 		peer_cfg_t *peer_cfg;
+		uint32_t extension, condition;
 		host_t *addr;
 		ike_sa_id_t *id;
 		identification_t *eap_id;
 
 		peer_cfg = ike_sa->get_peer_cfg(ike_sa);
+
+		condition = copy_condition(ike_sa, COND_NAT_ANY)
+				  | copy_condition(ike_sa, COND_NAT_HERE)
+				  | copy_condition(ike_sa, COND_NAT_THERE)
+				  | copy_condition(ike_sa, COND_NAT_FAKE)
+				  | copy_condition(ike_sa, COND_EAP_AUTHENTICATED)
+				  | copy_condition(ike_sa, COND_CERTREQ_SEEN)
+				  | copy_condition(ike_sa, COND_ORIGINAL_INITIATOR)
+				  | copy_condition(ike_sa, COND_STALE)
+				  | copy_condition(ike_sa, COND_INIT_CONTACT_SEEN)
+				  | copy_condition(ike_sa, COND_XAUTH_AUTHENTICATED);
+
+		extension = copy_extension(ike_sa, EXT_NATT)
+				  | copy_extension(ike_sa, EXT_MOBIKE)
+				  | copy_extension(ike_sa, EXT_HASH_AND_URL)
+				  | copy_extension(ike_sa, EXT_MULTIPLE_AUTH)
+				  | copy_extension(ike_sa, EXT_STRONGSWAN)
+				  | copy_extension(ike_sa, EXT_EAP_ONLY_AUTHENTICATION)
+				  | copy_extension(ike_sa, EXT_MS_WINDOWS)
+				  | copy_extension(ike_sa, EXT_XAUTH)
+				  | copy_extension(ike_sa, EXT_DPD);
 
 		id = ike_sa->get_id(ike_sa);
 
@@ -202,8 +213,8 @@ METHOD(listener_t, ike_updown, bool,
 		}
 		m->add_attribute(m, HA_LOCAL_ADDR, ike_sa->get_my_host(ike_sa));
 		m->add_attribute(m, HA_REMOTE_ADDR, ike_sa->get_other_host(ike_sa));
-		copy_conditions(m, ike_sa);
-		copy_extensions(m, ike_sa);
+		m->add_attribute(m, HA_CONDITIONS, condition);
+		m->add_attribute(m, HA_EXTENSIONS, extension);
 		m->add_attribute(m, HA_CONFIG_NAME, peer_cfg->get_name(peer_cfg));
 		enumerator = ike_sa->create_peer_address_enumerator(ike_sa);
 		while (enumerator->enumerate(enumerator, (void**)&addr))

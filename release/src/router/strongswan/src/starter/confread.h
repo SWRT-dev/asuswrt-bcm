@@ -59,7 +59,7 @@ typedef enum {
 		DPD_ACTION_CLEAR,
 		DPD_ACTION_HOLD,
 		DPD_ACTION_RESTART,
-		DPD_ACTION_UNKNOWN,
+		DPD_ACTION_UNKNOW,
 } dpd_action_t;
 
 typedef enum {

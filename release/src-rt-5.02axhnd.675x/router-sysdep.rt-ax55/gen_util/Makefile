@@ -1,16 +1,14 @@
 LIB := libgen_util.so
 
 OBJS := hexbinary.o \
-        crc.o rbtree.o regex.o \
+        crc.o \
         base64encode.o base64decode.o
 
 CFLAGS += -Werror -Wfatal-errors -I$(HND_SRC)/userspace/public/include/linux/
-# allow cast of 64 bit void * key to integer in compare function.
-CFLAGS += -Wno-pointer-to-int-cast -Wno-int-to-pointer-cast
 
 # These are public API headers needed by other apps which want to call this lib.
 # Private/internal headers should not be listed here.
-HEADERS := genutil_base64.h genutil_crc.h genutil_hexbinary.h genutil_rbtree.h genutil_regex.h
+HEADERS := genutil_base64.h genutil_crc.h genutil_hexbinary.h
 
 all: $(LIB)
 

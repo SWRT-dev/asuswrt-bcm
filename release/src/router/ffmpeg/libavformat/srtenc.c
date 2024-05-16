@@ -61,8 +61,7 @@ static int srt_write_packet(AVFormatContext *avf, AVPacket *pkt)
     SRTContext *srt = avf->priv_data;
 
     int64_t s = pkt->pts, e, d = pkt->duration;
-    buffer_size_t size;
-    int x1 = -1, y1 = -1, x2 = -1, y2 = -1;
+    int size, x1 = -1, y1 = -1, x2 = -1, y2 = -1;
     const uint8_t *p;
 
     p = av_packet_get_side_data(pkt, AV_PKT_DATA_SUBTITLE_POSITION, &size);

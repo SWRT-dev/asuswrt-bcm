@@ -466,9 +466,8 @@ static char* FAST_FUNC sockaddr2str(const struct sockaddr *sa, int flags)
 	);
 	if (rc)
 		return NULL;
-	/* ensure host contains only printable characters */
 	if (flags & IGNORE_PORT)
-		return xstrdup(printable_string(host));
+		return xstrdup(host);
 #if ENABLE_FEATURE_IPV6
 	if (sa->sa_family == AF_INET6) {
 		if (strchr(host, ':')) /* heh, it's not a resolved hostname */
@@ -479,7 +478,7 @@ static char* FAST_FUNC sockaddr2str(const struct sockaddr *sa, int flags)
 #endif
 	/* For now we don't support anything else, so it has to be INET */
 	/*if (sa->sa_family == AF_INET)*/
-		return xasprintf("%s:%s", printable_string(host), serv);
+		return xasprintf("%s:%s", host, serv);
 	/*return xstrdup(host);*/
 }
 

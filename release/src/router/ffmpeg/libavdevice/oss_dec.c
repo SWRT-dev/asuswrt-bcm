@@ -125,7 +125,7 @@ static const AVOption options[] = {
 };
 
 static const AVClass oss_demuxer_class = {
-    .class_name     = "OSS indev",
+    .class_name     = "OSS demuxer",
     .item_name      = av_default_item_name,
     .option         = options,
     .version        = LIBAVUTIL_VERSION_INT,

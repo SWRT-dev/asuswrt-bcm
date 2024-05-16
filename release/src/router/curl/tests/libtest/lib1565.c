@@ -5,7 +5,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2022, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2020, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -17,8 +17,6 @@
  *
  * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
  * KIND, either express or implied.
- *
- * SPDX-License-Identifier: curl
  *
  ***************************************************************************/
 #include "test.h"
@@ -52,7 +50,7 @@ static void *run_thread(void *ptr)
   (void)ptr;
 
   for(i = 0; i < CONN_NUM; i++) {
-    wait_ms(TIME_BETWEEN_START_SECS * 1000);
+    sleep(TIME_BETWEEN_START_SECS);
 
     easy_init(easy);
 
@@ -98,8 +96,7 @@ int test(char *URL)
   CURL *started_handles[CONN_NUM];
   int started_num = 0;
   int finished_num = 0;
-  pthread_t tid;
-  bool tid_valid = false;
+  pthread_t tid = 0;
   struct CURLMsg *message;
 
   start_test_timing();
@@ -111,9 +108,7 @@ int test(char *URL)
   url = URL;
 
   res = pthread_create(&tid, NULL, run_thread, NULL);
-  if(!res)
-    tid_valid = true;
-  else {
+  if(0 != res) {
     fprintf(stderr, "%s:%d Couldn't create thread, errno %d\n",
             __FILE__, __LINE__, res);
     goto test_cleanup;
@@ -124,7 +119,7 @@ int test(char *URL)
 
     abort_on_test_timeout();
 
-    while((message = curl_multi_info_read(multi, &num))) {
+    while((message = curl_multi_info_read(multi, &num)) != NULL) {
       if(message->msg == CURLMSG_DONE) {
         res = message->data.result;
         if(res)
@@ -187,7 +182,7 @@ test_cleanup:
     test_failure = res;
   pthread_mutex_unlock(&lock);
 
-  if(tid_valid)
+  if(0 != tid)
     pthread_join(tid, NULL);
 
   curl_multi_cleanup(multi);

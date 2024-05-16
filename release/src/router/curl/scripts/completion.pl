@@ -6,7 +6,7 @@
 #                            | (__| |_| |  _ <| |___
 #                             \___|\___/|_| \_\_____|
 #
-# Copyright (C) 1998 - 2022, Daniel Stenberg, <daniel@haxx.se>, et al.
+# Copyright (C) 1998 - 2020, Daniel Stenberg, <daniel@haxx.se>, et al.
 #
 # This software is licensed as described in the file COPYING, which
 # you should have received as part of this distribution. The terms
@@ -18,8 +18,6 @@
 #
 # This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
 # KIND, either express or implied.
-#
-# SPDX-License-Identifier: curl
 #
 ###########################################################################
 
@@ -104,20 +102,11 @@ sub parse_main_opts {
             $option .= '}' if defined $short;
             $option .= '\'[' . trim($desc) . ']\'' if defined $desc;
 
-            if (defined $arg) {
-                $option .= ":'$arg'";
-                if ($arg =~ /<file ?(name)?>|<path>/) {
-                    $option .= ':_files';
-                } elsif ($arg =~ /<dir>/) {
-                    $option .= ":'_path_files -/'";
-                } elsif ($arg =~ /<url>/i) {
-                    $option .= ':_urls';
-                } elsif ($long =~ /ftp/ && $arg =~ /<method>/) {
-                    $option .= ":'(multicwd nocwd singlecwd)'";
-                } elsif ($arg =~ /<method>/) {
-                    $option .= ":'(DELETE GET HEAD POST PUT)'";
-                }
-            }
+            $option .= ":'$arg'" if defined $arg;
+
+            $option .= ':_files'
+                if defined $arg and ($arg eq '<file>' || $arg eq '<filename>'
+                    || $arg eq '<dir>');
         }
 
         push @list, $option;

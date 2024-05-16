@@ -124,7 +124,7 @@ void ff_h263_encode_picture_header(MpegEncContext * s, int picture_number)
     coded_frame_rate= 1800000;
     coded_frame_rate_base= (1000+best_clock_code)*best_divisor;
 
-    align_put_bits(&s->pb);
+    avpriv_align_put_bits(&s->pb);
 
     /* Update the pointer to last GOB */
     s->ptr_lastgob = put_bits_ptr(&s->pb);
@@ -713,7 +713,8 @@ static av_cold void init_mv_penalty_and_fcode(MpegEncContext *s)
     }
 }
 
-static av_cold void init_uni_h263_rl_tab(const RLTable *rl, uint8_t *len_tab)
+static av_cold void init_uni_h263_rl_tab(RLTable *rl, uint32_t *bits_tab,
+                                         uint8_t *len_tab)
 {
     int slevel, run, last;
 
@@ -737,9 +738,10 @@ static av_cold void init_uni_h263_rl_tab(const RLTable *rl, uint8_t *len_tab)
                 len=  rl->table_vlc[code][1];
                 bits=bits*2+sign; len++;
 
-                if (code != rl->n && len < len_tab[index])
+                if(code!=rl->n && len < len_tab[index]){
+                    if(bits_tab) bits_tab[index]= bits;
                     len_tab [index]= len;
-
+                }
                 /* ESC */
                 bits= rl->table_vlc[rl->n][0];
                 len = rl->table_vlc[rl->n][1];
@@ -747,8 +749,10 @@ static av_cold void init_uni_h263_rl_tab(const RLTable *rl, uint8_t *len_tab)
                 bits=bits*64+run; len+=6;
                 bits=bits*256+(level&0xff); len+=8;
 
-                if (len < len_tab[index])
+                if(len < len_tab[index]){
+                    if(bits_tab) bits_tab[index]= bits;
                     len_tab [index]= len;
+                }
             }
         }
     }
@@ -759,14 +763,13 @@ av_cold void ff_h263_encode_init(MpegEncContext *s)
     static int done = 0;
 
     if (!done) {
-        static uint8_t rl_intra_table[2][2 * MAX_RUN + MAX_LEVEL + 3];
         done = 1;
 
-        ff_rl_init(&ff_rl_intra_aic, rl_intra_table);
-        ff_h263_init_rl_inter();
+        ff_rl_init(&ff_h263_rl_inter, ff_h263_static_rl_table_store[0]);
+        ff_rl_init(&ff_rl_intra_aic, ff_h263_static_rl_table_store[1]);
 
-        init_uni_h263_rl_tab(&ff_rl_intra_aic,  uni_h263_intra_aic_rl_len);
-        init_uni_h263_rl_tab(&ff_h263_rl_inter, uni_h263_inter_rl_len);
+        init_uni_h263_rl_tab(&ff_rl_intra_aic, NULL, uni_h263_intra_aic_rl_len);
+        init_uni_h263_rl_tab(&ff_h263_rl_inter    , NULL, uni_h263_inter_rl_len);
 
         init_mv_penalty_and_fcode(s);
     }

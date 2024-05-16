@@ -12,6 +12,10 @@ Disable support for HTTP cookies.
 
 Disable support for authentication methods using crypto.
 
+## CURL_DISABLE_NTLM
+
+Disable support for NTLM.
+
 ## CURL_DISABLE_DICT
 
 Disable the DICT protocol
@@ -36,10 +40,6 @@ about existing options to `curl_easy_setopt`.
 ## CURL_DISABLE_GOPHER
 
 Disable the GOPHER protocol.
-
-## CURL_DISABLE_HEADERS_API
-
-Disable the HTTP header API.
 
 ## CURL_DISABLE_HSTS
 
@@ -82,10 +82,6 @@ Disable MQTT support.
 
 Disable the netrc parser.
 
-## CURL_DISABLE_NTLM
-
-Disable support for NTLM.
-
 ## CURL_DISABLE_OPENSSL_AUTO_LOAD_CONFIG
 
 Disable the auto load config support in the OpenSSL backend.
@@ -94,9 +90,9 @@ Disable the auto load config support in the OpenSSL backend.
 
 Disable date parsing
 
-## CURL_DISABLE_POP3
+## CURL_DISABLE_POP
 
-Disable the POP3 protocol
+Disable the POP(S) protocols
 
 ## CURL_DISABLE_PROGRESS_METER
 

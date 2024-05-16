@@ -1,8 +1,7 @@
 /*
  * Copyright (C) 2018 Tobias Brunner
  * Copyright (C) 2017-2018 Andreas Steffen
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -106,7 +105,7 @@ METHOD(private_key_t, sign, bool,
 
 METHOD(private_key_t, decrypt, bool,
 	private_tpm_private_key_t *this, encryption_scheme_t scheme,
-	void *params, chunk_t crypt, chunk_t *plain)
+	chunk_t crypt, chunk_t *plain)
 {
 	return FALSE;
 }

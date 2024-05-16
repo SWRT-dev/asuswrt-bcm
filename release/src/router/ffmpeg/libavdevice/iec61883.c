@@ -23,7 +23,7 @@
  * libiec61883 interface
  */
 
-#include <poll.h>
+#include <sys/poll.h>
 #include <libraw1394/raw1394.h>
 #include <libavc1394/avc1394.h>
 #include <libavc1394/rom1394.h>

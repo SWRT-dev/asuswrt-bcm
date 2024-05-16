@@ -24,7 +24,7 @@
  * E-AC-3 encoder
  */
 
-#define AC3ENC_FLOAT 1
+#define CONFIG_AC3ENC_FLOAT 1
 
 #include "libavutil/attributes.h"
 #include "ac3enc.h"
@@ -32,10 +32,13 @@
 #include "eac3_data.h"
 
 
+#define AC3ENC_TYPE AC3ENC_TYPE_EAC3
+#include "ac3enc_opts_template.c"
+
 static const AVClass eac3enc_class = {
     .class_name = "E-AC-3 Encoder",
     .item_name  = av_default_item_name,
-    .option     = &ff_ac3_enc_options[2], /* First two options are AC-3 only. */
+    .option     = ac3_options,
     .version    = LIBAVUTIL_VERSION_INT,
 };
 
@@ -260,8 +263,6 @@ AVCodec ff_eac3_encoder = {
     .sample_fmts     = (const enum AVSampleFormat[]){ AV_SAMPLE_FMT_FLTP,
                                                       AV_SAMPLE_FMT_NONE },
     .priv_class      = &eac3enc_class,
-    .supported_samplerates = ff_ac3_sample_rate_tab,
     .channel_layouts = ff_ac3_channel_layouts,
-    .defaults        = ff_ac3_enc_defaults,
-    .caps_internal   = FF_CODEC_CAP_INIT_THREADSAFE | FF_CODEC_CAP_INIT_CLEANUP,
+    .defaults        = ac3_defaults,
 };

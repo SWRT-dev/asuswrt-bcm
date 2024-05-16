@@ -82,7 +82,6 @@
 #define MS_DLNA "ms_dlna"
 #define MS_PATH "ms_path"
 #define DMS_DBCWD "dms_dbcwd"
-#define DMS_DBDIR "dms_dbdir"
 #define DMS_DIR "dms_dir"
 #define HTTPS_CRT_CN "https_crt_cn"
 #define ODMPID "odmpid"
@@ -138,7 +137,6 @@
 #define DMS_ENABLE "dms_enable"
 #define MS_DLNA "ms_dlna"
 #define DMS_DBCWD "dms_dbcwd"
-#define DMS_DBDIR "dms_dbdir"
 #define DMS_DIR "dms_dir"
 #define HTTPS_CRT_CN "https_crt_cn"
 #define HTTPS_CRT_SAVE "https_crt_save"
@@ -696,9 +694,9 @@ void start_ssl()
             if (save) {
                 fprintf(stderr, "Save SSL certificate...\n"); // tmp test
                 if (nvram_get_file("https_crt_file", "/tmp/cert.tgz", 8192)) {
-                        system("tar -xzf /tmp/cert.tgz -C / " HTTPD_CERTS_KEYS_STR);
+                        system("tar -xzf /tmp/cert.tgz -C / etc/cert.pem etc/key.pem");
                         usleep(1000*100);
-			system("cat " HTTPD_KEY " " HTTPD_CERT " > " LIGHTTPD_CERTKEY);
+                        system("cat /etc/key.pem /etc/cert.pem > /etc/server.pem");
                         ok = 1;
                     unlink("/tmp/cert.tgz");
                 }
@@ -720,7 +718,7 @@ void start_ssl()
                 }
                 free(cmd_app);
 
-                system("tar -C / -czf /tmp/cert.tgz " HTTPD_CERTS_KEYS_STR);
+                system("tar -C / -czf /tmp/cert.tgz etc/cert.pem etc/key.pem");
                 while(-1==access("/tmp/cert.tgz",F_OK))
                 {
                     usleep(1000*100);
@@ -1548,11 +1546,7 @@ char* nvram_get_dms_dbcwd(void)
 	*/
 	return NULL;
 #else
-    char* dir = nvram_get(DMS_DBCWD);
-    if (dir==NULL || (dir!=NULL && strcmp(dir, "")==0))
-        dir = nvram_get(DMS_DBDIR);
-
-	return dir;
+	return nvram_get(DMS_DBCWD);
 #endif
 }
 

@@ -4,8 +4,7 @@
 
 MAX_WLAN_ADAPTER=4
 NUM_PROCESSOR=`cat /proc/cpuinfo | grep -c "processor"`
-NUM_WL_INTF=`nvram get wl_ifnames | wc -w`
-NOT_EAP=`gunzip -c /proc/config.gz | grep -q CONFIG_BCM_HND_EAP=y; echo $?`
+NUM_WL_INTF=`ls -al /sys/class/net/*/wireless 2>&1 | grep -c "eth"`
 
 #$(getStrByPos "12 33 44" " " 2) will return 33
 getStrByPos() {
@@ -86,19 +85,7 @@ getRadioInterrupt() {
   else
     hndler=$2
   fi
-
   local interrupt_line=`cat /proc/interrupts |grep "wl$1" |grep $hndler`
-
-  # Check if interrupt is PCIe MSI interrupt
-  # contains "msi_pcie:"X string, where [X] is msi core
-  local msi_interrupt_line=`echo $interrupt_line | grep "msi_pcie:" | sed -r -e 's/[ ]+/ /g'`
-  if [ ! -z "$msi_interrupt_line" ]; then
-    # get the msi core
-    msi_core=$(getStrByPos "$(getStrByPos "${msi_interrupt_line}" ":" 3)" " " 1)
-    # get the parent msi core interrupt
-    local interrupt_line=`cat /proc/interrupts |grep "msi_pcie:$msi_core"`
-  fi
-
   if [ ! -z "$interrupt_line" ]; then
       interrupt=$(getStrByPos "${interrupt_line}" ":" 1)
       echo $(trim $interrupt);
@@ -323,7 +310,6 @@ setRadioIntAffinity() {
     local irq=$(getRadioInterrupt $radio);
     if [ ! -z $affinity ]; then
         echo $affinity >/proc/irq/$irq/smp_affinity 2>/dev/NULL
-        echo set D11 irq:$irq aff:$affinity
         #nvram kset wl${radio}_interrupt_affinity=${affinity}
     fi
 }
@@ -335,7 +321,6 @@ setRadioM2MIntAffinity() {
     local irq=$(getRadioM2MInterrupt $radio);
     if [ ! -z $affinity ] && [ ! -z $irq ]; then
         echo $affinity >/proc/irq/$irq/smp_affinity 2>/dev/NULL
-        echo set M2M irq:$irq aff:$affinity
         #nvram kset wlan_${radio}_m2m_interrupt_affinity=${affinity}
     fi
 }
@@ -671,6 +656,74 @@ apply_wifi_pin_cfg() {
     fi
 }
 
+set_default_affinity_plat1()
+{
+    ps | grep -v "grep" | grep -e "wl.-kthrd" > /dev/null 2>&1
+    [ "$?" == "0" ] || exit 0;
+
+    local tp=0
+    cat /proc/version  | grep "SMP" > /dev/null 2>&1
+    if [ "$?" == "0" ]; then
+        tp=1
+    fi
+
+    if [ $NUM_WL_INTF -ge 2 ]; then
+        wlctl -i wl0 tp_id 0
+        wlctl -i wl1 tp_id $tp
+        if [ $NUM_WL_INTF -eq 3 ]; then
+            wlctl -i wl2 tp_id 0
+        fi
+    elif [ $NUM_WL_INTF -eq 1 ]; then
+        for i in $(seq 0 $((MAX_WLAN_ADAPTER-1)))
+        do
+            intf="wl$i"
+            if [ "x`cat /sys/class/net/$intf/operstate 2>/dev/null`" != "xdown" ]; then
+                wlctl -i $intf tp_id $tp
+                break;
+            fi
+        done
+    fi
+}
+
+set_default_affinity_platFAP()
+{
+    local ctl_item radio affinity
+
+    if [ $NUM_WL_INTF -ge 2 ]; then
+        radio=0
+        while [ $radio -lt $NUM_WL_INTF ];
+        do
+            # /* bind to CPU{x} */
+            affinity=$((1 << (radio%NUM_PROCESSOR)))
+            # echo "affinity=$affinity"
+            for ctl_item in wfd dhd wl
+            do
+                proc_name=$(process_name $ctl_item $radio);
+                proc_pid=$(getPidByName $proc_name);
+                if [ $proc_pid -gt 0 ]; then
+                    setProcAffinity "" $proc_name $proc_pid $affinity
+                fi
+            done
+            radio=$((radio+1))
+        done
+    elif [ $NUM_WL_INTF -eq 1 ]; then
+        radio=0
+        for ctl_item in dhd wl wfd
+        do
+            proc_name=$(process_name $ctl_item $radio);
+            proc_pid=$(getPidByName $proc_name);
+            if [ $proc_pid -gt 0 ]; then
+                if [ "$ctl_item" == "dhd" ]; then
+                    affinity=$((1 << 0)) # bind dhd0_dpc to CPU0
+                elif [ "$ctl_item" == "wl" ]; then
+                    affinity=$((1 << 1)) # bind wl0-kthrd to CPU1
+                fi
+                setProcAffinity "" $proc_name $proc_pid $affinity
+            fi
+        done
+    fi
+}
+
 set_default_affinity_plat3()
 {
     local ctl_item radio affinity
@@ -736,15 +789,6 @@ set_default_affinity_platArcher63178()
         #Set WLAN M2M interrupt affinity
         setRadioM2MIntAffinity $radio $affinity;
 
-        # /* bind bcm_awl_xfer_xx to cpu#1 */
-        affinity=$((1 << 1))
-        proc_name=bcm_awl_xfer_$radio
-        proc_pid=$(getPidByName $proc_name);
-        if [ $proc_pid -gt 0 ]; then
-            setProcAffinity "" $proc_name $proc_pid $affinity
-            setProcPriority "" $proc_name $proc_pid 75
-        fi
-
         radio=$((radio+1))
     done
 }
@@ -754,14 +798,6 @@ set_default_affinity_platArcher47622()
     local radio affinity
 
     # /* The bcm_archer_us thread affinity is defined in ARCHER_CPU_AFFINITY */
-
-    # /* bind bcmsw_recycle to cpu#1 or cpu#2 */
-    affinity=6
-    proc_name=bcmsw_recycle
-    proc_pid=$(getPidByName $proc_name);
-    if [ $proc_pid -gt 0 ]; then
-        setProcAffinity "" $proc_name $proc_pid $affinity
-    fi
 
     radio=0
     while [ $radio -lt $NUM_WL_INTF ];
@@ -783,24 +819,6 @@ set_default_affinity_platArcher47622()
 
         #Set WLAN M2M interrupt affinity
         setRadioM2MIntAffinity $radio $affinity;
-
-        # /* bind bcm_awl_xfer_xx to cpu#1 or cpu#2 */
-        affinity=6
-        proc_name=bcm_awl_xfer_$radio
-        proc_pid=$(getPidByName $proc_name);
-        if [ $proc_pid -gt 0 ]; then
-            setProcAffinity "" $proc_name $proc_pid $affinity
-            setProcPriority "" $proc_name $proc_pid 75
-        fi
-
-        # /* bind archer_dhd_xx to CPU{x} */
-        affinity=$((1 << (radio%NUM_PROCESSOR)))
-        proc_name=archer_dhd_$radio
-        proc_pid=$(getPidByName $proc_name);
-        if [ $proc_pid -gt 0 ]; then
-            setProcAffinity "" $proc_name $proc_pid $affinity
-            setProcPriority "" $proc_name $proc_pid 75
-        fi
 
         radio=$((radio+1))
     done
@@ -847,15 +865,19 @@ set_default_priority()
 pin_wifi_processes_default() {
     local BCM_MODEL=`nvram get BCM_MODEL`
 
-    if [ $NOT_EAP -eq 0 ]; then
+    if [ -e /usr/sbin/escand ]; then
         echo "Skip Wlan related processes pinning for EAP"
         return
     else
         echo "Wlan related processes are pinned by default"
         if [ $NUM_WL_INTF -gt 0 ]; then
-            if [ "$BCM_MODEL" == "Broadcom BCM963178" ]; then  # Archer based platforms with 3 cpu cores.
+            if [ "$BCM_MODEL" == "Broadcom BCM963381" ]; then  # Low end old platforms (no-fap, no-wfd)
+                set_default_affinity_plat1
+            elif [ "$BCM_MODEL" == "Broadcom BCM963268" ]; then  # FAP based platforms
+                set_default_affinity_platFAP
+            elif [ "$BCM_MODEL" == "Broadcom BCM963178" ]; then  # Archer based platforms with 3 cpu cores.
                 set_default_affinity_platArcher63178
-            elif [ "$BCM_MODEL" == "Broadcom BCM947622" ] || [ "$BCM_MODEL" == "Broadcom BCM96756" ]; then  # Archer based platforms with 4 cpu cores.
+            elif [ "$BCM_MODEL" == "Broadcom BCM947622" ]; then  # Archer based platforms with 4 cpu cores.
                 set_default_affinity_platArcher47622
             else  # High-end wfd based platforms
                 set_default_affinity_plat3

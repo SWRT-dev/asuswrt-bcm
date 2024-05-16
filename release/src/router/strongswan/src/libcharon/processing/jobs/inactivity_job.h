@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2010 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -30,7 +29,7 @@ typedef struct inactivity_job_t inactivity_job_t;
 /**
  * Job checking for inactivity of CHILD_SA to close them.
  *
- * The inactivity job reschedules itself to check CHILD_SAs periodically.
+ * The inactivity job reschedules itself to check CHILD_SAs prediodically.
  */
 struct inactivity_job_t {
 

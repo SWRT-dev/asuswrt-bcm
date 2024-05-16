@@ -41,10 +41,9 @@
 /* Used by bcm_imgif, bcm_imgutil, image.c*/
 unsigned char *nandUpdateSeqNum(unsigned char *imagePtr, int imageSize, int blkLen, int seq, int *found);
 int nand_image_type(unsigned char * buf);
+int partitionBooted(int partition);
 mtd_info_t *get_mtd_device_handle(const char *check, int *mtd_fd, int *mtdblock_fd);
 void put_mtd_device(mtd_info_t *mtd, int mtd_fd, int mtdblock_fd);
-int get_mtd_device_name(const char * check __attribute__((unused)), char * device __attribute__((unused)));
-int get_mtd_master_size(unsigned int *psize);
 int nandEraseBlk(mtd_info_t *mtd, int blk_addr, int mtd_fd);
 int nandWriteBlk(mtd_info_t *mtd, int blk_addr, int data_len, unsigned char *data_ptr,
   int mtd_fd, int write_JFFS2_clean_marker);
@@ -68,14 +67,6 @@ int nandIsBootDevice(void);
 int nandGetBootedValue(void);
 int nandGetBootPartition(void);
 int nandCommit( int partition, char *commit_flag );
-int nandSetImgValidStatus( int img_idx, int valid);
-int nandIsLegacyFlashLayout(void);
-int nandUbiVolDevNodeExists( char * dev_path );
-uint64_t nandGetAvailImgSpace( int update_img_idx );
-uint64_t nandGetAvailLoaderSpace(void);
-int getNandMetadata( char * data, int size , int mdata_idx);
-int setNandMetadata( char * data, int size, int mdata_idx );
-int nandFlashLoader(unsigned char *file_name, uint64_t file_size);
 
 /* used by housekeeping task that keeps nvram mirror and cferom integrity */
 int is_cferom_offset(unsigned char *buffer, int offset, int *img_size, int *cferom_crc, unsigned char **);

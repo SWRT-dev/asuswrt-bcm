@@ -18,7 +18,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "avstring.h"
 #include "mem.h"
 #include "spherical.h"
 
@@ -52,7 +51,7 @@ void av_spherical_tile_bounds(const AVSphericalMapping *map,
     *bottom = orig_height - height - *top;
 }
 
-static const char *const spherical_projection_names[] = {
+static const char *spherical_projection_names[] = {
     [AV_SPHERICAL_EQUIRECTANGULAR]      = "equirectangular",
     [AV_SPHERICAL_CUBEMAP]              = "cubemap",
     [AV_SPHERICAL_EQUIRECTANGULAR_TILE] = "tiled equirectangular",
@@ -71,7 +70,8 @@ int av_spherical_from_name(const char *name)
     int i;
 
     for (i = 0; i < FF_ARRAY_ELEMS(spherical_projection_names); i++) {
-        if (av_strstart(name, spherical_projection_names[i], NULL))
+        size_t len = strlen(spherical_projection_names[i]);
+        if (!strncmp(spherical_projection_names[i], name, len))
             return i;
     }
 

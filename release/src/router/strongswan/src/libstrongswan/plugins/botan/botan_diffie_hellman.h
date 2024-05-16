@@ -32,7 +32,7 @@
 
 typedef struct botan_diffie_hellman_t botan_diffie_hellman_t;
 
-#include <crypto/key_exchange.h>
+#include <crypto/diffie_hellman.h>
 
 /**
  * Implementation of the Diffie-Hellman algorithm using Botan.
@@ -40,20 +40,20 @@ typedef struct botan_diffie_hellman_t botan_diffie_hellman_t;
 struct botan_diffie_hellman_t {
 
 	/**
-	 * Implements key_exchange_t interface.
+	 * Implements diffie_hellman_t interface.
 	 */
-	key_exchange_t ke;
+	diffie_hellman_t dh;
 };
 
 /**
  * Creates a new botan_diffie_hellman_t object.
  *
- * @param group			Diffie-Hellman group number to use
+ * @param group			Diffie Hellman group number to use
  * @param ...			expects generator and prime as chunk_t if MODP_CUSTOM
  * @return				botan_diffie_hellman_t object,
  *						NULL if not supported
  */
 botan_diffie_hellman_t *botan_diffie_hellman_create(
-											key_exchange_method_t group, ...);
+											diffie_hellman_group_t group, ...);
 
 #endif /** BOTAN_DIFFIE_HELLMAN_H_ @}*/

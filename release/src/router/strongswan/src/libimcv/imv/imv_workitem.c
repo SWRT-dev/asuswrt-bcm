@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2013 Andreas Steffen
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -161,7 +160,7 @@ METHOD(imv_workitem_t, set_result, TNC_IMV_Action_Recommendation,
 		 TNC_IMV_Action_Recommendation_names, this->rec_final,
 		 strlen(result) ? " - " : "", result);
 
-	return this->rec_final;
+	return this->rec_final;	
 }
 
 METHOD(imv_workitem_t, get_result, TNC_IMV_Action_Recommendation,

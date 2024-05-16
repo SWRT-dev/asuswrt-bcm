@@ -111,8 +111,6 @@ char *winamp_genre[] = {
 #include "tagutils-asf.h"
 #include "tagutils-wav.h"
 #include "tagutils-pcm.h"
-#include "tagutils-dsf.h"
-#include "tagutils-dff.h"
 
 static int _get_tags(char *file, struct song_metadata *psong);
 static int _get_fileinfo(char *file, struct song_metadata *psong);
@@ -129,18 +127,16 @@ typedef struct {
 } taghandler;
 
 static taghandler taghandlers[] = {
-	{ "aac", _get_aactags,	_get_aacfileinfo },
-	{ "mp3", _get_mp3tags,	_get_mp3fileinfo },
-	{ "flc", _get_flctags,	_get_flcfileinfo },
+	{ "aac", _get_aactags, _get_aacfileinfo                                  },
+	{ "mp3", _get_mp3tags, _get_mp3fileinfo                                  },
+	{ "flc", _get_flctags, _get_flcfileinfo                                  },
 #ifdef HAVE_VORBISFILE
-	{ "ogg", NULL,		_get_oggfileinfo },
+	{ "ogg", 0,            _get_oggfileinfo                                  },
 #endif
-	{ "asf", NULL,		_get_asffileinfo },
-	{ "wav", _get_wavtags,	_get_wavfileinfo },
-	{ "pcm", NULL,		_get_pcmfileinfo },
-	{ "dsf", _get_dsftags,	_get_dsffileinfo },
-	{ "dff", NULL,		_get_dfffileinfo },
-	{ NULL,  NULL, NULL }
+	{ "asf", 0,            _get_asffileinfo                                  },
+	{ "wav", _get_wavtags, _get_wavfileinfo                                  },
+	{ "pcm", 0,            _get_pcmfileinfo                                  },
+	{ NULL,  0 }
 };
 
 
@@ -157,8 +153,6 @@ static taghandler taghandlers[] = {
 #include "tagutils-wav.c"
 #include "tagutils-pcm.c"
 #include "tagutils-plist.c"
-#include "tagutils-dsf.c"
-#include "tagutils-dff.c"
 
 //*********************************************************************************
 // freetags()

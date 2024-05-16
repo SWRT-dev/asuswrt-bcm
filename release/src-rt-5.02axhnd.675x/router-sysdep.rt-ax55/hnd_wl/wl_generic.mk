@@ -58,10 +58,7 @@ ifeq ($(REBUILD_WL_MODULE),1)
     KBUILD_CFLAGS += -I../../router-sysdep/bcmdrv/include
     KBUILD_CFLAGS += -DBCMDRIVER -Dlinux
     KBUILD_CFLAGS += -DBCA_HNDROUTER
-ifeq ($(BUILD_HND_MFG),y)
-    KBUILD_CFLAGS += -DBCMDBG
-endif
-ifneq (,$(filter $(MODEL),RTAX58U TUFAX3000 RTAX82U RTAX82_XD6 RTAX55 RTAX1800))
+ifneq (,$(filter $(MODEL),RTAX58U TUFAX3000 TUFAX5400 RTAX82U RTAX82_XD6 RTAX82_XD6S GSAX3000 GSAX5400))
     KBUILD_CFLAGS += -g -DBCMDBG -DWLMSG_ASSOC
 endif
 ifeq ($(CMWIFI),)
@@ -103,7 +100,7 @@ endif
     ifeq ($(BCMOTP),1)
 	BCMOTP_SHARED_SYMBOLS_USE=1
     endif
-#endif
+#endif // endif
 
     ifeq ($(WLAUTOD11SHM),1)
         # Include makefile to build d11 shm files
@@ -211,10 +208,6 @@ ifneq ($(strip $(BUILD_HND_NIC)),)
     # on BCA_HNDROUTER platforms
     EXTRA_CFLAGS += -DBCA_HNDNIC
 endif
-ifneq ($(strip $(BUILD_OPENWRT_NATIVE)),)
-    # For native OpenWrt we need stricter cfg80211 API compliance
-    EXTRA_CFLAGS += -DWL_CFG80211_STRICT
-endif
     ifneq ("$(CONFIG_CC_OPTIMIZE_FOR_SIZE)","y")
          EXTRA_CFLAGS += -finline-limit=2048
     endif
@@ -242,7 +235,7 @@ endif
 	ifeq ($(WLTEST),1)
 		EXTRA_CFLAGS += -DBCMDBG_PHYDUMP
 	endif
-#endif
+#endif // endif
 
     # allow C99/C11 extensions such as variable declaration in for loop
     EXTRA_CFLAGS += -std=gnu99
@@ -303,8 +296,9 @@ endif
 			EXTRA_CFLAGS += -DBCM_EAPFWD
 		endif
 		EXTRA_CFLAGS += -I$(WLSRC_BASE)/../../../shared/impl1
+		EXTRA_CFLAGS += -DPKTC_TBL
 		ifneq ($(BUILD_HND_EAP_AP1),y)
-			EXTRA_CFLAGS += -DPKTC -DPKTC_TBL
+			EXTRA_CFLAGS += -DPKTC
 		endif
 
 		 WLFILES_SRC += ../../shared/impl1/wl_thread.c
@@ -339,20 +333,16 @@ endif
         EXTRA_CFLAGS += -DCONFIG_BCM_WLAN_16BIT_STATION_CHAIN_IDX_SUPPORT
     endif
 
-    ifneq ($(strip $(BCA_CPEROUTER)),)
     # speed service
+    ifneq ($(strip $(BCA_CPEROUTER)),)
     # Always compile in due to binary compatibility issue
         WLFILES_SRC += ../../shared/impl1/wl_spdsvc.c
-
-        ifneq ($(strip $(CONFIG_BCM_WLAN_NIC_RX_RNR_ACCEL)),)
-           EXTRA_CFLAGS += -DMC_RX_LOOPBACK_ENABLED
-        endif
-
     endif
 
     ifeq ($(CMWIFI),)
         EXTRA_CFLAGS += -DBULK_PKTLIST
     endif
+    EXTRA_CFLAGS += -DSTS_FIFO_RXEN
 
     # broadcom serial LED Controller, used when WLLED is defined
     ifneq ($(strip $(CONFIG_BCM_WLCLED)),)
@@ -396,11 +386,9 @@ ifneq (,$(filter "y","$(CONFIG_BCM947622)" "$(CONFIG_BCM963178)"))
 	else
 		WLTUNEFILE := wltunable_lx_63178.h
 	endif
-else ifneq (,$(filter "y","$(CONFIG_BCM96756)" "$(CONFIG_BCM96855)"))
-	WLTUNEFILE := wltunable_lx_6756.h
 else ifneq (,$(filter "y","$(CONFIG_BCM947189)" "$(CONFIG_BCM953573)"))
 	WLTUNEFILE := wltunable_lx_47189.h
-else ifneq (,$(filter "y","$(CONFIG_BCM96878)"))
+else ifneq (,$(filter "y","$(CONFIG_BCM96878)" "$(CONFIG_BCM96846)"))
 	WLTUNEFILE := wltunable_lx_6878.h
 else
 	WLTUNEFILE := wltunable_lx_router.h

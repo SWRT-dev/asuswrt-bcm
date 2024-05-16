@@ -1,8 +1,7 @@
 /*
  * Copyright (C) 2012 Tobias Brunner
  * Copyright (C) 2008 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -48,7 +47,7 @@ struct stroke_cred_t {
 	 * Reread secrets from config files.
 	 *
 	 * @param msg		stroke message
-	 * @param prompt	I/O channel to prompt for private key passphrase
+	 * @param prompt	I/O channel to prompt for private key passhprase
 	 */
 	void (*reread)(stroke_cred_t *this, stroke_msg_t *msg, FILE *prompt);
 

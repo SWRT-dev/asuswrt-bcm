@@ -176,7 +176,7 @@ static int rtmp_http_close(URLContext *h)
     }
 
     av_freep(&rt->out_data);
-    ffurl_closep(&rt->stream);
+    ffurl_close(rt->stream);
 
     return ret;
 }

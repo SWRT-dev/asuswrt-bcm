@@ -218,14 +218,9 @@ a{
 <script type="text/javascript">
 var isRouterMode = ('<% nvram_get("sw_mode"); %>' == '1') ? true : false;
 var header_info = [<% get_header_info(); %>][0];
-var ROUTERHOSTNAME = '<#Web_DOMAIN_NAME#>';
+var ROUTERHOSTNAME = '<% nvram_get("local_domain"); %>';
 var domainNameUrl = header_info.protocol+"://"+ROUTERHOSTNAME+":"+header_info.port;
 var chdom = function(){window.location.href=domainNameUrl+"/blocking.asp"+window.location.search};
-
-/* String replace &#39; with ' for dict */
-function stringSafeGet(str){
-	return str.replace(new RegExp("&#39;", 'g'), "'");
-}
 
 (function(){
 	if(ROUTERHOSTNAME !== header_info.host && ROUTERHOSTNAME != "" && isRouterMode){

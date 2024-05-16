@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2014 Andreas Steffen
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * Copyright (C) 2009-2013  Security Innovation
  *
@@ -140,7 +141,7 @@ static const ntru_param_set_t ntru_param_sets[] = {
         0x27,                        /* DER id */
         10,                          /* no. of bits in N (i.e., in an index) */
         613,                         /* N */
-        16,                          /* security strength in octets */
+        16,                          /* securuity strength in octets */
         2048,                        /* q */
         11,                          /* no. of bits in q (i.e., in a coeff) */
         FALSE,                       /* product form */

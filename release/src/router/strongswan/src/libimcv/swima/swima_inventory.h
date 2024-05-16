@@ -1,7 +1,6 @@
 /*
- * Copyright (C) 2017-2022 Andreas Steffen
- *
- * Copyright (C) secunet Security Networks AG
+ * Copyright (C) 2017 Andreas Steffen
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -21,6 +20,8 @@
 
 #ifndef SWIMA_INVENTORY_H_
 #define SWIMA_INVENTORY_H_
+
+#define SWIMA_MAX_ATTR_SIZE	10000000
 
 #include "swima_record.h"
 

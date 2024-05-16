@@ -1,2 +1,2 @@
-moon::systemctl stop strongswan
-carol::systemctl stop strongswan
+moon::ipsec stop
+carol::ipsec stop

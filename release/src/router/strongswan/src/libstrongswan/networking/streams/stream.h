@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2013 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * Copyright (C) 2013 revosec AG
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -51,7 +50,7 @@ typedef stream_t*(*stream_constructor_t)(char *uri);
 typedef bool (*stream_cb_t)(void *data, stream_t *stream);
 
 /**
- * Abstraction of a Berkeley socket using stream semantics.
+ * Abstraction of a Berkley socket using stream semantics.
  */
 struct stream_t {
 

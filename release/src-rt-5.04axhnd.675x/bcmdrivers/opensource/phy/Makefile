@@ -103,14 +103,13 @@ ifeq ($(strip ${BRCM_CHIP}),6855)
     DRV_OBJS += phy_drv_ext3.o
     DRV_OBJS += phy_mac_sec.o
     DRV_OBJS += phy_mac_sec_list.o
-    DRV_OBJS += $(if $(wildcard gpy211.c),gpy211.o,prebuilt/gpy211_6855.o)
     DRV_OBJS += sha256.o   
     DRV_OBJS += brcm_rgmii.o
     EXTRA_CFLAGS += -DBRCM_RGMII
     EXTRA_CFLAGS += -DMAC_UNIMAC
     EXTRA_CFLAGS += -DPHY_6846_EGPHY -DPHY_6856_SGMII -DPHY_EXT1 -DPHY_EXT3 -DMACSEC_SUPPORT
     EXTRA_CFLAGS += -DBRCM_64B_UMAC_MIB
-    EXTRA_CFLAGS += -DXRDP_LED -DPHY_GPY211
+    EXTRA_CFLAGS += -DXRDP_LED
 endif
 
 
@@ -332,7 +331,7 @@ ifeq ($(strip ${BRCM_CHIP}),4912)
     DRV_OBJS += phy_drv_dsl_848xx.o
     DRV_OBJS += phy_drv_146class_serdes.o
     DRV_OBJS += phy_drv_ext3.o
-    DRV_OBJS += $(if $(wildcard gpy211.c),gpy211.o,prebuilt/gpy211_4912.o)
+    DRV_OBJS += $(if $(wildcard gpy211.c),gpy211.o,prebuilt/gpy211.o)
     DRV_OBJS += phy_mac_sec.o
     DRV_OBJS += phy_mac_sec_list.o
     DRV_OBJS += sha256.o
@@ -342,7 +341,7 @@ ifeq ($(strip ${BRCM_CHIP}),4912)
     EXTRA_CFLAGS += -DPHY_146CLASS_SERDES -I$(CUR_DIR)/Serdes146Class -DEXCLUDE_STD_HEADERS
     EXTRA_CFLAGS += -DMAC_XPORT -DPHY_EXT3 -DMACSEC_SUPPORT
     DRV_OBJS += $(patsubst %.c, %.o, $(shell cd $(src) && find xport/ag/4912A0  -type f -name '*.c')) 
-    EXTRA_CFLAGS += -I$(CUR_DIR)/xport -I$(CUR_DIR)/xport/ag/4912A0 -DPHY_GPY211
+    EXTRA_CFLAGS += -I$(CUR_DIR)/xport -I$(CUR_DIR)/xport/ag/4912A0
 endif
 
 ifeq ($(strip ${BRCM_CHIP}),6813)
@@ -393,7 +392,7 @@ ifeq ($(strip ${BRCM_CHIP}),6756)
     DRV_OBJS += phy_drv_dsl_848xx.o
     DRV_OBJS += phy_drv_6756class_serdes.o
     DRV_OBJS += phy_drv_ext3.o
-    DRV_OBJS += $(if $(wildcard gpy211.c),gpy211.o,prebuilt/gpy211_6756.o)
+    DRV_OBJS += $(if $(wildcard gpy211.c),gpy211.o,prebuilt/gpy211.o)
     DRV_OBJS += phy_mac_sec.o
     DRV_OBJS += phy_mac_sec_list.o
     DRV_OBJS += sha256.o
@@ -402,7 +401,7 @@ ifeq ($(strip ${BRCM_CHIP}),6756)
     EXTRA_CFLAGS += -DMAC_SF2_DUAL -DPHY_DSL_GPHY 
     EXTRA_CFLAGS += -DPHY_6756CLASS_SERDES -I$(CUR_DIR)/Serdes6756Class -DEXCLUDE_STD_HEADERS
     EXTRA_CFLAGS += -DPHY_EXT3 -DPHY_M2M -DARCHER_DEVICE -DDSL_DEVICES -DMACSEC_SUPPORT
-    EXTRA_CFLAGS += -I$(BRCMDRIVERS_DIR)/broadcom/include/bcm963xx -DPHY_GPY211
+    EXTRA_CFLAGS += -I$(BRCMDRIVERS_DIR)/broadcom/include/bcm963xx
 endif
 
 endif
@@ -485,4 +484,3 @@ $(INSTALL_DONE): $(INSTALL_SRC) | $(INSTALL_PATH)
 	$(Q)touch $@
 
 $(obj)/phy_drv_ext3.o: $(INSTALL_DONE)
-

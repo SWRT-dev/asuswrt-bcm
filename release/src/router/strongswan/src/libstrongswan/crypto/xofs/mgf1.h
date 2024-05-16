@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2016 Andreas Steffen
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -39,7 +38,7 @@ struct mgf1_t {
 
 	/**
 	 * Hash the seed before using it as a seed for MGF1
-	 *
+	 * 
 	 * @param yes		TRUE if seed has to be hashed first
 	 */
 	void (*set_hash_seed)(mgf1_t *this, bool yes);

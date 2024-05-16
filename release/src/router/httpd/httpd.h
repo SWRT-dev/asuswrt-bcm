@@ -135,11 +135,6 @@ struct REPLACE_PRODUCTID_S {
 };
 #endif
 
-struct REPLACE_TAG_S {
-        char *org_name;
-        char *replace_name;
-};
-
 struct REPLACE_MODELNAME_S {
         char *modelname;
 };
@@ -169,7 +164,6 @@ struct REPLACE_MODELNAME_S {
 #ifdef RTCONFIG_CAPTCHA
 #define WRONGCAPTCHA   10
 #endif
-#define FORCELOCK       11
 
 /* image path for app */
 #define IMAGE_MODEL_PRODUCT	"/Model_product.png"
@@ -201,7 +195,6 @@ enum {
 	HTTP_FAIL = 400,
         HTTP_CHPASS_FAIL,
         HTTP_CHPASS_FAIL_MAX,
-	HTTP_AUTH_EXPIRE,
 	HTTP_RULE_ADD_SUCCESS = 2001,
 	HTTP_RULE_DEL_SUCCESS,
 	HTTP_NORULE_DEL,
@@ -218,8 +211,7 @@ enum {
 	HTTP_INVALID_FILE,
 	HTTP_INVALID_SUPPORT,
 	HTTP_SHMGET_FAIL = 5000,
-	HTTP_FB_SVR_FAIL,
-	HTTP_DM_SVR_FAIL
+	HTTP_FB_SVR_FAIL
 };
 
 /* Exception MIME handler */
@@ -241,7 +233,7 @@ extern struct mime_referer mime_referers[];
 typedef struct asus_token_table asus_token_t;
 struct asus_token_table{
 	char useragent[1024];
-	char token[33];
+	char token[32];
 	char ipaddr[16];
 	char login_timestampstr[32];
 	char host[64];
@@ -317,12 +309,6 @@ typedef struct kw_s     {
 }
 #endif  // defined TRANSLATE_ON_FLY
 
-struct HTTPD_FILE_LOCK_TABLE {
-	char *Process_name;
-	char *lock_file;
-	char *rc_service;
-	int kill_process;
-};
 
 /* Regular file handler */
 extern void do_file(char *path, FILE *stream);
@@ -359,7 +345,7 @@ extern struct ej_handler ej_handlers[];
 #define LOCK_LOGIN_LAN 	0x01
 #define LOCK_LOGIN_WAN 	0x02
 
-#if defined(RTAX82U) || defined(DSL_AX82U) || defined(GSAX3000) || defined(GSAX5400) || defined(TUFAX5400) || defined(GTAX6000) || defined(GTAXE16000) || defined(GTAX11000_PRO) || defined(GT10) || defined(RTAX82U_V2) || defined(TUFAX5400_V2)
+#if defined(RTAX82U) || defined(DSL_AX82U) || defined(GSAX3000) || defined(GSAX5400) || defined(TUFAX5400) || defined(GTAX6000) || defined(GTAXE16000) || defined(GTAX11000_PRO) || defined(GT10) || defined(RTAX82U_V2)
 enum {
         LEDG_QIS_RUN = 1,
         LEDG_QIS_FINISH
@@ -474,11 +460,6 @@ extern char* reverse_str( char *str );
 extern int check_AiMesh_whitelist(char *page);
 #endif
 extern int check_cmd_injection_blacklist(char *para);
-extern void __validate_apply_set_wl_var(char *nv, char *val) __attribute__((weak));
-#ifdef RTCONFIG_BWDPI
-extern int check_bwdpi_status_app_name(char *name);
-#endif
-extern int validate_apply_input_value(char *name, char *value);
 
 /* web-*.c */
 extern int ej_wl_status(int eid, webs_t wp, int argc, char_t **argv, int unit);
@@ -506,17 +487,8 @@ extern int check_user_agent(char* user_agent);
 #if defined(RTCONFIG_IFTTT) || defined(RTCONFIG_ALEXA) || defined(RTCONFIG_GOOGLE_ASST)
 extern void add_ifttt_flag(void);
 #endif
-extern char HTTPD_LOGIN_FAIL_LAN[32];
-extern char HTTPD_LOGIN_FAIL_WAN[32];
-extern char HTTPD_LAST_LOGIN_TS[32];
-extern char HTTPD_LAST_LOGIN_TS_W[32];
-extern char CAPTCHA_FAIL_NUM[32];
-extern char HTTPD_LOCK_NUM[32];
-extern char cloud_file[256];
 
 #ifdef RTCONFIG_HTTPS
-extern int do_ssl;
-extern int ssl_stream_fd;
 extern int gen_ddns_hostname(char *ddns_hostname);
 extern int check_model_name(void);
 extern char *pwenc(char *input, char *output, int len);
@@ -544,13 +516,13 @@ extern unsigned int login_try_wan;
 extern time_t auth_check_dt;
 extern int lock_flag;
 extern int max_lock_time;
-extern int login_error_status;
+extern int add_try;
 extern char* ipisdomain(char* hostname, char* str);
 #ifdef RTCONFIG_AMAS
 extern char* iscap(char* str);
 #endif
 extern int referer_check(char* referer, int fromapp_flag);
-extern int auth_check(char* url, char* file, char* cookies, int fromapp_flag, int *add_count);
+extern int auth_check(char* url, char* file, char* cookies, int fromapp_flag);
 extern int check_noauth_referrer(char* referer, int fromapp_flag);
 extern char current_page_name[128];
 extern int gen_guestnetwork_pass(char *key, size_t size);
@@ -579,15 +551,12 @@ extern void amazon_wss_enable(char *wss_enable, char *do_rc);
 #endif
 #ifdef RTCONFIG_ACCOUNT_BINDING
 extern void do_get_eptoken_cgi(char *url, FILE *stream);
-extern void do_asusrouter_request_token_cgi(char *url, FILE *stream);
-extern void do_asusrouter_request_access_token_cgi(char *url, FILE *stream);
-extern void do_endpoint_request_token_cgi(char *url, FILE *stream);
 #endif
 #ifdef RTCONFIG_CAPTCHA
 extern unsigned int login_fail_num;
 extern int is_captcha_match(char *catpch);
 #endif
-#if defined(RTAX82U) || defined(DSL_AX82U) || defined(GSAX3000) || defined(GSAX5400) || defined(TUFAX5400) || defined(GTAX6000) || defined(GTAXE16000) || defined(GTAX11000_PRO) || defined(GT10) || defined(RTAX82U_V2) || defined(TUFAX5400_V2)
+#if defined(RTAX82U) || defined(DSL_AX82U) || defined(GSAX3000) || defined(GSAX5400) || defined(TUFAX5400) || defined(GTAX6000) || defined(GTAXE16000) || defined(GTAX11000_PRO) || defined(GT10) || defined(RTAX82U_V2)
 extern void switch_ledg(int action);
 #endif
 extern int get_external_ip(void);
@@ -599,10 +568,5 @@ extern void slow_post_read_check();
 extern int check_chpass_auth(char *cur_username, char *cur_passwd);
 extern void reg_default_final_token();
 extern int get_wl_nband_list();
-extern int b64_decode(const char* str, unsigned char* space, int size);
-extern int last_time_lock_warning(void);
-extern int check_lock_status(time_t *dt);
-extern char *wl_nband_to_wlx(char *nv_name, char *wl_name, size_t len);
-extern int gen_asus_token_cookie(char *asus_token, int asus_token_len, char *token_cookie, int cookie_len);
-extern void check_lock_state();
 #endif /* _httpd_h_ */
+

@@ -24,8 +24,8 @@
 
 static void wps_pbc(int sig)
 {
-	int unit = nvram_get_int("wps_band_x");
 #ifdef CONFIG_BCMWL5
+	int unit = nvram_get_int("wps_band_x");
 	char tmp[100], prefix[] = "wlXXXXXXXXXX_";
 
 	snprintf(prefix, sizeof(prefix), "wl%d_", unit);
@@ -45,8 +45,7 @@ static void wps_pbc(int sig)
 		killall("detect_plc", SIGUSR1);
 		if(nvram_match("wps_enable", "1"))
 #endif
-		//start_wps_pbc(0);
-		start_wps_pbc(unit);
+		start_wps_pbc(0);
 	}
 }
 

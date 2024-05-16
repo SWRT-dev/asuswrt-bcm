@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2017 Andreas Steffen
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -78,7 +77,7 @@ static package_t* create_package(swid_gen_info_t *info, chunk_t package,
 		.package = strndup(package.ptr, package.len),
 		.version = strndup(version.ptr, version.len),
 		.old_version = strndup(old_version.ptr, old_version.len),
-	);
+	)
 
 	this->sw_id = info->create_sw_id(info, this->package, this->version);
 	if (old_version.len)
@@ -489,22 +488,19 @@ sw_collector_history_t *sw_collector_history_create(sw_collector_db_t *db,
 {
 	private_sw_collector_history_t *this;
 	swid_gen_info_t *info;
+	os_type_t os_type;
 	char *os;
 
 	info = swid_gen_info_create();
-	info->get_os(info, &os);
 
 	/* check if OS supports apg/dpkg history logs */
-	switch (info->get_os_type(info))
+	info->get_os(info, &os);
+	os_type = info->get_os_type(info);
+	if (os_type != 	OS_TYPE_DEBIAN && os_type != OS_TYPE_UBUNTU)
 	{
-		case OS_TYPE_DEBIAN:
-		case OS_TYPE_UBUNTU:
-		case OS_TYPE_RASPBIAN:
-			break;
-		default:
-			DBG1(DBG_IMC, "%.*s not supported", os);
-			info->destroy(info);
-			return NULL;
+		DBG1(DBG_IMC, "%.*s not supported", os);
+		info->destroy(info);
+		return NULL;
 	}
 
 	INIT(this,

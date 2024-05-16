@@ -1,8 +1,7 @@
 /*
  * Copyright (C) 2010-2018 Tobias Brunner
  * Copyright (C) 2008 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -386,11 +385,6 @@ struct settings_t {
 	 * Destroy a settings instance.
 	 */
 	void (*destroy)(settings_t *this);
-
-	/**
-	 * Destroy a settings instance after clearing memory used for values.
-	 */
-	void (*destroy_clear)(settings_t *this);
 };
 
 /**

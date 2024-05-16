@@ -1,9 +1,8 @@
 /*
- * Copyright (C) 2007-2019 Tobias Brunner
+ * Copyright (C) 2007-2018 Tobias Brunner
  * Copyright (C) 2005-2009 Martin Willi
  * Copyright (C) 2005 Jan Hutter
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -155,16 +154,6 @@ struct private_peer_cfg_t {
 	 * remote authentication configs (constraints)
 	 */
 	linked_list_t *remote_auth;
-
-	/**
-	 * Optional interface ID to use for inbound CHILD_SA
-	 */
-	uint32_t if_id_in;
-
-	/**
-	 * Optional interface ID to use for outbound CHILD_SA
-	 */
-	uint32_t if_id_out;
 
 	/**
 	 * PPK ID
@@ -387,28 +376,13 @@ METHOD(peer_cfg_t, create_child_cfg_enumerator, enumerator_t*,
 /**
  * Check how good a list of TS matches a given child config
  */
-static u_int get_ts_match(child_cfg_t *cfg, bool local,
-						  linked_list_t *sup_list, linked_list_t *hosts,
-						  linked_list_t *sup_labels)
+static int get_ts_match(child_cfg_t *cfg, bool local,
+						linked_list_t *sup_list, linked_list_t *hosts)
 {
 	linked_list_t *cfg_list;
 	enumerator_t *sup_enum, *cfg_enum;
 	traffic_selector_t *sup_ts, *cfg_ts, *subset;
-	sec_label_t *label;
-	u_int match = 0, round;
-	bool exact = FALSE;
-
-	if (cfg->select_label(cfg, sup_labels, TRUE, &label, &exact))
-	{
-		if (label)
-		{
-			match += exact ? 500 : 100;
-		}
-	}
-	else
-	{	/* label config doesn't match, no need to check TS  */
-		return match;
-	}
+	int match = 0, round;
 
 	/* fetch configured TS list, narrowing dynamic TS */
 	cfg_list = cfg->get_traffic_selectors(cfg, local, NULL, hosts, TRUE);
@@ -448,29 +422,24 @@ static u_int get_ts_match(child_cfg_t *cfg, bool local,
 
 METHOD(peer_cfg_t, select_child_cfg, child_cfg_t*,
 	private_peer_cfg_t *this, linked_list_t *my_ts, linked_list_t *other_ts,
-	linked_list_t *my_hosts, linked_list_t *other_hosts,
-	linked_list_t *my_labels, linked_list_t *other_labels)
+	linked_list_t *my_hosts, linked_list_t *other_hosts)
 {
 	child_cfg_t *current, *found = NULL;
 	enumerator_t *enumerator;
-	u_int best = 0;
+	int best = 0;
 
 	DBG2(DBG_CFG, "looking for a child config for %#R === %#R", my_ts, other_ts);
 	enumerator = create_child_cfg_enumerator(this);
 	while (enumerator->enumerate(enumerator, &current))
 	{
-		u_int my_prio, other_prio;
+		int my_prio, other_prio;
 
-		my_prio = get_ts_match(current, TRUE, my_ts, my_hosts, my_labels);
-		if (!my_prio)
+		my_prio = get_ts_match(current, TRUE, my_ts, my_hosts);
+		other_prio = get_ts_match(current, FALSE, other_ts, other_hosts);
+
+		if (my_prio && other_prio)
 		{
-			continue;
-		}
-		other_prio = get_ts_match(current, FALSE, other_ts, other_hosts,
-								  other_labels);
-		if (other_prio)
-		{
-			DBG2(DBG_CFG, "  candidate \"%s\" with prio %u+%u",
+			DBG2(DBG_CFG, "  candidate \"%s\" with prio %d+%d",
 				 current->get_name(current), my_prio, other_prio);
 			if (my_prio + other_prio > best)
 			{
@@ -618,12 +587,6 @@ METHOD(peer_cfg_t, create_auth_cfg_enumerator, enumerator_t*,
 	return this->remote_auth->create_enumerator(this->remote_auth);
 }
 
-METHOD(peer_cfg_t, get_if_id, uint32_t,
-	private_peer_cfg_t *this, bool inbound)
-{
-	return inbound ? this->if_id_in : this->if_id_out;
-}
-
 METHOD(peer_cfg_t, get_ppk_id, identification_t*,
 	private_peer_cfg_t *this)
 {
@@ -752,8 +715,6 @@ METHOD(peer_cfg_t, equals, bool,
 		this->aggressive == other->aggressive &&
 		this->pull_mode == other->pull_mode &&
 		auth_cfg_equal(this, other) &&
-		this->if_id_in == other->if_id_in &&
-		this->if_id_out == other->if_id_out &&
 		this->ppk_required == other->ppk_required &&
 		id_equal(this->ppk_id, other->ppk_id)
 #ifdef ME
@@ -844,7 +805,6 @@ peer_cfg_t *peer_cfg_create(char *name, ike_cfg_t *ike_cfg,
 			.create_pool_enumerator = _create_pool_enumerator,
 			.add_auth_cfg = _add_auth_cfg,
 			.create_auth_cfg_enumerator = _create_auth_cfg_enumerator,
-			.get_if_id = _get_if_id,
 			.get_ppk_id = _get_ppk_id,
 			.ppk_required = _ppk_required,
 			.equals = (void*)_equals,
@@ -872,8 +832,6 @@ peer_cfg_t *peer_cfg_create(char *name, ike_cfg_t *ike_cfg,
 		.pull_mode = !data->push_mode,
 		.dpd = data->dpd,
 		.dpd_timeout = data->dpd_timeout,
-		.if_id_in = data->if_id_in,
-		.if_id_out = data->if_id_out,
 		.ppk_id = data->ppk_id,
 		.ppk_required = data->ppk_required,
 		.vips = linked_list_create(),

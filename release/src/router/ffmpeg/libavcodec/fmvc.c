@@ -402,9 +402,6 @@ static int decode_frame(AVCodecContext *avctx, void *data,
     AVFrame *frame = data;
     int ret, y, x;
 
-    if (avpkt->size < 8)
-        return AVERROR_INVALIDDATA;
-
     if ((ret = ff_get_buffer(avctx, frame, 0)) < 0)
         return ret;
 
@@ -440,8 +437,6 @@ static int decode_frame(AVCodecContext *avctx, void *data,
             memcpy(dst, src, avctx->width * s->bpp);
             dst -= frame->linesize[0];
             src += s->stride * 4;
-            if (bytestream2_tell_p(pb) < y*s->stride * 4)
-                break;
         }
     } else {
         unsigned block, nb_blocks;
@@ -535,7 +530,7 @@ static av_cold int decode_init(AVCodecContext *avctx)
 
     switch (avctx->bits_per_coded_sample) {
     case 16:
-        avctx->pix_fmt = AV_PIX_FMT_RGB555LE;
+        avctx->pix_fmt = AV_PIX_FMT_RGB555;
         break;
     case 24:
         avctx->pix_fmt = AV_PIX_FMT_BGR24;

@@ -33,8 +33,11 @@ include $(BUILD_DIR)/make.common
 
 
 ifneq ($(strip $(BUILD_TMCTL)),)
-ifneq ($(strip $(BUILD_RDPACTL)),)
-LIBS += -lrdpactl -L$(HND_SRC)/router-sysdep/ethswctl_lib/ -lethswctl -lbdmf
+ifneq ($(strip $(BUILD_FAPCTL)),)
+LIBS += -lfapctl
+BUILD_TMCTL_APP := 1
+else ifneq ($(strip $(BUILD_RDPACTL)),)
+LIBS += -lrdpactl -lethswctl -lbdmf 
 ifneq ($(strip $(BUILD_DSL)),)
 LIBS += -latmctl
 endif
@@ -43,10 +46,7 @@ else ifneq ($(strip $(BUILD_BCMTM)),)
 LIBS += -lbcmtm
 BUILD_TMCTL_APP := 1
 else ifneq ($(strip $(BUILD_ARCHERCTL)),)
-LIBS += -L$(HND_SRC)/router-sysdep/ethswctl_lib/ -lethswctl -L$(HND_SRC)/router-sysdep/archer_lib/ -larcher
-ifneq ($(strip $(BUILD_DSL)),)
-LIBS += -latmctl
-endif
+LIBS += -lethswctl -larcher
 BUILD_TMCTL_APP := 1
 else
 BUILD_TMCTL_APP := 0
@@ -60,7 +60,7 @@ LIBS += -leponctl
 endif
 
 
-LIBS += -lbcm_flashutil -lbcm_boardctl -lbcm_util -lsys_util -lgen_util -lrt
+LIBS += -lgen_util -lbcm_util -lbcm_flashutil -lbcm_boardctl -lsys_util -lrt
 
 ifeq ($(BUILD_TMCTL_APP),1)
 conditional_build: $(EXE) generic_exe_install

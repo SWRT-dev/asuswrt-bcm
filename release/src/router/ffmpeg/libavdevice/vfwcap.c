@@ -24,7 +24,6 @@
 #include "libavutil/opt.h"
 #include "libavutil/parseutils.h"
 
-#include "libavcodec/packet_internal.h"
 #include "libavformat/internal.h"
 
 // windows.h must no be included before winsock2.h, and libavformat internal
@@ -45,7 +44,7 @@ struct vfw_ctx {
     HWND hwnd;
     HANDLE mutex;
     HANDLE event;
-    PacketList *pktl;
+    AVPacketList *pktl;
     unsigned int curbufsize;
     unsigned int frame_num;
     char *video_size;       /**< A string describing video size, set by a private option. */
@@ -179,7 +178,7 @@ static LRESULT CALLBACK videostream_cb(HWND hwnd, LPVIDEOHDR vdhdr)
 {
     AVFormatContext *s;
     struct vfw_ctx *ctx;
-    PacketList **ppktl, *pktl_next;
+    AVPacketList **ppktl, *pktl_next;
 
     s = (AVFormatContext *) GetWindowLongPtr(hwnd, GWLP_USERDATA);
     ctx = s->priv_data;
@@ -191,7 +190,7 @@ static LRESULT CALLBACK videostream_cb(HWND hwnd, LPVIDEOHDR vdhdr)
 
     WaitForSingleObject(ctx->mutex, INFINITE);
 
-    pktl_next = av_mallocz(sizeof(PacketList));
+    pktl_next = av_mallocz(sizeof(AVPacketList));
     if(!pktl_next)
         goto fail;
 
@@ -220,7 +219,7 @@ fail:
 static int vfw_read_close(AVFormatContext *s)
 {
     struct vfw_ctx *ctx = s->priv_data;
-    PacketList *pktl;
+    AVPacketList *pktl;
 
     if(ctx->hwnd) {
         SendMessage(ctx->hwnd, WM_CAP_SET_CALLBACK_VIDEOSTREAM, 0, 0);
@@ -234,7 +233,7 @@ static int vfw_read_close(AVFormatContext *s)
 
     pktl = ctx->pktl;
     while (pktl) {
-        PacketList *next = pktl->next;
+        AVPacketList *next = pktl->next;
         av_packet_unref(&pktl->pkt);
         av_free(pktl);
         pktl = next;
@@ -329,14 +328,11 @@ static int vfw_read_header(AVFormatContext *s)
     }
 
     if (ctx->video_size) {
-        int w, h;
-        ret = av_parse_video_size(&w, &h, ctx->video_size);
+        ret = av_parse_video_size(&bi->bmiHeader.biWidth, &bi->bmiHeader.biHeight, ctx->video_size);
         if (ret < 0) {
             av_log(s, AV_LOG_ERROR, "Couldn't parse video size.\n");
             goto fail;
         }
-        bi->bmiHeader.biWidth  = w;
-        bi->bmiHeader.biHeight = h;
     }
 
     if (0) {
@@ -440,7 +436,7 @@ fail:
 static int vfw_read_packet(AVFormatContext *s, AVPacket *pkt)
 {
     struct vfw_ctx *ctx = s->priv_data;
-    PacketList *pktl = NULL;
+    AVPacketList *pktl = NULL;
 
     while(!pktl) {
         WaitForSingleObject(ctx->mutex, INFINITE);

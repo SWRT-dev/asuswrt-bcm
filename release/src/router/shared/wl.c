@@ -159,12 +159,6 @@ dhd_probe(char *name)
 	}
 	return ret;
 }
-#else
-int
-dhd_probe(char *name)
-{
-	return -1;
-}
 #endif /* __CONFIG_DHDAP__ */
 
 int

@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2011 Sansar Choinyambuu
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -30,7 +29,7 @@ typedef enum pts_tcg_comp_func_name_t pts_tcp_comp_func_name_t;
 /**
  * PTS Component Functional Name Qualifier Flags for the TCG namespace
  * see section 5.2 of PTS Protocol: Binding to TNC IF-M Specification
- *
+ *	
  *	 0 1 2 3 4 5
  *  +-+-+-+-+-+-+
  *  |K|S| Type  |

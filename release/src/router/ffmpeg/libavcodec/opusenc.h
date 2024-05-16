@@ -42,7 +42,6 @@
 
 typedef struct OpusEncOptions {
     float max_delay_ms;
-    int apply_phase_inv;
 } OpusEncOptions;
 
 typedef struct OpusPacketInfo {

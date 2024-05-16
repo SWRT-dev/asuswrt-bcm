@@ -1,8 +1,9 @@
 /*
  * Copyright (C) 2018 Tobias Brunner
- * Copyright (C) 2013 Martin Willi
+ * HSR Hochschule fuer Technik Rapperswil
  *
- * Copyright (C) secunet Security Networks AG
+ * Copyright (C) 2013 Martin Willi
+ * Copyright (C) 2013 revosec AG
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -151,18 +152,17 @@ static void put_or_destroy_entry(hashtable_t *hashtable, entry_t *entry)
 /**
  * Hashtable hash function
  */
-static u_int hash(const void *key)
+static u_int hash(uintptr_t id)
 {
-	uintptr_t id = (uintptr_t)key;
-	return chunk_hash(chunk_from_thing(id));
+	return id;
 }
 
 /**
  * Hashtable equals function
  */
-static bool equals(const void *a, const void *b)
+static bool equals(uintptr_t a, uintptr_t b)
 {
-	return (uintptr_t)a == (uintptr_t)b;
+	return a == b;
 }
 
 /**
@@ -553,8 +553,10 @@ eap_radius_provider_t *eap_radius_provider_create()
 					.ike_rekey = _ike_rekey,
 					.message = _message_hook,
 				},
-				.claimed = hashtable_create(hash, equals, 32),
-				.unclaimed = hashtable_create(hash, equals, 32),
+				.claimed = hashtable_create((hashtable_hash_t)hash,
+										(hashtable_equals_t)equals, 32),
+				.unclaimed = hashtable_create((hashtable_hash_t)hash,
+										(hashtable_equals_t)equals, 32),
 				.mutex = mutex_create(MUTEX_TYPE_DEFAULT),
 			},
 		);

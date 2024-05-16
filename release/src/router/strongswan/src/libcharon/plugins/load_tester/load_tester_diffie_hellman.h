@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2008 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -22,7 +21,7 @@
 #ifndef LOAD_TESTER_DIFFIE_HELLMAN_H_
 #define LOAD_TESTER_DIFFIE_HELLMAN_H_
 
-#include <crypto/key_exchange.h>
+#include <crypto/diffie_hellman.h>
 
 typedef struct load_tester_diffie_hellman_t load_tester_diffie_hellman_t;
 
@@ -32,18 +31,18 @@ typedef struct load_tester_diffie_hellman_t load_tester_diffie_hellman_t;
 struct load_tester_diffie_hellman_t {
 
 	/**
-	 * Implements key_exchange_t interface.
+	 * Implements diffie_hellman_t interface.
 	 */
-	key_exchange_t ke;
+	diffie_hellman_t dh;
 };
 
 /**
- * Creates a new load_tester_diffie_hellman_t object.
+ * Creates a new gmp_diffie_hellman_t object.
  *
  * @param group			Diffie Hellman group, supports MODP_NULL only
- * @return				load_tester_diffie_hellman_t object
+ * @return				gmp_diffie_hellman_t object
  */
 load_tester_diffie_hellman_t *load_tester_diffie_hellman_create(
-												key_exchange_method_t group);
+												diffie_hellman_group_t group);
 
 #endif /** LOAD_TESTER_DIFFIE_HELLMAN_H_ @}*/

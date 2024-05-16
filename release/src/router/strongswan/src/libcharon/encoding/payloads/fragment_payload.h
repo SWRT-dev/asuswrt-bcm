@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2012 Tobias Brunner
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -62,7 +61,7 @@ struct fragment_payload_t {
 	/**
 	 * Get the fragment data.
 	 *
-	 * @return				chunk to internal fragment data
+	 * @return				chunkt to internal fragment data
 	 */
 	chunk_t (*get_data)(fragment_payload_t *this);
 

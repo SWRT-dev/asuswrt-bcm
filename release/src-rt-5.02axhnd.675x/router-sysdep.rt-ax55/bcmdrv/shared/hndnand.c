@@ -1,7 +1,7 @@
 /*
  * Broadcom chipcommon NAND flash interface
  *
- * Copyright (C) 2022, Broadcom. All Rights Reserved.
+ * Copyright (C) 2021, Broadcom. All Rights Reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -41,7 +41,7 @@ extern hndnand_t *nandcore_init(si_t *sih);
 #define nandcore_enable(sih, enable) do {} while (0)
 #else
 extern void nandcore_enable(si_t *sih, int enable);
-#endif
+#endif // endif
 
 /* Initialize nand flash access */
 hndnand_t *
@@ -60,14 +60,14 @@ hndnand_init(si_t *sih)
 #ifdef	__mips__
 	if (!hndnand)
 		hndnand = nflash_init(sih);
-#endif
+#endif // endif
 #ifdef __ARM_ARCH_7A__
 	if (!hndnand) {
 		nandcore_enable(sih, 1);
 		hndnand = nandcore_init(sih);
 		nandcore_enable(sih, 0);
 	}
-#endif
+#endif // endif
 
 	si_setcoreidx(sih, origidx);
 	return hndnand;

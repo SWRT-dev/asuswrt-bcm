@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2015 Tobias Brunner
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -82,9 +81,6 @@ METHOD(fetcher_t, set_option, bool,
 			this->cb = va_arg(args, fetcher_callback_t);
 			break;
 		}
-		case FETCH_TIMEOUT:
-			/* irrelevant, but fine if requested */
-			break;
 		default:
 			supported = FALSE;
 			break;

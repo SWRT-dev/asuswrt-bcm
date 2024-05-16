@@ -18,8 +18,8 @@
  * Boston, MA  02110-1301  USA.
  */
 
-#ifndef LIBEXIF_MNOTE_PENTAX_TAG_H
-#define LIBEXIF_MNOTE_PENTAX_TAG_H
+#ifndef __MNOTE_PENTAX_TAG_H__
+#define __MNOTE_PENTAX_TAG_H__
 
 #ifdef __cplusplus
 extern "C" {
@@ -150,4 +150,4 @@ const char *mnote_pentax_tag_get_description (MnotePentaxTag tag);
 }
 #endif /* __cplusplus */
 
-#endif /* !defined(LIBEXIF_MNOTE_PENTAX_TAG_H) */
+#endif /* __MNOTE_PENTAX_TAG_H__ */

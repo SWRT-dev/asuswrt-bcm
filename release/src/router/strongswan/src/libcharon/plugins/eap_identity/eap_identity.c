@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2007-2008 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -125,7 +124,7 @@ METHOD(eap_method_t, initiate_server, status_t,
 }
 
 METHOD(eap_method_t, get_type, eap_type_t,
-	private_eap_identity_t *this, pen_t *vendor)
+	private_eap_identity_t *this, uint32_t *vendor)
 {
 	*vendor = 0;
 	return EAP_IDENTITY;

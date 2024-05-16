@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2007 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -25,7 +24,6 @@
 #include <unistd.h>
 #include <errno.h>
 #include <signal.h>
-#include <inttypes.h>
 #include <libxml/xmlreader.h>
 #include <libxml/xmlwriter.h>
 
@@ -57,9 +55,7 @@ ENUM(ike_sa_state_lower_names, IKE_CREATED, IKE_DELETING,
 	"created",
 	"connecting",
 	"established",
-	"passive",
 	"rekeying",
-	"rekeyed",
 	"deleting",
 );
 
@@ -233,7 +229,7 @@ static void request_query_ikesa(xmlTextReaderPtr reader, xmlTextWriterPtr writer
 		/* <local> */
 		local = ike_sa->get_my_host(ike_sa);
 		xmlTextWriterStartElement(writer, "local");
-		xmlTextWriterWriteFormatElement(writer, "spi", "%.16"PRIx64,
+		xmlTextWriterWriteFormatElement(writer, "spi", "%.16llx",
 					be64toh(id->is_initiator(id) ? id->get_initiator_spi(id)
 												 : id->get_responder_spi(id)));
 		write_id(writer, "identification", ike_sa->get_my_id(ike_sa));
@@ -250,7 +246,7 @@ static void request_query_ikesa(xmlTextReaderPtr reader, xmlTextWriterPtr writer
 		/* <remote> */
 		remote = ike_sa->get_other_host(ike_sa);
 		xmlTextWriterStartElement(writer, "remote");
-		xmlTextWriterWriteFormatElement(writer, "spi", "%.16"PRIx64,
+		xmlTextWriterWriteFormatElement(writer, "spi", "%.16llx",
 					be64toh(id->is_initiator(id) ? id->get_responder_spi(id)
 												 : id->get_initiator_spi(id)));
 		write_id(writer, "identification", ike_sa->get_other_id(ike_sa));

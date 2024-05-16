@@ -166,11 +166,6 @@ const char *_getdns_strerror(DWORD errnum)
 	}
 }
 
-const char *_getdns_filestrerror(int errnum)
-{
-	return strerror(errnum);
-}
-
 #else
 
 void _getdns_perror(const char *str)

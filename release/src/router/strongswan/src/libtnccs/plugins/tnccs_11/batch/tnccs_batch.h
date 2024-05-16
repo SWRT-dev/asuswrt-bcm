@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2010 Andreas Steffen
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -42,7 +43,7 @@ struct tnccs_batch_t {
 	/**
 	 * Add TNCCS message
 	 *
-	 * @param msg			TNCCS message to be added
+	 * @param msg			TNCCS message to be addedd
 	 */
 	void (*add_msg)(tnccs_batch_t *this, tnccs_msg_t* msg);
 

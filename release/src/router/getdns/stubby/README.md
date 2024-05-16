@@ -13,8 +13,6 @@ of the available [DNS Privacy servers](https://dnsprivacy.org/wiki/x/E4AT)
 
 Stubby is developed by the getdns team.
 
-Stubby can be used as a command line tool requiring the user to manually modify the system DNS resolvers. A development version of a Stubby Manager GUI is also available for Windows, see [Stubby Mananger GUI](https://dnsprivacy.org/wiki/display/DP/Stubby+Manager+GUI).
-
 # Documentation
 
 See [Stubby Homepage](https://dnsprivacy.org/wiki/x/JYAT) for more details
@@ -32,15 +30,13 @@ https://repology.org/metapackage/stubby/versions
 https://repology.org/metapackage/getdns/versions
 https://repology.org/metapackage/libyaml/versions
 
-* A [Windows Installer](https://dnsprivacy.org/wiki/x/CoBn) is now available for Stubby. From version 0.4.0 the msi installer includes a development version of a Windowd GUI.
+* A [Windows Installer](https://dnsprivacy.org/wiki/x/CoBn) is now available for Stubby.
 * A Homebrew package for stubby is now available (`brew install stubby`).
 * A [GUI for macOS](https://dnsprivacy.org/wiki/x/CIBn) is also available for testing
 
 If you need to install getdns from source, see the section [at the end of this document.](#building-getdns-from-source)
 
 # Build Stubby from source
-
-A [Dockerfile](./contrib/docker/Dockerfile) is provided in the contrib directory to build a Docker image from source. See [Docker usage docs](./contrib/docker/README.md).
 
 Get the code:
 ```
@@ -53,11 +49,6 @@ cd stubby
 cmake .
 make
 ````
-If you get an error `Could NOT find Getdns (missing: GETDNS_LIBRARIES GETDNS_INCLUDE_DIR)` then you need to set the following 2 variable as arguements to `cmake`:
-```
-cmake -DGETDNS_LIBRARY=<path to libgetdns> -DGETDNS_INCLUDE_DIR=<path to getdns.h header file> .
-```
-A quick start guide to [using `cmake` with getdns is here.](https://getdnsapi.net/quick-start/cmake-quick-start/)
 
 # Configure Stubby
 
@@ -86,7 +77,7 @@ The config file below will configure Stubby in the following ways:
 *  `tls_query_padding_blocksize`: Use the EDNS0 padding option to pad DNS queries to hide their size
 *  `edns_client_subnet_private`: Use EDNS0 Client Subnet privacy so the client subnet is not sent to authoritative servers
 * ` idle_timeout`:  Use an EDNS0 Keepalive idle timeout of 10s unless overridden by the server. This keeps idle TLS connections open to avoid the overhead of opening a new connection for every query.
-*  `listen_address`: have the Stubby daemon listen on IPv4 and IPv6 on port 53 on the loopback address
+*  `listen_address`: have the Stubbby daemon listen on IPv4 and IPv6 on port 53 on the loopback address
 *   `round_robin_upstreams`: Round robin queries across all the configured upstream servers. Without this option Stubby will use each upstream server sequentially until it becomes unavailable and then move on to use the next. 
 *  `upstream_recursive_servers`: Use the NLnet labs test DNS Privacy Server for outgoing queries. In Strict Privacy mode, at least one of the following is required for each nameserver:
   *  `tls_auth_name`: This is the authentication domain name that will be verified against the presented certificate. 
@@ -191,7 +182,7 @@ You can add /usr/local/sbin to your path to avoid having to type it above by doi
 export PATH=/usr/local/sbin:$PATH
 ```
 
-Or via the macOs System Settings GUI:
+Or via the GUI:
 
 * Open *System Preferences &rarr; Network &rarr; Advanced &rarr; DNS*
 * Use the '-' button to remove the existing nameservers
@@ -199,8 +190,6 @@ Or via the macOs System Settings GUI:
 * Hit 'OK' in the *DNS* pane and then 'Apply' on the *Network* pane
 
 ## Windows 8 and later
-
-See the file windows/README.txt for a detailed description of building and using Stubby on windows.
 
 Powershell scripts are provided in the the windows directory of the source code that can be used to update the system resolvers. 
 Instructions for how to update the resolvers manually are provided are also provided - see https://dnsprivacy.org/wiki/display/DP/Windows+installer+for+Stubby 

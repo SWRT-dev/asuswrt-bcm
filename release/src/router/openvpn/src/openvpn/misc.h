@@ -183,7 +183,7 @@ struct user_pass
 #ifdef ENABLE_PKCS11
 #define USER_PASS_LEN 4096
 #else
-#define USER_PASS_LEN 256
+#define USER_PASS_LEN 128
 #endif
     char username[USER_PASS_LEN];
     char password[USER_PASS_LEN];

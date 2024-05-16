@@ -172,9 +172,6 @@ INF: while(<$inf>) {
         } elsif ($ended =~ /^(?:itemize|enumerate|(?:multi|[fv])?table)$/) {
             $_ = "\n=back\n";
             $ic = pop @icstack;
-        } elsif ($ended =~ /^float$/) {
-            $_ = "\n=back\n";
-            $ic = pop @icstack;
         } else {
             die "unknown command \@end $ended at line $.\n";
         }
@@ -298,12 +295,6 @@ INF: while(<$inf>) {
         $endw = $1;
         $shift = "\t";
         $_ = "";        # need a paragraph break
-    };
-
-    /^\@(float)\s+\w+/ and do {
-        push @endwstack, $endw;
-        $endw = $1;
-        $_ = "\n=over 4\n";
     };
 
     /^\@item\s+(.*\S)\s*$/ and $endw eq "multitable" and do {

@@ -39,11 +39,7 @@ int ff_pcm_read_packet(AVFormatContext *s, AVPacket *pkt)
      * Clamp to RAW_SAMPLES if larger.
      */
     size = FFMAX(par->sample_rate/25, 1);
-    if (par->block_align <= INT_MAX / RAW_SAMPLES) {
-        size = FFMIN(size, RAW_SAMPLES) * par->block_align;
-    } else {
-        size = par->block_align;
-    }
+    size = FFMIN(size, RAW_SAMPLES) * par->block_align;
 
     ret = av_get_packet(s->pb, pkt, size);
 

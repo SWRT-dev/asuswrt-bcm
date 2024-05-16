@@ -18,8 +18,8 @@
  * Boston, MA  02110-1301  USA.
  */
 
-#ifndef LIBEXIF_MNOTE_PENTAX_ENTRY_H
-#define LIBEXIF_MNOTE_PENTAX_ENTRY_H
+#ifndef __MNOTE_PENTAX_ENTRY_H__
+#define __MNOTE_PENTAX_ENTRY_H__
 
 #include <libexif/exif-format.h>
 #include <libexif/exif-byte-order.h>
@@ -40,4 +40,4 @@ struct _MnotePentaxEntry {
 
 char *mnote_pentax_entry_get_value (MnotePentaxEntry *entry, char *val, unsigned int maxlen);
 
-#endif /* !defined(LIBEXIF_MNOTE_PENTAX_ENTRY_H) */
+#endif /* __MNOTE_PENTAX_ENTRY_H__ */

@@ -1,8 +1,7 @@
 /*
  * Copyright (C) 2012 Tobias Brunner
  * Copyright (C) 2006 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -142,7 +141,7 @@ eap_vendor_type_t *eap_vendor_type_from_string(char *str)
 	enumerator_t *enumerator;
 	eap_vendor_type_t *result = NULL;
 	eap_type_t type = 0;
-	pen_t vendor = 0;
+	uint32_t vendor = 0;
 	char *part, *end;
 
 	/* parse EAP method string of the form: [eap-]type[-vendor] */
@@ -170,7 +169,7 @@ eap_vendor_type_t *eap_vendor_type_from_string(char *str)
 		}
 		errno = 0;
 		vendor = strtoul(part, &end, 0);
-		if (*end != '\0' || errno || vendor >= PEN_UNASSIGNED)
+		if (*end != '\0' || errno)
 		{
 			DBG1(DBG_LIB, "invalid EAP vendor: %s", part);
 			type = 0;

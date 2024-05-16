@@ -25,9 +25,6 @@ if [ ! -z $WLAN_REMOVE_INTERNAL_DEBUG ]; then
 else
     dhd_console_ms=250
 fi
-SYSTEM_INFO_INDICATOR=$(cat /proc/nvram/wl_nand_manufacturer)
-is_mfg=$(($SYSTEM_INFO_INDICATOR & 2))
-SYSTEM_UBOOT=$(($SYSTEM_INFO_INDICATOR & 8))
 if [ ! -z $PROD_FW_PATH ]; then
     MFG_FW_PATH=$PROD_FW_PATH"/mfg"
 else
@@ -35,26 +32,8 @@ else
 fi
 
 WLDPDCTL=0
-
-#wl_unitlist -knvram or environment varible to define radio interface
-#name index order. Ex. 
-#    1 0 2: one dhd(wl1) and one NIC(wl0)
-#    1 2 0: two dhd(wl1/2) and one NIC(wl0)
-if [ $SYSTEM_UBOOT -gt 0 ]; then
-    WIFI_DRV_LOAD_ORDER=/proc/environment/wl_unitlist
-else
-    WIFI_DRV_LOAD_ORDER=/proc/brcm/blxparms/wl_unitlist
-fi
-
-if  [ -e $WIFI_DRV_LOAD_ORDER ]; then
-    UNITLIST="$(cat $WIFI_DRV_LOAD_ORDER)"
-else
-    UNITLIST=`nvram kget wl_unitlist`
-    if [ -z "$UNITLIST" ]; then
-        UNITLIST="0 1 2"
-    fi
-fi
-echo "UNITLIST:$UNITLIST"
+#unit (radio) index list - max (3)
+UNITLIST="0 1 2"
 
 # PCIe Wireless Card Status - bad card detection
 pwlcs_preload()
@@ -93,7 +72,7 @@ pwlcs_preload()
     # Commit changes if needed
     if [ $needcommit == 1 ];  then
       nvram kcommit
-      sync
+	  sync
     fi
   fi
 }
@@ -114,24 +93,24 @@ pwlcs_postload()
       # Save and commit driver changes to the nvram
       nvram kset pwlcspcie$card="$status"
       nvram kcommit
-      sync
+	  sync
 
       #restore the panic_on_oops for the rest of the system
       echo $panic_on_oops > /proc/sys/kernel/panic_on_oops
 
       # Check if card is a bad card
       case "$status" in
-        *BOOT*)
+        *BOOT*) 
           ifexists=`cat /proc/net/dev |grep wl$card`
           set -- $ifexists
-          if [ "$1" == "" ];  then
+          if [ "$1" == "" ];  then 
             echo "==============================================================================="
             echo "Detected bad WLAN card on PCIe$card, rebooting system"
             echo "==============================================================================="
             # Trigger magic Sys Request reboot for fast reboot
             echo b > /proc/sysrq-trigger
-          fi
-        ;;
+          fi 
+        ;; 
       esac
       card=$(($card+1))
     done
@@ -145,7 +124,7 @@ get_unit()
 
     for unit in $UNITLIST; do
         wlx=`cat /proc/net/dev |grep wl$unit`
-        if [ -z "$wlx" ]; then
+        if [ ${#wlx[@]} == 0 ]; then
             break
         fi
     done
@@ -221,10 +200,30 @@ load_modules()
         if [ ! -z $CPEROUTER ]; then
             #CPE Router
             dhd_module_params="iface_name=wl dhd_console_ms=$dhd_console_ms"
+
+            # For 47189 ,it only has single core CPU. Use kthread for dhd_dpc task.
+            if [ "$BRCM_CHIP" == "47189" ]; then
+                dhd_module_params="${dhd_module_params} dhd_dpc_prio=5"
+            fi
+
             wl_module_params="intf_name=wl%d"
-            echo " ####  mfg mode:$is_mfg ########"
-            if [ $is_mfg -gt 0 ]; then
-                dhd_module_params=$dhd_module_params" firmware_path=$MFG_FW_PATH"
+            wl_mfgtest_module="wl_mfgtest"
+            hnd_mfgtest_module="hnd_mfgtest"
+            if [ -f /proc/nvram/wl_nand_manufacturer ]; then
+                is_mfg=`cat /proc/nvram/wl_nand_manufacturer`
+                case $is_mfg in
+                    2|3|6|7)
+                        dhd_module_params=$dhd_module_params" firmware_path=$MFG_FW_PATH"
+                        if [ -f /lib/modules/$KERNELVER/extra/$wl_mfgtest_module.ko ]; then
+                            modules_list=${modules_list/wl/$wl_mfgtest_module}
+                        fi
+                        if [ -f /lib/modules/$KERNELVER/extra/$hnd_mfgtest_module.ko ]; then
+                            modules_list=${modules_list/hnd/$hnd_mfgtest_module}
+                        fi
+                        ;;
+                    *)
+                        ;;
+                esac
             fi
         else
             #Legacy
@@ -241,33 +240,21 @@ load_modules()
             case "$module" in
                 firmware_class)
                     if [ -f /lib/modules/$KERNELVER/kernel/drivers/base/firmware_loader/firmware_class.ko ]; then
-                       insmod /lib/modules/$KERNELVER/kernel/drivers/base/firmware_loader/firmware_class.ko
+                       insmod /lib/modules/$KERNELVER/kernel/drivers/base/firmware_loader/firmware_class.ko 
                     fi
                     ;;
                 cfg80211)
                     echo "insmod /lib/modules/$KERNELVER/kernel/net/wireless/$module.ko"
                     ;;
-                wlemf|emf|igs)
+                wlemf|hnd|hnd_mfgtest|emf|igs)
                     #no module parameters
                     module_params=""
                     ;;
-                hnd)
-                    module_params=""
-                    if  [ $is_mfg -gt 0 ] && [ -f /lib/modules/$KERNELVER/extra/hnd_mfgtest.ko ]; then
-                        module="hnd_mfgtest"
-                    fi
-                    ;;
-                wl)
+                wl|wl_mfgtest)
                     module_params=$wl_module_params
-                    if  [ $is_mfg -gt 0 ] && [ -f /lib/modules/$KERNELVER/extra/wl_mfgtest.ko ]; then
-                        module="wl_mfgtest"
-                    fi
                     ;;
                 dhd)
                     module_params=$dhd_module_params
-                    ;;
-                wlshared)
-                    module_params=""
                     ;;
                 *)
                     echo "wlan-drivers: unrecognized module [$module] in the load module list"
@@ -310,7 +297,7 @@ unload_modules()
 
     for module in $unload_modules_list
     do
-        echo unload $module
+	echo unload $module
         echo "rmmod $module.ko"
     done
 
@@ -351,10 +338,19 @@ if [ "$btest_mode" == "1" ];  then
 fi
 if [ "$WLAN_BTEST" == "y" ]; then
     if [ -f /usr/sbin/utelnetd ] ; then
-        /usr/sbin/utelnetd -d
+        /usr/sbin/utelnetd -d 
     fi
     echo "Skipping wlan-drivers.sh for BTEST images ..."
     exit 0
+fi
+
+# For 47189 Host CPU, Check nvram "forcegen1rc" and set default vaule if not exist.
+# the part must before dhd.ko insmod.
+if [ "$BRCM_CHIP" == "47189" ]; then
+    forcegen1rc_val=`nvram kget forcegen1rc`
+    if [ -z "$forcegen1rc_val" ]; then
+        `nvram kset forcegen1rc=1 ; nvram kcommit`
+    fi
 fi
 
 # Sanity check for drivers directory
@@ -379,11 +375,6 @@ else
         all_wlan_modules="wlemf wl"
     fi
 
-    # add wlshared module
-    if [ -f /lib/modules/$KERNELVER/extra/wlshared.ko ]; then
-        all_wlan_modules="wlshared $all_wlan_modules"
-    fi
-
     # Update the wlan module list from nvram if exists
     is_nvmodules_list=`nvram show 2>&1 |grep kernel_mods | grep -c '^'`
     if [ $is_nvmodules_list -eq '0' ]; then
@@ -401,12 +392,12 @@ fi
 # Parse the first argument
 case "$1" in
     start)
-        echo "skip load_modules in bcm-wlan-drivers.sh"
+        load_modules
         exit 0
         ;;
 
     stop)
-        echo "skip unload_modules in bcm-wlan-drivers.sh"
+        unload_modules
         exit 0
         ;;
 

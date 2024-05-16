@@ -1,8 +1,7 @@
 /*
- * Copyright (C) 2011-2022 Andreas Steffen
  * Copyright (C) 2011-2012 Sansar Choinyambuu
- *
- * Copyright (C) secunet Security Networks AG
+ * Copyright (C) 2011-2014 Andreas Steffen
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -525,8 +524,8 @@ quote_error:
 			}
 			break;
 		}
-		case TCG_SEG_CONTRACT_RESP:
-		case TCG_SEG_ENVELOPE:
+		case TCG_SEG_MAX_ATTR_SIZE_RESP:
+		case TCG_SEG_ATTR_SEG_ENV:
 			break;
 
 		/* TODO: Not implemented yet */

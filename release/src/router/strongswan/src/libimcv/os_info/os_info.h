@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2012-2014 Andreas Steffen
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -34,7 +33,6 @@ enum os_type_t {
 	OS_TYPE_UNKNOWN,
 	OS_TYPE_DEBIAN,
 	OS_TYPE_UBUNTU,
-    OS_TYPE_RASPBIAN,
 	OS_TYPE_FEDORA,
 	OS_TYPE_REDHAT,
 	OS_TYPE_CENTOS,

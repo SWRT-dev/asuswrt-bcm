@@ -1,8 +1,9 @@
 /*
  * Copyright (C) 2013-2015 Andreas Steffen
- * Copyright (C) 2010-2013 Martin Willi
+ * HSR Hochschule fuer Technik Rapperswil
  *
- * Copyright (C) secunet Security Networks AG
+ * Copyright (C) 2010-2013 Martin Willi
+ * Copyright (C) 2010-2013 revosec AG
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -367,7 +368,7 @@ int main(int argc, char *argv[])
 				lib->settings->set_bool(lib->settings,
 								"%s.plugins.tnccs-20.mutual", TRUE, lib->ns);
 				continue;
-			case 'q':			/* --quiet */
+			case 'q':       	/* --quiet */
 				log_to_stderr = FALSE;
 				continue;
 			case 'd':			/* --debug <level> */

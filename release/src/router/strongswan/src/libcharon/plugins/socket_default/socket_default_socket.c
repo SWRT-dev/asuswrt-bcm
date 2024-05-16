@@ -3,8 +3,7 @@
  * Copyright (C) 2006 Daniel Roethlisberger
  * Copyright (C) 2005-2010 Martin Willi
  * Copyright (C) 2005 Jan Hutter
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -143,7 +142,7 @@ struct private_socket_default_socket_t {
 	bool set_source;
 
 	/**
-	 * TRUE to force sending source interface on outbound packets
+	 * TRUE to force sending source interface on outbound packetrs
 	 */
 	bool set_sourceif;
 
@@ -560,11 +559,7 @@ METHOD(socket_t, sender, status_t,
 	{
 		if (family == AF_INET)
 		{
-#ifdef __FreeBSD__
-			int ds4;
-#else
 			uint8_t ds4;
-#endif
 
 			ds4 = packet->get_dscp(packet) << 2;
 			if (setsockopt(skt, SOL_IP, IP_TOS, &ds4, sizeof(ds4)) == 0)
@@ -698,11 +693,9 @@ static int open_socket(private_socket_default_socket_t *this,
 		DBG1(DBG_NET, "could not open socket: %s", strerror(errno));
 		return -1;
 	}
-
-	if (family == AF_INET6 &&
-		setsockopt(skt, SOL_IPV6, IPV6_V6ONLY, &on, sizeof(on)) < 0)
+	if (setsockopt(skt, SOL_SOCKET, SO_REUSEADDR, (void*)&on, sizeof(on)) < 0)
 	{
-		DBG1(DBG_NET, "unable to set IPV6_V6ONLY on socket: %s", strerror(errno));
+		DBG1(DBG_NET, "unable to set SO_REUSEADDR on socket: %s", strerror(errno));
 		close(skt);
 		return -1;
 	}

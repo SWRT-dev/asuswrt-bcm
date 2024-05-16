@@ -75,7 +75,7 @@ enum httpCommands {
 };
 
 struct upnphttp {
-	struct event ev;
+	int socket;
 	struct in_addr clientaddr;	/* client address */
 	int iface;
 	int state;
@@ -89,8 +89,6 @@ struct upnphttp {
 	struct client_cache_s * req_client;
 	const char * req_soapAction;
 	int req_soapActionLen;
-	const char * req_Host;        /* Host: header */
-	int req_HostLen;
 	const char * req_Callback;	/* For SUBSCRIBE */
 	int req_CallbackLen;
 	const char * req_NT;
@@ -145,6 +143,10 @@ CloseSocket_upnphttp(struct upnphttp *);
 /* Delete_upnphttp() */
 void
 Delete_upnphttp(struct upnphttp *);
+
+/* Process_upnphttp() */
+void
+Process_upnphttp(struct upnphttp *);
 
 /* BuildHeader_upnphttp()
  * build the header for the HTTP Response

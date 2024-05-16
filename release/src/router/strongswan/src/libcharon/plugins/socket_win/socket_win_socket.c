@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2013 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * Copyright (C) 2013 revosec AG
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -339,7 +338,7 @@ static SOCKET open_socket(private_socket_win_socket_t *this, int i)
 		.sin6_port = htons(this->ports[i]),
 	};
 	int addrlen = sizeof(addr);
-	BOOL off = FALSE;
+	BOOL on = TRUE, off = FALSE;
 	DWORD dwon = TRUE;
 	SOCKET s;
 
@@ -354,6 +353,13 @@ static SOCKET open_socket(private_socket_win_socket_t *this, int i)
 				   (const char*)&off, sizeof(off)) == SOCKET_ERROR)
 	{
 		DBG1(DBG_NET, "using dual-mode socket failed: %d", WSAGetLastError());
+		closesocket(s);
+		return INVALID_SOCKET;
+	}
+	if (setsockopt(s, SOL_SOCKET, SO_REUSEADDR,
+				   (const char*)&on, sizeof(on)) == SOCKET_ERROR)
+	{
+		DBG1(DBG_NET, "enabling SO_REUSEADDR failed: %d", WSAGetLastError());
 		closesocket(s);
 		return INVALID_SOCKET;
 	}

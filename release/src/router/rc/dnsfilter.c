@@ -33,13 +33,11 @@ static int _get_table_size(const int server6)
 		while(server_table[i][0] != NULL)
 			++i;
 	}
-#ifdef RTCONFIG_IPV6
 	else
 	{
 		while(server6_table[i][0] != NULL)
 			++i;
 	}
-#endif
 	return i;
 }
 

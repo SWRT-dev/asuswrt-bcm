@@ -1,8 +1,7 @@
 /*
  * Copyright (C) 2011-2012 Sansar Choinyambuu
  * Copyright (C) 2011-2016 Andreas Steffen
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -384,7 +383,7 @@ METHOD(pa_tnc_attr_t, process, status_t,
 		if (!reader->read_data32(reader, &quote_sig))
 		{
 			DBG1(DBG_TNC, "insufficient data for PTS Simple Evidence Final "
-						  "TPM Quote Signature");
+						  "TPM Quote Singature");
 			goto end;
 		}
 		this->quote_sig = chunk_clone(quote_sig);

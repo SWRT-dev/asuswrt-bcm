@@ -1,7 +1,7 @@
 /*
  * DDR23 Denali contoller & DDRPHY init routines.
  *
- * Copyright (C) 2022, Broadcom. All Rights Reserved.
+ * Copyright (C) 2021, Broadcom. All Rights Reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -1129,7 +1129,7 @@ c_ddr_init(unsigned long ra)
 	osh = si_osh(sih);
 #ifdef BCMDBG
 	printf("\n==================== CFE Boot Loader ====================\n");
-#endif
+#endif // endif
 
 	Program_Digital_Core_Power_Voltage(sih);
 
@@ -1205,7 +1205,7 @@ c_ddr_init(unsigned long ra)
 	}
 #ifdef NFLASH_SUPPORT
 embedded_nv:
-#endif
+#endif // endif
 	if (nvh == NULL) {
 		nvh = (struct nvram_header *)(flbase + 1024);
 		if (R_REG(osh, &nvh->magic) != NVRAM_MAGIC) {
@@ -1219,7 +1219,7 @@ embedded_nv:
 #ifdef BCMDBG
 	printf("%s: sdram_config=0x%04x sdram_ncdl=0x%08x\n",
 		__FUNCTION__, sdram_config, sdram_ncdl);
-#endif
+#endif // endif
 
 	/* Take DDR23 core out of reset */
 	W_REG(osh, (uint32 *)DDR_S1_IDM_RESET_CONTROL, 0);
@@ -1239,7 +1239,7 @@ embedded_nv:
 	if (i == 0x19000) {
 #ifdef BCMDBG
 		printf("Recalibrating DDR PHY...\n");
-#endif
+#endif // endif
 		si_watchdog(sih, 1);
 		while (1);
 	}
@@ -1306,7 +1306,7 @@ embedded_nv:
 			val = 0;
 #ifdef CONFIG_DDR_LONG_PREAMBLE
 		val |= 2;
-#endif
+#endif // endif
 		W_REG(osh, &ddr->phy_ln0_wr_premb_mode, val);
 
 		/* Initiate a PVT calibration cycle */
@@ -1329,7 +1329,7 @@ embedded_nv:
 		if (!(val & 0x2)) {
 #ifdef BCMDBG
 			printf("Need re-calibrating...\n");
-#endif
+#endif // endif
 			si_watchdog(sih, 1);
 			while (1);
 		}
@@ -1450,7 +1450,7 @@ embedded_nv:
 	while (!(R_REG(osh, &ddr->control[89]) & DDR_INT_INIT_DONE));
 #ifdef BCMDBG
 	printf("%s: DDR PLL locked\n", __FUNCTION__);
-#endif
+#endif // endif
 
 	W_REG(osh, &ddr->phy_ln0_rddata_dly, 3);	/* high sku? */
 
@@ -1464,7 +1464,7 @@ embedded_nv:
 			goto out;
 #else
 			hnd_cpu_reset(sih);
-#endif
+#endif // endif
 		}
 	}
 

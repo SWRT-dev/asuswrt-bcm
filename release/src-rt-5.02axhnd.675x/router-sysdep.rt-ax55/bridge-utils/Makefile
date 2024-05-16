@@ -14,7 +14,7 @@ BUILD_DIR:=$(HND_SRC)
 
 include $(BUILD_DIR)/make.common
 
-APP=bridge-utils-1.6
+APP=bridge-utils-1.5
 PATCH_FILE = bcm_patches/$(APP).patch
 
 ifneq ($(strip $(BUILD_BRCTL)),)
@@ -34,7 +34,7 @@ $(APP)/configure: $(PATCH_FILE) $(APP).tar.gz
 	rm -rf $(APP)
 	tar xzf $(APP).tar.gz
 	patch -p1 -d$(APP) < $(PATCH_FILE)
-	(cd $(APP); autoconf -o configure)
+	(cd $(APP); autoconf -o configure configure.in)
 	@echo "$(APP) is untarred"
 
 objs/$(PROFILE_ARCH)/config_complete: $(APP)/configure

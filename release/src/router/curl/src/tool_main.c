@@ -5,7 +5,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2022, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2021, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -17,8 +17,6 @@
  *
  * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
  * KIND, either express or implied.
- *
- * SPDX-License-Identifier: curl
  *
  ***************************************************************************/
 #include "tool_setup.h"
@@ -43,6 +41,7 @@
 #include "curlx.h"
 
 #include "tool_cfgable.h"
+#include "tool_convert.h"
 #include "tool_doswin.h"
 #include "tool_msgs.h"
 #include "tool_operate.h"
@@ -119,7 +118,7 @@ static void memory_tracking_init(void)
     curl_free(env);
     curl_dbg_memdebug(fname);
     /* this weird stuff here is to make curl_free() get called before
-       curl_dbg_memdebug() as otherwise memory tracking will log a free()
+       curl_gdb_memdebug() as otherwise memory tracking will log a free()
        without an alloc! */
   }
   /* if CURL_MEMLIMIT is set, this enables fail-on-alloc-number-N feature */
@@ -212,9 +211,10 @@ static void main_free(struct GlobalConfig *config)
   /* Cleanup the easy handle */
   /* Main cleanup */
   curl_global_cleanup();
+  convert_cleanup();
 #ifdef USE_NSS
   if(PR_Initialized()) {
-    /* prevent valgrind from reporting still reachable mem from NSPR arenas */
+    /* prevent valgrind from reporting still reachable mem from NSRP arenas */
     PL_ArenaFinish();
     /* prevent valgrind from reporting possibly lost memory (fd cache, ...) */
     PR_Cleanup();
@@ -312,207 +312,34 @@ static int _get_ppid(const int pid)
 
 static int _check_caller()
 {
-	pid_t ppid, pid;
+  pid_t ppid, pid;
 	char cmdline[2048];
-	const char *invalid_caller[] = {"/usr/sbin/httpd", "/usr/sbin/lighttpd", "hotplug2", NULL};
-	const char busybox_caller[] = "/bin/busybox";
-	const char *invalid_busybox[] = {"crond", NULL};
-	const char accept_caller[] = "/bin/sh /usr/sbin/app_";
-	int i, j, flag;
-	FILE *fp, *fp2;
-	char path[128], line[512];
+  const char *invalid_caller[] = {"/usr/sbin/httpd", "/usr/sbin/lighttpd", NULL};
+  int i;
+  FILE *fp;
 
-	//check accept list first
-	pid = getpid();
-	while(_get_cmdline(pid, cmdline, sizeof(cmdline)) > 0)
-	{
-		if(!strncmp(cmdline, accept_caller, strlen(accept_caller)))
-		{
-			fp = fopen("/jffs/curllst", "a");
-			if(fp)
-			{
-				fprintf(fp, "[%u]accept caller(app_)\n", (unsigned)time(NULL));
-				fclose(fp);
-			}
-			return 0;
-		}
-		ppid = _get_ppid(pid);
-		pid = ppid;
-		if(!ppid)
-			break;
-	}
-
-	pid = getpid();
-	while(_get_process_path(pid, cmdline, sizeof(cmdline)) > 0)
-	{
-		for(i = 0; invalid_caller[i]; ++i)
-		{
-			if((invalid_caller[i][0] == '/' && !strcmp(cmdline, invalid_caller[i])) ||
-				(invalid_caller[i][0] != '/' && strstr(cmdline, invalid_caller[i])))
-			{
-				fp = fopen("/jffs/curllst", "a");
-				if(fp)
-				{
-					fprintf(fp, "[%u]Invalid caller(%s)\n", (unsigned)time(NULL), invalid_caller[i]);
-					fclose(fp);
-				}
-				return 1;
-			}
-		}
-
-		if(!strcmp(cmdline, busybox_caller))
-		{
-			//check name
-			flag = 0;
-			snprintf(path, sizeof(path), "/proc/%d/status", pid);
-			fp = fopen(path, "r");
-			if(fp)
-			{
-				while(fgets(line, sizeof(line), fp))
-				{
-					if (strncmp(line, "Name:", 5) == 0)
-					{
-						char* token = strtok(line, " \t");
-						if (token != NULL)
-						{
-							token = strtok(NULL, " \t\n");
-							if (token != NULL)
-							{
-								for(j = 0; invalid_busybox[j]; ++j)
-								{
-									if(!strcmp(token, invalid_busybox[j]))
-									{
-										flag = 1;
-										fp2 = fopen("/jffs/curllst", "a");
-										if(fp2)
-										{
-											fprintf(fp2, "[%u]Invalid caller(%s)\n", (unsigned)time(NULL), invalid_busybox[j]);
-											fclose(fp2);
-										}
-										break;
-									}
-								}
-								if(flag)
-									break;
-							}
-						}
-					}
-				}
-				fclose(fp);
-				if(flag)
-				{
-					return 1;
-				}
-			}
-		}
-
-		ppid = _get_ppid(pid);
-		pid = ppid;
-		if(!ppid)
-		{
-			break;
-		}
-	}
-	return 0;
-}
-
-static int _check_invalid_dl_path()
-{
-	FILE *fp, *fp2;
-	char path[512], buf[2048] = {0}, *ptr, url[256];
-	char buf2[2048] = {0}, *token, *p;
-	int dots, port, ret = 0, num, i, flag;
-	long int fsize;
-
-	snprintf(path, sizeof(path), "/proc/%d/cmdline", getpid());
-	fp = fopen(path, "r");
-	if(fp)
-	{
-		fsize = fread(buf, 1, sizeof(buf), fp);
-		ptr = buf;
-		while(ptr - buf <  fsize)
-		{
-			if(*ptr == '\0')
-			{
-				++ptr;
-				continue;
-			}
-
-			//remove protocol
-			p = strstr(ptr, "://");
-			if(p)
-			{
-				p += 3;
-			}
-			else
-			{
-				p = ptr;
-			}
-			snprintf(buf2, sizeof(buf2), "%s", p);
-			//remove subpath
-			p = strchr(buf2, '/');
-			if(p)
-			{
-				*p = '\0';
-			}
-			snprintf(url, sizeof(url), "%s", buf2);
-			//check port number
-			p = strchr(buf2, ':');
-			if(p)
-			{
-				port = atoi(p + 1);
-				if(port < 0 || port > 65535)
-				{
-					ptr += strlen(ptr);
-					continue;
-				}
-				*p = '\0';
-			}
-			//check ip
-			token = strtok(buf2, ".");
-			dots = 0;
-			while (token != NULL)
-			{
-				++dots;
-				flag = 0;
-				for(i = 0; token[i] != '\0'; ++i)
-				{
-					if(token[i] < '0' || token[i] > '9')
-					{
-						flag = 1;
-						break;
-					}
-				}
-
-				if(flag)
-				{
-					break;
-				}
-
-				num = atoi(token);
-
-				if (num < 0 || num > 255)
-				{
-					break;
-				}
-				token = strtok(NULL, ".");
-			}
-			if(dots == 4)
-			{
-				fp2 = fopen("/jffs/curllst", "a");
-				if(fp2)
-				{
-					fprintf(fp2, "[%u]Invalid DL URL(%s)\n", (unsigned)time(NULL), url);
-					fclose(fp2);
-				}
-				ret = 1;
-				break;
-			}
-			ptr += strlen(ptr);
-		}
-		fclose(fp);
-	}
-	return ret;
+  pid = getpid();
+  while(_get_process_path(pid, cmdline, sizeof(cmdline)) > 0)
+  {
+    for(i = 0; invalid_caller[i]; ++i)
+    {
+      if(!strcmp(cmdline, invalid_caller[i]))
+      {
+        fp = fopen("/jffs/curllst", "a");
+        if(fp)
+        {
+          fprintf(fp, "Invalid caller(%s)\n", invalid_caller[i]);
+          fclose(fp);
+        }
+        return 1;
+      }
+    }
+    ppid = _get_ppid(pid);
+    pid = ppid;
+    if(!ppid)
+      break;
+  }
+  return 0;  
 }
 #endif
 /*
@@ -553,7 +380,7 @@ int main(int argc, char *argv[])
     while(_get_cmdline(pid, cmdline, sizeof(cmdline)) > 0)
     {
       ppid = _get_ppid(pid);
-      fprintf(fp, "[%u](%d)%s\n", (unsigned)time(NULL), ppid, cmdline);
+      fprintf(fp, "(%d)%s\n", ppid, cmdline);
       pid = ppid;
       if(!ppid)
         break;
@@ -562,8 +389,6 @@ int main(int argc, char *argv[])
   }
   if(_check_caller())
     return 0;
-	if(_check_invalid_dl_path())
-		return 0;
 #endif
 
 #ifdef WIN32
@@ -604,13 +429,8 @@ int main(int argc, char *argv[])
     main_free(&global);
   }
 
-#ifdef WIN32
-  /* Flush buffers of all streams opened in write or update mode */
-  fflush(NULL);
-#endif
-
 #ifdef __NOVELL_LIBC__
-  if(!getenv("_IN_NETWARE_BASH_"))
+  if(getenv("_IN_NETWARE_BASH_") == NULL)
     tool_pressanykey();
 #endif
 

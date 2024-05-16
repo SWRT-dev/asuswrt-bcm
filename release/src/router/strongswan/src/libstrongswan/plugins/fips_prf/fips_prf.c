@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2006 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -115,9 +114,9 @@ METHOD(prf_t, get_bytes, bool,
 	uint8_t *xkey = this->key;
 	uint8_t one[this->b];
 
-	if (!w || !this->b)
+	if (!w)
 	{
-		/* append mode is not supported, the other check is to make GCC happy */
+		/* append mode is not supported */
 		return FALSE;
 	}
 

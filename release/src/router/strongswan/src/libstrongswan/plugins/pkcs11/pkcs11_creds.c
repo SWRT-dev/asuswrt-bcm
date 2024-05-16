@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2010 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * Copyright (C) 2010 revosec AG
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -84,21 +83,21 @@ static void find_certificates(private_pkcs11_creds_t *this,
 
 	/* store result in a temporary list, avoid recursive operation */
 	raw = linked_list_create();
+	/* do not use trusted argument if not supported */
+	if (!(this->lib->get_features(this->lib) & PKCS11_TRUSTED_CERTS))
+	{
+		count--;
+	}
 	enumerator = this->lib->create_object_enumerator(this->lib,
 									session, tmpl, countof(tmpl), attr, count);
 	while (enumerator->enumerate(enumerator, &object))
 	{
-		if (attr[0].ulValueLen == CK_UNAVAILABLE_INFORMATION ||
-			attr[1].ulValueLen == CK_UNAVAILABLE_INFORMATION)
-		{
-			continue;
-		}
-		INIT(entry,
-			.value = chunk_clone(chunk_create(attr[0].pValue, attr[0].ulValueLen)),
-			.label = chunk_clone(chunk_create(attr[1].pValue, attr[1].ulValueLen)),
-			/* assume trusted certificates if attribute is not available */
-			.trusted = attr[2].ulValueLen == CK_UNAVAILABLE_INFORMATION || trusted,
-		);
+		entry = malloc(sizeof(*entry));
+		entry->value = chunk_clone(
+							chunk_create(attr[0].pValue, attr[0].ulValueLen));
+		entry->label = chunk_clone(
+							chunk_create(attr[1].pValue, attr[1].ulValueLen));
+		entry->trusted = trusted;
 		raw->insert_last(raw, entry);
 	}
 	enumerator->destroy(enumerator);
@@ -309,10 +308,10 @@ certificate_t *pkcs11_creds_load(certificate_type_t type, va_list args)
 	while (enumerator->enumerate(enumerator, &p11, &current))
 	{
 		CK_OBJECT_CLASS class = CKO_CERTIFICATE;
-		CK_CERTIFICATE_TYPE ck_type = CKC_X_509;
+		CK_CERTIFICATE_TYPE type = CKC_X_509;
 		CK_ATTRIBUTE tmpl[] = {
 			{CKA_CLASS, &class, sizeof(class)},
-			{CKA_CERTIFICATE_TYPE, &ck_type, sizeof(ck_type)},
+			{CKA_CERTIFICATE_TYPE, &type, sizeof(type)},
 			{CKA_ID, keyid.ptr, keyid.len},
 		};
 		CK_ATTRIBUTE attr[] = {
@@ -340,8 +339,7 @@ certificate_t *pkcs11_creds_load(certificate_type_t type, va_list args)
 		}
 		certs = p11->create_object_enumerator(p11, session,
 									tmpl, countof(tmpl), attr, countof(attr));
-		if (certs->enumerate(certs, &object) &&
-			attr[0].ulValueLen != CK_UNAVAILABLE_INFORMATION)
+		if (certs->enumerate(certs, &object))
 		{
 			data = chunk_clone(chunk_create(attr[0].pValue, attr[0].ulValueLen));
 		}

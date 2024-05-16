@@ -1,8 +1,7 @@
 /*
- * Copyright (C) 2008-2018 Tobias Brunner
+ * Copyright (C) 2008-2014 Tobias Brunner
  * Copyright (C) 2005-2008 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -32,26 +31,18 @@ ENUM(status_names, SUCCESS, NEED_MORE,
 	"NEED_MORE",
 );
 
-/*
- * Described in header
+/**
+ * returns FAILED
  */
 status_t return_failed()
 {
 	return FAILED;
 }
 
-/*
- * Described in header
+/**
+ * returns SUCCESS
  */
 status_t return_success()
 {
 	return SUCCESS;
-}
-
-/*
- * Described in header
- */
-status_t return_need_more()
-{
-	return NEED_MORE;
 }

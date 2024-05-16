@@ -30,9 +30,6 @@
 #define AVCODEC_SBR_H
 
 #include <stdint.h>
-
-#include "libavutil/mem_internal.h"
-
 #include "fft.h"
 #include "aacps.h"
 #include "sbrdsp.h"

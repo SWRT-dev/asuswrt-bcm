@@ -1,8 +1,9 @@
 /*
- * Copyright (C) 2015-2016 Andreas Steffen
  * Copyright (C) 2010 Martin Willi
+ * Copyright (C) 2010 revosec AG
  *
- * Copyright (C) secunet Security Networks AG
+ * Copyright (C) 2015-2016 Andreas Steffen
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -112,12 +113,6 @@ static int print()
 					type = CRED_PRIVATE_KEY;
 					subtype = KEY_ED25519;
 				}
-				else if (streq(arg, "ed448") ||
-						 streq(arg, "ed448-priv"))
-				{
-					type = CRED_PRIVATE_KEY;
-					subtype = KEY_ED448;
-				}
 				else if (streq(arg, "bliss") ||
 						 streq(arg, "bliss-priv"))
 				{
@@ -201,8 +196,8 @@ static void __attribute__ ((constructor))reg()
 	command_register((command_t)
 		{ print, 'a', "print",
 		"print a credential in a human readable form",
-		{"[--in file|--keyid hex]",
-		 "[--type x509|crl|ac|pub|priv|rsa|ecdsa|ed25519|ed448|bliss]"},
+		{"[--in file|--keyid hex] "
+		 "[--type x509|crl|ac|pub|priv|rsa|ecdsa|ed25519|bliss]"},
 		{
 			{"help",	'h', 0, "show usage information"},
 			{"in",		'i', 1, "input file, default: stdin"},

@@ -1,8 +1,7 @@
 /*
  * Copyright (C) 2016-2017 Tobias Brunner
  * Copyright (C) 2008 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -225,22 +224,11 @@ METHOD(kernel_ipsec_t, del_policy, status_t,
 	return SUCCESS;
 }
 
-CALLBACK(destroy_spis, void,
-	entry_t *entry, const void* key)
-{
-	/* only free allocated SPIs, other SAs that were not properly deleted will
-	 * cause a leak */
-	if (entry->alloc)
-	{
-		free(entry);
-	}
-}
-
 METHOD(kernel_ipsec_t, destroy, void,
 	private_kernel_ipsec_t *this)
 {
 	charon->bus->remove_listener(charon->bus, &this->listener);
-	this->sas->destroy_function(this->sas, destroy_spis);
+	this->sas->destroy(this->sas);
 	free(this);
 }
 

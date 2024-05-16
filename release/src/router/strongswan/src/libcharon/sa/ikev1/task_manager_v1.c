@@ -1,8 +1,7 @@
 /*
- * Copyright (C) 2007-2019 Tobias Brunner
+ * Copyright (C) 2007-2018 Tobias Brunner
  * Copyright (C) 2007-2011 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -201,14 +200,6 @@ struct private_task_manager_t {
 	u_int retransmit_tries;
 
 	/**
-	 * Maximum number of tries possible with current retransmission settings
-	 * before overflowing the range of uint32_t, which we use for the timeout.
-	 * Note that UINT32_MAX milliseconds equal nearly 50 days, so that doesn't
-	 * make much sense without retransmit_limit anyway.
-	 */
-	u_int retransmit_tries_max;
-
-	/**
 	 * Retransmission timeout
 	 */
 	double retransmit_timeout;
@@ -364,7 +355,7 @@ static status_t retransmit_packet(private_task_manager_t *this, uint32_t seqnr,
 							u_int mid, u_int retransmitted, array_t *packets)
 {
 	packet_t *packet;
-	uint32_t t = UINT32_MAX, max_jitter;
+	uint32_t t, max_jitter;
 
 	array_get(packets, 0, &packet);
 	if (retransmitted > this->retransmit_tries)
@@ -373,12 +364,8 @@ static status_t retransmit_packet(private_task_manager_t *this, uint32_t seqnr,
 		charon->bus->alert(charon->bus, ALERT_RETRANSMIT_SEND_TIMEOUT, packet);
 		return DESTROY_ME;
 	}
-	if (!this->retransmit_tries_max ||
-		retransmitted <= this->retransmit_tries_max)
-	{
-		t = (uint32_t)(this->retransmit_timeout * 1000.0 *
-						pow(this->retransmit_base, retransmitted));
-	}
+	t = (uint32_t)(this->retransmit_timeout * 1000.0 *
+					pow(this->retransmit_base, retransmitted));
 	if (this->retransmit_limit)
 	{
 		t = min(t, this->retransmit_limit);
@@ -405,7 +392,7 @@ static status_t retransmit_packet(private_task_manager_t *this, uint32_t seqnr,
 METHOD(task_manager_t, retransmit, status_t,
 	private_task_manager_t *this, uint32_t seqnr)
 {
-	status_t status = INVALID_STATE;
+	status_t status = SUCCESS;
 
 	if (seqnr == this->initiating.seqnr &&
 		array_count(this->initiating.packets))
@@ -488,7 +475,7 @@ METHOD(task_manager_t, initiate, status_t,
 	message_t *message;
 	host_t *me, *other;
 	exchange_type_t exchange = EXCHANGE_TYPE_UNDEFINED;
-	bool new_mid = FALSE, expect_response = FALSE, canceled = FALSE, keep = FALSE;
+	bool new_mid = FALSE, expect_response = FALSE, cancelled = FALSE, keep = FALSE;
 
 	if (this->initiating.type != EXCHANGE_TYPE_UNDEFINED &&
 		this->initiating.type != INFORMATIONAL_V1)
@@ -673,7 +660,7 @@ METHOD(task_manager_t, initiate, status_t,
 				/* processed, but task needs another exchange */
 				continue;
 			case ALREADY_DONE:
-				canceled = TRUE;
+				cancelled = TRUE;
 				break;
 			case FAILED:
 			default:
@@ -698,7 +685,7 @@ METHOD(task_manager_t, initiate, status_t,
 	{	/* tasks completed, no exchange active anymore */
 		this->initiating.type = EXCHANGE_TYPE_UNDEFINED;
 	}
-	if (canceled)
+	if (cancelled)
 	{
 		message->destroy(message);
 		return initiate(this);
@@ -755,7 +742,7 @@ static status_t build_response(private_task_manager_t *this, message_t *request)
 	task_t *task;
 	message_t *message;
 	host_t *me, *other;
-	bool delete = FALSE, canceled = FALSE, expect_request = FALSE;
+	bool delete = FALSE, cancelled = FALSE, expect_request = FALSE;
 
 	me = request->get_destination(request);
 	other = request->get_source(request);
@@ -792,7 +779,7 @@ static status_t build_response(private_task_manager_t *this, message_t *request)
 				}
 				continue;
 			case ALREADY_DONE:
-				canceled = TRUE;
+				cancelled = TRUE;
 				break;
 			case INVALID_ARG:
 				if (task->get_type(task) == TASK_QUICK_MODE)
@@ -814,7 +801,7 @@ static status_t build_response(private_task_manager_t *this, message_t *request)
 	enumerator->destroy(enumerator);
 
 	clear_packets(this->responding.packets);
-	if (canceled)
+	if (cancelled)
 	{
 		message->destroy(message);
 		return initiate(this);
@@ -1409,7 +1396,7 @@ METHOD(task_manager_t, process_message, status_t,
 		}
 		this->ike_sa->set_statistic(this->ike_sa, STAT_INBOUND,
 									time_monotonic(NULL));
-		this->ike_sa->update_hosts(this->ike_sa, me, other, UPDATE_HOSTS_FORCE_ADDRS);
+		this->ike_sa->update_hosts(this->ike_sa, me, other, TRUE);
 		charon->bus->message(charon->bus, msg, TRUE, TRUE);
 		if (process_response(this, msg) != SUCCESS)
 		{
@@ -1529,7 +1516,7 @@ METHOD(task_manager_t, process_message, status_t,
 							"%s.half_open_timeout", HALF_OPEN_IKE_SA_TIMEOUT,
 							lib->ns));
 		}
-		this->ike_sa->update_hosts(this->ike_sa, me, other, UPDATE_HOSTS_FORCE_ADDRS);
+		this->ike_sa->update_hosts(this->ike_sa, me, other, TRUE);
 		charon->bus->message(charon->bus, msg, TRUE, TRUE);
 		if (process_request(this, msg) != SUCCESS)
 		{
@@ -1637,7 +1624,7 @@ METHOD(task_manager_t, queue_ike_reauth, void,
 	ike_sa_t *new;
 	host_t *host;
 
-	new = charon->ike_sa_manager->create_new(charon->ike_sa_manager,
+	new = charon->ike_sa_manager->checkout_new(charon->ike_sa_manager,
 								this->ike_sa->get_version(this->ike_sa), TRUE);
 	if (!new)
 	{	/* shouldn't happen */
@@ -1686,7 +1673,7 @@ METHOD(task_manager_t, queue_ike_reauth, void,
 		enumerator->destroy(enumerator);
 	}
 
-	if (new->initiate(new, NULL, NULL) != DESTROY_ME)
+	if (new->initiate(new, NULL, 0, NULL, NULL) != DESTROY_ME)
 	{
 		charon->ike_sa_manager->checkin(charon->ike_sa_manager, new);
 		this->ike_sa->set_state(this->ike_sa, IKE_REKEYING);
@@ -1733,19 +1720,14 @@ METHOD(task_manager_t, queue_mobike, void,
 }
 
 METHOD(task_manager_t, queue_child, void,
-	private_task_manager_t *this, child_cfg_t *cfg, child_init_args_t *args)
+	private_task_manager_t *this, child_cfg_t *cfg, uint32_t reqid,
+	traffic_selector_t *tsi, traffic_selector_t *tsr)
 {
 	quick_mode_t *task;
 
-	if (args)
-	{
-		task = quick_mode_create(this->ike_sa, cfg, args->src, args->dst);
-		task->use_reqid(task, args->reqid);
-	}
-	else
-	{
-		task = quick_mode_create(this->ike_sa, cfg, NULL, NULL);
-	}
+	task = quick_mode_create(this->ike_sa, cfg, tsi, tsr);
+	task->use_reqid(task, reqid);
+
 	queue_task(this, &task->task);
 }
 
@@ -1770,27 +1752,26 @@ static bool have_equal_ts(child_sa_t *child1, child_sa_t *child2, bool local)
 	return equal;
 }
 
-/*
- * Described in header
+/**
+ * Check if a CHILD_SA is redundant and we should delete instead of rekey
  */
-bool ikev1_child_sa_is_redundant(ike_sa_t *ike_sa, child_sa_t *child_sa,
-								 bool (*cmp)(child_sa_t*,child_sa_t*))
+static bool is_redundant(private_task_manager_t *this, child_sa_t *child_sa)
 {
 	enumerator_t *enumerator;
 	child_sa_t *current;
 	bool redundant = FALSE;
 
-	enumerator = ike_sa->create_child_sa_enumerator(ike_sa);
+	enumerator = this->ike_sa->create_child_sa_enumerator(this->ike_sa);
 	while (enumerator->enumerate(enumerator, &current))
 	{
-		if (current != child_sa &&
-			current->get_state(current) == CHILD_INSTALLED &&
+		if (current->get_state(current) == CHILD_INSTALLED &&
 			streq(current->get_name(current), child_sa->get_name(child_sa)) &&
 			have_equal_ts(current, child_sa, TRUE) &&
 			have_equal_ts(current, child_sa, FALSE) &&
-			(!cmp || cmp(child_sa, current)))
+			current->get_lifetime(current, FALSE) >
+				child_sa->get_lifetime(child_sa, FALSE))
 		{
-			DBG1(DBG_IKE, "detected redundant CHILD_SA %s{%d}",
+			DBG1(DBG_IKE, "deleting redundant CHILD_SA %s{%d}",
 				 child_sa->get_name(child_sa),
 				 child_sa->get_unique_id(child_sa));
 			redundant = TRUE;
@@ -1800,16 +1781,6 @@ bool ikev1_child_sa_is_redundant(ike_sa_t *ike_sa, child_sa_t *child_sa,
 	enumerator->destroy(enumerator);
 
 	return redundant;
-}
-
-/**
- * Compare the rekey times of two CHILD_SAs, a CHILD_SA is redundant if it is
- * rekeyed sooner than another.
- */
-static bool is_rekeyed_sooner(child_sa_t *is_redundant, child_sa_t *other)
-{
-	return other->get_lifetime(other, FALSE) >
-				is_redundant->get_lifetime(is_redundant, FALSE);
 }
 
 /**
@@ -1841,8 +1812,7 @@ METHOD(task_manager_t, queue_child_rekey, void,
 	}
 	if (child_sa && child_sa->get_state(child_sa) == CHILD_INSTALLED)
 	{
-		if (ikev1_child_sa_is_redundant(this->ike_sa, child_sa,
-										is_rekeyed_sooner))
+		if (is_redundant(this, child_sa))
 		{
 			child_sa->set_state(child_sa, CHILD_REKEYED);
 			if (lib->settings->get_bool(lib->settings, "%s.delete_rekeyed",
@@ -1861,8 +1831,6 @@ METHOD(task_manager_t, queue_child_rekey, void,
 			task->use_reqid(task, child_sa->get_reqid(child_sa));
 			task->use_marks(task, child_sa->get_mark(child_sa, TRUE).value,
 							child_sa->get_mark(child_sa, FALSE).value);
-			task->use_if_ids(task, child_sa->get_if_id(child_sa, TRUE),
-							 child_sa->get_if_id(child_sa, FALSE));
 			task->rekey(task, child_sa->get_spi(child_sa, TRUE));
 
 			queue_task(this, &task->task);
@@ -2159,11 +2127,5 @@ task_manager_v1_t *task_manager_v1_create(ike_sa_t *ike_sa)
 	}
 	this->dpd_send &= 0x7FFFFFFF;
 
-	if (this->retransmit_base > 1)
-	{	/* based on 1000 * timeout * base^try */
-		this->retransmit_tries_max = log(UINT32_MAX/
-										 (1000.0 * this->retransmit_timeout))/
-									 log(this->retransmit_base);
-	}
 	return &this->public;
 }

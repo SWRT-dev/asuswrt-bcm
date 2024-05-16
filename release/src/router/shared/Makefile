@@ -2,7 +2,7 @@ include ../common.mak
 include $(SRCBASE)/.config
 include ../.config
 
-CFLAGS += $(if $(RTCONFIG_DEBUG),-g,-Os) -Wall $(EXTRACFLAGS) -fPIC
+CFLAGS += -Os -Wall $(EXTRACFLAGS) -fPIC
 #CFLAGS += $(PRIVATE_EXTRACFLAGS)
 CFLAGS += -I. -I$(TOP)/shared -I$(SRCBASE)/include
 
@@ -148,7 +148,7 @@ ifeq ($(RTCONFIG_AHS),y)
 OBJS += $(if $(wildcard notify_ahs.c),notify_ahs.o,prebuild/notify_ahs.o)
 endif
 ifeq ($(RTCONFIG_AMAS_WGN),y)
-OBJS += $(if $(wildcard amas_wgn_shared.c),amas_wgn_shared.o,prebuild/amas_wgn_shared.o)
+OBJS += amas_wgn_shared.o
 endif
 ifeq ($(RTCONFIG_RGBLED),y)
 OBJS += $(if $(wildcard aura_rgb.c),aura_rgb.o,prebuild/aura_rgb.o)
@@ -250,7 +250,6 @@ OBJS += api-tclinux.o
 endif
 ifeq ($(RTCONFIG_EXT_RTL8365MB),y)
 CFLAGS += -I$(LINUXDIR)/drivers/char/rtl8365mb
-CFLAGS += -I$(SRCBASE)/common/include/proto
 OBJS += rtl_8365mb.o
 endif
 ifeq ($(RTCONFIG_EXT_RTL8370MB),y)
@@ -411,11 +410,8 @@ else
 vpath %.c sysdeps/broadcom  $(SRCBASE)/shared/bcmwifi/src
 ifeq ($(RTCONFIG_HND_ROUTER_AX),y)
 OBJS += bcmxtlv.o bcmutils.o
-ifeq ($(or $(RTAX55),$(RTAX1800),$(RTAX58U_V2),$(RTAX3000N),$(BR63)),y)
+ifeq ($(or $(RTAX55),$(RTAX1800),$(RTAX58U_V2),$(RTAX3000N)),y)
 OBJS += rtkswitch.o
-endif
-ifeq ($(and $(BR63),$(NEW_SWITCH_ORDER)),y)
-CFLAGS += -DNEW_SWITCH_ORDER
 endif
 endif
 endif
@@ -424,12 +420,6 @@ ifeq ($(RTCONFIG_SW_HW_AUTH),y)
 OBJS += sw_auth.o hw_auth.o
 CFLAGS  += -I$(TOP)/sw-hw-auth
 vpath %.c $(TOP)/sw-hw-auth
-endif
-
-ifeq ($(RTCONFIG_TUNNEL),y)
-OBJS += aae_ipc.o
-CFLAGS  += -I$(TOP)/aaews
-vpath %.c $(TOP)/aaews
 endif
 
 ifeq ($(RTCONFIG_GEFORCENOW), y)
@@ -481,7 +471,7 @@ install: all
 	@echo " [shared] Installing as $(INSTALLDIR)/usr/lib/libshared.so"
 	@install -d $(INSTALLDIR)/usr/lib
 	@install -m 755 libshared.so $(INSTALLDIR)/usr/lib
-	$(if $(RTCONFIG_DEBUG),,@$(STRIP) $(INSTALLDIR)/usr/lib/libshared.so)
+	@$(STRIP) $(INSTALLDIR)/usr/lib/libshared.so
 
 clean:
 	rm -f *.o *.so *.a .*.depend *.prep sysdeps/*.o sysdeps/broadcom/*.o sysdeps/ralink/*.o sysdeps/qtn/*.o
@@ -508,11 +498,6 @@ endif
 nvpriv.o:
 ifneq ($(wildcard ./prebuild/nvpriv.o),)
 	@-cp -f ./prebuild/nvpriv.o .
-endif
-
-aae_ipc.o:
-ifeq ($(wildcard $(SRCBASE)/router/aaews/*.c),)
-	cp -f $(TOP)/aaews/prebuild/$(BUILD_NAME)/aae_ipc.o ./
 endif
 
 ifeq ($(RTCONFIG_USB),y)

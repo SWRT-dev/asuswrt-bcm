@@ -2,6 +2,7 @@
  * Copyright (C) 2017-2018 Tobias Brunner
  * Copyright (C) 2005-2009 Martin Willi
  * Copyright (C) 2005 Jan Hutter
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -167,7 +168,7 @@ static bool verify_emsa_pss_signature(private_gmp_rsa_public_key_t *this,
 	int i;
 	bool success = FALSE;
 
-	if (!params || params->salt_len < 0)
+	if (!params)
 	{
 		return FALSE;
 	}
@@ -312,7 +313,7 @@ METHOD(public_key_t, verify, bool,
 
 METHOD(public_key_t, encrypt_, bool,
 	private_gmp_rsa_public_key_t *this, encryption_scheme_t scheme,
-	void *params, chunk_t plain, chunk_t *crypto)
+	chunk_t plain, chunk_t *crypto)
 {
 	chunk_t em;
 	u_char *pos;

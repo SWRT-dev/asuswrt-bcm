@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2018 Tobias Brunner
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -21,25 +20,24 @@
 #if OPENSSL_VERSION_NUMBER >= 0x1010100fL && !defined(OPENSSL_NO_ECDH)
 
 #include "openssl_x_diffie_hellman.h"
-#include "openssl_util.h"
 
 #include <utils/debug.h>
 
-typedef struct private_key_exchange_t private_key_exchange_t;
+typedef struct private_diffie_hellman_t private_diffie_hellman_t;
 
 /**
  * Private data
  */
-struct private_key_exchange_t {
+struct private_diffie_hellman_t {
 	/**
 	 * Public interface.
 	 */
-	key_exchange_t public;
+	diffie_hellman_t public;
 
 	/**
-	 * Key exchange method.
+	 * Diffie Hellman group number.
 	 */
-	key_exchange_method_t ke;
+	diffie_hellman_group_t group;
 
 	/**
 	 * Private (public) key
@@ -47,22 +45,22 @@ struct private_key_exchange_t {
 	EVP_PKEY *key;
 
 	/**
-	 * Public key provided by peer
-	 */
-	EVP_PKEY *pub;
-
-	/**
 	 * Shared secret
 	 */
 	chunk_t shared_secret;
+
+	/**
+	 * True if shared secret is computed
+	 */
+	bool computed;
 };
 
 /**
- * Map a key exchange method to a key type
+ * Map a DH group to a key type
  */
-static int map_key_type(key_exchange_method_t ke)
+static int map_key_type(diffie_hellman_group_t group)
 {
-	switch (ke)
+	switch (group)
 	{
 		case CURVE_25519:
 			return EVP_PKEY_X25519;
@@ -73,29 +71,85 @@ static int map_key_type(key_exchange_method_t ke)
 	}
 }
 
-METHOD(key_exchange_t, set_public_key, bool,
-	private_key_exchange_t *this, chunk_t value)
+/**
+ * Compute the shared secret
+ */
+static bool compute_shared_key(private_diffie_hellman_t *this, EVP_PKEY *pub,
+							   chunk_t *shared_secret)
 {
-	if (!key_exchange_verify_pubkey(this->ke, value))
+	EVP_PKEY_CTX *ctx;
+	bool success = FALSE;
+
+	ctx = EVP_PKEY_CTX_new(this->key, NULL);
+	if (!ctx)
 	{
 		return FALSE;
 	}
 
-	EVP_PKEY_free(this->pub);
-	this->pub = EVP_PKEY_new_raw_public_key(map_key_type(this->ke), NULL,
-											value.ptr, value.len);
-	if (!this->pub)
+	if (EVP_PKEY_derive_init(ctx) <= 0)
 	{
-		DBG1(DBG_LIB, "%N public value is malformed",
-			 key_exchange_method_names, this->ke);
+		goto error;
+	}
+
+	if (EVP_PKEY_derive_set_peer(ctx, pub) <= 0)
+	{
+		goto error;
+	}
+
+	if (EVP_PKEY_derive(ctx, NULL, &shared_secret->len) <= 0)
+	{
+		goto error;
+	}
+
+	*shared_secret = chunk_alloc(shared_secret->len);
+
+	if (EVP_PKEY_derive(ctx, shared_secret->ptr, &shared_secret->len) <= 0)
+	{
+		goto error;
+	}
+
+	success = TRUE;
+
+error:
+	EVP_PKEY_CTX_free(ctx);
+	return success;
+}
+
+METHOD(diffie_hellman_t, set_other_public_value, bool,
+	private_diffie_hellman_t *this, chunk_t value)
+{
+	EVP_PKEY *pub;
+
+	if (!diffie_hellman_verify_value(this->group, value))
+	{
 		return FALSE;
 	}
+
+	pub =  EVP_PKEY_new_raw_public_key(map_key_type(this->group), NULL,
+                                       value.ptr, value.len);
+	if (!pub)
+	{
+		DBG1(DBG_LIB, "%N public value is malformed",
+			 diffie_hellman_group_names, this->group);
+		return FALSE;
+	}
+
 	chunk_clear(&this->shared_secret);
+
+	if (!compute_shared_key(this, pub, &this->shared_secret))
+	{
+		DBG1(DBG_LIB, "%N shared secret computation failed",
+			 diffie_hellman_group_names, this->group);
+		EVP_PKEY_free(pub);
+		return FALSE;
+	}
+	this->computed = TRUE;
+	EVP_PKEY_free(pub);
 	return TRUE;
 }
 
-METHOD(key_exchange_t, get_public_key, bool,
-	private_key_exchange_t *this, chunk_t *value)
+METHOD(diffie_hellman_t, get_my_public_value, bool,
+	private_diffie_hellman_t *this, chunk_t *value)
 {
 	size_t len;
 
@@ -114,11 +168,11 @@ METHOD(key_exchange_t, get_public_key, bool,
 	return TRUE;
 }
 
-METHOD(key_exchange_t, set_private_key, bool,
-	private_key_exchange_t *this, chunk_t value)
+METHOD(diffie_hellman_t, set_private_value, bool,
+	private_diffie_hellman_t *this, chunk_t value)
 {
 	EVP_PKEY_free(this->key);
-	this->key = EVP_PKEY_new_raw_private_key(map_key_type(this->ke), NULL,
+	this->key = EVP_PKEY_new_raw_private_key(map_key_type(this->group), NULL,
 											 value.ptr, value.len);
 	if (!this->key)
 	{
@@ -127,31 +181,27 @@ METHOD(key_exchange_t, set_private_key, bool,
 	return TRUE;
 }
 
-METHOD(key_exchange_t, get_shared_secret, bool,
-	private_key_exchange_t *this, chunk_t *secret)
+METHOD(diffie_hellman_t, get_shared_secret, bool,
+	private_diffie_hellman_t *this, chunk_t *secret)
 {
-	if (!this->shared_secret.len &&
-		!openssl_compute_shared_key(this->key, this->pub, &this->shared_secret))
+	if (!this->computed)
 	{
-		DBG1(DBG_LIB, "%N shared secret computation failed",
-			 key_exchange_method_names, this->ke);
 		return FALSE;
 	}
 	*secret = chunk_clone(this->shared_secret);
 	return TRUE;
 }
 
-METHOD(key_exchange_t, get_method, key_exchange_method_t,
-	private_key_exchange_t *this)
+METHOD(diffie_hellman_t, get_dh_group, diffie_hellman_group_t,
+	private_diffie_hellman_t *this)
 {
-	return this->ke;
+	return this->group;
 }
 
-METHOD(key_exchange_t, destroy, void,
-	private_key_exchange_t *this)
+METHOD(diffie_hellman_t, destroy, void,
+	private_diffie_hellman_t *this)
 {
 	EVP_PKEY_free(this->key);
-	EVP_PKEY_free(this->pub);
 	chunk_clear(&this->shared_secret);
 	free(this);
 }
@@ -159,13 +209,13 @@ METHOD(key_exchange_t, destroy, void,
 /*
  * Described in header
  */
-key_exchange_t *openssl_x_diffie_hellman_create(key_exchange_method_t ke)
+diffie_hellman_t *openssl_x_diffie_hellman_create(diffie_hellman_group_t group)
 {
-	private_key_exchange_t *this;
+	private_diffie_hellman_t *this;
 	EVP_PKEY_CTX *ctx = NULL;
 	EVP_PKEY *key = NULL;
 
-	switch (ke)
+	switch (group)
 	{
 		case CURVE_25519:
 			ctx = EVP_PKEY_CTX_new_id(NID_X25519, NULL);
@@ -182,7 +232,7 @@ key_exchange_t *openssl_x_diffie_hellman_create(key_exchange_method_t ke)
 		EVP_PKEY_keygen(ctx, &key) <= 0)
 	{
 		DBG1(DBG_LIB, "generating key for %N failed",
-			 key_exchange_method_names, ke);
+			 diffie_hellman_group_names, group);
 		EVP_PKEY_CTX_free(ctx);
 		return NULL;
 	}
@@ -191,13 +241,13 @@ key_exchange_t *openssl_x_diffie_hellman_create(key_exchange_method_t ke)
 	INIT(this,
 		.public = {
 			.get_shared_secret = _get_shared_secret,
-			.set_public_key = _set_public_key,
-			.get_public_key = _get_public_key,
-			.set_private_key = _set_private_key,
-			.get_method = _get_method,
+			.set_other_public_value = _set_other_public_value,
+			.get_my_public_value = _get_my_public_value,
+			.set_private_value = _set_private_value,
+			.get_dh_group = _get_dh_group,
 			.destroy = _destroy,
 		},
-		.ke = ke,
+		.group = group,
 		.key = key,
 	);
 	return &this->public;

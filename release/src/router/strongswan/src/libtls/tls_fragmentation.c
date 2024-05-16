@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2010 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * Copyright (C) 2010 revosec AG
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -293,11 +292,7 @@ METHOD(tls_fragmentation_t, process, status_t,
 			break;
 		case TLS_HANDSHAKE:
 			status = process_handshake(this, reader);
-			if (!this->handshake->finished(this->handshake))
-			{
-				break;
-			}
-			/* fall-through */
+			break;
 		case TLS_APPLICATION_DATA:
 			status = process_application(this, reader);
 			break;
@@ -358,9 +353,7 @@ static status_t build_handshake(private_tls_fragmentation_t *this)
 				msg->write_data24(msg, hs->get_buf(hs));
 				DBG2(DBG_TLS, "sending TLS %N handshake (%u bytes)",
 					 tls_handshake_type_names, type, hs->get_buf(hs).len);
-				if (type != TLS_FINISHED &&
-					type != TLS_KEY_UPDATE &&
-					!this->handshake->cipherspec_changed(this->handshake, FALSE))
+				if (!this->handshake->cipherspec_changed(this->handshake, FALSE))
 				{
 					hs->destroy(hs);
 					continue;

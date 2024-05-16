@@ -178,7 +178,7 @@ static av_always_inline int scaleforsame(VC1Context *v, int i, int n /* MV */,
     brfd      = FFMIN(v->brfd, 3);
     scalesame = ff_vc1_b_field_mvpred_scales[0][brfd];
 
-    n = (n * scalesame >> 8) * (1 << hpel);
+    n = (n * scalesame >> 8) << hpel;
     return n;
 }
 
@@ -191,16 +191,15 @@ static av_always_inline int scaleforopp(VC1Context *v, int n /* MV */,
     n >>= hpel;
     if (v->s.pict_type == AV_PICTURE_TYPE_B && !v->second_field && dir == 1) {
         if (dim)
-            n = scaleforopp_y(v, n, dir) * (1 << hpel);
+            n = scaleforopp_y(v, n, dir) << hpel;
         else
-            n = scaleforopp_x(v, n)      * (1 << hpel);
+            n = scaleforopp_x(v, n) << hpel;
         return n;
     }
     if (v->s.pict_type != AV_PICTURE_TYPE_B)
-        refdist = v->refdist;
+        refdist = FFMIN(v->refdist, 3);
     else
         refdist = dir ? v->brfd : v->frfd;
-    refdist = FFMIN(refdist, 3);
     scaleopp = ff_vc1_field_mvpred_scales[dir ^ v->second_field][0][refdist];
 
     n = (n * scaleopp >> 8) * (1 << hpel);
@@ -255,7 +254,7 @@ void ff_vc1_pred_mv(VC1Context *v, int n, int dmv_x, int dmv_y,
             v->luma_mv[s->mb_x][0] = v->luma_mv[s->mb_x][1] = 0;
             s->current_picture.motion_val[1][xy + 1 + v->blocks_off][0]        = 0;
             s->current_picture.motion_val[1][xy + 1 + v->blocks_off][1]        = 0;
-            s->current_picture.motion_val[1][xy + wrap + v->blocks_off][0]     = 0;
+            s->current_picture.motion_val[1][xy + wrap][0]                     = 0;
             s->current_picture.motion_val[1][xy + wrap + v->blocks_off][1]     = 0;
             s->current_picture.motion_val[1][xy + wrap + 1 + v->blocks_off][0] = 0;
             s->current_picture.motion_val[1][xy + wrap + 1 + v->blocks_off][1] = 0;
@@ -263,23 +262,18 @@ void ff_vc1_pred_mv(VC1Context *v, int n, int dmv_x, int dmv_y,
         return;
     }
 
-    a_valid = !s->first_slice_line || (n == 2 || n == 3);
-    b_valid = a_valid;
-    c_valid = s->mb_x || (n == 1 || n == 3);
+    C = s->current_picture.motion_val[dir][xy -    1 + v->blocks_off];
+    A = s->current_picture.motion_val[dir][xy - wrap + v->blocks_off];
     if (mv1) {
         if (v->field_mode && mixedmv_pic)
             off = (s->mb_x == (s->mb_width - 1)) ? -2 : 2;
         else
             off = (s->mb_x == (s->mb_width - 1)) ? -1 : 2;
-        b_valid = b_valid && s->mb_width > 1;
     } else {
         //in 4-MV mode different blocks have different B predictor position
         switch (n) {
         case 0:
-            if (v->res_rtm_flag)
-                off = s->mb_x ? -1 : 1;
-            else
-                off = s->mb_x ? -1 : 2 * s->mb_width - wrap - 1;
+            off = (s->mb_x > 0) ? -1 : 1;
             break;
         case 1:
             off = (s->mb_x == (s->mb_width - 1)) ? -1 : 1;
@@ -290,10 +284,12 @@ void ff_vc1_pred_mv(VC1Context *v, int n, int dmv_x, int dmv_y,
         case 3:
             off = -1;
         }
-        if (v->field_mode && s->mb_width == 1)
-            b_valid = b_valid && c_valid;
     }
+    B = s->current_picture.motion_val[dir][xy - wrap + off + v->blocks_off];
 
+    a_valid = !s->first_slice_line || (n == 2 || n == 3);
+    b_valid = a_valid && (s->mb_width > 1);
+    c_valid = s->mb_x || (n == 1 || n == 3);
     if (v->field_mode) {
         a_valid = a_valid && !is_intra[xy - wrap];
         b_valid = b_valid && !is_intra[xy - wrap + off];
@@ -301,7 +297,6 @@ void ff_vc1_pred_mv(VC1Context *v, int n, int dmv_x, int dmv_y,
     }
 
     if (a_valid) {
-        A = s->current_picture.motion_val[dir][xy - wrap + v->blocks_off];
         a_f = v->mv_f[dir][xy - wrap + v->blocks_off];
         num_oppfield  += a_f;
         num_samefield += 1 - a_f;
@@ -312,7 +307,6 @@ void ff_vc1_pred_mv(VC1Context *v, int n, int dmv_x, int dmv_y,
         a_f = 0;
     }
     if (b_valid) {
-        B = s->current_picture.motion_val[dir][xy - wrap + off + v->blocks_off];
         b_f = v->mv_f[dir][xy - wrap + off + v->blocks_off];
         num_oppfield  += b_f;
         num_samefield += 1 - b_f;
@@ -323,7 +317,6 @@ void ff_vc1_pred_mv(VC1Context *v, int n, int dmv_x, int dmv_y,
         b_f = 0;
     }
     if (c_valid) {
-        C = s->current_picture.motion_val[dir][xy - 1 + v->blocks_off];
         c_f = v->mv_f[dir][xy - 1 + v->blocks_off];
         num_oppfield  += c_f;
         num_samefield += 1 - c_f;
@@ -348,8 +341,6 @@ void ff_vc1_pred_mv(VC1Context *v, int n, int dmv_x, int dmv_y,
     } else
         opposite = 0;
     if (opposite) {
-        v->mv_f[dir][xy + v->blocks_off] = 1;
-        v->ref_field_type[dir] = !v->cur_field_type;
         if (a_valid && !a_f) {
             field_predA[0] = scaleforopp(v, field_predA[0], 0, dir);
             field_predA[1] = scaleforopp(v, field_predA[1], 1, dir);
@@ -362,9 +353,9 @@ void ff_vc1_pred_mv(VC1Context *v, int n, int dmv_x, int dmv_y,
             field_predC[0] = scaleforopp(v, field_predC[0], 0, dir);
             field_predC[1] = scaleforopp(v, field_predC[1], 1, dir);
         }
+        v->mv_f[dir][xy + v->blocks_off] = 1;
+        v->ref_field_type[dir] = !v->cur_field_type;
     } else {
-        v->mv_f[dir][xy + v->blocks_off] = 0;
-        v->ref_field_type[dir] = v->cur_field_type;
         if (a_valid && a_f) {
             field_predA[0] = scaleforsame(v, n, field_predA[0], 0, dir);
             field_predA[1] = scaleforsame(v, n, field_predA[1], 1, dir);
@@ -377,6 +368,8 @@ void ff_vc1_pred_mv(VC1Context *v, int n, int dmv_x, int dmv_y,
             field_predC[0] = scaleforsame(v, n, field_predC[0], 0, dir);
             field_predC[1] = scaleforsame(v, n, field_predC[1], 1, dir);
         }
+        v->mv_f[dir][xy + v->blocks_off] = 0;
+        v->ref_field_type[dir] = v->cur_field_type;
     }
 
     if (a_valid) {

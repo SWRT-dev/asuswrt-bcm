@@ -39,7 +39,7 @@ typedef struct BFIContext {
     int avflag;
 } BFIContext;
 
-static int bfi_probe(const AVProbeData * p)
+static int bfi_probe(AVProbeData * p)
 {
     /* Check file header */
     if (AV_RL32(p->buf) == MKTAG('B', 'F', '&', 'I'))
@@ -54,7 +54,7 @@ static int bfi_read_header(AVFormatContext * s)
     AVIOContext *pb = s->pb;
     AVStream *vstream;
     AVStream *astream;
-    int ret, fps, chunk_header;
+    int fps, chunk_header;
 
     /* Initialize the video codec... */
     vstream = avformat_new_stream(s, NULL);
@@ -69,12 +69,7 @@ static int bfi_read_header(AVFormatContext * s)
     /* Set the total number of frames. */
     avio_skip(pb, 8);
     chunk_header           = avio_rl32(pb);
-    if (chunk_header < 3)
-        return AVERROR_INVALIDDATA;
-
     bfi->nframes           = avio_rl32(pb);
-    if (bfi->nframes < 0)
-        return AVERROR_INVALIDDATA;
     avio_rl32(pb);
     avio_rl32(pb);
     avio_rl32(pb);
@@ -85,9 +80,12 @@ static int bfi_read_header(AVFormatContext * s)
 
     /*Load the palette to extradata */
     avio_skip(pb, 8);
-    ret = ff_get_extradata(s, vstream->codecpar, pb, 768);
-    if (ret < 0)
-        return ret;
+    vstream->codecpar->extradata      = av_malloc(768);
+    if (!vstream->codecpar->extradata)
+        return AVERROR(ENOMEM);
+    vstream->codecpar->extradata_size = 768;
+    avio_read(pb, vstream->codecpar->extradata,
+               vstream->codecpar->extradata_size);
 
     astream->codecpar->sample_rate = avio_rl32(pb);
     if (astream->codecpar->sample_rate <= 0) {

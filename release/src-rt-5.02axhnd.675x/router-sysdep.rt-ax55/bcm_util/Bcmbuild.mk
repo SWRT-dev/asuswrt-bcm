@@ -13,8 +13,6 @@ LIB_INSTALL_DIR       := $(BCM_FSBUILD_DIR)/public/lib
 HEADER_INSTALL_DIR    := $(BCM_FSBUILD_DIR)/public/include
 ALLOWED_INCLUDE_PATHS := -I . \
                          -I $(BUILD_DIR)/userspace/public/include \
-                         -I $(INC_BRCMDRIVER_PUB_PATH)/$(BRCM_BOARD)  \
-                         -I $(INC_BRCMSHARED_PUB_PATH)/$(BRCM_BOARD)  \
                          -I $(HEADER_INSTALL_DIR)
 
 export ARCH CFLAGS LIB_INSTALL_DIR HEADER_INSTALL_DIR

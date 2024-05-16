@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2012 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * Copyright (C) 2012 revosec AG
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -32,7 +31,7 @@ typedef struct unity_provider_t unity_provider_t;
 struct unity_provider_t {
 
 	/**
-	 * Implements attribute_provider_t interface.
+	 * Implements attribute_provier_t interface.
 	 */
 	attribute_provider_t provider;
 

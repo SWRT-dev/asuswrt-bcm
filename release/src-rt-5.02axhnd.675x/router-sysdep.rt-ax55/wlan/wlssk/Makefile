@@ -13,25 +13,6 @@ BUILD_DIR:=$(subst /userspace, /userspace,$(CURR_DIR))
 BUILD_DIR:=$(word 1, $(BUILD_DIR))
 include $(BUILD_DIR)/make.common
 
-
-WIFI_SOURCE_DIR=$(BUILD_DIR)/bcmdrivers/broadcom/net/wl/impl$(BCM_WLIMPL)
-
-ifneq ($(strip $(BUILD_RDKWIFI)),)
-ifneq ($(wildcard $(WIFI_SOURCE_DIR)/cmwifi/apps/nvram),)
-CFLAGS += -DWLAN_CM_NVRAM_EXT -DCMWIFI_NVRAM_ENC
-endif
-endif
-
-ifneq ($(strip $(BUILD_BRCM_BDK)),)
-# Remove all mdm_cbk_* and bcm_*_hal libs from CMS_CORE_LIBS.  The local
-# Makefile will specify which mdm_cbk and hal libs it needs.
-MDM_CORE_LIBS := $(patsubst -lmdm_cbk_%,,$(CMS_CORE_LIBS))
-MDM_CORE_LIBS := $(patsubst -lbcm_%_hal,,$(MDM_CORE_LIBS))
-MDM_CORE_LIBS += -lmdm_cbk_wifi
-else
-MDM_CORE_LIBS := $(CMS_CORE_LIBS)
-endif
-
 IMPL=$(shell readlink $(BUILD_DIR)/bcmdrivers/broadcom/net/wl/bcm9$(BRCM_CHIP) | sed 's/[^0-9]//g')
 WL_IMPL_PLUS= $(strip $(shell if [ "$(IMPL)" -ge 24 ]; then echo Y; fi ;))
 WL_SRC_BASE:=/main/src
@@ -44,20 +25,15 @@ OBJS = main.o debug.o wlssk.o service.o event.o wlsyscall.o defaults.o
 
 LIBS = -L$(INSTALL_DIR)/lib -L$(INSTALL_DIR)/usr/lib -ldl
 
-ifneq ($(strip $(BUILD_BRCM_CMS))$(strip $(BUILD_BRCM_BDK)),)
- OBJS += cms.o cms_linkstatus.o thread.o
- LIBS += -lssk_util
+ifneq ($(strip $(BUILD_BRCM_CMS)),)
+ OBJS += cms.o
+ CFLAGS += -DBUILD_BRCM_CMS
  ifneq ($(strip $(BUILD_PMD)),)
  LIBS += -Wl,-rpath,$(BCM_FSBUILD_DIR)/private/lib:$(BCM_FSBUILD_DIR)/public/lib -L$(BCM_FSBUILD_DIR)/private/lib -lpmd -L$(BCM_FSBUILD_DIR)/public/lib -ljson-c
  endif
- LIBS += -lcms_msg $(CMS_COMMON_LIBS) -lcms_dal -lcms_msg $(CMS_COMMON_LIBS) $(MDM_CORE_LIBS)
+ LIBS += -lcms_msg $(CMS_COMMON_LIBS) -lcms_dal -lcms_cli -lcms_msg $(CMS_COMMON_LIBS) $(CMS_CORE_LIBS)
  ifneq ($(strip $(BUILD_BRCM_UNFWLCFG)),)
-  LIBS += -lstaged -ljson-c -lpthread
-  ifneq ($(strip $(BUILD_CUSTOMER)),)
-   LIBS += -lwlmdm_customer -lssk_util_customer -lmdm_cbk_customer
-  else
-   LIBS += -lwlmdm
-  endif
+  LIBS += -lwlmdm -lstaged -ljson-c -lpthread
  endif
 else
  LIBS += -lwlsysutil
@@ -83,23 +59,13 @@ ifneq ($(strip $(BUILD_BRCM_HOSTAPD)),)
 CFLAGS += -DCONFIG_HOSTAPD  
 LIBS += -lbcmcrypto -lnv2hapdcfg -L$(INSTALL_DIR)/usr/lib
 endif
-ifneq ($(strip $(BUILD_BRCM_OPENWRT)),)
-CFLAGS += -DCONFIG_BRCM_OPENWRT
 endif
-endif
-LIBS += -lbcm_flashutil -lbcm_boardctl -lbcm_util -lsys_util -lgen_util
+LIBS += -lbcm_flashutil -lbcm_boardctl -lgen_util -lbcm_util -lsys_util
 
-ifneq ($(strip $(RDK_BUILD)),)
-CFLAGS += -DRDK_BUILD
-endif
-
-ifneq ($(strip $(BUILD_WLDATAELD)),)
-CFLAGS += -DBUILD_WLDATAELD
-endif
 
 all dynamic: $(EXE)
 
-ifneq ($(strip $(BUILD_BRCM_CMS))$(strip $(BUILD_BRCM_BDK)),)
+ifneq ($(strip $(BUILD_BRCM_CMS)),)
 install: all
 else
 install: all scripts-install
@@ -131,6 +97,7 @@ scripts-clean:
 ifneq ($(strip $(HNDAPPS_IN_COMP)),)
 CFLAGS += -I$(HNDAPPS_DIR)/shared  -I$(HNDAPPS_DIR)/../wlioctl/include -I$(HNDAPPS_DIR)/../proto/include
 CFLAGS += -I$(HNDAPPS_DIR)/../math/include 
+CFLAGS += -I$(HNDAPPS_DIR)/dpsta -I$(HNDAPPS_DIR)/shared
 endif
 
 ALLOWED_INCLUDE_PATHS += -I. \
@@ -174,9 +141,6 @@ ifeq ($(strip $(BCA_CPEROUTER)),)
 CFLAGS +=-DWIRELESS -DSUPPORT_MIMO -DDSLCPE_SHLIB -DBCMWPA2
 else
 CFLAGS +=-DWIRELESS -DSUPPORT_MIMO -DBCMWPA2
-ifneq ($(strip $(BUILD_BCM_WLAN_DPDCTL)),)
-CFLAGS += -DBUILD_BCM_WLAN_DPDCTL
-endif
 endif
 CFLAGS += -DWMF
 CFLAGS += -DDUCATI

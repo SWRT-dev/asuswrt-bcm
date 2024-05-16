@@ -192,7 +192,7 @@ int wl_handle_blog_sinit(struct wl_info *wl, struct sk_buff *skb)
 #endif
 		} 
 		else if (PKT_DROP == blog_ret) {
-			PKTFREE(wl->osh, skb, TRUE);
+			PKTFREE(NULL, skb, TRUE);
 			return 0;
 		}
 		PKTCLRFCDONE(skb);

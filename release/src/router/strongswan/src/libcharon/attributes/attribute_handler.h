@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2009 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -38,7 +37,7 @@ struct attribute_handler_t {
 	/**
 	 * Handle a configuration attribute.
 	 *
-	 * After receiving a configuration attribute, it is passed to each
+	 * After receiving a configuration attriubte, it is passed to each
 	 * attribute handler until it is handled.
 	 *
 	 * @param ike_sa	IKE_SA under which attribute is received

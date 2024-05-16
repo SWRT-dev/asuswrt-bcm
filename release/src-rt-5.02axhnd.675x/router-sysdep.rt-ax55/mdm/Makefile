@@ -52,8 +52,6 @@ endif
 # license implications of what you are doing.
 #
 ALLOWED_INCLUDE_PATHS := -I.\
-                         -I $(BCM_FSBUILD_DIR)/public/include \
-                         -I $(BCM_FSBUILD_DIR)/private/include \
                          -I$(BUILD_DIR)/userspace/public/include  \
                          -I$(BUILD_DIR)/userspace/public/include/$(OALDIR) \
                          -I$(BUILD_DIR)/userspace/private/include  \

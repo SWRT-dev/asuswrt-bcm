@@ -25,7 +25,7 @@
 #include "avio.h"
 #include "internal.h"
 
-static int fsb_probe(const AVProbeData *p)
+static int fsb_probe(AVProbeData *p)
 {
     if (memcmp(p->buf, "FSB", 3) || p->buf[3] - '0' < 1 || p->buf[3] - '0' > 5)
         return 0;
@@ -41,7 +41,6 @@ static int fsb_read_header(AVFormatContext *s)
     int64_t offset;
     AVCodecParameters *par;
     AVStream *st = avformat_new_stream(s, NULL);
-    int ret;
 
     avio_skip(pb, 3); // "FSB"
     version = avio_r8(pb) - '0';
@@ -87,9 +86,9 @@ static int fsb_read_header(AVFormatContext *s)
             par->block_align = 8 * par->channels;
             if (par->channels > INT_MAX / 32)
                 return AVERROR_INVALIDDATA;
-            ret = ff_alloc_extradata(par, 32 * par->channels);
-            if (ret < 0)
-                return ret;
+            ff_alloc_extradata(par, 32 * par->channels);
+            if (!par->extradata)
+                return AVERROR(ENOMEM);
             avio_seek(pb, 0x68, SEEK_SET);
             for (c = 0; c < par->channels; c++) {
                 avio_read(pb, par->extradata + 32 * c, 32);
@@ -131,18 +130,18 @@ static int fsb_read_header(AVFormatContext *s)
 
         switch (par->codec_id) {
         case AV_CODEC_ID_XMA2:
-            ret = ff_alloc_extradata(par, 34);
-            if (ret < 0)
-                return ret;
+            ff_alloc_extradata(par, 34);
+            if (!par->extradata)
+                return AVERROR(ENOMEM);
             memset(par->extradata, 0, 34);
             par->block_align = 2048;
             break;
         case AV_CODEC_ID_ADPCM_THP:
             if (par->channels > INT_MAX / 32)
                 return AVERROR_INVALIDDATA;
-            ret = ff_alloc_extradata(par, 32 * par->channels);
-            if (ret < 0)
-                return ret;
+            ff_alloc_extradata(par, 32 * par->channels);
+            if (!par->extradata)
+                return AVERROR(ENOMEM);
             avio_seek(pb, 0x80, SEEK_SET);
             for (c = 0; c < par->channels; c++) {
                 avio_read(pb, par->extradata + 32 * c, 32);

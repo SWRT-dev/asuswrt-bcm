@@ -1,8 +1,7 @@
 /*
  * Copyright (C) 2008 Tobias Brunner
  * Copyright (C) 2006-2009 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -28,7 +27,7 @@ typedef struct pubkey_authenticator_t pubkey_authenticator_t;
 #include <sa/authenticator.h>
 
 /**
- * Implementation of authenticator_t using public key authentication.
+ * Implementation of authenticator_t using public key authenitcation.
  */
 struct pubkey_authenticator_t {
 

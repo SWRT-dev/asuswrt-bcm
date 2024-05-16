@@ -32,7 +32,7 @@
 #include "libavutil/avstring.h"
 #include "urldecode.h"
 
-char *ff_urldecode(const char *url, int decode_plus_sign)
+char *ff_urldecode(const char *url)
 {
     int s = 0, d = 0, url_len = 0;
     char c;
@@ -74,7 +74,7 @@ char *ff_urldecode(const char *url, int decode_plus_sign)
                 dest[d++] = c2;
                 dest[d++] = c3;
             }
-        } else if (c == '+' && decode_plus_sign) {
+        } else if (c == '+') {
             dest[d++] = ' ';
         } else {
             dest[d++] = c;

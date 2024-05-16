@@ -53,7 +53,7 @@ Vici::Transport - Perl extension for communicating via a strongSwan VICI socket
 
 =head1 SYNOPSIS
 
-use Vici::Transport;
+  use Vici::Transport;
 
 =head1 DESCRIPTION
 
@@ -69,7 +69,9 @@ None by default.
 
 =head1 SEE ALSO
 
-strongSwan Documentation:  https://docs.strongswan.org/docs/5.9/plugins/vici.html
+strongSwan Wiki:  https://wiki.strongswan.org/projects/strongswan/wiki/Vici
+
+strongSwan Mailing list:  users@lists.strongswan.org
 
 =head1 AUTHOR
 

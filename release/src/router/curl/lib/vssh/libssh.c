@@ -5,7 +5,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 2017 - 2022 Red Hat, Inc.
+ * Copyright (C) 2017 - 2021 Red Hat, Inc.
  *
  * Authors: Nikos Mavrogiannopoulos, Tomas Mraz, Stanislav Zidek,
  *          Robert Kolcun, Andreas Schneider
@@ -21,8 +21,6 @@
  * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
  * KIND, either express or implied.
  *
- * SPDX-License-Identifier: curl
- *
  ***************************************************************************/
 
 #include "curl_setup.h"
@@ -33,6 +31,10 @@
 
 #include <libssh/libssh.h>
 #include <libssh/sftp.h>
+
+#ifdef HAVE_FCNTL_H
+#include <fcntl.h>
+#endif
 
 #ifdef HAVE_NETINET_IN_H
 #include <netinet/in.h>
@@ -72,6 +74,7 @@
 #include "strcase.h"
 #include "vtls/vtls.h"
 #include "connect.h"
+#include "strerror.h"
 #include "inet_ntop.h"
 #include "parsedate.h"          /* for the week day and month names */
 #include "sockaddr.h"           /* required for Curl_sockaddr_storage */
@@ -79,22 +82,18 @@
 #include "multiif.h"
 #include "select.h"
 #include "warnless.h"
-#include "curl_path.h"
 
-#ifdef HAVE_SYS_STAT_H
+/* for permission and open flags */
+#include <sys/types.h>
 #include <sys/stat.h>
-#endif
-#ifdef HAVE_UNISTD_H
 #include <unistd.h>
-#endif
-#ifdef HAVE_FCNTL_H
 #include <fcntl.h>
-#endif
 
 /* The last 3 #include files should be in this order */
 #include "curl_printf.h"
 #include "curl_memory.h"
 #include "memdebug.h"
+#include "curl_path.h"
 
 /* A recent macro provided by libssh. Or make our own. */
 #ifndef SSH_STRING_FREE_CHAR
@@ -105,14 +104,6 @@
       x = NULL;                                 \
     }                                           \
   } while(0)
-#endif
-
-/* These stat values may not be the same as the user's S_IFMT / S_IFLNK */
-#ifndef SSH_S_IFMT
-#define SSH_S_IFMT   00170000
-#endif
-#ifndef SSH_S_IFLNK
-#define SSH_S_IFLNK  0120000
 #endif
 
 /* Local functions: */
@@ -1208,7 +1199,7 @@ static CURLcode myssh_statemach_act(struct Curl_easy *data, bool *block)
     }
 
     case SSH_SFTP_TRANS_INIT:
-      if(data->state.upload)
+      if(data->set.upload)
         state(data, SSH_SFTP_UPLOAD_INIT);
       else {
         if(protop->path[strlen(protop->path)-1] == '/')
@@ -1478,8 +1469,8 @@ static CURLcode myssh_statemach_act(struct Curl_easy *data, bool *block)
           memcpy(sshc->readdir_line, sshc->readdir_longentry,
                  sshc->readdir_currLen);
           if((sshc->readdir_attrs->flags & SSH_FILEXFER_ATTR_PERMISSIONS) &&
-             ((sshc->readdir_attrs->permissions & SSH_S_IFMT) ==
-              SSH_S_IFLNK)) {
+             ((sshc->readdir_attrs->permissions & S_IFMT) ==
+              S_IFLNK)) {
             sshc->readdir_linkPath = aprintf("%s%s", protop->path,
                                              sshc->readdir_filename);
 
@@ -1821,7 +1812,7 @@ static CURLcode myssh_statemach_act(struct Curl_easy *data, bool *block)
       /* Functions from the SCP subsystem cannot handle/return SSH_AGAIN */
       ssh_set_blocking(sshc->ssh_session, 1);
 
-      if(data->state.upload) {
+      if(data->set.upload) {
         if(data->state.infilesize < 0) {
           failf(data, "SCP requires a known file size for upload");
           sshc->actualcode = CURLE_UPLOAD_FAILED;
@@ -1926,7 +1917,7 @@ static CURLcode myssh_statemach_act(struct Curl_easy *data, bool *block)
         break;
       }
     case SSH_SCP_DONE:
-      if(data->state.upload)
+      if(data->set.upload)
         state(data, SSH_SCP_SEND_EOF);
       else
         state(data, SSH_SCP_CHANNEL_FREE);
@@ -1972,13 +1963,6 @@ static CURLcode myssh_statemach_act(struct Curl_easy *data, bool *block)
       }
 
       ssh_disconnect(sshc->ssh_session);
-      if(!ssh_version(SSH_VERSION_INT(0, 10, 0))) {
-        /* conn->sock[FIRSTSOCKET] is closed by ssh_disconnect behind our back,
-           explicitly mark it as closed with the memdebug macro. This libssh
-           bug is fixed in 0.10.0. */
-        fake_sclose(conn->sock[FIRSTSOCKET]);
-        conn->sock[FIRSTSOCKET] = CURL_SOCKET_BAD;
-      }
 
       SSH_STRING_FREE_CHAR(sshc->homedir);
       data->state.most_recent_ftp_entrypath = NULL;
@@ -2070,9 +2054,6 @@ static int myssh_getsock(struct Curl_easy *data,
     bitmap |= GETSOCK_READSOCK(FIRSTSOCKET);
 
   if(conn->waitfor & KEEP_SEND)
-    bitmap |= GETSOCK_WRITESOCK(FIRSTSOCKET);
-
-  if(!conn->waitfor)
     bitmap |= GETSOCK_WRITESOCK(FIRSTSOCKET);
 
   return bitmap;
@@ -2707,7 +2688,7 @@ static void sftp_quote(struct Curl_easy *data)
    */
   cp = strchr(cmd, ' ');
   if(!cp) {
-    failf(data, "Syntax error in SFTP command. Supply parameter(s)");
+    failf(data, "Syntax error in SFTP command. Supply parameter(s)!");
     state(data, SSH_SFTP_CLOSE);
     sshc->nextstate = SSH_NO_STATE;
     sshc->actualcode = CURLE_QUOTE_ERROR;
@@ -2961,7 +2942,7 @@ void Curl_ssh_cleanup(void)
 
 void Curl_ssh_version(char *buffer, size_t buflen)
 {
-  (void)msnprintf(buffer, buflen, "libssh/%s", ssh_version(0));
+  (void)msnprintf(buffer, buflen, "libssh/%s", CURL_LIBSSH_VERSION);
 }
 
 #endif                          /* USE_LIBSSH */

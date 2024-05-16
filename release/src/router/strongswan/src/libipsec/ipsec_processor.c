@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2012 Tobias Brunner
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -210,7 +209,7 @@ static job_requeue_t process_outbound(private_ipsec_processor_t *this)
 	sa = ipsec->sas->checkout_by_reqid(ipsec->sas, policy->get_reqid(policy),
 									   FALSE);
 	if (!sa)
-	{	/* TODO-IPSEC: send an acquire to upper layer */
+	{	/* TODO-IPSEC: send an acquire to uppper layer */
 		DBG1(DBG_ESP, "could not find an outbound IPsec SA for reqid {%u}, "
 			 "dropping packet", policy->get_reqid(policy));
 		packet->destroy(packet);

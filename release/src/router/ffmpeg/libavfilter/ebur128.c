@@ -49,7 +49,6 @@
 
 #include "libavutil/common.h"
 #include "libavutil/mem.h"
-#include "libavutil/mem_internal.h"
 #include "libavutil/thread.h"
 
 #define CHECK_ERROR(condition, errorcode, goto_point)                          \
@@ -156,7 +155,7 @@ static int ebur128_init_channel_map(FFEBUR128State * st)
 {
     size_t i;
     st->d->channel_map =
-        (int *) av_malloc_array(st->channels, sizeof(*st->d->channel_map));
+        (int *) av_malloc_array(st->channels, sizeof(int));
     if (!st->d->channel_map)
         return AVERROR(ENOMEM);
     if (st->channels == 4) {
@@ -222,17 +221,17 @@ FFEBUR128State *ff_ebur128_init(unsigned int channels,
     int errcode;
     FFEBUR128State *st;
 
-    st = (FFEBUR128State *) av_malloc(sizeof(*st));
+    st = (FFEBUR128State *) av_malloc(sizeof(FFEBUR128State));
     CHECK_ERROR(!st, 0, exit)
     st->d = (struct FFEBUR128StateInternal *)
-        av_malloc(sizeof(*st->d));
+        av_malloc(sizeof(struct FFEBUR128StateInternal));
     CHECK_ERROR(!st->d, 0, free_state)
     st->channels = channels;
     errcode = ebur128_init_channel_map(st);
     CHECK_ERROR(errcode, 0, free_internal)
 
     st->d->sample_peak =
-        (double *) av_mallocz_array(channels, sizeof(*st->d->sample_peak));
+        (double *) av_mallocz_array(channels, sizeof(double));
     CHECK_ERROR(!st->d->sample_peak, 0, free_channel_map)
 
     st->samplerate = samplerate;
@@ -254,16 +253,16 @@ FFEBUR128State *ff_ebur128_init(unsigned int channels,
     }
     st->d->audio_data =
         (double *) av_mallocz_array(st->d->audio_data_frames,
-                                    st->channels * sizeof(*st->d->audio_data));
+                                    st->channels * sizeof(double));
     CHECK_ERROR(!st->d->audio_data, 0, free_sample_peak)
 
     ebur128_init_filter(st);
 
     st->d->block_energy_histogram =
-        av_mallocz(1000 * sizeof(*st->d->block_energy_histogram));
+        av_mallocz(1000 * sizeof(unsigned long));
     CHECK_ERROR(!st->d->block_energy_histogram, 0, free_audio_data)
     st->d->short_term_block_energy_histogram =
-        av_mallocz(1000 * sizeof(*st->d->short_term_block_energy_histogram));
+        av_mallocz(1000 * sizeof(unsigned long));
     CHECK_ERROR(!st->d->short_term_block_energy_histogram, 0,
                 free_block_energy_histogram)
     st->d->short_term_frame_counter = 0;
@@ -276,7 +275,7 @@ FFEBUR128State *ff_ebur128_init(unsigned int channels,
     if (ff_thread_once(&histogram_init, &init_histogram) != 0)
         goto free_short_term_block_energy_histogram;
 
-    st->d->data_ptrs = av_malloc_array(channels, sizeof(*st->d->data_ptrs));
+    st->d->data_ptrs = av_malloc_array(channels, sizeof(void *));
     CHECK_ERROR(!st->d->data_ptrs, 0,
                 free_short_term_block_energy_histogram);
 
@@ -362,11 +361,14 @@ static void ebur128_filter_##type(FFEBUR128State* st, const type** srcs,        
         st->d->v[ci][1] = fabs(st->d->v[ci][1]) < DBL_MIN ? 0.0 : st->d->v[ci][1]; \
     }                                                                              \
 }
+EBUR128_FILTER(short, -((double)SHRT_MIN))
+EBUR128_FILTER(int, -((double)INT_MIN))
+EBUR128_FILTER(float,  1.0)
 EBUR128_FILTER(double, 1.0)
 
 static double ebur128_energy_to_loudness(double energy)
 {
-    return 10 * log10(energy) - 0.691;
+    return 10 * (log(energy) / log(10.0)) - 0.691;
 }
 
 static size_t find_histogram_index(double energy)
@@ -456,8 +458,8 @@ int ff_ebur128_set_channel(FFEBUR128State * st,
 }
 
 static int ebur128_energy_shortterm(FFEBUR128State * st, double *out);
-#define EBUR128_ADD_FRAMES_PLANAR(type)                                                \
-static void ebur128_add_frames_planar_##type(FFEBUR128State* st, const type** srcs,    \
+#define FF_EBUR128_ADD_FRAMES_PLANAR(type)                                             \
+void ff_ebur128_add_frames_planar_##type(FFEBUR128State* st, const type** srcs,        \
                                  size_t frames, int stride) {                          \
     size_t src_index = 0;                                                              \
     while (frames > 0) {                                                               \
@@ -499,7 +501,10 @@ static void ebur128_add_frames_planar_##type(FFEBUR128State* st, const type** sr
         }                                                                              \
     }                                                                                  \
 }
-EBUR128_ADD_FRAMES_PLANAR(double)
+FF_EBUR128_ADD_FRAMES_PLANAR(short)
+FF_EBUR128_ADD_FRAMES_PLANAR(int)
+FF_EBUR128_ADD_FRAMES_PLANAR(float)
+FF_EBUR128_ADD_FRAMES_PLANAR(double)
 #define FF_EBUR128_ADD_FRAMES(type)                                            \
 void ff_ebur128_add_frames_##type(FFEBUR128State* st, const type* src,         \
                                     size_t frames) {                           \
@@ -507,8 +512,11 @@ void ff_ebur128_add_frames_##type(FFEBUR128State* st, const type* src,         \
   const type **buf = (const type**)st->d->data_ptrs;                           \
   for (i = 0; i < st->channels; i++)                                           \
     buf[i] = src + i;                                                          \
-  ebur128_add_frames_planar_##type(st, buf, frames, st->channels);             \
+  ff_ebur128_add_frames_planar_##type(st, buf, frames, st->channels);          \
 }
+FF_EBUR128_ADD_FRAMES(short)
+FF_EBUR128_ADD_FRAMES(int)
+FF_EBUR128_ADD_FRAMES(float)
 FF_EBUR128_ADD_FRAMES(double)
 
 static int ebur128_calc_relative_threshold(FFEBUR128State **sts, size_t size,
@@ -597,6 +605,12 @@ int ff_ebur128_loudness_global(FFEBUR128State * st, double *out)
     return ebur128_gated_loudness(&st, 1, out);
 }
 
+int ff_ebur128_loudness_global_multiple(FFEBUR128State ** sts, size_t size,
+                                        double *out)
+{
+    return ebur128_gated_loudness(sts, size, out);
+}
+
 static int ebur128_energy_in_interval(FFEBUR128State * st,
                                       size_t interval_frames, double *out)
 {
@@ -613,10 +627,41 @@ static int ebur128_energy_shortterm(FFEBUR128State * st, double *out)
                                       out);
 }
 
+int ff_ebur128_loudness_momentary(FFEBUR128State * st, double *out)
+{
+    double energy;
+    int error = ebur128_energy_in_interval(st, st->d->samples_in_100ms * 4,
+                                           &energy);
+    if (error) {
+        return error;
+    } else if (energy <= 0.0) {
+        *out = -HUGE_VAL;
+        return 0;
+    }
+    *out = ebur128_energy_to_loudness(energy);
+    return 0;
+}
+
 int ff_ebur128_loudness_shortterm(FFEBUR128State * st, double *out)
 {
     double energy;
     int error = ebur128_energy_shortterm(st, &energy);
+    if (error) {
+        return error;
+    } else if (energy <= 0.0) {
+        *out = -HUGE_VAL;
+        return 0;
+    }
+    *out = ebur128_energy_to_loudness(energy);
+    return 0;
+}
+
+int ff_ebur128_loudness_window(FFEBUR128State * st,
+                               unsigned long window, double *out)
+{
+    double energy;
+    size_t interval_frames = st->samplerate * window / 1000;
+    int error = ebur128_energy_in_interval(st, interval_frames, &energy);
     if (error) {
         return error;
     } else if (energy <= 0.0) {

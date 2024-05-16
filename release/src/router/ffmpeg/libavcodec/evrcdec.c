@@ -935,7 +935,7 @@ AVCodec ff_evrc_decoder = {
     .id             = AV_CODEC_ID_EVRC,
     .init           = evrc_decode_init,
     .decode         = evrc_decode_frame,
-    .capabilities   = AV_CODEC_CAP_DR1 | AV_CODEC_CAP_CHANNEL_CONF,
+    .capabilities   = AV_CODEC_CAP_DR1,
     .priv_data_size = sizeof(EVRCContext),
     .priv_class     = &evrcdec_class,
 };

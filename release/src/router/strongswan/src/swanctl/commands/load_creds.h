@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2014 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * Copyright (C) 2014 revosec AG
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -13,9 +12,6 @@
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.
  */
-
-#ifndef LOAD_CREDS_H_
-#define LOAD_CREDS_H_
 
 #include "command.h"
 
@@ -30,5 +26,3 @@
  */
 int load_creds_cfg(vici_conn_t *conn, command_format_options_t format,
 				   settings_t *cfg, bool clear, bool noprompt);
-
-#endif /** LOAD_CREDS_H_ */

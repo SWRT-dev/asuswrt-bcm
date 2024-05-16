@@ -1,8 +1,7 @@
 /*
  * Copyright (C) 2008-2016 Tobias Brunner
  * Copyright (C) 2007 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -166,13 +165,12 @@ struct kernel_net_t {
 	 * @param gateway		gateway for this route
 	 * @param src_ip		source ip of the route
 	 * @param if_name		name of the interface the route is bound to
-	 * @param pass			TRUE if route is installed for passthrough policy
 	 * @return				SUCCESS if operation completed
 	 *						ALREADY_DONE if the route already exists
 	 */
 	status_t (*add_route) (kernel_net_t *this, chunk_t dst_net,
 						   uint8_t prefixlen, host_t *gateway, host_t *src_ip,
-						   char *if_name, bool pass);
+						   char *if_name);
 
 	/**
 	 * Delete a route.
@@ -182,12 +180,11 @@ struct kernel_net_t {
 	 * @param gateway		gateway for this route
 	 * @param src_ip		source ip of the route
 	 * @param if_name		name of the interface the route is bound to
-	 * @param pass			TRUE if route was installed for passthrough policy
 	 * @return				SUCCESS if operation completed
 	 */
 	status_t (*del_route) (kernel_net_t *this, chunk_t dst_net,
 						   uint8_t prefixlen, host_t *gateway, host_t *src_ip,
-						   char *if_name, bool pass);
+						   char *if_name);
 
 	/**
 	 * Destroy the implementation.

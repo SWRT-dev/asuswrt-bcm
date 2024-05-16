@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2011 Tobias Brunner
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -41,14 +40,14 @@ struct private_pkcs11_dh_t {
 	pkcs11_library_t *lib;
 
 	/**
-	 * Session handle for this object
+	 * Session handle for this objct
 	 */
 	CK_SESSION_HANDLE session;
 
 	/**
-	 * Diffie-Hellman group number.
+	 * Diffie Hellman group number.
 	 */
-	key_exchange_method_t group;
+	diffie_hellman_group_t group;
 
 	/**
 	 * Handle for own private value
@@ -59,11 +58,6 @@ struct private_pkcs11_dh_t {
 	 * Own public value
 	 */
 	chunk_t pub_key;
-
-	/**
-	 * Public value provided by peer
-	 */
-	chunk_t other;
 
 	/**
 	 * Shared secret
@@ -119,15 +113,14 @@ static bool derive_secret(private_pkcs11_dh_t *this, chunk_t other)
 	return TRUE;
 }
 
-METHOD(key_exchange_t, set_public_key, bool,
+METHOD(diffie_hellman_t, set_other_public_value, bool,
 	private_pkcs11_dh_t *this, chunk_t value)
 {
-	if (!key_exchange_verify_pubkey(this->group, value))
+	if (!diffie_hellman_verify_value(this->group, value))
 	{
 		return FALSE;
 	}
 
-	chunk_clear(&this->other);
 	switch (this->group)
 	{
 		case ECP_192_BIT:
@@ -146,28 +139,32 @@ METHOD(key_exchange_t, set_public_key, bool,
 				pubkey.len,
 				pubkey.ptr,
 			};
-			this->other = chunk_clone(chunk_from_thing(params));
+
+			if (!lib->settings->get_bool(lib->settings,
+									"%s.ecp_x_coordinate_only", TRUE, lib->ns))
+			{	/* we only get the x coordinate back */
+				return FALSE;
+			}
+			value = chunk_from_thing(params);
 			break;
 		}
 		default:
-			this->other = chunk_clone(value);
 			break;
 	}
-	return TRUE;
+	return derive_secret(this, value);
 }
 
-METHOD(key_exchange_t, get_public_key, bool,
+METHOD(diffie_hellman_t, get_my_public_value, bool,
 	private_pkcs11_dh_t *this, chunk_t *value)
 {
 	*value = chunk_clone(this->pub_key);
 	return TRUE;
 }
 
-METHOD(key_exchange_t, get_shared_secret, bool,
+METHOD(diffie_hellman_t, get_shared_secret, bool,
 	private_pkcs11_dh_t *this, chunk_t *secret)
 {
-	if (!this->secret.ptr &&
-		!derive_secret(this, this->other))
+	if (!this->secret.ptr)
 	{
 		return FALSE;
 	}
@@ -175,19 +172,18 @@ METHOD(key_exchange_t, get_shared_secret, bool,
 	return TRUE;
 }
 
-METHOD(key_exchange_t, get_method, key_exchange_method_t,
+METHOD(diffie_hellman_t, get_dh_group, diffie_hellman_group_t,
 	private_pkcs11_dh_t *this)
 {
 	return this->group;
 }
 
-METHOD(key_exchange_t, destroy, void,
+METHOD(diffie_hellman_t, destroy, void,
 	private_pkcs11_dh_t *this)
 {
 	this->lib->f->C_CloseSession(this->session);
 	chunk_clear(&this->pub_key);
 	chunk_clear(&this->secret);
-	chunk_clear(&this->other);
 	free(this);
 }
 
@@ -325,7 +321,7 @@ static pkcs11_library_t *find_token(private_pkcs11_dh_t *this,
 /**
  * Generic internal constructor
  */
-static private_pkcs11_dh_t *create_generic(key_exchange_method_t group,
+static private_pkcs11_dh_t *create_generic(diffie_hellman_group_t group,
 										   CK_MECHANISM_TYPE key,
 										   CK_MECHANISM_TYPE derive)
 {
@@ -333,11 +329,11 @@ static private_pkcs11_dh_t *create_generic(key_exchange_method_t group,
 
 	INIT(this,
 		.public = {
-			.ke = {
+			.dh = {
 				.get_shared_secret = _get_shared_secret,
-				.set_public_key = _set_public_key,
-				.get_public_key = _get_public_key,
-				.get_method = _get_method,
+				.set_other_public_value = _set_other_public_value,
+				.get_my_public_value = _get_my_public_value,
+				.get_dh_group = _get_dh_group,
 				.destroy = _destroy,
 			},
 		},
@@ -355,7 +351,7 @@ static private_pkcs11_dh_t *create_generic(key_exchange_method_t group,
 	return this;
 }
 
-static pkcs11_dh_t *create_ecp(key_exchange_method_t group, chunk_t ecparam)
+static pkcs11_dh_t *create_ecp(diffie_hellman_group_t group, chunk_t ecparam)
 {
 	private_pkcs11_dh_t *this = create_generic(group, CKM_EC_KEY_PAIR_GEN,
 											   CKM_ECDH1_DERIVE);
@@ -376,7 +372,7 @@ static pkcs11_dh_t *create_ecp(key_exchange_method_t group, chunk_t ecparam)
 /**
  * Constructor for MODP DH
  */
-static pkcs11_dh_t *create_modp(key_exchange_method_t group, size_t exp_len,
+static pkcs11_dh_t *create_modp(diffie_hellman_group_t group, size_t exp_len,
 								chunk_t g, chunk_t p)
 {
 	private_pkcs11_dh_t *this = create_generic(group, CKM_DH_PKCS_KEY_PAIR_GEN,
@@ -396,7 +392,7 @@ static pkcs11_dh_t *create_modp(key_exchange_method_t group, size_t exp_len,
 /**
  * Lookup the EC params for the given group.
  */
-static chunk_t ecparams_lookup(key_exchange_method_t group)
+static chunk_t ecparams_lookup(diffie_hellman_group_t group)
 {
 	switch (group)
 	{
@@ -419,7 +415,7 @@ static chunk_t ecparams_lookup(key_exchange_method_t group)
 /**
  * Described in header.
  */
-pkcs11_dh_t *pkcs11_dh_create(key_exchange_method_t group, ...)
+pkcs11_dh_t *pkcs11_dh_create(diffie_hellman_group_t group, ...)
 {
 	switch (group)
 	{

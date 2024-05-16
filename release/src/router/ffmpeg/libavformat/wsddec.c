@@ -25,7 +25,7 @@
 #include "internal.h"
 #include "rawdec.h"
 
-static int wsd_probe(const AVProbeData *p)
+static int wsd_probe(AVProbeData *p)
 {
     if (p->buf_size < 45 || memcmp(p->buf, "1bit", 4) ||
         !AV_RB32(p->buf + 36) || !p->buf[44] ||
@@ -120,7 +120,7 @@ static int wsd_read_header(AVFormatContext *s)
     }
 
     avio_skip(pb, 4);
-    av_timecode_make_smpte_tc_string2(playback_time, (AVRational){1,1}, avio_rb32(pb) & 0x00ffffffU, 1, 1);
+    av_timecode_make_smpte_tc_string(playback_time, avio_rb32(pb), 0);
     av_dict_set(&s->metadata, "playback_time", playback_time, 0);
 
     st->codecpar->codec_type  = AVMEDIA_TYPE_AUDIO;
@@ -137,7 +137,7 @@ static int wsd_read_header(AVFormatContext *s)
     if (!(channel_assign & 1)) {
         int i;
         for (i = 1; i < 32; i++)
-            if ((channel_assign >> i) & 1)
+            if (channel_assign & (1 << i))
                 st->codecpar->channel_layout |= wsd_to_av_channel_layoyt(s, i);
     }
 
@@ -161,7 +161,6 @@ static int wsd_read_header(AVFormatContext *s)
     return avio_seek(pb, data_offset, SEEK_SET);
 }
 
-FF_RAW_DEMUXER_CLASS(wsd)
 AVInputFormat ff_wsd_demuxer = {
     .name         = "wsd",
     .long_name    = NULL_IF_CONFIG_SMALL("Wideband Single-bit Data (WSD)"),
@@ -171,6 +170,4 @@ AVInputFormat ff_wsd_demuxer = {
     .extensions   = "wsd",
     .flags        = AVFMT_GENERIC_INDEX | AVFMT_NO_BYTE_SEEK,
     .raw_codec_id = AV_CODEC_ID_DSD_MSBF,
-    .priv_data_size = sizeof(FFRawDemuxerContext),
-    .priv_class     = &wsd_demuxer_class,
 };

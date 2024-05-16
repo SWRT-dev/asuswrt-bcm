@@ -46,7 +46,6 @@ static int speex_header(AVFormatContext *s, int idx) {
     struct speex_params *spxp = os->private;
     AVStream *st = s->streams[idx];
     uint8_t *p = os->buf + os->pstart;
-    int ret;
 
     if (!spxp) {
         spxp = av_mallocz(sizeof(*spxp));
@@ -93,8 +92,8 @@ static int speex_header(AVFormatContext *s, int idx) {
         if (frames_per_packet)
             spxp->packet_size *= frames_per_packet;
 
-        if ((ret = ff_alloc_extradata(st->codecpar, os->psize)) < 0)
-            return ret;
+        if (ff_alloc_extradata(st->codecpar, os->psize) < 0)
+            return AVERROR(ENOMEM);
         memcpy(st->codecpar->extradata, p, st->codecpar->extradata_size);
 
         avpriv_set_pts_info(st, 64, 1, st->codecpar->sample_rate);

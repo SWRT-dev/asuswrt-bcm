@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2015 Andreas Steffen
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -210,7 +209,7 @@ static void change_batch_type(private_tnccs_20_client_t *this,
 	{
 		if (this->batch_type != PB_BATCH_NONE)
 		{
-			DBG1(DBG_TNC, "canceling PB-TNC %N batch",
+			DBG1(DBG_TNC, "cancelling PB-TNC %N batch",
 				 pb_tnc_batch_type_names, this->batch_type);
 
 			while (this->messages->remove_last(this->messages,
@@ -539,19 +538,9 @@ METHOD(tnccs_20_handler_t, build, status_t,
 
 	if (this->request_handshake_retry)
 	{
-		if (state == PB_STATE_DECIDED)
+		if (state != PB_STATE_INIT)
 		{
-
 			build_retry_batch(this);
-
-			/* Restart the measurements */
-			tnc->imcs->notify_connection_change(tnc->imcs,
-						this->connection_id, TNC_CONNECTION_STATE_HANDSHAKE);
-			this->send_msg = TRUE;
-			this->mutex->unlock(this->mutex);
-			tnc->imcs->begin_handshake(tnc->imcs, this->connection_id);
-			this->mutex->lock(this->mutex);
-			this->send_msg = FALSE;
 		}
 
 		/* Reset the flag for the next handshake retry request */
@@ -725,7 +714,7 @@ METHOD(tnccs_20_handler_t, add_msg, void,
 	{
 		this->batch_type = PB_BATCH_CDATA;
 	}
-	if (this->batch_type == PB_BATCH_CDATA || this->batch_type == PB_BATCH_CRETRY)
+	if (this->batch_type == PB_BATCH_CDATA)
 	{
 		this->messages->insert_last(this->messages, msg);
 	}

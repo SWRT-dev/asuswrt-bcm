@@ -2,6 +2,15 @@
 #include "../include/libxml/xmlversion.h"
 LIBRARY libxml2
 EXPORTS
+#ifdef LIBXML_THREAD_ENABLED
+#ifdef LIBXML_DOCB_ENABLED
+__docbDefaultSAXHandler
+#endif
+#else
+#ifdef LIBXML_DOCB_ENABLED
+docbDefaultSAXHandler DATA
+#endif
+#endif
 #ifdef LIBXML_REGEXP_ENABLED
 emptyExp DATA
 #endif
@@ -182,6 +191,39 @@ cdataBlock
 characters
 checkNamespace
 comment
+#ifdef LIBXML_DOCB_ENABLED
+docbCreateFileParserCtxt
+#endif
+#ifdef LIBXML_DOCB_ENABLED
+docbCreatePushParserCtxt
+#endif
+#ifdef LIBXML_DOCB_ENABLED
+docbDefaultSAXHandlerInit
+#endif
+#ifdef LIBXML_DOCB_ENABLED
+docbEncodeEntities
+#endif
+#ifdef LIBXML_DOCB_ENABLED
+docbFreeParserCtxt
+#endif
+#ifdef LIBXML_DOCB_ENABLED
+docbParseChunk
+#endif
+#ifdef LIBXML_DOCB_ENABLED
+docbParseDoc
+#endif
+#ifdef LIBXML_DOCB_ENABLED
+docbParseDocument
+#endif
+#ifdef LIBXML_DOCB_ENABLED
+docbParseFile
+#endif
+#ifdef LIBXML_DOCB_ENABLED
+docbSAXParseDoc
+#endif
+#ifdef LIBXML_DOCB_ENABLED
+docbSAXParseFile
+#endif
 elementDecl
 endDocument
 endElement
@@ -373,6 +415,9 @@ htmlTagLookup
 #endif
 ignorableWhitespace
 initGenericErrorDefaultFunc
+#ifdef LIBXML_DOCB_ENABLED
+initdocbDefaultSAXHandler
+#endif
 #ifdef LIBXML_HTML_ENABLED
 inithtmlDefaultSAXHandler
 #endif
@@ -508,12 +553,6 @@ xmlAutomataSetFinalState
 #ifdef LIBXML_DEBUG_ENABLED
 xmlBoolToText
 #endif
-xmlBufContent
-xmlBufEnd
-xmlBufGetNodeContent
-xmlBufNodeDump
-xmlBufShrink
-xmlBufUse
 xmlBufferAdd
 xmlBufferAddHead
 xmlBufferCCat
@@ -522,7 +561,6 @@ xmlBufferContent
 xmlBufferCreate
 xmlBufferCreateSize
 xmlBufferCreateStatic
-xmlBufferDetach
 xmlBufferDump
 xmlBufferEmpty
 xmlBufferFree
@@ -727,12 +765,10 @@ xmlDictCreate
 xmlDictCreateSub
 xmlDictExists
 xmlDictFree
-xmlDictGetUsage
 xmlDictLookup
 xmlDictOwns
 xmlDictQLookup
 xmlDictReference
-xmlDictSetLimit
 xmlDictSize
 xmlDllMain
 xmlDocCopyNode
@@ -900,7 +936,6 @@ xmlHashAddEntry3
 xmlHashCopy
 xmlHashCreate
 xmlHashCreateDict
-xmlHashDefaultDeallocator
 xmlHashFree
 xmlHashLookup
 xmlHashLookup2
@@ -957,7 +992,6 @@ xmlInitThreads
 #ifdef LIBXML_CATALOG_ENABLED
 xmlInitializeCatalog
 #endif
-xmlInitializeDict
 xmlInitializeGlobalState
 xmlInitializePredefinedEntities
 xmlIsBaseChar
@@ -1258,8 +1292,6 @@ xmlOutputBufferCreateFilename
 xmlOutputBufferCreateFilenameDefault
 xmlOutputBufferCreateIO
 xmlOutputBufferFlush
-xmlOutputBufferGetContent
-xmlOutputBufferGetSize
 xmlOutputBufferWrite
 xmlOutputBufferWriteEscape
 xmlOutputBufferWriteString
@@ -1365,7 +1397,6 @@ xmlPatterncompile
 xmlPedanticParserDefault
 xmlPopInput
 xmlPopInputCallbacks
-xmlPopOutputCallbacks
 xmlPreviousElementSibling
 xmlPrintURI
 xmlPushInput
@@ -1535,6 +1566,7 @@ xmlSAX2HasExternalSubset
 xmlSAX2HasInternalSubset
 xmlSAX2IgnorableWhitespace
 xmlSAX2InitDefaultSAXHandler
+xmlSAX2InitDocbDefaultSAXHandler
 xmlSAX2InitHtmlDefaultSAXHandler
 xmlSAX2InternalSubset
 xmlSAX2IsStandalone
@@ -1738,12 +1770,6 @@ xmlSchemaValidateOneElement
 xmlSchemaValidatePredefinedType
 #endif
 #ifdef LIBXML_SCHEMAS_ENABLED
-xmlSchemaValidateSetFilename
-#endif
-#ifdef LIBXML_SCHEMAS_ENABLED
-xmlSchemaValidateSetLocator
-#endif
-#ifdef LIBXML_SCHEMAS_ENABLED
 xmlSchemaValidateStream
 #endif
 #ifdef LIBXML_SCHEMAS_ENABLED
@@ -1934,7 +1960,6 @@ xmlTextReaderRelaxNGSetSchema
 #ifdef LIBXML_SCHEMAS_ENABLED
 xmlTextReaderRelaxNGValidate
 #endif
-xmlTextReaderRelaxNGValidateCtxt
 xmlTextReaderSchemaValidate
 xmlTextReaderSchemaValidateCtxt
 xmlTextReaderSetErrorHandler
@@ -1959,7 +1984,6 @@ xmlTextWriterFlush
 xmlTextWriterFullEndElement
 xmlTextWriterSetIndent
 xmlTextWriterSetIndentString
-xmlTextWriterSetQuoteChar
 xmlTextWriterStartAttribute
 xmlTextWriterStartAttributeNS
 xmlTextWriterStartCDATA
@@ -2887,9 +2911,6 @@ xmlXPathNextPrecedingSibling
 xmlXPathNextSelf
 #endif
 #ifdef LIBXML_XPATH_ENABLED
-xmlXPathNodeEval
-#endif
-#ifdef LIBXML_XPATH_ENABLED
 xmlXPathNodeLeading
 #endif
 #ifdef LIBXML_XPATH_ENABLED
@@ -3014,9 +3035,6 @@ xmlXPathRoot
 #endif
 #ifdef LIBXML_XPATH_ENABLED
 xmlXPathRoundFunction
-#endif
-#ifdef LIBXML_XPATH_ENABLED
-xmlXPathSetContextNode
 #endif
 #ifdef LIBXML_XPATH_ENABLED
 xmlXPathStartsWithFunction

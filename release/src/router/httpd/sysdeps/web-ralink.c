@@ -2072,10 +2072,8 @@ ej_wl_rate_2g(int eid, webs_t wp, int argc, char_t **argv)
 {
 	if(sw_mode() == SW_MODE_REPEATER)
 		return ej_wl_rate(eid, wp, argc, argv, 0);
-	else if(check_user_agent(user_agent) != FROM_BROWSER)
-		return websWrite(wp, "\"\"");
 	else
-		return websWrite(wp, "");
+	   	return 0;
 }
 
 int
@@ -2083,10 +2081,8 @@ ej_wl_rate_5g(int eid, webs_t wp, int argc, char_t **argv)
 {
 	if(sw_mode() == SW_MODE_REPEATER)
 		return ej_wl_rate(eid, wp, argc, argv, 1);
-	else if(check_user_agent(user_agent) != FROM_BROWSER)
-		return websWrite(wp, "\"\"");
 	else
-		return websWrite(wp, "");
+	   	return 0;
 }
 
 int
@@ -2094,10 +2090,8 @@ ej_wl_rate_5g_2(int eid, webs_t wp, int argc, char_t **argv)
 {
 	if(sw_mode() == SW_MODE_REPEATER)
 		return ej_wl_rate(eid, wp, argc, argv, 2);
-	else if(check_user_agent(user_agent) != FROM_BROWSER)
-		return websWrite(wp, "\"\"");
 	else
-		return websWrite(wp, "");
+		return 0;
 }
 
 int
@@ -2105,10 +2099,8 @@ ej_wl_rate_6g(int eid, webs_t wp, int argc, char_t **argv)
 {
 	if(sw_mode() == SW_MODE_REPEATER)
 		return ej_wl_rate(eid, wp, argc, argv, 3);
-	else if(check_user_agent(user_agent) != FROM_BROWSER)
-		return websWrite(wp, "\"\"");
 	else
-		return websWrite(wp, "");
+		return 0;
 }
 
 int
@@ -2120,36 +2112,6 @@ ej_nat_accel_status(int eid, webs_t wp, int argc, char_t **argv)
 
 	return retval;
 }
-
-#if defined(RTCONFIG_MT798X) || defined(RTCONFIG_WLMODULE_MT7915D_AP)
-/* Hook validate_apply().
- * Sync wl[0~2]_yyy with wlx_yyy if yyy in global_params[].
- */
-static const char *global_params[] = { "atf", "plcphdr", "frameburst", "PktAggregate", "wme_no_ack", "mumimo", NULL };
-void __validate_apply_set_wl_var(char *nv, char *val)
-{
-	const char **p;
-	int band;
-	char prefix[sizeof("wlxxx_")];
-
-	if (!nv || (strncmp(nv, "wl0_", 4) && strncmp(nv, "wl1_", 4) && strncmp(nv, "wl2_", 4)))
-		return;
-
-	for (p = &global_params[0]; *p != NULL; ++p) {
-		if (strcmp(nv + 4, *p))
-			continue;
-
-		for (band = WL_2G_BAND; band < min(MAX_NR_WL_IF, WL_5G_2_BAND + 1); ++band) {
-			snprintf(prefix, sizeof(prefix), "wl%d_", band);
-			if (!strncmp(nv, prefix, strlen(prefix)))
-				continue;
-			nvram_pf_set(prefix, *p, val);
-			_dprintf("%s: set %s%s=%s\n", __func__, prefix, *p, val? : "NULL");
-		}
-		break;
-	}
-}
-#endif
 
 #ifdef RTCONFIG_PROXYSTA
 int

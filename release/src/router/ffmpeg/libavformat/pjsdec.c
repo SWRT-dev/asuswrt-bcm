@@ -33,7 +33,7 @@ typedef struct {
     FFDemuxSubtitlesQueue q;
 } PJSContext;
 
-static int pjs_probe(const AVProbeData *p)
+static int pjs_probe(AVProbeData *p)
 {
     char c;
     int64_t start, end;
@@ -55,8 +55,6 @@ static int64_t read_ts(char **line, int *duration)
     if (sscanf(*line, "%"SCNd64",%"SCNd64, &start, &end) == 2) {
         *line += strcspn(*line, "\"");
         *line += !!**line;
-        if (end < start || end - (uint64_t)start > INT_MAX)
-            return AV_NOPTS_VALUE;
         *duration = end - start;
         return start;
     }
@@ -67,6 +65,7 @@ static int pjs_read_header(AVFormatContext *s)
 {
     PJSContext *pjs = s->priv_data;
     AVStream *st = avformat_new_stream(s, NULL);
+    int res = 0;
 
     if (!st)
         return AVERROR(ENOMEM);
@@ -93,10 +92,8 @@ static int pjs_read_header(AVFormatContext *s)
 
             p[strcspn(p, "\"")] = 0;
             sub = ff_subtitles_queue_insert(&pjs->q, p, strlen(p), 0);
-            if (!sub) {
-                ff_subtitles_queue_clean(&pjs->q);
+            if (!sub)
                 return AVERROR(ENOMEM);
-            }
             sub->pos = pos;
             sub->pts = pts_start;
             sub->duration = duration;
@@ -104,7 +101,7 @@ static int pjs_read_header(AVFormatContext *s)
     }
 
     ff_subtitles_queue_finalize(s, &pjs->q);
-    return 0;
+    return res;
 }
 
 static int pjs_read_packet(AVFormatContext *s, AVPacket *pkt)

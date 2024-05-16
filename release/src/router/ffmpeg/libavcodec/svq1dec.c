@@ -32,9 +32,6 @@
  *   http://www.pcisys.net/~melanson/codecs/
  */
 
-#include "libavutil/crc.h"
-#include "libavutil/thread.h"
-
 #include "avcodec.h"
 #include "get_bits.h"
 #include "h263.h"
@@ -43,7 +40,6 @@
 #include "mathops.h"
 #include "svq1.h"
 
-#define SVQ1_BLOCK_TYPE_VLC_BITS 3
 static VLC svq1_block_type;
 static VLC svq1_motion_component;
 static VLC svq1_intra_multistage[6];
@@ -64,9 +60,6 @@ typedef struct SVQ1Context {
 
     uint8_t *pkt_swapped;
     int pkt_swapped_allocated;
-
-    svq1_pmv *pmv;
-    int pmv_allocated;
 
     int width;
     int height;
@@ -460,8 +453,7 @@ static int svq1_decode_delta_block(AVCodecContext *avctx, HpelDSPContext *hdsp,
     int result = 0;
 
     /* get block type */
-    block_type = get_vlc2(bitbuf, svq1_block_type.table,
-                          SVQ1_BLOCK_TYPE_VLC_BITS, 1);
+    block_type = get_vlc2(bitbuf, svq1_block_type.table, 2, 2);
 
     /* reset motion vectors */
     if (block_type == SVQ1_BLOCK_SKIP || block_type == SVQ1_BLOCK_INTRA) {
@@ -554,7 +546,9 @@ static int svq1_decode_frame_header(AVCodecContext *avctx, AVFrame *frame)
         if (s->frame_code == 0x50 || s->frame_code == 0x60) {
             int csum = get_bits(bitbuf, 16);
 
-            csum = av_bswap16(av_crc(av_crc_get_table(AV_CRC_16_CCITT), av_bswap16(csum), bitbuf->buffer, bitbuf->size_in_bits >> 3));
+            csum = ff_svq1_packet_checksum(bitbuf->buffer,
+                                           bitbuf->size_in_bits >> 3,
+                                           csum);
 
             ff_dlog(avctx, "%s checksum (%02x) for packet data\n",
                     (csum == 0) ? "correct" : "incorrect", csum);
@@ -608,8 +602,6 @@ static int svq1_decode_frame_header(AVCodecContext *avctx, AVFrame *frame)
         if (skip_1stop_8data_bits(bitbuf) < 0)
             return AVERROR_INVALIDDATA;
     }
-    if (get_bits_left(bitbuf) <= 0)
-        return AVERROR_INVALIDDATA;
 
     s->width  = width;
     s->height = height;
@@ -625,6 +617,7 @@ static int svq1_decode_frame(AVCodecContext *avctx, void *data,
     AVFrame       *cur = data;
     uint8_t *current;
     int result, i, x, y, width, height;
+    svq1_pmv *pmv;
     int ret;
 
     /* initialize bit buffer */
@@ -684,8 +677,8 @@ static int svq1_decode_frame(AVCodecContext *avctx, void *data,
     if (result < 0)
         return result;
 
-    av_fast_padded_malloc(&s->pmv, &s->pmv_allocated, (FFALIGN(s->width, 16) / 8 + 3) * sizeof(*s->pmv));
-    if (!s->pmv)
+    pmv = av_malloc((FFALIGN(s->width, 16) / 8 + 3) * sizeof(*pmv));
+    if (!pmv)
         return AVERROR(ENOMEM);
 
     /* decode y, u and v components */
@@ -713,7 +706,7 @@ static int svq1_decode_frame(AVCodecContext *avctx, void *data,
                         av_log(avctx, AV_LOG_ERROR,
                                "Error in svq1_decode_block %i (keyframe)\n",
                                result);
-                        return result;
+                        goto err;
                     }
                 }
                 current += 16 * linesize;
@@ -724,27 +717,28 @@ static int svq1_decode_frame(AVCodecContext *avctx, void *data,
             if (!previous ||
                 s->prev->width != s->width || s->prev->height != s->height) {
                 av_log(avctx, AV_LOG_ERROR, "Missing reference frame.\n");
-                return AVERROR_INVALIDDATA;
+                result = AVERROR_INVALIDDATA;
+                goto err;
             }
 
-            memset(s->pmv, 0, ((width / 8) + 3) * sizeof(svq1_pmv));
+            memset(pmv, 0, ((width / 8) + 3) * sizeof(svq1_pmv));
 
             for (y = 0; y < height; y += 16) {
                 for (x = 0; x < width; x += 16) {
                     result = svq1_decode_delta_block(avctx, &s->hdsp,
                                                      &s->gb, &current[x],
                                                      previous, linesize,
-                                                     s->pmv, x, y, width, height);
+                                                     pmv, x, y, width, height);
                     if (result != 0) {
                         ff_dlog(avctx,
                                 "Error in svq1_decode_delta_block %i\n",
                                 result);
-                        return result;
+                        goto err;
                     }
                 }
 
-                s->pmv[0].x =
-                s->pmv[0].y = 0;
+                pmv[0].x     =
+                    pmv[0].y = 0;
 
                 current += 16 * linesize;
             }
@@ -755,26 +749,42 @@ static int svq1_decode_frame(AVCodecContext *avctx, void *data,
         av_frame_unref(s->prev);
         result = av_frame_ref(s->prev, cur);
         if (result < 0)
-            return result;
+            goto err;
     }
 
     *got_frame = 1;
     result     = buf_size;
 
+err:
+    av_free(pmv);
     return result;
 }
 
-static av_cold void svq1_static_init(void)
+static av_cold int svq1_decode_init(AVCodecContext *avctx)
 {
-    INIT_VLC_STATIC(&svq1_block_type, SVQ1_BLOCK_TYPE_VLC_BITS, 4,
+    SVQ1Context *s = avctx->priv_data;
+    int i;
+    int offset = 0;
+
+    s->prev = av_frame_alloc();
+    if (!s->prev)
+        return AVERROR(ENOMEM);
+
+    s->width            = avctx->width  + 3 & ~3;
+    s->height           = avctx->height + 3 & ~3;
+    avctx->pix_fmt      = AV_PIX_FMT_YUV410P;
+
+    ff_hpeldsp_init(&s->hdsp, avctx->flags);
+
+    INIT_VLC_STATIC(&svq1_block_type, 2, 4,
                     &ff_svq1_block_type_vlc[0][1], 2, 1,
-                    &ff_svq1_block_type_vlc[0][0], 2, 1, 8);
+                    &ff_svq1_block_type_vlc[0][0], 2, 1, 6);
 
     INIT_VLC_STATIC(&svq1_motion_component, 7, 33,
                     &ff_mvtab[0][1], 2, 1,
                     &ff_mvtab[0][0], 2, 1, 176);
 
-    for (int i = 0, offset = 0; i < 6; i++) {
+    for (i = 0; i < 6; i++) {
         static const uint8_t sizes[2][6] = { { 14, 10, 14, 18, 16, 18 },
                                              { 10, 10, 14, 14, 14, 16 } };
         static VLC_TYPE table[168][2];
@@ -801,24 +811,6 @@ static av_cold void svq1_static_init(void)
     INIT_VLC_STATIC(&svq1_inter_mean, 9, 512,
                     &ff_svq1_inter_mean_vlc[0][1], 4, 2,
                     &ff_svq1_inter_mean_vlc[0][0], 4, 2, 1434);
-}
-
-static av_cold int svq1_decode_init(AVCodecContext *avctx)
-{
-    static AVOnce init_static_once = AV_ONCE_INIT;
-    SVQ1Context *s = avctx->priv_data;
-
-    s->prev = av_frame_alloc();
-    if (!s->prev)
-        return AVERROR(ENOMEM);
-
-    s->width            = avctx->width  + 3 & ~3;
-    s->height           = avctx->height + 3 & ~3;
-    avctx->pix_fmt      = AV_PIX_FMT_YUV410P;
-
-    ff_hpeldsp_init(&s->hdsp, avctx->flags);
-
-    ff_thread_once(&init_static_once, svq1_static_init);
 
     return 0;
 }
@@ -830,8 +822,6 @@ static av_cold int svq1_decode_end(AVCodecContext *avctx)
     av_frame_free(&s->prev);
     av_freep(&s->pkt_swapped);
     s->pkt_swapped_allocated = 0;
-    av_freep(&s->pmv);
-    s->pmv_allocated = 0;
 
     return 0;
 }
@@ -856,5 +846,4 @@ AVCodec ff_svq1_decoder = {
     .flush          = svq1_flush,
     .pix_fmts       = (const enum AVPixelFormat[]) { AV_PIX_FMT_YUV410P,
                                                      AV_PIX_FMT_NONE },
-    .caps_internal  = FF_CODEC_CAP_INIT_THREADSAFE,
 };

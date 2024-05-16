@@ -50,8 +50,11 @@ static av_cold int cmv_decode_init(AVCodecContext *avctx){
 
     s->last_frame  = av_frame_alloc();
     s->last2_frame = av_frame_alloc();
-    if (!s->last_frame || !s->last2_frame)
+    if (!s->last_frame || !s->last2_frame) {
+        av_frame_free(&s->last_frame);
+        av_frame_free(&s->last2_frame);
         return AVERROR(ENOMEM);
+    }
 
     return 0;
 }
@@ -188,12 +191,12 @@ static int cmv_decode_frame(AVCodecContext *avctx,
         if (ret < 0)
             return ret;
         if (size > buf_end - buf - EA_PREAMBLE_SIZE)
-            return AVERROR_INVALIDDATA;
+            return -1;
         buf += size;
     }
 
-    if ((ret = av_image_check_size(s->width, s->height, 0, s->avctx)) < 0)
-        return ret;
+    if (av_image_check_size(s->width, s->height, 0, s->avctx))
+        return -1;
 
     if ((ret = ff_get_buffer(avctx, frame, AV_GET_BUFFER_FLAG_REF)) < 0)
         return ret;
@@ -240,5 +243,4 @@ AVCodec ff_eacmv_decoder = {
     .close          = cmv_decode_end,
     .decode         = cmv_decode_frame,
     .capabilities   = AV_CODEC_CAP_DR1,
-    .caps_internal  = FF_CODEC_CAP_INIT_CLEANUP,
 };

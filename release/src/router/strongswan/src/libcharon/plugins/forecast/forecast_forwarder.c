@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2010-2014 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * Copyright (C) 2010-2014 revosec AG
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -155,8 +154,7 @@ static bool is_bootp(void *buf, size_t len)
 /**
  * Broadcast/Multicast receiver
  */
-CALLBACK(receive_casts, bool,
-	private_forecast_forwarder_t *this, int fd, watcher_event_t event)
+static bool receive_casts(private_forecast_forwarder_t *this)
 {
 	struct __attribute__((packed)) {
 		struct iphdr hdr;
@@ -172,7 +170,7 @@ CALLBACK(receive_casts, bool,
 	socklen_t alen = sizeof(addr);
 	bool reinject;
 
-	len = recvfrom(fd, &buf, sizeof(buf), MSG_DONTWAIT,
+	len = recvfrom(this->kernel.pkt, &buf, sizeof(buf), MSG_DONTWAIT,
 				   (struct sockaddr*)&addr, &alen);
 	if (len < 0)
 	{
@@ -319,15 +317,9 @@ static void join_groups(private_kernel_listener_t *this, struct sockaddr *addr)
 /**
  * Attach the socket filter to the socket
  */
-static bool attach_filter(int fd, uint32_t broadcast, uint32_t ifindex)
+static bool attach_filter(int fd, uint32_t broadcast)
 {
 	struct sock_filter filter_code[] = {
-		/* handle any marked packets (from clients) */
-		BPF_STMT(BPF_LD+BPF_B+BPF_ABS, SKF_AD_OFF+SKF_AD_MARK),
-		BPF_JUMP(BPF_JMP+BPF_JEQ+BPF_K, 0, 0, 2),
-		/* and those from the internal interface */
-		BPF_STMT(BPF_LD+BPF_B+BPF_ABS, SKF_AD_OFF+SKF_AD_IFINDEX),
-		BPF_JUMP(BPF_JMP+BPF_JEQ+BPF_K, ifindex, 0, 5),
 		/* destination address: is ... */
 		BPF_STMT(BPF_LD+BPF_W+BPF_ABS, offsetof(struct iphdr, daddr)),
 		/* broadcast, as received from the local network */
@@ -363,8 +355,7 @@ static int get_ifindex(private_kernel_listener_t *this, char *ifname)
 {
 	struct ifreq ifr = {};
 
-	strncpy(ifr.ifr_name, ifname, IFNAMSIZ-1);
-
+	strncpy(ifr.ifr_name, ifname, IFNAMSIZ);
 	if (ioctl(this->raw, SIOCGIFINDEX, &ifr) == 0)
 	{
 		return ifr.ifr_ifindex;
@@ -399,7 +390,7 @@ static void setup_interface(private_kernel_listener_t *this)
 				DBG1(DBG_NET, "using forecast interface %s", current->ifa_name);
 				this->ifindex = get_ifindex(this, current->ifa_name);
 				in = (struct sockaddr_in*)current->ifa_broadaddr;
-				attach_filter(this->pkt, in->sin_addr.s_addr, this->ifindex);
+				attach_filter(this->pkt, in->sin_addr.s_addr);
 				join_groups(this, current->ifa_addr);
 				host = host_create_from_sockaddr(current->ifa_broadaddr);
 				if (host)
@@ -497,7 +488,7 @@ forecast_forwarder_t *forecast_forwarder_create(forecast_listener_t *listener)
 										   &this->kernel.listener);
 
 	lib->watcher->add(lib->watcher, this->kernel.pkt, WATCHER_READ,
-					  receive_casts, this);
+					  (watcher_cb_t)receive_casts, this);
 
 	return &this->public;
 }

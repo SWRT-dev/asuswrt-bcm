@@ -241,7 +241,7 @@ static const AVOption options[] = {
 };
 
 static const AVClass class = {
-    .class_name = "openal indev",
+    .class_name = "openal",
     .item_name = av_default_item_name,
     .option = options,
     .version = LIBAVUTIL_VERSION_INT,

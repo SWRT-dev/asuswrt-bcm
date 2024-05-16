@@ -1,8 +1,9 @@
 /*
  * Copyright (C) 2012 Tobias Brunner
- * Copyright (C) 2012 Martin Willi
+ * HSR Hochschule fuer Technik Rapperswil
  *
- * Copyright (C) secunet Security Networks AG
+ * Copyright (C) 2012 Martin Willi
+ * Copyright (C) 2012 revosec AG
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -59,6 +60,11 @@ struct private_aggressive_mode_t {
 	phase1_t *ph1;
 
 	/**
+	 * IKE config to establish
+	 */
+	ike_cfg_t *ike_cfg;
+
+	/**
 	 * Peer config to use
 	 */
 	peer_cfg_t *peer_cfg;
@@ -97,7 +103,7 @@ static bool establish(private_aggressive_mode_t *this)
 {
 	if (!charon->bus->authorize(charon->bus, TRUE))
 	{
-		DBG1(DBG_IKE, "final authorization hook forbids IKE_SA, canceling");
+		DBG1(DBG_IKE, "final authorization hook forbids IKE_SA, cancelling");
 		return FALSE;
 	}
 
@@ -171,7 +177,7 @@ static status_t send_notify(private_aggressive_mode_t *this, notify_type_t type)
 
 	this->ike_sa->queue_task(this->ike_sa,
 						(task_t*)informational_create(this->ike_sa, notify));
-	/* cancel all active/passive tasks in favor of informational */
+	/* cancel all active/passive tasks in favour of informational */
 	this->ike_sa->flush_queue(this->ike_sa,
 					this->initiator ? TASK_QUEUE_ACTIVE : TASK_QUEUE_PASSIVE);
 	return ALREADY_DONE;
@@ -184,7 +190,7 @@ static status_t send_delete(private_aggressive_mode_t *this)
 {
 	this->ike_sa->queue_task(this->ike_sa,
 						(task_t*)isakmp_delete_create(this->ike_sa, TRUE));
-	/* cancel all active tasks in favor of informational */
+	/* cancel all active tasks in favour of informational */
 	this->ike_sa->flush_queue(this->ike_sa,
 					this->initiator ? TASK_QUEUE_ACTIVE : TASK_QUEUE_PASSIVE);
 	return ALREADY_DONE;
@@ -208,7 +214,6 @@ METHOD(task_t, build_i, status_t,
 	{
 		case AM_INIT:
 		{
-			ike_cfg_t *ike_cfg;
 			sa_payload_t *sa_payload;
 			id_payload_t *id_payload;
 			linked_list_t *proposals;
@@ -222,7 +227,7 @@ METHOD(task_t, build_i, status_t,
 				 this->ike_sa->get_other_host(this->ike_sa));
 			this->ike_sa->set_state(this->ike_sa, IKE_CONNECTING);
 
-			ike_cfg = this->ike_sa->get_ike_cfg(this->ike_sa);
+			this->ike_cfg = this->ike_sa->get_ike_cfg(this->ike_sa);
 			this->peer_cfg = this->ike_sa->get_peer_cfg(this->ike_sa);
 			this->peer_cfg->get_ref(this->peer_cfg);
 
@@ -240,7 +245,7 @@ METHOD(task_t, build_i, status_t,
 																 FALSE);
 			}
 			this->lifetime += this->peer_cfg->get_over_time(this->peer_cfg);
-			proposals = ike_cfg->get_proposals(ike_cfg);
+			proposals = this->ike_cfg->get_proposals(this->ike_cfg);
 			sa_payload = sa_payload_create_from_proposals_v1(proposals,
 									this->lifetime, 0, this->method, MODE_NONE,
 									ENCAP_NONE, 0);
@@ -248,8 +253,8 @@ METHOD(task_t, build_i, status_t,
 
 			message->add_payload(message, &sa_payload->payload_interface);
 
-			group = ike_cfg->get_algorithm(ike_cfg, KEY_EXCHANGE_METHOD);
-			if (!group)
+			group = this->ike_cfg->get_dh_group(this->ike_cfg);
+			if (group == MODP_NONE)
 			{
 				DBG1(DBG_IKE, "DH group selection failed");
 				return FAILED;
@@ -257,7 +262,7 @@ METHOD(task_t, build_i, status_t,
 			if (!this->ph1->create_dh(this->ph1, group))
 			{
 				DBG1(DBG_IKE, "DH group %N not supported",
-					 key_exchange_method_names, group);
+					 diffie_hellman_group_names, group);
 				return FAILED;
 			}
 			if (!this->ph1->add_nonce_ke(this->ph1, message))
@@ -315,7 +320,7 @@ METHOD(task_t, build_i, status_t,
 					if (charon->ike_sa_manager->check_uniqueness(
 								charon->ike_sa_manager, this->ike_sa, FALSE))
 					{
-						DBG1(DBG_IKE, "canceling Aggressive Mode due to "
+						DBG1(DBG_IKE, "cancelling Aggressive Mode due to "
 							 "uniqueness policy");
 						return send_notify(this, AUTHENTICATION_FAILED);
 					}
@@ -365,23 +370,21 @@ METHOD(task_t, process_r, status_t,
 	{
 		case AM_INIT:
 		{
-			ike_cfg_t *ike_cfg;
 			sa_payload_t *sa_payload;
 			id_payload_t *id_payload;
 			identification_t *id;
 			linked_list_t *list;
-			proposal_selection_flag_t flags = PROPOSAL_SKIP_PRIVATE;
 			uint16_t group;
+			bool prefer_configured;
 
-			ike_cfg = this->ike_sa->get_ike_cfg(this->ike_sa);
+			this->ike_cfg = this->ike_sa->get_ike_cfg(this->ike_sa);
 			DBG0(DBG_IKE, "%H is initiating a Aggressive Mode IKE_SA",
 				 message->get_source(message));
 			this->ike_sa->set_state(this->ike_sa, IKE_CONNECTING);
 
 			this->ike_sa->update_hosts(this->ike_sa,
 									   message->get_destination(message),
-									   message->get_source(message),
-									   UPDATE_HOSTS_FORCE_ADDRS);
+									   message->get_source(message), TRUE);
 
 			sa_payload = (sa_payload_t*)message->get_payload(message,
 													PLV1_SECURITY_ASSOCIATION);
@@ -396,12 +399,10 @@ METHOD(task_t, process_r, status_t,
 			}
 
 			list = sa_payload->get_proposals(sa_payload);
-			if (!lib->settings->get_bool(lib->settings,
-						"%s.prefer_configured_proposals", TRUE, lib->ns))
-			{
-				flags = PROPOSAL_PREFER_SUPPLIED;
-			}
-			this->proposal = ike_cfg->select_proposal(ike_cfg, list, flags);
+			prefer_configured = lib->settings->get_bool(lib->settings,
+							"%s.prefer_configured_proposals", TRUE, lib->ns);
+			this->proposal = this->ike_cfg->select_proposal(this->ike_cfg,
+												list, FALSE, prefer_configured);
 			list->destroy_offset(list, offsetof(proposal_t, destroy));
 			if (!this->proposal)
 			{
@@ -411,8 +412,7 @@ METHOD(task_t, process_r, status_t,
 			this->ike_sa->set_proposal(this->ike_sa, this->proposal);
 
 			this->method = sa_payload->get_auth_method(sa_payload);
-			this->lifetime = sa_payload->get_lifetime(sa_payload,
-													  this->proposal);
+			this->lifetime = sa_payload->get_lifetime(sa_payload);
 
 			switch (this->method)
 			{
@@ -434,7 +434,7 @@ METHOD(task_t, process_r, status_t,
 			}
 
 			if (!this->proposal->get_algorithm(this->proposal,
-										KEY_EXCHANGE_METHOD, &group, NULL))
+										DIFFIE_HELLMAN_GROUP, &group, NULL))
 			{
 				DBG1(DBG_IKE, "DH group selection failed");
 				return send_notify(this, INVALID_KEY_INFORMATION);
@@ -502,7 +502,7 @@ METHOD(task_t, process_r, status_t,
 			if (!charon->bus->authorize(charon->bus, FALSE))
 			{
 				DBG1(DBG_IKE, "Aggressive Mode authorization hook forbids "
-					 "IKE_SA, canceling");
+					 "IKE_SA, cancelling");
 				charon->bus->alert(charon->bus, ALERT_PEER_AUTH_FAILED);
 				return send_delete(this);
 			}
@@ -524,7 +524,7 @@ METHOD(task_t, process_r, status_t,
 					if (charon->ike_sa_manager->check_uniqueness(
 								charon->ike_sa_manager, this->ike_sa, FALSE))
 					{
-						DBG1(DBG_IKE, "canceling Aggressive Mode due to "
+						DBG1(DBG_IKE, "cancelling Aggressive Mode due to "
 							 "uniqueness policy");
 						return send_delete(this);
 					}
@@ -599,14 +599,13 @@ METHOD(task_t, build_r, status_t,
 		{
 			return send_notify(this, NO_PROPOSAL_CHOSEN);
 		}
-
-		id = this->ph1->get_id(this->ph1, this->peer_cfg, TRUE);
-		this->ike_sa->set_my_id(this->ike_sa, id->clone(id));
-
 		if (!this->ph1->derive_keys(this->ph1, this->peer_cfg, this->method))
 		{
 			return send_notify(this, INVALID_KEY_INFORMATION);
 		}
+
+		id = this->ph1->get_id(this->ph1, this->peer_cfg, TRUE);
+		this->ike_sa->set_my_id(this->ike_sa, id->clone(id));
 
 		id_payload = id_payload_create_from_identification(PLV1_ID, id);
 		message->add_payload(message, &id_payload->payload_interface);
@@ -630,7 +629,6 @@ METHOD(task_t, process_i, status_t,
 		auth_method_t method;
 		sa_payload_t *sa_payload;
 		id_payload_t *id_payload;
-		ike_cfg_t *ike_cfg;
 		identification_t *id, *cid;
 		linked_list_t *list;
 		uint32_t lifetime;
@@ -643,8 +641,8 @@ METHOD(task_t, process_i, status_t,
 			return send_notify(this, INVALID_PAYLOAD_TYPE);
 		}
 		list = sa_payload->get_proposals(sa_payload);
-		ike_cfg = this->ike_sa->get_ike_cfg(this->ike_sa);
-		this->proposal = ike_cfg->select_proposal(ike_cfg, list, 0);
+		this->proposal = this->ike_cfg->select_proposal(this->ike_cfg,
+														list, FALSE, TRUE);
 		list->destroy_offset(list, offsetof(proposal_t, destroy));
 		if (!this->proposal)
 		{
@@ -653,7 +651,7 @@ METHOD(task_t, process_i, status_t,
 		}
 		this->ike_sa->set_proposal(this->ike_sa, this->proposal);
 
-		lifetime = sa_payload->get_lifetime(sa_payload, this->proposal);
+		lifetime = sa_payload->get_lifetime(sa_payload);
 		if (lifetime != this->lifetime)
 		{
 			DBG1(DBG_IKE, "received lifetime %us does not match configured "
@@ -707,7 +705,7 @@ METHOD(task_t, process_i, status_t,
 		if (!charon->bus->authorize(charon->bus, FALSE))
 		{
 			DBG1(DBG_IKE, "Aggressive Mode authorization hook forbids IKE_SA, "
-				 "canceling");
+				 "cancelling");
 			return send_notify(this, AUTHENTICATION_FAILED);
 		}
 

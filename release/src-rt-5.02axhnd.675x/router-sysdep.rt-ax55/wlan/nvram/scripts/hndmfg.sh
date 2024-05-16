@@ -26,35 +26,19 @@ MFG_NVRAM_TMP_DIR=/var/tmp/nvram
 MFG_NVRAM_FILE=nvram.nvm
 KERNEL_NVRAM_FILE="/data/.KERNEL_NVRAM_FILE_NAME"
 LKM_DRIVERS_FILE=/rom/etc/init.d/bcm-base-drivers.sh
-SYSTEM_INFO_INDICATOR=$(cat /proc/nvram/wl_nand_manufacturer)
-SYSTEM_UBOOT=$(($SYSTEM_INFO_INDICATOR & 8))
 #
 # Indicates nvram mfg mode.
 # Created as a result of CFE> kernp mfg_nvram_mode=1
-
-if [ $SYSTEM_UBOOT -gt 0 ]; then
-MFG_NVRAM_MODE_FILEPATH=/proc/environment/mfg_nvram_mode
-else
 MFG_NVRAM_MODE_FILEPATH=/proc/brcm/blxparms/mfg_nvram_mode
-fi
-
 #
 # Indicates nvram mfg mode debug.
 # Created as a result of CFE> kernp mfg_nvram_mode_debug=1
-if [ $SYSTEM_UBOOT -gt 0 ]; then
-MFG_NVRAM_MODE_DEBUG_FILEPATH=/proc/environment/mfg_nvram_mode_debug
-else
 MFG_NVRAM_MODE_DEBUG_FILEPATH=/proc/brcm/blxparms/mfg_nvram_mode_debug
-fi
 is_mfg_nvram_mode_dbg=0
 #
 # Indicates nvram file URL.
 # Created as a result of CFE> kernp mfg_nvram_url=ftp://<hostip>/<nvram_file>
-if [ $SYSTEM_UBOOT -gt 0 ]; then
-MFG_NVRAM_URL_FILEPATH=/proc/environment/mfg_nvram_url
-else
 MFG_NVRAM_URL_FILEPATH=/proc/brcm/blxparms/mfg_nvram_url
-fi
 MFG_NVRAM_TMP_URL_FILEPATH=/var/tmp/mfg_nvram_url
 
 # Protocol to download the nvram file (ftp or tftp)
@@ -83,12 +67,10 @@ MSG_FATAL_NVRAMURL=$(cat <<-END
     URL format is: <proto>://<host IP address>/<nvram file name>
     where <proto> is 'ftp' or 'tftp'.
 
-    Example [For CFE bootloader]:
-        kernp mfg_nvram_mode=1 mfg_nvram_url=ftp[or tftp]://192.168.1.100/bcm94908bifr.nvm 
-
-    Example [For Uboot bootloader]:
-      env set mfg_nvram_mode 1 
-      env set mfg_nvram_url ftp[or tftp]://192.168.1.100/bcm94908bifr.nvm
+    Example:
+      kernp mfg_nvram_mode=1 mfg_nvram_url=ftp://192.168.1.100/bcm94908bifr.nvm
+    or
+      kernp mfg_nvram_mode=1 mfg_nvram_url=tftp://192.168.1.100/bcm94908bifr.nvm
 END
  )
 
@@ -171,12 +153,11 @@ MSG_FATAL_NVRAMURL_PROTO=$(cat <<-END
     URL format is: <proto>://<host IP address>/<nvram file name>
     where <proto> is 'ftp', 'http' or 'tftp'.
 
-    Example[for CFE bootload]:
-      kernp mfg_nvram_mode=1 mfg_nvram_url=[ftp|http|tftp]://192.168.1.100/bcm94908bifr.nvm
-
-    Example[for Uboot bootload]:
-      env set mfg_nvram_mode 1
-      env set mfg_nvram_url [ftp|http|tftp]://192.168.1.100/bcm94908bifr.nvm
+    Example:
+      kernp mfg_nvram_mode=1 mfg_nvram_url=ftp://192.168.1.100/bcm94908bifr.nvm
+      kernp mfg_nvram_mode=1 mfg_nvram_url=http://192.168.1.100/bcm94908bifr.nvm
+    or
+      kernp mfg_nvram_mode=1 mfg_nvram_url=tftp://192.168.1.100/bcm94908bifr.nvm
 END
  )
 
@@ -188,12 +169,11 @@ MSG_FATAL_NVRAMURL_IPADDR=$(cat <<-END
     URL format is: <proto>://<host IP address>/<nvram file name>
     where <proto> is 'ftp', 'http' or 'tftp'.
 
-    Example[for CFE bootload]:
-      kernp mfg_nvram_mode=1 mfg_nvram_url=[ftp|http|tftp]://192.168.1.100/bcm94908bifr.nvm
-
-    Example[for Uboot bootload]:
-      env set mfg_nvram_mode1
-      env set mfg_nvram_url [ftp|http|tftp]://192.168.1.100/bcm94908bifr.nvm
+    Example:
+      kernp mfg_nvram_mode=1 mfg_nvram_url=ftp://192.168.1.100/bcm94908bifr.nvm
+      kernp mfg_nvram_mode=1 mfg_nvram_url=http://192.168.1.100/bcm94908bifr.nvm
+    or
+      kernp mfg_nvram_mode=1 mfg_nvram_url=tftp://192.168.1.100/bcm94908bifr.nvm
 END
  )
 
@@ -205,12 +185,11 @@ MSG_FATAL_NVRAMURL_HOSTFILE=$(cat <<-END
     URL format is: <proto>://<host IP address>/<nvram file name>
     where <proto> is 'ftp', 'http' or 'tftp'.
 
-    Example[for CFE bootload]:
-      kernp mfg_nvram_mode=1 mfg_nvram_url=[ftp|http|tftp]://192.168.1.100/bcm94908bifr.nvm
-
-    Example[for Uboot bootload]:
-      env set mfg_nvram_mode 1
-      env set mfg_nvram_url [ftp|http|tftp]://192.168.1.100/bcm94908bifr.nvm
+    Example:
+      kernp mfg_nvram_mode=1 mfg_nvram_url=ftp://192.168.1.100/bcm94908bifr.nvm
+      kernp mfg_nvram_mode=1 mfg_nvram_url=http://192.168.1.100/bcm94908bifr.nvm
+    or
+      kernp mfg_nvram_mode=1 mfg_nvram_url=tftp://192.168.1.100/bcm94908bifr.nvm
 END
  )
 
@@ -607,8 +586,20 @@ mfg_load_drivers()
 
     if [ -f $LKM_DRIVERS_FILE ]; then
         echo "$0: from $LKM_DRIVERS_FILE file"
-        $LKM_DRIVERS_FILE start
-        echo "load driver done"
+        # Pick drivers list automatically from the base drivers files list
+        # SATA drivers list starts after all the drivers required for ethernet drivers are listed.
+        # pick up the drivers list until SATA drivers, If missed check the next ones
+        # (PCIe, WLAN, NetXL, Voice, usb, other)
+        while IFS='' read -r line || [[ -n "$line" ]]; do
+            if echo "$line" | grep -q -e SATA -e PCIe -e WLAN -e NetXL -e Voice -e usb -e other; then
+                finish=1;
+            fi
+            if [ "$finish" != "1" ]; then
+                if echo "$line" |grep -q -e insmod; then
+                    $line > /dev/null 2>/dev/null || error_exit "$0: insmod $1 failed"
+                fi
+            fi
+        done < "$LKM_DRIVERS_FILE"
     else
         echo "$0: from default list"
         # This list is not actively maintained and needs manual update whenever a new driver
@@ -659,8 +650,8 @@ mfg_setup_network()
     mask=$2
     echo "$0: Bringing up the network ($ip/$mask)"
 
-    # bring up the loopback interface
-    ifconfig lo 127.0.0.1 netmask 255.0.0.0 broadcast 127.255.255.255 up
+    /rom/etc/init.d/swmdk.sh start
+
     brctl addbr br0
     brctl stp br0 off
     brctl setfd br0 0
@@ -671,16 +662,19 @@ mfg_setup_network()
 
     for intf in `(cd /sys/class/net ; echo eth*)`
     do
-        if ifconfig $intf up >/dev/null 2>/dev/null
-        then
-            echo "add $intf to bridge"
-            brctl addif br0 $intf
-            if type tmctl 2> /dev/null > /dev/null
-            then
-                tmctl porttminit --devtype 0 --if $intf --flag 0x101
-            fi
-        fi
+	if ifconfig $intf up >/dev/null 2>/dev/null
+	then
+	    brctl addif br0 $intf
+	    if type tmctl 2> /dev/null > /dev/null
+	    then
+		tmctl porttminit --devtype 0 --if $intf --flag 1
+	    fi
+	fi
     done
+
+    # bring up the loopback interface
+    ifconfig lo 127.0.0.1 netmask 255.0.0.0 broadcast 127.255.255.255 up
+    
     # need this rule to be able run wget
     iptables -w -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
 
@@ -695,6 +689,11 @@ mfg_test_network()
     fail=no
     
     echo "$0: testing network connection with host $ip"
+
+    if [ -f /bin/smd ]; then
+        #if smd exist, tftp and ping command may use CMS
+        /bin/smd
+    fi
 
     while [ "$count" -le "$MFG_PING_RETRY_LIMIT" ]
     do
@@ -750,47 +749,19 @@ mfg_set_base_macaddr()
     return 0
 }
 
-#$1 remout options rw/ro
-mfg_remount_defaults()
-{
-	if [ $SYSTEM_UBOOT -gt 0 ]  && [ ! -r /proc/environment/write_defaults ] && [ ! -r /proc/environment/mfg_nvram_mode ];
-	then
-		echo "MOUNT default for " $1
-		if [ "$FLASHTYPE" == "eMMC" ]; then
-			mount -t $FSTYPE -o remount,$1 /dev/defaults $DEFAULTS_MNT_DIR
-		else
-			mount -t ubifs ubi:defaults $DEFAULTS_MNT_DIR -oremount,$1
-		fi
-	fi
-}
 
 mfg_init_flash_type()
 {
-    if  [[ $SYSTEM_UBOOT -gt  0  ]]; then 
-	local _root_fs_dev=`/rom/etc/get_rootfs_dev.sh`
-        if [[ ! -z $(echo $_root_fs_dev|grep mmcblk) ]]; then
-            FLASHTYPE="eMMC"
-            FSTYPE=ext4
-        elif [[ ! -z $(echo $_root_fs_dev|grep ubi)  ]]; then 
-            FLASHTYPE="NAND"
-            FSTYPE=ubifs
-        else
-            FLASHTYPE="NOR"
-            FSTYPE=jffs2
-        fi
+    if [ /dev/root -ef /dev/rootfs1 ] || [ /dev/root -ef /dev/rootfs2 ]; then
+        FLASHTYPE="eMMC"
+        FSTYPE=ext4
+    elif [ /dev/root -ef /dev/mtdblock0 ]; then 
+        FLASHTYPE="NOR"
+        FSTYPE=jffs2
     else
-        if [ /dev/root -ef /dev/rootfs1 ] || [ /dev/root -ef /dev/rootfs2 ]; then
-            FLASHTYPE="eMMC"
-            FSTYPE=ext4
-        elif [ /dev/root -ef /dev/mtdblock0 ]; then 
-            FLASHTYPE="NOR"
-            FSTYPE=jffs2
-        else
-            FLASHTYPE="NAND"
-            FSTYPE=ubifs
-        fi
+        FLASHTYPE="NAND"
+        FSTYPE=ubifs
     fi
-
 
     if [ "$FLASHTYPE" == "" ]; then
         echo "$0: Un supported flash type, exiting"
@@ -845,13 +816,9 @@ case "$1" in
 	MFG_NVRAM_URL_FILEPATH=$MFG_NVRAM_TMP_URL_FILEPATH
 	mfg_parse_url
 
-	#determine the flash type
-	mfg_init_flash_type
-
-	mfg_remount_defaults "rw"
-
-	# mkdir for downloading nvram file and mounting misc1
-	mfg_init_nvram_dirs
+        # mkdir for downloading nvram file and mounting misc1
+        mfg_init_flash_type
+        mfg_init_nvram_dirs
 
 	# start to download nvram and write it to flash
 	mfg_program_nvram
@@ -864,8 +831,6 @@ case "$1" in
 	rm $MFG_NVRAM_TMP_URL_FILEPATH
 	rm -rf $MFG_NVRAM_DIR
 	rm -rf $MFG_NVRAM_TMP_DIR
-
-	mfg_remount_defaults "ro"
 
 	exit 0
 	;;

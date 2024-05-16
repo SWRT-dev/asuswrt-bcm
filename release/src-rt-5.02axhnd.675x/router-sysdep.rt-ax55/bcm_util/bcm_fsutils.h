@@ -59,20 +59,6 @@ extern "C" {
 BcmRet bcmUtl_getBaseDir(char *pathBuf, UINT32 pathBufLen);
 
 
-/** Write a hint file in tmp filesystem to indicate shutdown is in progress.
- *  This allows apps to exit silently instead of printing an error if it
- *  loses connection to some other app.  Note this function does NOT actually
- *  shut down the system.  The calling app needs to do that separately.
- *
- * @param requestingApp (IN) provide the string name of the app declaring
- *        the shutdown.
- */
-void bcmUtl_declareShutdownInProgress(const char *requestingApp);
-
-/** Return 1 if shutdown is in progress (hint file present), else return 0. */
-int bcmUtl_isShutdownInProgress();
-
-
 #if defined __cplusplus
 };
 #endif

@@ -1,8 +1,7 @@
 /*
  * Copyright (C) 2008 Martin Willi
  * Copyright (C) 2016 Andreas Steffen
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -152,7 +151,7 @@ static void cache(private_cert_cache_t *this,
 	for (try = 0; try < REPLACE_TRIES; try++)
 	{
 		/* replace a random relation */
-		offset = random() % CACHE_SIZE;
+		offset = random();
 		for (i = 0; i < CACHE_SIZE; i++)
 		{
 			rel = &this->relations[(i + offset) % CACHE_SIZE];

@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2015 Andreas Steffen
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -143,7 +142,7 @@ static void change_batch_type(private_tnccs_20_server_t *this,
 	{
 		if (this->batch_type != PB_BATCH_NONE)
 		{
-			DBG1(DBG_TNC, "canceling PB-TNC %N batch",
+			DBG1(DBG_TNC, "cancelling PB-TNC %N batch",
 				 pb_tnc_batch_type_names, this->batch_type);
 
 			while (this->messages->remove_last(this->messages,
@@ -283,6 +282,11 @@ static void build_retry_batch(private_tnccs_20_server_t *this)
 		return;
 	}
 	change_batch_type(this, PB_BATCH_SRETRY);
+
+	this->recs->clear_recommendation(this->recs);
+
+	/* Handshake will be retried with next incoming CDATA batch */
+	this->retry_handshake = TRUE;
 }
 
 METHOD(tnccs_20_handler_t, process, status_t,
@@ -303,13 +307,22 @@ METHOD(tnccs_20_handler_t, process, status_t,
 		pb_tnc_msg_t *msg;
 		bool empty = TRUE;
 
-		if (batch_type == PB_BATCH_CRETRY ||
-		   (batch_type == PB_BATCH_CDATA && this->retry_handshake))
+		if (batch_type == PB_BATCH_CDATA)
 		{
-			this->recs->clear_recommendation(this->recs);
-			tnc->imvs->notify_connection_change(tnc->imvs,
-					this->connection_id, TNC_CONNECTION_STATE_HANDSHAKE);
-			this->retry_handshake = FALSE;
+			/* retry handshake after a previous SRETRY batch */
+			if (this->retry_handshake)
+			{
+				tnc->imvs->notify_connection_change(tnc->imvs,
+						this->connection_id, TNC_CONNECTION_STATE_HANDSHAKE);
+				this->retry_handshake = FALSE;
+			}
+		}
+		else if (batch_type == PB_BATCH_CRETRY)
+		{
+			/* Send an SRETRY batch in response */
+			this->mutex->lock(this->mutex);
+			build_retry_batch(this);
+			this->mutex->unlock(this->mutex);
 		}
 
 		enumerator = batch->create_msg_enumerator(batch);
@@ -428,12 +441,9 @@ METHOD(tnccs_20_handler_t, build, status_t,
 
 	if (this->request_handshake_retry)
 	{
-		if (state == PB_STATE_DECIDED)
+		if (state != PB_STATE_INIT)
 		{
 			build_retry_batch(this);
-
-			/* Handshake will be retried with next incoming CDATA batch */
-			this->retry_handshake = TRUE;
 		}
 
 		/* Reset the flag for the next handshake retry request */

@@ -1,8 +1,6 @@
 /*
- * Copyright (C) 2013-2019 Tobias Brunner
  * Copyright (C) 2008-2009 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -46,9 +44,9 @@ struct private_agent_private_key_t {
 	agent_private_key_t public;
 
 	/**
-	 * Path to the UNIX socket
+	 * ssh-agent unix socket connection
 	 */
-	char *path;
+	int socket;
 
 	/**
 	 * public key encoded in SSH format
@@ -163,8 +161,8 @@ static int open_connection(char *path)
 
 	if (connect(s, (struct sockaddr*)&addr, SUN_LEN(&addr)) != 0)
 	{
-		DBG1(DBG_LIB, "connecting to ssh-agent socket '%s' failed: %s",
-			 addr.sun_path, strerror(errno));
+		DBG1(DBG_LIB, "connecting to ssh-agent socket failed: %s",
+			 strerror(errno));
 		close(s);
 		return -1;
 	}
@@ -176,35 +174,28 @@ static int open_connection(char *path)
  */
 static bool read_key(private_agent_private_key_t *this, public_key_t *pubkey)
 {
-	int socket, len;
+	int len;
 	char buf[2048];
 	chunk_t blob, key;
-	bool success = FALSE;
-
-	socket = open_connection(this->path);
-	if (socket < 0)
-	{
-		return FALSE;
-	}
 
 	len = htonl(1);
 	buf[0] = SSH_AGENT_ID_REQUEST;
-	if (write(socket, &len, sizeof(len)) != sizeof(len) ||
-		write(socket, &buf, 1) != 1)
+	if (write(this->socket, &len, sizeof(len)) != sizeof(len) ||
+		write(this->socket, &buf, 1) != 1)
 	{
 		DBG1(DBG_LIB, "writing to ssh-agent failed");
-		goto done;
+		return FALSE;
 	}
 
 	blob = chunk_create(buf, sizeof(buf));
-	blob.len = read(socket, blob.ptr, blob.len);
+	blob.len = read(this->socket, blob.ptr, blob.len);
 
 	if (blob.len < sizeof(uint32_t) + sizeof(u_char) ||
 		read_uint32(&blob) != blob.len ||
 		read_byte(&blob) != SSH_AGENT_ID_RESPONSE)
 	{
 		DBG1(DBG_LIB, "received invalid ssh-agent identity response");
-		goto done;
+		return FALSE;
 	}
 	read_uint32(&blob);
 
@@ -228,12 +219,9 @@ static bool read_key(private_agent_private_key_t *this, public_key_t *pubkey)
 			continue;
 		}
 		this->key = chunk_clone(key);
-		success = TRUE;
-		break;
+		return TRUE;
 	}
-done:
-	close(socket);
-	return success;
+	return FALSE;
 }
 
 static bool scheme_supported(private_agent_private_key_t *this,
@@ -283,8 +271,6 @@ METHOD(private_key_t, sign, bool,
 	uint32_t len, flags = 0;
 	char buf[2048], *prefix = NULL;
 	chunk_t blob;
-	int socket;
-	bool success = FALSE;
 
 	if (!scheme_supported(this, scheme, &flags, &prefix))
 	{
@@ -293,52 +279,46 @@ METHOD(private_key_t, sign, bool,
 		return FALSE;
 	}
 
-	socket = open_connection(this->path);
-	if (socket < 0)
+	len = htonl(1 + sizeof(uint32_t) * 3 + this->key.len + data.len);
+	buf[0] = SSH_AGENT_SIGN_REQUEST;
+	if (write(this->socket, &len, sizeof(len)) != sizeof(len) ||
+		write(this->socket, &buf, 1) != 1)
 	{
+		DBG1(DBG_LIB, "writing to ssh-agent failed");
 		return FALSE;
 	}
 
-	len = htonl(1 + sizeof(uint32_t) * 3 + this->key.len + data.len);
-	buf[0] = SSH_AGENT_SIGN_REQUEST;
-	if (write(socket, &len, sizeof(len)) != sizeof(len) ||
-		write(socket, &buf, 1) != 1)
-	{
-		DBG1(DBG_LIB, "writing to ssh-agent failed");
-		goto done;
-	}
-
 	len = htonl(this->key.len);
-	if (write(socket, &len, sizeof(len)) != sizeof(len) ||
-		write(socket, this->key.ptr, this->key.len) != this->key.len)
+	if (write(this->socket, &len, sizeof(len)) != sizeof(len) ||
+		write(this->socket, this->key.ptr, this->key.len) != this->key.len)
 	{
 		DBG1(DBG_LIB, "writing to ssh-agent failed");
-		goto done;
+		return FALSE;
 	}
 
 	len = htonl(data.len);
-	if (write(socket, &len, sizeof(len)) != sizeof(len) ||
-		write(socket, data.ptr, data.len) != data.len)
+	if (write(this->socket, &len, sizeof(len)) != sizeof(len) ||
+		write(this->socket, data.ptr, data.len) != data.len)
 	{
 		DBG1(DBG_LIB, "writing to ssh-agent failed");
-		goto done;
+		return FALSE;
 	}
 
 	flags = htonl(flags);
-	if (write(socket, &flags, sizeof(flags)) != sizeof(flags))
+	if (write(this->socket, &flags, sizeof(flags)) != sizeof(flags))
 	{
 		DBG1(DBG_LIB, "writing to ssh-agent failed");
-		goto done;
+		return FALSE;
 	}
 
 	blob = chunk_create(buf, sizeof(buf));
-	blob.len = read(socket, blob.ptr, blob.len);
+	blob.len = read(this->socket, blob.ptr, blob.len);
 	if (blob.len < sizeof(uint32_t) + sizeof(u_char) ||
 		read_uint32(&blob) != blob.len ||
 		read_byte(&blob) != SSH_AGENT_SIGN_RESPONSE)
 	{
 		DBG1(DBG_LIB, "received invalid ssh-agent signature response");
-		goto done;
+		return FALSE;
 	}
 	/* parse length */
 	blob = read_string(&blob);
@@ -346,7 +326,7 @@ METHOD(private_key_t, sign, bool,
 	if (prefix && !chunk_equals(read_string(&blob), chunk_from_str(prefix)))
 	{
 		DBG1(DBG_LIB, "ssh-agent didn't return requested %s signature", prefix);
-		goto done;
+		return FALSE;
 	}
 	type = this->pubkey->get_type(this->pubkey);
 	if (type == KEY_RSA || type == KEY_ED25519 || type == KEY_ED448)
@@ -355,7 +335,7 @@ METHOD(private_key_t, sign, bool,
 		if (blob.len)
 		{
 			*signature = chunk_clone(blob);
-			success = TRUE;
+			return TRUE;
 		}
 	}
 	else
@@ -370,18 +350,12 @@ METHOD(private_key_t, sign, bool,
 			if (r.len && s.len)
 			{
 				*signature = chunk_cat("cc", r, s);
-				success = TRUE;
+				return TRUE;
 			}
 		}
 	}
-	if (!success)
-	{
-		DBG1(DBG_LIB, "received invalid ssh-agent signature response");
-	}
-
-done:
-	close(socket);
-	return success;
+	DBG1(DBG_LIB, "received invalid ssh-agent signature response");
+	return FALSE;
 }
 
 METHOD(private_key_t, get_type, key_type_t,
@@ -392,7 +366,7 @@ METHOD(private_key_t, get_type, key_type_t,
 
 METHOD(private_key_t, decrypt, bool,
 	private_agent_private_key_t *this, encryption_scheme_t scheme,
-	void *params, chunk_t crypto, chunk_t *plain)
+	chunk_t crypto, chunk_t *plain)
 {
 	DBG1(DBG_LIB, "private key decryption not supported by ssh-agent");
 	return FALSE;
@@ -509,9 +483,9 @@ METHOD(private_key_t, destroy, void,
 {
 	if (ref_put(&this->ref))
 	{
+		close(this->socket);
 		chunk_free(&this->key);
 		DESTROY_IF(this->pubkey);
-		free(this->path);
 		free(this);
 	}
 }
@@ -565,10 +539,15 @@ agent_private_key_t *agent_private_key_open(key_type_t type, va_list args)
 				.destroy = _destroy,
 			},
 		},
-		.path = strdup(path),
 		.ref = 1,
 	);
 
+	this->socket = open_connection(path);
+	if (this->socket < 0)
+	{
+		free(this);
+		return NULL;
+	}
 	if (!read_key(this, pubkey))
 	{
 		destroy(this);

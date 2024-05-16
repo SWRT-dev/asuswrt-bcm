@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2018 Tobias Brunner
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -109,7 +108,7 @@ error:
 
 METHOD(private_key_t, decrypt, bool,
 	private_private_key_t *this, encryption_scheme_t scheme,
-	void *params, chunk_t crypto, chunk_t *plain)
+	chunk_t crypto, chunk_t *plain)
 {
 	DBG1(DBG_LIB, "EdDSA private key decryption not implemented");
 	return FALSE;
@@ -249,10 +248,10 @@ private_key_t *openssl_ed_private_key_create(EVP_PKEY *key, bool engine)
 
 	switch (EVP_PKEY_base_id(key))
 	{
-		case EVP_PKEY_ED25519:
+		case EVP_PKEY_X25519:
 			type = KEY_ED25519;
 			break;
-		case EVP_PKEY_ED448:
+		case EVP_PKEY_X448:
 			type = KEY_ED448;
 			break;
 		default:

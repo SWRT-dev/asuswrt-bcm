@@ -33,46 +33,8 @@
 #dns_list_Block{
 	font-family: Microsoft Yahei UI, Arial, Helvetica, MS UI Gothic, MS P Gothic, sans-serif;
 	width:825px;
-	border: 1px solid #FFF;
 }
 
-#aftr_Block_PC{
-	border:1px outset #999;
-	background-color:#576D73;
-	position:absolute;
-	*margin-top:26px;	
-	margin-left:2px;
-	*margin-left:-353px;
-	width:346px;
-	text-align:left;	
-	height:auto;
-	overflow-y:auto;
-	z-index:200;
-	padding: 1px;
-	display:none;
-}
-#aftr_Block_PC div{
-	background-color:#576D73;
-	height:auto;
-	*height:20px;
-	line-height:20px;
-	text-decoration:none;
-	font-family: Lucida Console;
-	padding-left:2px;
-}
-
-#aftr_Block_PC a{
-	background-color:#EFEFEF;
-	color:#FFF;
-	font-size:12px;
-	font-family:Arial, Helvetica, sans-serif;
-	text-decoration:none;	
-}
-#aftr_Block_PC div:hover{
-	background-color:#3366FF;
-	color:#FFFFFF;
-	cursor:default;
-}	
 </style>
 <script type="text/javascript" src="/state.js"></script>
 <script type="text/javascript" src="/general.js"></script>
@@ -138,18 +100,12 @@ if(dnspriv_support){
 	var dnspriv_rulelist_array = '<% nvram_get("dnspriv_rulelist"); %>';
 }
 
-if(dslite_support){
-	var s46_dslite_svc_str = httpApi.nvramGet(["wan0_s46_dslite_svc"], true).wan0_s46_dslite_svc;
-}
-
 var pppoe_username = decodeURIComponent('<% nvram_char_to_ascii("", "wan_pppoe_username"); %>');
 var pppoe_password = decodeURIComponent('<% nvram_char_to_ascii("", "wan_pppoe_passwd"); %>');
 
 var faq_href1 = "https://nw-dlcdnet.asus.com/support/forward.html?model=&type=Faq&lang="+ui_lang+"&kw=&num=125";
 var faq_href2 = "https://nw-dlcdnet.asus.com/support/forward.html?model=&type=Faq&lang="+ui_lang+"&kw=&num=126";
 var faq_href3 = "https://nw-dlcdnet.asus.com/support/forward.html?model=&type=Faq&lang="+ui_lang+"&kw=&num=127";
-
-var eth_wan_list = httpApi.hookGet("get_ethernet_wan_list", true);
 
 function initial(){
 	if (dnspriv_support) {
@@ -182,25 +138,13 @@ function initial(){
 		$("#wan_proto_menu option[value='lw4o6']").remove();
 		$("#wan_proto_menu option[value='map-e']").remove();
 		$("#wan_proto_menu option[value='v6plus']").remove();
-		$("#wan_proto_menu option[value='ocnvc']").remove();
-		$("#wan_proto_menu option[value='dslite']").remove();
 	}
 	else{
 		$("#wan_proto_menu option[value='lw4o6']").remove();
 		$("#wan_proto_menu option[value='map-e']").remove();
-		if(!ocnvc_support){
-			$("#wan_proto_menu option[value='ocnvc']").remove();
-		}
-		if(!dslite_support){
-			$("#wan_proto_menu option[value='dslite']").remove();
-		}
 		if(dualWAN_support && wan_unit_flag == 1){
-			$("#wan_proto_menu option[value='v6plus']").remove();
-			$("#wan_proto_menu option[value='ocnvc']").remove();
-			$("#wan_proto_menu option[value='dslite']").remove();
+			$("#wan_proto_menu option[value='v6plus']").remove();		
 		}
-
-		httpApi.faqURL("1050137", function(url){document.getElementById("s46reset_faq").href = url;});
 	}
 
 	updatDNSListOnline();
@@ -275,11 +219,6 @@ function initial(){
 		change_dnspriv_enable(0);
 	}
 
-	if(dnssec_support){
-		document.getElementById("dnssec_tr").style.display = "";
-		showhide("dnssec_strict_tr", "<% nvram_get("dnssec_enable"); %>" == "1" ? 1 : 0);
-	}
-
 	change_nat(<% nvram_get("wan_nat_x"); %>);
 
 	if(yadns_support){
@@ -333,9 +272,12 @@ function initial(){
 				document.form.bond_wan_radio.value = "0";
 				document.getElementById("wanports_bond_menu").style.display = "none";
 			}
-		}
 
-		change_wanAggre_desc();
+			change_wanAggre_desc();
+		}
+		else if(based_modelid == "XT12" || based_modelid == "ET12"){
+			change_wanAggre_desc();
+		}
 	}
 
 	if(wan_bonding_support){
@@ -395,16 +337,6 @@ function initial(){
 		$(".dns_pull_arrow").attr("src","/images/arrow-down.gif");
 		$(".dns_server_list_dropdown").hide();
 	});
-
-	if(dslite_support){
-		showaftrList();
-		if(wan_type != "dslite"){
-			update_info(0);
-		}
-		else{
-			update_info(1);
-		}
-	}
 }
 
 function change_notusb_unit(){
@@ -457,59 +389,6 @@ function change_wan_unit(obj){
 	document.form.submit();
 }
 
-function get_special_lan_name(wans_lanport_v){
-	var special_lan_name = "";
-
-	$.each(eth_wan_list, function(key) {
-		var wan_obj = eth_wan_list[key];
-
-		if(wan_obj.hasOwnProperty("wans_lanport")){
-			if(wan_obj["wans_lanport"] == wans_lanport_v){
-				special_lan_name = wan_obj.wan_name;
-				return false;
-			}
-		}
-		else if(wan_obj.hasOwnProperty("extra_settings")){
-			var extra_settings = wan_obj.extra_settings;
-			if(extra_settings.hasOwnProperty("wan_ifname_x")){
-				if(extra_settings["wan_ifname_x"].substr(3, 1) == wans_lanport_v){
-					special_lan_name = wan_obj.wan_name;
-					return false;
-				}
-			}
-		}
-	});
-
-	return special_lan_name;
-}
-
-function get_ethwan_name(){
-	var wan_name = "";
-
-	$.each(eth_wan_list, function(key) {
-		var wan_obj = eth_wan_list[key];
-		var setting_matched = true;
-
-		if(wan_obj.hasOwnProperty("extra_settings")){
-			var extra_settings = wan_obj.extra_settings;
-			$.each(extra_settings, function(key2) {
-				var value_x = extra_settings[key2];
-				if(httpApi.nvramGet([key2], true)[key2] != value_x){
-					setting_matched = false;
-					return false;
-				}
-			});
-		}
-
-		if(setting_matched){
-			wan_name = wan_obj.wan_name;
-			return false;
-		}
-	});
-
-	return wan_name;
-}
-
 function genWANSoption(){
 	for(i=0; i<wans_dualwan.split(" ").length; i++){
 		var wans_dualwan_NAME = wans_dualwan.split(" ")[i].toUpperCase();
@@ -518,27 +397,17 @@ function genWANSoption(){
 				(productid == "DSL-N55U" || productid == "DSL-N55U-B" || productid == "DSL-AC68U" || productid == "DSL-AC68R"))
 			wans_dualwan_NAME = "Ethernet WAN";
 		else if(wans_dualwan_NAME == "LAN"){
-			if((productid == "GT-AX6000" || productid == "RT-AX88U_PRO") && wans_lanport == "5"){
-				wans_dualwan_NAME = "2.5G WAN";
-			}
-			else{
-				var special_lan_name = get_special_lan_name(wans_lanport);
-				if(special_lan_name != "")
-					wans_dualwan_NAME = special_lan_name
+			if((productid == "GT-AX11000" || productid == "RT-AX86U" || productid == "GT-AXE11000" || productid == "GT-AX6000" || productid == "GT-AX11000_PRO" || productid == "GT-AXE16000" || productid == "RT-AX86U_PRO") && wans_lanport == "5"){
+				if(wans_extwan == "0")
+					wans_dualwan_NAME = "2.5G WAN";
 				else
-					wans_dualwan_NAME = "Ethernet LAN";
+					wans_dualwan_NAME = "WAN";
 			}
+			else
+				wans_dualwan_NAME = "Ethernet LAN";
 		}
-		else if(wans_dualwan_NAME == "WAN"){
-			if((productid == "GT-AX6000" || productid == "RT-AX88U_PRO") && wans_extwan == "1")
-				wans_dualwan_NAME = "2.5G WAN";
-			else{
-				var ethwan_name = get_ethwan_name();
-				if(ethwan_name != "")
-					wans_dualwan_NAME = ethwan_name;
-			}
-
-		}
+		else if(wans_dualwan_NAME == "WAN" && (productid == "GT-AX11000" || productid == "RT-AX86U" || productid == "GT-AXE11000" || productid == "GT-AX6000"  || productid == "GT-AX11000_PRO" || productid == "GT-AXE16000" || productid == "RT-AX86U_PRO") && wans_extwan == "1")
+			wans_dualwan_NAME = "2.5G WAN";
 		else if(wans_dualwan_NAME == "USB" && (based_modelid == "4G-AC53U" || based_modelid == "4G-AC55U" || based_modelid == "4G-AC68U"))
 			wans_dualwan_NAME = "<#Mobile_title#>";
 		document.form.wan_unit.options[i] = new Option(wans_dualwan_NAME, i);
@@ -553,10 +422,7 @@ function genWANSoption(){
 	
 	document.form.wan_unit.selectedIndex = '<% nvram_get("wan_unit"); %>';
 	if(wans_dualwan.search(" ") < 0 || wans_dualwan.split(" ")[1] == 'none' || !dualWAN_support)
-	{
 		document.getElementById("WANscap").style.display = "none";
-		document.form.wan_unit.value = 0; //avoid wan_unit=1 case
-	}
 }
 
 var reboot_confirm=0;
@@ -610,20 +476,11 @@ function applyRule(){
 			}
 		}
 		
-		if (Softwire46_support && ipv6_service_orig != "ipv6pt" &&
-			(document.form.wan_proto.value == "v6plus" || document.form.wan_proto.value == "ocnvc" || document.form.wan_proto.value == "dslite"))
-		{
+		if (Softwire46_support && document.form.wan_proto.value == "v6plus" && ipv6_service_orig != "ipv6pt"){
 				document.form.ipv6_service.disabled = false;
 				document.form.ipv6_service.value = "ipv6pt";
 				document.form.action_script.value += ";restart_net";
 				document.form.action_wait.value = "30";
-		}
-
-		if( Softwire46_support && document.form.wan_proto.value == "dslite" ){
-			if(document.form.wan_s46_dslite_mode.value == "1"){
-				document.form.ipv6_s46_b4addr.disabled = false;
-				document.form.ipv6_s46_b4addr.value = $("#ipv6_s46_b4addr_Select").val();
-			}
 		}
 
 		if(wan_bonding_support){
@@ -659,33 +516,16 @@ function applyRule(){
 			document.form.action_script.value += ";restart_stubby";
 		}
 
-		if((dnssec_support &&
-				(getRadioValue(document.form.dnssec_enable) != '<% nvram_get("dnssec_enable"); %>') ||
-				(getRadioValue(document.form.dnssec_check_unsigned_x) != '<% nvram_get("dnssec_check_unsigned_x"); %>')) ||
-				(dnspriv_support &&
-				(document.form.dns_priv_override.value == 0) &&
-				(document.form.dnspriv_enable.value != '<% nvram_get("dnspriv_enable"); %>')) ||
-				(getRadioValue(document.form.dns_norebind) != '<% nvram_get("dns_norebind"); %>') ||
-				(document.form.dns_priv_override.value != '<% nvram_get("dns_priv_override"); %>') ||
-				(getRadioValue(document.form.dns_fwd_local) != '<% nvram_get("dns_fwd_local"); %>'))
-			document.form.action_script.value += ";restart_dnsmasq";
-
 		if(reboot_confirm==1){
 
 			if(confirm("<#AiMesh_Node_Reboot#>")){
-				if((wan_proto_orig != "v6plus" && document.form.wan_proto.value == "v6plus") ||
-					(wan_proto_orig != "ocnvc" && document.form.wan_proto.value == "ocnvc"))
-					s46reset();
-
 				FormActions("start_apply.htm", "apply", "reboot", "<% get_default_reboot_time(); %>");
 				showLoading();
 				document.form.submit();
 			}
 		}
 		else{
-			if((wan_proto_orig != "v6plus" && document.form.wan_proto.value == "v6plus") ||
-				(wan_proto_orig != "ocnvc" && document.form.wan_proto.value == "ocnvc"))
-				s46reset();
+
 			showLoading();
 			document.form.submit();	
 		}
@@ -769,7 +609,7 @@ function validForm(){
 	var wan_type = document.form.wan_proto.value;
 
 	if(!document.form.wan_dhcpenable_x[0].checked &&
-	   !(Softwire46_support && (wan_type == "lw4o6" || wan_type == "map-e" || wan_type == "v6plus" || wan_type == "ocnvc" || wan_type == "dslite"))){// Set IP address by userself
+	   !(Softwire46_support && (wan_type == "lw4o6" || wan_type == "map-e" || wan_type == "v6plus"))){// Set IP address by userself
 		if(!valid_IP($("#wan_ipaddr_x"), "")) return false;  //WAN IP
 		if(!valid_IP($("#wan_gateway_x"), "GW"))return false;  //Gateway IP		
 
@@ -810,14 +650,6 @@ function validForm(){
 			return false;
 		}
 	}
-
-	if( Softwire46_support && wan_type == "dslite" ){
-		if(document.form.wan_s46_dslite_mode.value == "1"){
-			if(!validator.isValidHost(document.form.ipv6_s46_aftr.value)) return false;  //AFTR Address: IPv6/domain
-			if(!valid_IP($("#ipv6_s46_b4addr_Select"), "")) return false;  //B4 IPv4 Address: IPv4
-		}
-	}
-
 
 	if(document.form.wan_dnsenable_x.value == 1 && wan_type == "static"){
 		alert("Please set up the DNS server on the client device.");	/* Untranslated */
@@ -876,6 +708,10 @@ function validForm(){
 			document.form.wan_pppoe_hostuniq.select();
 			return false;
 		}
+	}
+
+	if (Softwire46_support && (wan_type == "lw4o6" || wan_type == "map-e" || wan_type == "v6plus")){
+		//
 	}
 
 	if(productid == "DSL-AC68U" || productid == "DSL-AC68R"){      //MODELDEP: DSL-AC68U,DSL-AC68R
@@ -947,8 +783,6 @@ function validForm(){
 				else{
 					document.form.wans_dualwan.disabled = false;
 					document.form.wans_dualwan.value = "wan none";
-					document.form.wans_mode.disabled = false;
-					document.form.wans_mode.value = "fo";
 					document.form.switch_wantag.disabled = false;
 					document.form.switch_wantag.value = "none";
 					document.form.switch_stb_x.disabled = false;
@@ -1028,9 +862,6 @@ function change_wan_type(wan_type, flag){
 		inputCtrl(document.form.wan_ppp_echo, 1);
 		ppp_echo_control();
 
-		$("#s46reset_div").hide();
-		$("#dslite_setting").hide();
-
 		if(wan_bonding_support){
 			inputCtrl(document.form.bond_wan_radio[0], 0);
 			inputCtrl(document.form.bond_wan_radio[1], 0);
@@ -1064,9 +895,6 @@ function change_wan_type(wan_type, flag){
 		document.getElementById("vpn_dhcp").style.display = "none";
 		inputCtrl(document.form.wan_ppp_echo, 1);
 		ppp_echo_control();
-
-		$("#s46reset_div").hide();
-		$("#dslite_setting").hide();
 
 		if(wan_bonding_support){
 			inputCtrl(document.form.bond_wan_radio[0], 0);
@@ -1102,9 +930,6 @@ function change_wan_type(wan_type, flag){
 		inputCtrl(document.form.wan_ppp_echo, 1);
 		ppp_echo_control();
 
-		$("#s46reset_div").hide();
-		$("#dslite_setting").hide();
-
 		if(wan_bonding_support){
 			inputCtrl(document.form.bond_wan_radio[0], 0);
 			inputCtrl(document.form.bond_wan_radio[1], 0);
@@ -1139,9 +964,6 @@ function change_wan_type(wan_type, flag){
 		inputCtrl(document.form.wan_ppp_echo, 0);
 		ppp_echo_control(0);
 
-		$("#s46reset_div").hide();
-		$("#dslite_setting").hide();
-
 		if(wan_bonding_support){
 			if(based_modelid == "RT-AX89U" || based_modelid == "GT-AXY16000"){
 				var wan_name = wans_dualwan.split(" ")[<% nvram_get("wan_unit"); %>];
@@ -1165,7 +987,7 @@ function change_wan_type(wan_type, flag){
 			}
 		}
 	}
-	else if(Softwire46_support && (wan_type == "lw4o6" || wan_type == "map-e" || wan_type == "v6plus" || wan_type == "ocnvc" || wan_type == "dslite")){
+	else if(Softwire46_support && (wan_type == "lw4o6" || wan_type == "map-e" || wan_type == "v6plus")){
 		showhide("wan_DHCP_opt",0);
 		
 		inputCtrl(document.form.wan_auth_x, 0);
@@ -1189,18 +1011,6 @@ function change_wan_type(wan_type, flag){
 		document.getElementById("vpn_dhcp").style.display = "none";
 		inputCtrl(document.form.wan_ppp_echo, 0);
 		ppp_echo_control(0);
-		if(wan_type == "dslite"){
-			$("#dslite_setting").show();
-			change_dslite_mode(document.form.wan_s46_dslite_mode.value);
-			update_ipv6_s46_b4addr_selector();
-		}
-		else
-			$("#dslite_setting").hide();
-
-		if((wan_type == "v6plus" && wan_proto_orig == "v6plus") || (wan_type == "ocnvc" && wan_proto_orig == "ocnvc"))
-			$("#s46reset_div").css("display", "flex");
-		else
-			$("#s46reset_div").hide();
 
 		if(wan_bonding_support){
 			inputCtrl(document.form.bond_wan_radio[0], 0);
@@ -1236,9 +1046,6 @@ function change_wan_type(wan_type, flag){
 		document.getElementById("vpn_dhcp").style.display = "none";
 		inputCtrl(document.form.wan_ppp_echo, 0);
 		ppp_echo_control(0);
-
-		$("#s46reset_div").hide();
-		$("#dslite_setting").hide();
 
 		if(wan_bonding_support){
 			if(based_modelid == "RT-AX89U" || based_modelid == "GT-AXY16000"){
@@ -1367,7 +1174,7 @@ function change_wan_dhcp_enable(flag){
 		inputCtrl(document.form.wan_netmask_x, 1);
 		inputCtrl(document.form.wan_gateway_x, 1);
 	}
-	else if(Softwire46_support && (wan_type == "lw4o6" || wan_type == "map-e" || wan_type == "v6plus" || wan_type == "ocnvc" || wan_type == "dslite")){
+	else if(Softwire46_support && (wan_type == "lw4o6" || wan_type == "map-e" || wan_type == "v6plus")){
 		if(flag == 1){
 			if(wan_type == original_wan_type){
 				document.form.wan_dhcpenable_x[0].checked = original_wan_dhcpenable;
@@ -1416,7 +1223,6 @@ function change_wan_dhcp_enable(flag){
 		inputCtrl(document.form.wan_gateway_x, 0);
 		document.getElementById('IPsetting').style.display = "none";
 		document.getElementById('S46setting').style.display = "none";
-		document.getElementById('dslite_setting').style.display = "none";
 		document.getElementById('PPPsetting').style.display = "";
 	}
 	
@@ -1594,30 +1400,16 @@ function show_dnspriv_rulelist(){
 
 var cur_bond_port = /LAN-*\D* 4/;
 function change_wanAggre_desc(){
+	var selectedIndex = document.getElementById("wanports_bond_menu").selectedIndex;
+	var selectedName = document.getElementById("wanports_bond_menu").options[selectedIndex].text;
 	var orig_desc = $("#wanAgg_desc").html();
-	var selectedName = "";
 
-	if(based_modelid == "RT-AXE7800")
-		orig_desc = orig_desc.replace("#WAN", "1G WAN");
-	else
-		orig_desc = orig_desc.replace("#WAN", "WAN");
-
-	if(based_modelid == "RT-AX89U" || based_modelid == "GT-AXY16000" || based_modelid == "TUF-AX4200" || based_modelid == "TUF-AX6000"){
-		var selectedIndex = document.getElementById("wanports_bond_menu").selectedIndex;
-		selectedName = document.getElementById("wanports_bond_menu").options[selectedIndex].text;
-	}
-	else if(based_modelid == "XT12" || based_modelid == "ET12"){
+	if(based_modelid == "XT12" || based_modelid == "ET12"){
 		orig_desc = orig_desc.replace("2Gbps", "5Gbps");
 		selectedName = "2.5G/1G LAN";
 	}
-	else if(based_modelid == "RT-AXE7800"){
-		selectedName = "LAN 2";
-	}
 
-	if(selectedName != "")
-		orig_desc = orig_desc.replace(cur_bond_port, selectedName);
-
-	$("#wanAgg_desc").html(orig_desc);
+	$("#wanAgg_desc").html(orig_desc.replace(cur_bond_port, selectedName));
 	cur_bond_port = selectedName;
 }
 
@@ -1732,7 +1524,7 @@ function create_DNSlist_view(){
 	document.getElementById("dns_list_Block").onclick = function() {show_DNSList_view_block();}
 
 	var DNSListTableIndex=[array_Ab, array_Fm, array_FD, array_Sf, array_Pr];
-	var DNSListTableCategory=["<#IPConnection_x_DNS_List_adB#>", "<#IPConnection_x_DNS_List_Family#>", "<#IPConnection_x_DNS_List_Fast#>", "Safe", "<#IPConnection_x_DNS_List_Priv-resp#>"];
+	var DNSListTableCategory=["Ad block", "Family", "Fast DNS", "Safe", "Privacy-respecting"];
 
 	var code="";
 
@@ -1816,7 +1608,7 @@ function create_DNSlist_view(){
 
 	code += "<div style='margin-top:10px;margin-bottom:20px;width:100%;text-align:center;'>";
 	code += "<input class='button_gen' type='button' onclick='closeDNSListView()' value='<#CTL_Cancel#>'>";
-	code += "<input class='button_gen' type='button' onclick='Update_DNS_service()' style='margin-left:15px;' value='<#CTL_onlysave#>'>";
+	code += "<input class='button_gen' type='button' onclick='Update_DNS_service()' style='margin-left:15px;' value='<#CTL_ok#>'>";
 	code += "</div>";
 
 	$("#dns_list_Block").html(code);
@@ -1881,15 +1673,7 @@ function Update_DNS_service(){
 			}
 		}
 	}
-	
-	httpApi.nvramSet({
-		wan_unit: wan_unit_flag,
-		wan_dnsenable_x: document.form.wan_dnsenable_x.value,
-		wan_dns1_x: document.form.wan_dns1_x.value,
-		wan_dns2_x: document.form.wan_dns2_x.value,
-		action_mode: "apply",
-		rc_service: "restart_wan_dns "+wan_unit_flag
-	}, closeDNSListView());
+	closeDNSListView();
 	Update_DNS_status();
 }
 
@@ -1995,139 +1779,6 @@ function DNSList_match(ip1, ip2){
 	return -1;
 }
 
-function s46reset(){
-	$.ajax({
-		url: "/s46reset.cgi",
-
-		success: function( response ) {
-		}
-	});
-}
-
-function update_map(){
-	var msg = stringSafeGet("<#MAP_update_desc#>")+" <#AiMesh_confirm_msg0#>";
-
-	if(confirm(msg)){
-		$.ajax({
-			url: "/s46reset.cgi",
-
-			success: function( response ) {
-				httpApi.nvramSet({
-				    "action_mode": "apply",
-				    "rc_service" : "restart_wan"
-				});
-				showLoading(10);
-			}
-		});
-	}
-	else
-		return false;
-}
-
-function change_dslite_mode(flag){
-	if(flag==0){	//Auto
-		inputCtrl(document.form.ipv6_s46_aftr, 0);
-		inputCtrl(document.form.ipv6_s46_b4addr_Select, 0);
-		document.getElementById("ipv6_s46_aftr_r").style.display = "";
-		document.getElementById("ipv6_s46_b4addr_r").style.display = "";
-	}
-	else{
-		inputCtrl(document.form.ipv6_s46_aftr, 1);
-		inputCtrl(document.form.ipv6_s46_b4addr_Select, 1);
-		document.getElementById("ipv6_s46_aftr_r").style.display = "none";
-		document.getElementById("ipv6_s46_b4addr_r").style.display = "none";
-	}
-}
-
-function update_ipv6_s46_b4addr_selector(){
-	$("#ipv6_s46_b4addr_Select").empty();
-	var selectedValue = httpApi.nvramGet(["ipv6_s46_b4addr"]).ipv6_s46_b4addr;
-
-	for (var i = 2; i <= 7; i++) {
-		var option = document.createElement("option");
-		option.value = "192.0.0." + i;
-		option.text = "192.0.0." + i;
-		if (option.value === selectedValue) {
-			option.selected = true;
-		}
-		$("#ipv6_s46_b4addr_Select").append(option);
-	}
-}
-
-var over_var = 0;
-var isMenuopen = 0;
-function hide_aftr_Block(){
-	document.getElementById("pull_arrow").src = "/images/arrow-down.gif";
-	document.getElementById('aftr_Block_PC').style.display='none';
-	isMenuopen = 0;
-}
-
-function pullaftrList(obj){
-	if(isMenuopen == 0){		
-		obj.src = "/images/arrow-top.gif"
-		document.getElementById("aftr_Block_PC").style.display = 'block';		
-		document.form.ipv6_s46_aftr.focus();		
-		isMenuopen = 1;
-	}
-	else
-		hide_aftr_Block();
-}
-
-var aftrArray = [
-		["<#IPv6_xpass#> (dgw.xpass.jp)", "dgw.xpass.jp"], ["transix (gw.transix.jp)", "gw.transix.jp"]
-	];
-
-function showaftrList(){
-	var code = "";
-	for(var i = 0; i < aftrArray.length; i++){
-		code += '<a><div onmouseover="over_var=1;" onmouseout="over_var=0;" onclick="setaftrIP(\''+aftrArray[i][1]+'\');"><strong>'+aftrArray[i][0]+'</strong></div></a>';
-	}
-	code +='<!--[if lte IE 6.5]><iframe class="hackiframe2"></iframe><![endif]-->';	
-	document.getElementById("aftr_Block_PC").innerHTML = code;
-}
-
-function setaftrIP(ipaddr){
-	document.form.ipv6_s46_aftr.value = ipaddr;
-	hide_aftr_Block();
-	over_var = 0;
-}
-
-/*------------ get IPv6 info Start -----------------*/
-function update_info(flag){
-	if(flag == 0)
-		return false;
-			
-	$.ajax({
-		url: '/update_IPv6state.asp',
-		dataType: 'script',
-		timeout: 1500,
-		error: function(xhr){
-			setTimeout("update_info();", 1500);
-		},
-		success: function(response){
-			showInfo();
-		}
-	});
-}
-
-function showInfo(){
-	if(document.form.wan_proto.value == wan_proto_orig){
-		if(document.getElementById("ipv6_s46_aftr_r").style.display == ""){
-			document.getElementById("ipv6_s46_aftr_span").innerHTML = state_ipv6_s46_aftr;
-		}
-		if(document.getElementById("ipv6_s46_b4addr_r").style.display == ""){
-			document.getElementById("ipv6_s46_b4addr_span").innerHTML = state_ipv6_s46_b4addr;
-		}
-		if(s46_dslite_svc_str != "none" && s46_dslite_svc_str != ""){	//none,xpass,transix
-			document.getElementById("wan_s46_dslite_svc_r").style.display = "";
-			document.getElementById("wan_s46_dslite_svc_span").innerHTML = (s46_dslite_svc_str=="xpass")? "<#IPv6_xpass#>":s46_dslite_svc_str;
-		}
-		
-		setTimeout("update_info();", 1500);
-	}
-}
-/*------------- get IPv6 info end ----------------------------*/
-
 </script>
 </head>
 
@@ -2177,8 +1828,6 @@ function showInfo(){
 <input type="hidden" name="wan_dns2_x" value="<% nvram_get("wan_dns2_x"); %>">
 <input type="hidden" name="dnspriv_rulelist" value="" disabled>
 <input type="hidden" name="ipv6_service" value="<% nvram_get("ipv6_service"); %>" disabled>
-<input type="hidden" name="wans_mode" value="<% nvram_get("wans_mode"); %>" disabled>
-<input type="hidden" name="ipv6_s46_b4addr" value="<% nvram_get("ipv6_s46_b4addr"); %>" disabled>
 
 <table class="content" align="center" cellpadding="0" cellspacing="0">
   <tr>
@@ -2225,12 +1874,11 @@ function showInfo(){
 						  <tr>
 							<td colspan="2"><#t2BC#></td>
 						  </tr>
-						  </thead>
+						  </thead>		
 
 							<tr>
 								<th><#Layer3Forwarding_x_ConnectionType_itemname#></th>
 								<td align="left">
-									<div style="display: flex; align-items: center;">
 									<select id="wan_proto_menu" class="input_option" name="wan_proto" onchange="change_wan_type(this.value);fixed_change_wan_type(this.value);">
 										<option value="dhcp" <% nvram_match("wan_proto", "dhcp", "selected"); %>><#BOP_ctype_title1#></option>
 										<option value="static" <% nvram_match("wan_proto", "static", "selected"); %>><#BOP_ctype_title5#></option>
@@ -2240,26 +1888,17 @@ function showInfo(){
 										<option value="lw4o6" <% nvram_match("wan_proto", "lw4o6", "selected"); %>>LW 4over6</option>
 										<option value="map-e" <% nvram_match("wan_proto", "map-e", "selected"); %>>MAP-E</option>
 										<option value="v6plus" <% nvram_match("wan_proto", "v6plus", "selected"); %>><#IPv6_plus#></option>
-										<option value="ocnvc" <% nvram_match("wan_proto", "ocnvc", "selected"); %>><#IPv6_ocnvc#></option>
-										<option value="dslite" <% nvram_match("wan_proto", "dslite", "selected"); %>>DS-Lite</option>
 									</select>
-										<div id="s46reset_div" style="display: flex; align-items: center;">
-											<div id="s46btn_div" style="display: flex; align-items: center;">
-												<div id="s46reset_btn" style="margin-left: 5px;"><input type="button" class="button_gen" onclick="update_map();" value="<#MAP_update#>"></div>
-												<div id="s46reset_help" style="margin-left: 5px; cursor: pointer;"><a id = "s46reset_faq" href="" target="_blank"><img src="/images/New_ui/bottom_help.png"></a></div>
-											</div>
-										</div>
-									</div>
 								</td>
 							</tr>
 
 							<tr>
-								<th><#Enable_WAN#></th>
+								<th><#Enable_WAN#></th>                 
 								<td>
 									<input type="radio" name="wan_enable" class="input" value="1" <% nvram_match("wan_enable", "1", "checked"); %>><#checkbox_Yes#>
 									<input type="radio" name="wan_enable" class="input" value="0" <% nvram_match("wan_enable", "0", "checked"); %>><#checkbox_No#>
 								</td>
-							</tr>
+							</tr>				
 
 							<tr>
 								<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(7,22);"><#Enable_NAT#></a></th>                 
@@ -2373,55 +2012,7 @@ function showInfo(){
 							</tr>
 						</table>
 
-						<table id="dslite_setting" width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable" style="display:none">
-						<thead>
-							<tr>
-								<td colspan="2"><#IPConnection_ExternalIPAddress_sectionname#></td>
-							</tr>
-						</thead>
-							<tr>
-								<th>Configuration Type</th>
-								<td>
-									<select id="wan_s46_dslite_mode" class="input_option" name="wan_s46_dslite_mode" onchange="change_dslite_mode(this.value)">
-										<option value="0" <% nvram_match("wan_s46_dslite_mode", "0", "selected"); %>><#Auto#></option>
-										<option value="1" <% nvram_match("wan_s46_dslite_mode", "1", "selected"); %>><#Manual#></option>
-								</td>
-							</tr>
-							<tr id="wan_s46_dslite_svc_r" style="display:none;">
-								<th><#BM_UserList1#></th>
-								<td>
-									<div id="wan_s46_dslite_svc_span" name="wan_s46_dslite_svc_span" style="color:#FFFFFF;margin-left:8px;"></div>
-								</td>
-							</tr>
-							<tr>
-								<th>AFTR Address</th>
-								<td>
-									<input type="text" id="ipv6_s46_aftr" name="ipv6_s46_aftr" maxlength="39" class="input_32_table" value="<% nvram_get("ipv6_s46_aftr"); %>" onKeyPress="" autocorrect="off" autocapitalize="off">
-									<img id="pull_arrow" height="14px;" src="/images/arrow-down.gif" style="position:absolute;*margin-left:-3px;*margin-top:1px;" onclick="pullaftrList(this);" title="<#select_service#>" onmouseover="over_var=1;" onmouseout="over_var=0;">
-									<div id="aftr_Block_PC" class="aftr_Block_PC"></div>
-								</td>
-							</tr>
-							<tr id="ipv6_s46_aftr_r" style="display:none;">
-								<th>AFTR Address</th>
-								<td>
-									<div id="ipv6_s46_aftr_span" name="ipv6_s46_aftr_span" style="color:#FFFFFF;margin-left:8px;"></div>
-								</td>
-							</tr>
-							<tr>
-								<th>B4 IPv4 Address</th>
-								<td>
-									<select id="ipv6_s46_b4addr_Select" name="ipv6_s46_b4addr_Select" class="input_option"></select>
-								</td>
-							</tr>
-							<tr id="ipv6_s46_b4addr_r" style="display:none;">
-								<th>B4 IPv4 Address</th>
-								<td>
-									<div id="ipv6_s46_b4addr_span" name="ipv6_s46_b4addr_span" style="color:#FFFFFF;margin-left:8px;"></div>
-								</td>
-							</tr>
-						</table>
-
-						<table id="S46setting" width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable" style="display:none">
+						<table id="S46setting" width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">
 							<thead>
 							<tr>
 								<td colspan="2"><#IPConnection_ExternalIPAddress_sectionname#></td>
@@ -2491,44 +2082,6 @@ function showInfo(){
 						<div style="margin:-38px 0 5px 0;text-align:right;"><input type="button" class="button_gen" onclick="Assign_DNS_service()" value="<#CTL_assign#>"></div>
 					</td>
           		</tr>
-				<tr>
-					<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(7,42);">Forward local domain queries to upstream DNS</a></th><!-- untranslated -->
-					<td>
-						<input type="radio" value="1" name="dns_fwd_local" <% nvram_match("dns_fwd_local", "1", "checked"); %> /><#checkbox_Yes#>
-						<input type="radio" value="0" name="dns_fwd_local" <% nvram_match("dns_fwd_local", "0", "checked"); %> /><#checkbox_No#>
-					</td>
-				</tr>
-				<tr>
-					<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(7,43);">Enable DNS Rebind protection</a></th><!-- untranslated -->
-					<td>
-						<input type="radio" value="1" name="dns_norebind" <% nvram_match("dns_norebind", "1", "checked"); %> /><#checkbox_Yes#>
-						<input type="radio" value="0" name="dns_norebind" <% nvram_match("dns_norebind", "0", "checked"); %> /><#checkbox_No#>
-					</td>
-				</tr>
-				<tr id="dnssec_tr" style="display:none;">
-					<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(7,44);">Enable DNSSEC support</a></th><!-- untranslated -->
-					<td>
-						<input type="radio" value="1" name="dnssec_enable" onclick="showhide('dnssec_strict_tr',1);" <% nvram_match("dnssec_enable", "1", "checked"); %> /><#checkbox_Yes#>
-						<input type="radio" value="0" name="dnssec_enable" onclick="showhide('dnssec_strict_tr',0);" <% nvram_match("dnssec_enable", "0", "checked"); %> /><#checkbox_No#>
-					</td>
-				</tr>
-				<tr id="dnssec_strict_tr" style="display:none;">
-					<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(7,45);">Validate unsigned DNSSEC replies</a></th><!-- untranslated -->
-					<td>
-						<input type="radio" value="1" name="dnssec_check_unsigned_x" <% nvram_match("dnssec_check_unsigned_x", "1", "checked"); %> /><#checkbox_Yes#>
-						<input type="radio" value="0" name="dnssec_check_unsigned_x" <% nvram_match("dnssec_check_unsigned_x", "0", "checked"); %> /><#checkbox_No#>
-					</td>
-				</tr>
-				<tr id="dns_priv_override_tr">
-					<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(7,46);">Prevent client auto DoH</a></th><!-- untranslated -->
-					<td>
-						<select id="dns_priv_override" class="input_option" name="dns_priv_override">
-							<option value="0" <% nvram_match("dns_priv_override", "0", "selected"); %>><#Auto#></option>
-							<option value="1" <% nvram_match("dns_priv_override", "1", "selected"); %>><#checkbox_Yes#></option>
-							<option value="2" <% nvram_match("dns_priv_override", "2", "selected"); %>><#checkbox_No#></option>
-						</select>
-					</td>
-				</tr>
 			<tr style="display:none">
 				<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(7,35);"><#WAN_DNS_Privacy#></a></th>
 				<td align="left">

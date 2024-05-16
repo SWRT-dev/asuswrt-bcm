@@ -2,8 +2,7 @@
  * Copyright (C) 2007-2017 Tobias Brunner
  * Copyright (C) 2005-2007 Martin Willi
  * Copyright (C) 2005 Jan Hutter
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -32,12 +31,10 @@
 
 #define NON_SUBNET_ADDRESS_RANGE	255
 
-ENUM_BEGIN(ts_type_name, TS_IPV4_ADDR_RANGE, TS_IPV6_ADDR_RANGE,
+ENUM(ts_type_name, TS_IPV4_ADDR_RANGE, TS_IPV6_ADDR_RANGE,
 	"TS_IPV4_ADDR_RANGE",
-	"TS_IPV6_ADDR_RANGE");
-ENUM_NEXT(ts_type_name, TS_SECLABEL, TS_SECLABEL, TS_IPV6_ADDR_RANGE,
-	"TS_SECLABEL");
-ENUM_END(ts_type_name, TS_SECLABEL);
+	"TS_IPV6_ADDR_RANGE",
+);
 
 typedef struct private_traffic_selector_t private_traffic_selector_t;
 
@@ -112,12 +109,8 @@ static void calc_range(private_traffic_selector_t *this, uint8_t netbits)
 	memcpy(this->to, this->from, bytes);
 	memset(this->from + bytes, 0x00, len - bytes);
 	memset(this->to   + bytes, 0xff, len - bytes);
-
-	if (bytes)
-	{
-		this->from[bytes-1] &= ~mask;
-		this->to[bytes-1]   |=  mask;
-	}
+	this->from[bytes-1] &= ~mask;
+	this->to[bytes-1]   |=  mask;
 }
 
 /**

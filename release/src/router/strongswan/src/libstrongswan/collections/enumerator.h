@@ -1,8 +1,7 @@
 /*
  * Copyright (C) 2013-2017 Tobias Brunner
  * Copyright (C) 2007 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -174,7 +173,7 @@ enumerator_t* enumerator_create_token(const char *string, const char *sep,
  * Creates an enumerator which enumerates over enumerated enumerators :-).
  *
  * The outer enumerator is expected to return objects that, when passed to
- * inner_constructor, will create a new enumerator that will be enumerated until
+ * inner_contructor, will create a new enumerator that will be enumerated until
  * completion (to this enumerator will the pointer arguments that are passed to
  * this enumerator be forwarded) at which point a new element from the outer
  * enumerator is requested to create a new inner enumerator.

@@ -1,8 +1,7 @@
 /*
- * Copyright (C) 2010-2020 Tobias Brunner
+ * Copyright (C) 2010-2018 Tobias Brunner
  * Copyright (C) 2007 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -271,6 +270,55 @@ static bool build_cookie(private_ike_mobike_t *this, message_t *message)
 }
 
 /**
+ * update addresses of associated CHILD_SAs
+ */
+static void update_children(private_ike_mobike_t *this)
+{
+	enumerator_t *enumerator;
+	child_sa_t *child_sa;
+	linked_list_t *vips;
+	status_t status;
+	host_t *host;
+
+	vips = linked_list_create();
+
+	enumerator = this->ike_sa->create_virtual_ip_enumerator(this->ike_sa, TRUE);
+	while (enumerator->enumerate(enumerator, &host))
+	{
+		vips->insert_last(vips, host);
+	}
+	enumerator->destroy(enumerator);
+
+	enumerator = this->ike_sa->create_child_sa_enumerator(this->ike_sa);
+	while (enumerator->enumerate(enumerator, (void**)&child_sa))
+	{
+		status = child_sa->update(child_sa,
+					this->ike_sa->get_my_host(this->ike_sa),
+					this->ike_sa->get_other_host(this->ike_sa), vips,
+					this->ike_sa->has_condition(this->ike_sa, COND_NAT_ANY));
+		switch (status)
+		{
+			case NOT_SUPPORTED:
+				this->ike_sa->rekey_child_sa(this->ike_sa,
+											 child_sa->get_protocol(child_sa),
+											 child_sa->get_spi(child_sa, TRUE));
+				break;
+			case SUCCESS:
+				charon->child_sa_manager->remove(charon->child_sa_manager,
+												 child_sa);
+				charon->child_sa_manager->add(charon->child_sa_manager,
+											  child_sa, this->ike_sa);
+				break;
+			default:
+				break;
+		}
+	}
+	enumerator->destroy(enumerator);
+
+	vips->destroy(vips);
+}
+
+/**
  * Apply the port of the old host, if its ip equals the new, use port otherwise.
  */
 static void apply_port(host_t *host, host_t *old, uint16_t port, bool local)
@@ -366,24 +414,15 @@ METHOD(ike_mobike_t, transmit, bool,
 METHOD(task_t, build_i, status_t,
 	   private_ike_mobike_t *this, message_t *message)
 {
-	if (message->get_exchange_type(message) == IKE_AUTH)
-	{
+	if (message->get_exchange_type(message) == IKE_AUTH &&
+		message->get_message_id(message) == 1)
+	{	/* only in first IKE_AUTH */
 		message->add_notify(message, FALSE, MOBIKE_SUPPORTED, chunk_empty);
 		build_address_list(this, message);
-		/* only in first IKE_AUTH */
-		this->public.task.build = (void*)return_need_more;
 	}
 	else if (message->get_exchange_type(message) == INFORMATIONAL)
 	{
 		host_t *old, *new;
-
-		/* this task might have been queued before we knew if MOBIKE will be
-		 * supported */
-		if (!this->ike_sa->supports_extension(this->ike_sa, EXT_MOBIKE))
-		{
-			message->set_exchange_type(message, EXCHANGE_TYPE_UNDEFINED);
-			return SUCCESS;
-		}
 
 		/* we check if the existing address is still valid */
 		old = message->get_source(message);
@@ -409,6 +448,7 @@ METHOD(task_t, build_i, status_t,
 			{
 				return FAILED;
 			}
+			update_children(this);
 		}
 		if (this->address && !this->check)
 		{
@@ -425,46 +465,40 @@ METHOD(task_t, build_i, status_t,
 METHOD(task_t, process_r, status_t,
 	   private_ike_mobike_t *this, message_t *message)
 {
-	if (message->get_exchange_type(message) == IKE_AUTH)
-	{
+	if (message->get_exchange_type(message) == IKE_AUTH &&
+		message->get_message_id(message) == 1)
+	{	/* only first IKE_AUTH */
 		process_payloads(this, message);
-		/* only first IKE_AUTH */
-		this->public.task.process = (void*)return_need_more;
 	}
 	else if (message->get_exchange_type(message) == INFORMATIONAL)
 	{
-		host_t *me_new = NULL, *other, *other_old, *other_new = NULL;
-
 		process_payloads(this, message);
+		if (this->update)
+		{
+			host_t *me, *other;
+
+			me = message->get_destination(message);
+			other = message->get_source(message);
+			this->ike_sa->set_my_host(this->ike_sa, me->clone(me));
+			this->ike_sa->set_other_host(this->ike_sa, other->clone(other));
+		}
 
 		if (this->natd)
 		{
 			this->natd->task.process(&this->natd->task, message);
 		}
-
-		if (this->update)
+		if (this->addresses_updated && this->ike_sa->has_condition(this->ike_sa,
+												COND_ORIGINAL_INITIATOR))
 		{
-			me_new = message->get_destination(message);
-			other_new = message->get_source(message);
-		}
-		else if (this->addresses_updated &&
-				 this->ike_sa->has_condition(this->ike_sa, COND_ORIGINAL_INITIATOR))
-		{
-			other = message->get_source(message);
-			other_old = this->ike_sa->get_other_host(this->ike_sa);
+			host_t *other = message->get_source(message);
+			host_t *other_old = this->ike_sa->get_other_host(this->ike_sa);
 			if (!other->equals(other, other_old))
 			{
-				other_new = other;
-				/* our address might have changed too if the responder used
-				 * a different address from our list to reach us */
-				me_new = message->get_destination(message);
+				DBG1(DBG_IKE, "remote address changed from %H to %H", other_old,
+					 other);
+				this->ike_sa->set_other_host(this->ike_sa, other->clone(other));
+				this->update = TRUE;
 			}
-		}
-
-		if (me_new || other_new)
-		{
-			this->ike_sa->update_hosts(this->ike_sa, me_new,
-									   other_new, UPDATE_HOSTS_FORCE_ALL);
 		}
 	}
 	return NEED_MORE;
@@ -474,8 +508,8 @@ METHOD(task_t, build_r, status_t,
 	   private_ike_mobike_t *this, message_t *message)
 {
 	if (message->get_exchange_type(message) == IKE_AUTH &&
-		this->ike_sa->has_condition(this->ike_sa, COND_AUTHENTICATED))
-	{	/* in last IKE_AUTH only */
+		this->ike_sa->get_state(this->ike_sa) == IKE_ESTABLISHED)
+	{
 		if (this->ike_sa->supports_extension(this->ike_sa, EXT_MOBIKE))
 		{
 			message->add_notify(message, FALSE, MOBIKE_SUPPORTED, chunk_empty);
@@ -494,6 +528,10 @@ METHOD(task_t, build_r, status_t,
 			message->add_notify(message, FALSE, COOKIE2, this->cookie2);
 			chunk_free(&this->cookie2);
 		}
+		if (this->update)
+		{
+			update_children(this);
+		}
 		return SUCCESS;
 	}
 	return NEED_MORE;
@@ -503,15 +541,13 @@ METHOD(task_t, process_i, status_t,
 	   private_ike_mobike_t *this, message_t *message)
 {
 	if (message->get_exchange_type(message) == IKE_AUTH &&
-		this->ike_sa->has_condition(this->ike_sa, COND_AUTHENTICATED))
-	{	/* in last IKE_AUTH only */
+		this->ike_sa->get_state(this->ike_sa) == IKE_ESTABLISHED)
+	{
 		process_payloads(this, message);
 		return SUCCESS;
 	}
 	else if (message->get_exchange_type(message) == INFORMATIONAL)
 	{
-		bool force = FALSE;
-
 		if (is_newer_update_queued(this))
 		{
 			return SUCCESS;
@@ -538,48 +574,49 @@ METHOD(task_t, process_i, status_t,
 		if (this->natd)
 		{
 			this->natd->task.process(&this->natd->task, message);
-
-			if (this->update)
-			{	/* update children again, as NAT state may have changed */
-				this->ike_sa->update_hosts(this->ike_sa, NULL, NULL,
-										   UPDATE_HOSTS_FORCE_CHILDREN);
-			}
-			else if (this->natd->has_mapping_changed(this->natd))
-			{	/* force a check/update if mappings have changed during a DPD */
-				force = TRUE;
-				this->check = TRUE;
+			if (!this->update && this->natd->has_mapping_changed(this->natd))
+			{
+				/* force an update if mappings have changed */
+				this->update = this->check = TRUE;
 				DBG1(DBG_IKE, "detected changes in NAT mappings, "
 					 "initiating MOBIKE update");
 			}
 		}
+		if (this->update)
+		{
+			/* update again, as NAT state may have changed */
+			update_children(this);
+		}
 		if (this->check)
 		{
-			host_t *me, *me_new = NULL, *other, *other_new = NULL;
+			host_t *me_new, *me_old, *other_new, *other_old;
 
-			me = message->get_destination(message);
-			other = message->get_source(message);
+			me_new = message->get_destination(message);
+			other_new = message->get_source(message);
+			me_old = this->ike_sa->get_my_host(this->ike_sa);
+			other_old = this->ike_sa->get_other_host(this->ike_sa);
 
-			if (!me->equals(me, this->ike_sa->get_my_host(this->ike_sa)))
+			if (!me_new->equals(me_new, me_old))
 			{
-				me_new = me;
+				this->update = TRUE;
+				this->ike_sa->set_my_host(this->ike_sa, me_new->clone(me_new));
 			}
-			if (!other->equals(other, this->ike_sa->get_other_host(this->ike_sa)))
+			if (!other_new->equals(other_new, other_old))
 			{
-				other_new = other;
+				this->update = TRUE;
+				this->ike_sa->set_other_host(this->ike_sa, other_new->clone(other_new));
 			}
-			if (me_new || other_new || force)
+			if (this->update)
 			{
-				this->ike_sa->update_hosts(this->ike_sa, me_new, other_new,
-										   UPDATE_HOSTS_FORCE_ALL);
 				/* use the same task to ... */
 				if (!this->ike_sa->has_condition(this->ike_sa,
 												 COND_ORIGINAL_INITIATOR))
 				{	/*... send an updated list of addresses as responder */
-					this->address = TRUE;
+					update_children(this);
+					this->update = FALSE;
 				}
 				else
 				{	/* ... send the update as original initiator */
-					this->update = TRUE;
 					if (this->natd)
 					{
 						this->natd->task.destroy(&this->natd->task);
@@ -644,7 +681,6 @@ METHOD(task_t, migrate, void,
 	{
 		this->natd->task.migrate(&this->natd->task, ike_sa);
 	}
-	this->public.task.build = _build_i;
 }
 
 METHOD(task_t, destroy, void,

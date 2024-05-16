@@ -43,7 +43,7 @@ typedef struct C93DemuxContext {
     AVStream *audio;
 } C93DemuxContext;
 
-static int probe(const AVProbeData *p)
+static int probe(AVProbeData *p)
 {
     int i;
     int index = 1;
@@ -158,19 +158,22 @@ static int read_packet(AVFormatContext *s, AVPacket *pkt)
 
     ret = avio_read(pb, pkt->data + 1, datasize);
     if (ret < datasize) {
-        return AVERROR(EIO);
+        ret = AVERROR(EIO);
+        goto fail;
     }
 
     datasize = avio_rl16(pb); /* palette size */
     if (datasize) {
         if (datasize != 768) {
             av_log(s, AV_LOG_ERROR, "invalid palette size %u\n", datasize);
-            return AVERROR_INVALIDDATA;
+            ret = AVERROR_INVALIDDATA;
+            goto fail;
         }
         pkt->data[0] |= C93_HAS_PALETTE;
         ret = avio_read(pb, pkt->data + pkt->size, datasize);
         if (ret < datasize) {
-            return AVERROR(EIO);
+            ret = AVERROR(EIO);
+            goto fail;
         }
         pkt->size += 768;
     }
@@ -183,6 +186,10 @@ static int read_packet(AVFormatContext *s, AVPacket *pkt)
         pkt->data[0] |= C93_FIRST_FRAME;
     }
     return 0;
+
+    fail:
+    av_packet_unref(pkt);
+    return ret;
 }
 
 AVInputFormat ff_c93_demuxer = {

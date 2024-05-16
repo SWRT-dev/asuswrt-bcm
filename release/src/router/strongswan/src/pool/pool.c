@@ -1,8 +1,7 @@
 /*
  * Copyright (C) 2011-2017 Tobias Brunner
  * Copyright (C) 2008 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -41,7 +40,7 @@ database_t *db;
 /**
  * --start/--end addresses of various subcommands
  */
-host_t *start_addr = NULL, *end_addr = NULL;
+host_t *start = NULL, *end = NULL;
 
 /**
  * whether --add should --replace an existing pool
@@ -334,21 +333,21 @@ next_pool:
  */
 static void add(char *name, host_t *start, host_t *end, u_int timeout)
 {
-	chunk_t start_chunk, end_chunk, cur_addr;
+	chunk_t start_addr, end_addr, cur_addr;
 	u_int id, count;
 
-	start_chunk = start->get_address(start);
-	end_chunk = end->get_address(end);
-	cur_addr = chunk_clonea(start_chunk);
-	count = get_pool_size(start_chunk, end_chunk);
+	start_addr = start->get_address(start);
+	end_addr = end->get_address(end);
+	cur_addr = chunk_clonea(start_addr);
+	count = get_pool_size(start_addr, end_addr);
 
-	if (start_chunk.len != end_chunk.len ||
-		memcmp(start_chunk.ptr, end_chunk.ptr, start_chunk.len) > 0)
+	if (start_addr.len != end_addr.len ||
+		memcmp(start_addr.ptr, end_addr.ptr, start_addr.len) > 0)
 	{
 		fprintf(stderr, "invalid start/end pair specified.\n");
 		exit(EXIT_FAILURE);
 	}
-	id = create_pool(name, start_chunk, end_chunk, timeout);
+	id = create_pool(name, start_addr, end_addr, timeout);
 	printf("allocating %d addresses... ", count);
 	fflush(stdout);
 	db->transaction(db, FALSE);
@@ -358,7 +357,7 @@ static void add(char *name, host_t *start, host_t *end, u_int timeout)
 			"INSERT INTO addresses (pool, address, identity, acquired, released) "
 			"VALUES (?, ?, ?, ?, ?)",
 			DB_UINT, id, DB_BLOB, cur_addr,	DB_UINT, 0, DB_UINT, 0, DB_UINT, 1);
-		if (chunk_equals(cur_addr, end_chunk))
+		if (chunk_equals(cur_addr, end_addr))
 		{
 			break;
 		}
@@ -945,8 +944,8 @@ static void batch(char *argv0, char *name)
 static void cleanup(void)
 {
 	db->destroy(db);
-	DESTROY_IF(start_addr);
-	DESTROY_IF(end_addr);
+	DESTROY_IF(start);
+	DESTROY_IF(end);
 }
 
 static void do_args(int argc, char *argv[])
@@ -1081,9 +1080,9 @@ static void do_args(int argc, char *argv[])
 				operation = OP_BATCH;
 				continue;
 			case 's':
-				DESTROY_IF(start_addr);
-				start_addr = host_create_from_string(optarg, 0);
-				if (!start_addr)
+				DESTROY_IF(start);
+				start = host_create_from_string(optarg, 0);
+				if (start == NULL)
 				{
 					fprintf(stderr, "invalid start address: '%s'.\n", optarg);
 					usage();
@@ -1091,9 +1090,9 @@ static void do_args(int argc, char *argv[])
 				}
 				continue;
 			case 'e':
-				DESTROY_IF(end_addr);
-				end_addr = host_create_from_string(optarg, 0);
-				if (!end_addr)
+				DESTROY_IF(end);
+				end = host_create_from_string(optarg, 0);
+				if (end == NULL)
 				{
 					fprintf(stderr, "invalid end address: '%s'.\n", optarg);
 					usage();
@@ -1162,9 +1161,9 @@ static void do_args(int argc, char *argv[])
 			{
 				add_addresses(name, addresses, timeout);
 			}
-			else if (start_addr && end_addr)
+			else if (start != NULL && end != NULL)
 			{
-				add(name, start_addr, end_addr, timeout);
+				add(name, start, end, timeout);
 			}
 			else
 			{
@@ -1204,13 +1203,13 @@ static void do_args(int argc, char *argv[])
 			show_attr();
 			break;
 		case OP_RESIZE:
-			if (!end_addr)
+			if (end == NULL)
 			{
 				fprintf(stderr, "missing arguments.\n");
 				usage();
 				exit(EXIT_FAILURE);
 			}
-			resize(name, end_addr);
+			resize(name, end);
 			break;
 		case OP_LEASES:
 			leases(filter, utc);

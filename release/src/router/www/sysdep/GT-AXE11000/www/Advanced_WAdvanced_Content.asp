@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html>
 <head>
 	<meta charset="UTF-8">
@@ -89,6 +89,23 @@
 	border-bottom-right-radius: 1px;
 }
 #slider .ui-slider-handle { border-color: #93E7FF; }
+#slider1 .ui-slider-range {
+	background: #93E7FF; 
+	border-top-left-radius: 3px;
+	border-top-right-radius: 1px;
+	border-bottom-left-radius: 3px;
+	border-bottom-right-radius: 1px;
+}
+#slider1 .ui-slider-handle { border-color: #93E7FF; }
+.parental_th{
+	color:white;
+	background:#2F3A3E;
+	cursor: pointer;
+	width:160px;
+	height:22px;
+	border-bottom:solid 1px black;
+	border-right:solid 1px black;
+} 
 </style>
 <script>
 $(function () {
@@ -137,6 +154,7 @@ var wl_user_rssi_onload = '<% nvram_get("wl_user_rssi"); %>';
 var reboot_needed_time = eval("<% get_default_reboot_time(); %>");
 var orig_region = '<% nvram_get("location_code"); %>';
 var wl_txpower_orig = '<% nvram_get("wl_txpower"); %>';
+var wl_custompower_orig = '<% nvram_get("wl_custompower"); %>';
 var machine_name = '<% get_machine_name(); %>';
 var machine_arm = (machine_name.search("arm") == -1 && machine_name.search("aarch64") == -1) ? false : true;
 var clock_type = "";
@@ -220,15 +238,15 @@ var QAM1024_support = false;
 	if(Bcmwifi_support){
 		var _cap = '';
 		var _chipset = '';
-		if(is_unit_24g(wl_unit_value)){
+		if(wl_unit_value == '0'){
 			_cap = '<% wl_cap_2g(); %>';
 			_chipset = '<% wl_chipnum_2g(); %>';
 		}
-		else if(is_unit_5g(wl_unit_value)){
+		else if(wl_unit_value == '1'){
 			_cap = '<% wl_cap_5g(); %>';
 			_chipset = '<% wl_chipnum_5g(); %>';
 		}
-		else if(is_unit_5g_2(wl_unit_value)){
+		else if(wl_unit_value == '2'){
 			_cap = '<% wl_cap_5g_2(); %>';
 			_chipset = '<% wl_chipnum_5g_2(); %>';
 		}
@@ -292,7 +310,7 @@ function initial(){
 		document.getElementById("DLSCapable").style.display = "none";	
 		document.getElementById("PktAggregate").style.display = "none";
 		
-		if(is_unit_5g(wl_unit_value) || is_unit_5g_2(wl_unit_value) || machine_arm){	// MODELDEP: for Broadcom SDK 6.x model
+		if(wl_unit_value == '1' || machine_arm){	// MODELDEP: for Broadcom SDK 6.x model
 			inputCtrl(document.form.wl_noisemitigation, 0);
 		}
 	}
@@ -331,13 +349,13 @@ function initial(){
 	inputCtrl(document.form.wl_itxbf, 0);
 	inputCtrl(document.form.traffic_5g, 0);
 
-	if(is_unit_5g(wl_unit_value) || is_unit_5g_2(wl_unit_value) || is_unit_6g(wl_unit_value)){ // 5GHz up
+	if(wl_unit_value == '1' || wl_unit_value == '2'){ // 5GHz up
 		if(	based_modelid == "RT-AC3200" ||
 			based_modelid == "RT-AC56S" || based_modelid == "RT-AC56U" ||
 			based_modelid == "RT-AC68U" || based_modelid == "RT-AC68A" || based_modelid == "DSL-AC68U" || based_modelid == "4G-AC68U" ||
 			based_modelid == "RT-AC87U" || based_modelid == "EA-AC87" || based_modelid == "RT-AX55" ||
 			based_modelid == "RT-AC88U" || based_modelid == "RT-AX88U" || based_modelid == "RT-AC86U" || based_modelid == "GT-AC2900" || based_modelid == "RT-AC3100" ||
-			based_modelid == "RT-AC5300" || based_modelid == "GT-AC5300" || based_modelid == "GT-AX11000" || based_modelid == "RT-AX92U" || based_modelid == "RT-AX95Q" || based_modelid == "XT8PRO" || based_modelid == "BM68" || based_modelid == "XT8_V2" || based_modelid == "RT-AX56_XD4" || based_modelid == "XD4PRO" || based_modelid == "CT-AX56_XD4" || based_modelid == "RT-AX58U" || based_modelid == "RT-AX58U_V2" || based_modelid == "BR63" || based_modelid == "RT-AX3000N" || based_modelid == "TUF-AX3000" || based_modelid == "TUF-AX3000_V2" || based_modelid == "TUF-AX5400" || based_modelid == "TUF-AX5400_V2" || based_modelid == "DSL-AX82U" || based_modelid == "RT-AX82U" || based_modelid == "RT-AX82U_V2" || based_modelid == "RT-AX56U" || based_modelid == "RT-AX86U" || based_modelid == "RT-AX68U" || based_modelid == "RT-AC68U_V4" || based_modelid == "GT-AXE11000" || based_modelid == "GS-AX3000" || based_modelid == "GS-AX5400" || based_modelid == "GT-AX6000" || based_modelid == "GT-AX11000_PRO" || based_modelid == "ET12" || based_modelid == "XT12" || based_modelid == "GT-AXE16000" || based_modelid == "RT-AXE7800" || based_modelid == "GT10" || based_modelid == "RT-AX9000" || based_modelid == "XC5")
+			based_modelid == "RT-AC5300" || based_modelid == "GT-AC5300" || based_modelid == "GT-AX11000" || based_modelid == "RT-AX92U" || based_modelid == "RT-AX95Q" || based_modelid == "XT8PRO" || based_modelid == "XT8_V2" || based_modelid == "RT-AX56_XD4" || based_modelid == "XD4PRO" || based_modelid == "CT-AX56_XD4" || based_modelid == "RT-AX58U" || based_modelid == "RT-AX58U_V2" || based_modelid == "RT-AX3000N" || based_modelid == "TUF-AX3000" || based_modelid == "TUF-AX3000_V2" || based_modelid == "TUF-AX5400" || based_modelid == "DSL-AX82U" || based_modelid == "RT-AX82U" || based_modelid == "RT-AX82U_V2" || based_modelid == "RT-AX56U" || based_modelid == "RT-AX86U" || based_modelid == "RT-AX68U" || based_modelid == "RT-AC68U_V4" || based_modelid == "GT-AXE11000" || based_modelid == "GS-AX3000" || based_modelid == "GS-AX5400" || based_modelid == "GT-AX6000" || based_modelid == "GT-AX11000_PRO" || based_modelid == "ET12" || based_modelid == "XT12" || based_modelid == "GT-AXE16000" || based_modelid == "RT-AXE7800" || based_modelid == "GT10")
 		{
 			if(no_vht_support){
 				inputCtrl(document.form.wl_txbf, 0);
@@ -345,7 +363,7 @@ function initial(){
 			}
 			else{
 				if(band5g_11ax_support){
-					if(is_unit_5g(wl_unit_value) && based_modelid == 'RT-AX92U'){
+					if(wl_unit_value == '1' && based_modelid == 'RT-AX92U'){
 						document.getElementById('wl_txbf_desc').innerHTML = "<#WLANConfig11b_x_acBeam#>";
 					}
 					else{
@@ -361,12 +379,6 @@ function initial(){
 			}
 		}
 
-		if (based_modelid == "BRT-AC828" || based_modelid == "RT-AC82U" || based_modelid == "RT-AC58U"
-		 || based_modelid == "MAP-AC1300" || based_modelid == "MAP-AC2200" || based_modelid == "VZW-AC1300"
-		 || based_modelid == "RT-AC95U" || based_modelid == "GT-AXY16000" || based_modelid == "RT-AX89U" || based_modelid == "PL-AX56_XP4"
-		 || (based_modelid.substring(0,7) == "RT-AC59" && is_unit_5g(wl_unit_value))){
-			inputCtrl(document.form.wl_itxbf, 1);
-		}
 		if(based_modelid == "RT-AC88N" || based_modelid == "RT-AC88Q" 
 		|| based_modelid == "BRT-AC828" || based_modelid == "RT-AD7200" 
 		|| based_modelid == "RT-AC58U" || based_modelid.substring(0,7) == "RT-AC59" || based_modelid == "RT-AC82U" 
@@ -410,7 +422,7 @@ function initial(){
 
 		if((!Qcawifi_support && !Rawifi_support) || based_modelid == "RT-AC87U"
 		    || based_modelid == "MAP-AC1300" || based_modelid == "MAP-AC2200" || based_modelid == "VZW-AC1300" || based_modelid == "RT-AC95U"
-		    || based_modelid == "RT-AC82U" || based_modelid == "RT-AC58U" || based_modelid == "4G-AC53U" || based_modelid == "4G-AC56" || (based_modelid == "RP-AC87" && is_unit_5g(wl_unit_value) )){		// hide on Broadcom platform
+		    || based_modelid == "RT-AC82U" || based_modelid == "RT-AC58U" || based_modelid == "4G-AC53U" || based_modelid == "4G-AC56" || (based_modelid == "RP-AC87" && wl_unit_value == "1") ){		// hide on Broadcom platform
 			document.getElementById("wl_plcphdr_field").style.display = "none";
 		}
 
@@ -419,7 +431,7 @@ function initial(){
 			inputCtrl(document.form.wl_txbf, 1);	
 		}
 	}
-	else if(is_unit_60g(wl_unit_value)){ // 60GHz up
+	else if(wl_unit_value == '3'){ // 60GHz up
 		inputCtrl(document.form.wl_user_rssi_option, 0);
 		inputCtrl(document.form.wl_igs, 0);
 		inputCtrl(document.form.wl_mrate_x, 0);
@@ -430,7 +442,7 @@ function initial(){
 		inputCtrl(document.form.wl_wme_apsd, 0);
 		inputCtrl(document.form.wl_atf, 0);
 		inputCtrl(document.form.wl_txbf, 0);
-		document.getElementById("wl_itxbf_field").style.display = "none";
+		document.getElementById("wl_implicitxbf_field").style.display = "none";
 		document.getElementById("wl_txPower_field").style.display = "none";
 	}
 	else{ // 2.4GHz
@@ -473,13 +485,6 @@ function initial(){
 				inputCtrl(document.form.wl_itxbf, 1);
 			}	
 		}	
-
-		if (based_modelid == "BRT-AC828" || based_modelid == "RT-AC82U" || based_modelid == "RT-AC58U"
-		 || based_modelid == "MAP-AC1300" || based_modelid == "MAP-AC2200" || based_modelid == "VZW-AC1300"
-		 || based_modelid == "RT-AC95U" || based_modelid == "GT-AXY16000" || based_modelid == "RT-AX89U" || based_modelid == "PL-AX56_XP4"
-		 || (based_modelid.substring(0,7) == "RT-AC59" && is_unit_5g(wl_unit_value))){
-			inputCtrl(document.form.wl_itxbf, 1);
-		}
 		if(based_modelid == "RT-AC88N" || based_modelid == "RT-AC88Q" 
 		|| based_modelid == "BRT-AC828" || based_modelid == "RT-AD7200" || based_modelid == "RT-AC58U" 
 		|| based_modelid == "RT-AC82U" || based_modelid == "MAP-AC1300" || based_modelid == "MAP-AC2200" 
@@ -557,11 +562,12 @@ function initial(){
 	}
 		
 	adjust_tx_power();	
+	adjust_custom_power();
 	if(svc_ready == "0")
 		document.getElementById('svc_hint_div').style.display = "";	
 	
 	corrected_timezone();		
-	if(based_modelid == "RT-AC87U" && is_unit_5g(wl_unit_value)){	//for RT-AC87U 5 GHz Advanced setting
+	if(based_modelid == "RT-AC87U" && wl_unit_value == '1'){	//for RT-AC87U 5 GHz Advanced setting
 		document.getElementById("wl_mrate_select").style.display = "none";
 		document.getElementById("ampdu_rts_tr").style.display = "none";
 		document.getElementById("rts_threshold").style.display = "none";
@@ -586,25 +592,25 @@ function initial(){
 			document.getElementById("wl_MU_MIMO_field").style.display = "none";
 			document.form.wl_mumimo.disabled = true;
 		}
-		else if((based_modelid == "RT-AC85U" || based_modelid == "RT-AC85P" || based_modelid == "RT-ACRH26" || based_modelid == "RT-AC65U") && is_unit_24g(wl_unit_value)){
+		else if((based_modelid == "RT-AC85U" || based_modelid == "RT-AC85P" || based_modelid == "RT-ACRH26" || based_modelid == "RT-AC65U") && wl_unit_value == '0'){
 			document.getElementById("wl_MU_MIMO_field").style.display = "none";
 		}
-		else if(based_modelid == "RT-AX92U" && (is_unit_24g(wl_unit_value) || is_unit_5g(wl_unit_value))){
-			document.getElementById("wl_MU_MIMO_field").style.display = "none";
-			document.form.wl_mumimo.disabled = true;
-		}
-		else if (based_modelid == 'RT-AX88U' && is_unit_24g(wl_unit_value)) {
+		else if(based_modelid == "RT-AX92U" && (wl_unit_value == '0' || wl_unit_value == '1')){
 			document.getElementById("wl_MU_MIMO_field").style.display = "none";
 			document.form.wl_mumimo.disabled = true;
 		}
-		else if ((based_modelid == 'RT-AX92U' || based_modelid == 'RT-AX95Q' || based_modelid == 'XT8PRO' || based_modelid == 'BM68' || based_modelid == 'XT8_V2' || based_modelid == 'RT-AX56_XD4' || based_modelid == 'XD4PRO' || based_modelid == 'CT-AX56_XD4' || based_modelid == 'RT-AX56U') &&  (is_unit_24g(wl_unit_value) || is_unit_5g(wl_unit_value))){
+		else if (based_modelid == 'RT-AX88U' && wl_unit_value == '0') {
+			document.getElementById("wl_MU_MIMO_field").style.display = "none";
+			document.form.wl_mumimo.disabled = true;
+		}
+		else if ((based_modelid == 'RT-AX92U' || based_modelid == 'RT-AX95Q' || based_modelid == 'XT8PRO' || based_modelid == 'XT8_V2' || based_modelid == 'RT-AX56_XD4' || based_modelid == 'XD4PRO' || based_modelid == 'CT-AX56_XD4' || based_modelid == 'RT-AX56U') && (wl_unit_value == '0' || wl_unit_value == '1')){
 			document.getElementById("wl_MU_MIMO_field").style.display = "none";
 			document.form.wl_mumimo.disabled = true;
 		}	
 	}
 
 	if (lantiq_support) {
-		if (is_unit_5g(wl_unit_value)) {
+		if (wl_unit_value == '1') {
 			$('#wl_MU_MIMO_field').show();
 			document.form.wl_mumimo.disabled = false;
 			document.form.wl1_mumimo.disabled = false;
@@ -615,7 +621,7 @@ function initial(){
 	/*Airtime fairness, only for Broadcom ARM platform, except RT-AC87U 5 GHz*/
 	if(Bcmwifi_support && machine_arm){
 		inputCtrl(document.form.wl_atf, 1);
-		if(based_modelid == "RT-AC87U" && is_unit_5g(wl_unit_value)){
+		if(based_modelid == "RT-AC87U" && wl_unit_value == '1'){
 			inputCtrl(document.form.wl_atf, 0);
 		}		
 	}
@@ -627,8 +633,16 @@ function initial(){
 	}
 	
 
+	if( based_modelid == "BRT-AC828" || based_modelid == "RT-AC82U" || based_modelid == "RT-AC58U" 
+	|| based_modelid == "MAP-AC1300" || based_modelid == "MAP-AC2200" || based_modelid == "VZW-AC1300" 
+	|| based_modelid == "RT-AC95U" || (based_modelid == "GT-AXY16000" && wl_unit_value != '3') || based_modelid == "RT-AX89U"
+	|| (based_modelid.substring(0,7) == "RT-AC59" && wl_unit_value == '1'))
+		document.getElementById("wl_implicitxbf_field").style.display = "";
+	else
+		document.getElementById("wl_implicitxbf_field").style.display = "none";
+
 	/* Extended NSS, 5G 160MHz only */
-	if((is_unit_5g(wl_unit_value) || is_unit_5g_2(wl_unit_value)) && document.form.wl_nmode_x.value != 2 && wl_bw_160_value == '1' && (based_modelid == "GT-AXY16000" || based_modelid == "RT-AX89U")){
+	if((wl_unit_value == '1' || wl_unit_value == '2') && document.form.wl_nmode_x.value != 2 && wl_bw_160_value == '1' && (based_modelid == "GT-AXY16000" || based_modelid == "RT-AX89U")){
 		inputCtrl(document.form.wl_ext_nss, 1);
 	}
 	else{
@@ -653,11 +667,11 @@ function initial(){
 		document.getElementById("wl_dtim_th").onClick = function (){openHint(3, 11);}
 
 	/* 2.4GHz Bluetooth Coexisistence mode, only for Broadcom platform */
-	if (!Qcawifi_support && !Rawifi_support && !Rtkwifi_support && !lantiq_support && is_unit_24g(wl_unit_value))
+	if (!Qcawifi_support && !Rawifi_support && !Rtkwifi_support && !lantiq_support && wl_unit_value == '0')
 		inputCtrl(document.form.wl_btc_mode, 1);
 	else
-		inputCtrl(document.form.wl_btc_mode, 0);		
-		
+		inputCtrl(document.form.wl_btc_mode, 0);
+	
 	/*location_code Setting*/		
 	if(location_list_support && !cfg_ui_region_disable){
 		generate_country_selection();
@@ -700,7 +714,7 @@ function initial(){
 
 	if(based_modelid == "RP-AC55"){
 		inputCtrl(document.form.wl_txbf, 1);
-		if(is_unit_5g(wl_unit_value)){
+		if(wl_unit_value == "1"){
 			document.getElementById("wl_MU_MIMO_field").style.display = "";
 			document.form.wl_mumimo.disabled = false;
 			document.getElementById('wl_txbf_desc').innerHTML = "<#WLANConfig11b_x_acBeam#>";
@@ -742,7 +756,8 @@ function initial(){
 		document.form.wl_optimizexbox_ckb.checked = ('<% nvram_get("wl_optimizexbox"); %>' == 1) ? true : false;
 	}
 
-	if(is_unit_24g(wl_unit_value)){
+	if((wl_unit_value == '0' && based_modelid !== 'GT-AXE16000')
+	|| (based_modelid == 'GT-AXE16000' && wl_unit_value == '3')){
 		if(document.form.wl_gmode_protection.value == "auto"){
 			document.form.wl_gmode_check.checked = true;
 		}			
@@ -764,7 +779,8 @@ function initial(){
 }
 
 function wl_mode_change(mode){	
-	if(is_unit_24g(wl_unit_value)){
+	if((wl_unit_value == '0' && based_modelid !== 'GT-AXE16000')
+	|| (based_modelid == 'GT-AXE16000' && wl_unit_value == '3')){		
 		if(mode == '0'){
 			document.form.wl_rateset.disabled = false;
 			document.getElementById("wl_rateset_checkbox").style.display = "";
@@ -815,7 +831,7 @@ function generate_country_selection(){
 	if(EG_mode){
 		document.form.location_code.disabled = true;
 		document.getElementById('tx_power_desc_EG').style.display = "";
-		if(is_unit_24g(wl_unit_value)){       //2.4GHz
+		if(wl_unit_value == "0"){       //2.4GHz
 			document.getElementById('wl_txPower_field_title').innerHTML = "<#WLANConfig11b_TxPower_itemname#>&nbsp;&nbsp;&nbsp;&nbsp;<20dBm";
 			document.getElementById('tx_power_desc_EG').innerHTML = "<20dBm";
 		}
@@ -835,14 +851,16 @@ function generate_country_selection(){
 }
 
 function adjust_tx_power(){
+	var custompower = parseInt(document.form.wl_cpenable.value);
 	var power_value_old = document.form.wl_TxPower.value;	//old nvram not exist now (value)
 	var power_value_new = document.form.wl_txpower.value;	//current nvram now (percentage)
 	var translated_value = 0;
 	
-	if(!power_support){
+	if(!power_support ||　custompower == 1){
 		document.getElementById("wl_txPower_field").style.display = "none";
 	}
 	else{
+		document.form.wl_txpower.disabled = false;
 		if(power_value_old != ""){
 			translated_value = parseInt(power_value_old/80*100);
 			if(translated_value >=100){
@@ -895,6 +913,33 @@ function adjust_tx_power(){
 	}
 }
 
+function adjust_custom_power(){
+	var custompower = parseInt(document.form.wl_cpenable.value);
+	var power_value = parseInt(document.form.wl_custompower.value);
+
+	//window.alert(custompower);
+		
+	if(custompower == 0){
+		document.getElementById("wl_custompower_field").style.display = "none";
+	}
+	else{
+		document.form.wl_custompower.disabled = false;
+		document.getElementById('slider1').children[0].style.width = (power_value * 100 / 118) + "%";
+		document.getElementById('slider1').children[1].style.left = (power_value * 100 / 118) + "%";
+		document.form.wl_custompower.value = power_value;
+		document.getElementById("tx_power1_desc").innerHTML = ((power_value - 6) / 4) + "dbm " + Math.round(Math.pow(10,( ((power_value - 6) / 4) / 10 )))+ "mW ";
+	}
+}
+
+function handle_chpower(){
+	document.getElementById("wl_txPower_field").style.display = "";
+	document.getElementById("wl_custompower_field").style.display = "";
+	document.form.wl_custompower.disabled = true;
+	document.form.wl_txpower.disabled = true;
+	adjust_tx_power();
+	adjust_custom_power();
+}
+
 function changeRSSI(_switch){
 	if(_switch == 0){
 		document.getElementById("rssiDbm").style.display = "none";
@@ -903,7 +948,7 @@ function changeRSSI(_switch){
 	else{
 		document.getElementById("rssiDbm").style.display = "";
 		var default_value = "-70";
-		if(amesh_support && is_unit_24g(wl_unit_value) && ameshRouter_support)
+		if(amesh_support && wl_unit_value == "0" && ameshRouter_support)
 			default_value = "-70";
 		if(wl_user_rssi_onload == 0)
 			document.form.wl_user_rssi.value = default_value;
@@ -912,6 +957,7 @@ function changeRSSI(_switch){
 	}
 }
 
+var reboot_confirm=0;
 function applyRule(){
 	if(lantiq_support && wave_ready != 1){
 		alert("Please wait a minute for wireless ready");
@@ -929,23 +975,21 @@ function applyRule(){
 		}
 		
 		if(	based_modelid == "RT-AC88U" || based_modelid == "RT-AX88U" || based_modelid == "RT-AC86U" || based_modelid == "GT-AC2900" || based_modelid == "RT-AC3100" ||
-			based_modelid == "RT-AC5300" || based_modelid == "GT-AC5300" || based_modelid == "GT-AX11000" || based_modelid == "RT-AX92U" || based_modelid == "RT-AX95Q" || based_modelid == "XT8PRO" || based_modelid == "BM68" || based_modelid == "XT8_V2" || based_modelid == "RT-AX56_XD4" || based_modelid == "XD4PRO" || based_modelid == "CT-AX56_XD4" || based_modelid == "RT-AX58U" || based_modelid == "RT-AX58U_V2" || based_modelid == "BR63" || based_modelid == "RT-AX3000N" || based_modelid == "TUF-AX3000" || based_modelid == "TUF-AX3000_V2" || based_modelid == "TUF-AX5400" || based_modelid == "TUF-AX5400_V2" || based_modelid == "DSL-AX82U" || based_modelid == "RT-AX82U" || based_modelid == "RT-AX82U_V2" || based_modelid == "RT-AX56U" || based_modelid == "RT-AX86U" || based_modelid == "RT-AX68U" || based_modelid == "RT-AC68U_V4" || based_modelid == "GT-AXE11000" || based_modelid == "GS-AX3000" || based_modelid == "GS-AX5400" || based_modelid == "RT-AXE7800" || based_modelid == "GT10" || based_modelid == "RT-AX9000" || based_modelid == "XC5"){
+			based_modelid == "RT-AC5300" || based_modelid == "GT-AC5300" || based_modelid == "GT-AX11000" || based_modelid == "RT-AX92U" || based_modelid == "RT-AX95Q" || based_modelid == "XT8PRO" || based_modelid == "XT8_V2" || based_modelid == "RT-AX56_XD4" || based_modelid == "XD4PRO" || based_modelid == "CT-AX56_XD4" || based_modelid == "RT-AX58U" || based_modelid == "RT-AX58U" || based_modelid == "TUF-AX3000" || based_modelid == "TUF-AX3000_V2" || based_modelid == "TUF-AX5400" || based_modelid == "DSL-AX82U" || based_modelid == "RT-AX82U" || based_modelid == "RT-AX82U_V2" || based_modelid == "RT-AX56U" || based_modelid == "RT-AX86U" || based_modelid == "RT-AX68U" || based_modelid == "RT-AC68U_V4" || based_modelid == "GT-AXE11000" || based_modelid == "GS-AX3000" || based_modelid == "GS-AX5400" || based_modelid == "GT-AX6000" || based_modelid == "GT-AX11000_PRO" || based_modelid == "ET12" || based_modelid == "XT12" || based_modelid == "GT-AXE16000" || based_modelid == "RT-AXE7800" || based_modelid == "GT10"){
 			document.form.action_wait.value = "10";
 		}
-                // bcm4912 models
-                else if ( based_modelid == "GT-AX6000" || based_modelid == "GT-AX11000_PRO" || based_modelid == "ET12" || based_modelid == "XT12" || based_modelid == "GT-AXE16000" || 
-                          based_modelid == "RT-AX88U_PRO") {
-                        document.form.action_wait.value = "15";
-                }
 		else if(sdk_7){
 			document.form.action_wait.value = "5";
 		}
 
 		if (Bcmwifi_support && wl_txpower_orig != document.form.wl_txpower.value) {
-			FormActions("start_apply.htm", "apply", "reboot", "<% get_default_reboot_time(); %>");
+			reboot_confirm=1;
+		}
+		else if(Bcmwifi_support &&  wl_custompower_orig != document.form.wl_custompower.value && document.form.wl_cpenable.value == "1"){
+			reboot_confirm=1;
 		}
 
-		if(is_unit_5g(wl_unit_value) && "<% nvram_get("wl1_country_code"); %>" == "EU" && based_modelid == "RT-AC87U"){	//for EU RT-AC87U 5G Advanced setting
+		if(wl_unit_value == "1" && "<% nvram_get("wl1_country_code"); %>" == "EU" && based_modelid == "RT-AC87U"){	//for EU RT-AC87U 5G Advanced setting
 			if(document.form.wl1_80211h[0].selected && "<% nvram_get("wl1_chanspec"); %>" == "0")	//Interlocking set acs_dfs="0" while disabled 802.11h and wl1_chanspec="0"(Auto)
 				document.form.acs_dfs.value = "0";
 		}
@@ -962,20 +1006,18 @@ function applyRule(){
 					document.form.group_id.value = "location"
 				}
 				else{
-					document.form.action_script.value = "reboot";
-					document.form.action_wait.value = reboot_needed_time;
+					reboot_confirm=1;
 				}
 			}				
 		}
 
-		if((based_modelid == "RT-AC87U") && is_unit_5g(wl_unit_value)){
+		if((based_modelid == "RT-AC87U") && wl_unit_value == "1"){
 			if(document.form.wl_mumimo.value != "<% nvram_get("wl_mumimo"); %>"){
-				document.form.action_script.value = "reboot";
-				document.form.action_wait.value = reboot_needed_time;				
+				reboot_confirm=1;	
 			}
 		}
 
-		if(lantiq_support && is_unit_5g(wl_unit_value)){
+		if(lantiq_support && wl_unit_value == "1"){
 			document.form.wl1_mumimo.value = document.form.wl_mumimo.value;
 			document.form.group_id.value = "mumimo"
 		}
@@ -986,8 +1028,19 @@ function applyRule(){
 				return;
 		}
 
-		showLoading();
-		document.form.submit();
+		if(reboot_confirm==1){
+
+			if(confirm("<#AiMesh_Node_Reboot#>")){
+				FormActions("start_apply.htm", "apply", "reboot", reboot_needed_time);
+				showLoading();
+				document.form.submit();
+			}
+		}
+		else{
+
+			showLoading();
+			document.form.submit();
+		}		
 	}
 }
 
@@ -1105,6 +1158,23 @@ function register_event(){
 			}
 		}); 
 	});
+
+	$(function() {
+		$( "#slider1" ).slider({
+			orientation: "horizontal",
+			range: "min",
+			min:6,
+			max: 118,
+			value:98,
+			slide:function(event, ui){
+				document.getElementById('tx_power1_desc').innerHTML = ((ui.value - 6) / 4) + "dbm " + Math.round(Math.pow(10,( ((ui.value - 6) / 4) / 10 )))+ "mW ";
+			},
+			stop:function(event, ui){
+				document.form.wl_custompower.value = ui.value;
+			}
+		}); 
+	});
+	
 }
 
 function set_power(power_value){	
@@ -1190,7 +1260,7 @@ function handle_mimo(value){
 function handle_beamforming(value){
 	var confirm_txt = "<#WLANConfig11b_MUMIMO_disabled_confirm#>";
 
-	if(is_unit_5g(wl_unit_value) || is_unit_5g_2(wl_unit_value)){ // 5GHz up
+	if(wl_unit_value == '1' || wl_unit_value == '2'){ // 5GHz up
 		if(band5g_11ax_support){
 			if(based_modelid == 'RT-AX92U'){
 				confirm_txt = confirm_txt.replace("$Beamforming$", "<#WLANConfig11b_x_acBeam#>");
@@ -1302,23 +1372,25 @@ function check_nodes_support_wireless_scheduler() {
 }
 
 function he_frame_mode(obj) {
-	if (obj.value == '0' && (is_unit_5g(wl_unit_value) || is_unit_5g_2(wl_unit_value))) {
+	if (obj.value == '0' && wl_unit_value == '1') {
 		document.form.acs_dfs.value = 0;		
 	}
 }
 function regen_mode(){	//please sync to initial() : //Change wireless mode help desc
-	var _nmode_x = '<% nvram_get("wl_nmode_x"); %>';
-	if(is_unit_24g(wl_unit_value)){		
+	if(wl_unit_value == '0'){
+		var _nmode_x = '<% nvram_get("wl0_nmode_x"); %>';
 		_temp = ['<#Auto#>', 'N only', 'Legacy'];
 		_temp_value = ['0', '1', '2'];
 		add_options_x2(document.form.wl_nmode_x, _temp, _temp_value, _nmode_x);
 	}
-	else if(is_unit_5g(wl_unit_value) || is_unit_5g_2(wl_unit_value)){
+	else if(wl_unit_value == '1'){
+		var _nmode_x = '<% nvram_get("wl1_nmode_x"); %>';
 		_temp = ['<#Auto#>', 'AX only', 'N/AC/AX mixed', 'Legacy'];
 		_temp_value = ['0', '9', '8', '2'];
 		add_options_x2(document.form.wl_nmode_x, _temp, _temp_value, _nmode_x);
 	}
-	else if(is_unit_6g(wl_unit_value)){
+	else if(wl_unit_value == '2'){
+		var _nmode_x = '<% nvram_get("wl2_nmode_x"); %>';
 		_temp = ['<#Auto#>', 'AX only'];
 		_temp_value = ['0', '9'];
 		add_options_x2(document.form.wl_nmode_x, _temp, _temp_value, _nmode_x);
@@ -1356,13 +1428,14 @@ function regen_mode(){	//please sync to initial() : //Change wireless mode help 
 <input type="hidden" name="wl1_80211h_orig" value="<% nvram_get("wl1_80211h"); %>" >
 <input type="hidden" name="acs_dfs" value="<% nvram_get("acs_dfs"); %>">
 <input type="hidden" name="w_Setting" value="1">
-<input type="hidden" name="wl_txpower" value="<% nvram_get("wl_txpower"); %>">
+<input type="hidden" name="wl_txpower" value="<% nvram_get("wl_txpower"); %>" disabled>
 <input type="hidden" name="wl1_mumimo" value="<% nvram_get("wl1_mumimo"); %>" disabled>
 <input type="hidden" name="smart_connect_x" value="<% nvram_get("smart_connect_x"); %>">
 <input type="hidden" name="acs_dfs" value="<% nvram_get("acs_dfs"); %>">
 <input type="hidden" name="wl_optimizexbox" value='<% nvram_get("wl_optimizexbox"); %>'>
 <input type="hidden" name="wl_gmode_protection" value="<% nvram_get("wl_gmode_protection"); %>">
 <input type="hidden" name="wl_rateset" value="<% nvram_get("wl_rateset"); %>">
+<input type="hidden" name="wl_custompower" value="<% nvram_get("wl_custompower"); %>" disabled>
 <table class="content" align="center" cellpadding="0" cellspacing="0">
 	<tr>
 		<td width="17">&nbsp;</td>
@@ -1777,13 +1850,30 @@ function regen_mode(){	//please sync to initial() : //Change wireless mode help 
 						</td>
 					</tr>					
 					<!-- RT-AC82U & RT-AC58U & 4G-AC53U & MAP-AC1300 & MAP-AC2200 & VZW-AC1300 & RT-AC95U -->
+					<tr id="wl_implicitxbf_field"  style="display:none">
+						<th><a class="hintstyle"><#WLANConfig11b_x_uniBeam#></a></th>
+						<td>
+							<select name="wl_implicitxbf" class="input_option">
+								<option value="0" <% nvram_match("wl_implicitxbf", "0","selected"); %>><#WLANConfig11b_WirelessCtrl_buttonname#></option>
+								<option value="1" <% nvram_match("wl_implicitxbf", "1","selected"); %>><#WLANConfig11b_WirelessCtrl_button1name#></option>
+							</select>
+						</td>
+					</tr>
 					<tr id="ext_nss_field" style="display:none">
 						<th><a class="hintstyle">Extended NSS</a></th>
 						<td>
 							<select name="wl_ext_nss" class="input_option">
 								<option value="0" <% nvram_match("wl_ext_nss", "0","selected"); %>><#WLANConfig11b_WirelessCtrl_buttonname#></option>
-								<option value="2" <% nvram_match("wl_ext_nss", "2","selected"); %>>4x4@80MHz</option>
 								<option value="1" <% nvram_match("wl_ext_nss", "1","selected"); %>><#WLANConfig11b_WirelessCtrl_button1name#></option>
+							</select>
+						</td>
+					</tr>
+					<tr id="wl_chPower_field">
+						<th><#WLANConfig11b_TxPower_custom#></th>
+						<td>
+							<select name="wl_cpenable" class="input_option" onchange="handle_chpower()">
+								<option value="0" <% nvram_match("wl_cpenable", "0","selected"); %>><#checkbox_No#></option>
+								<option value="1" <% nvram_match("wl_cpenable", "1","selected"); %>><#checkbox_Yes#></option>
 							</select>
 						</td>
 					</tr>
@@ -1799,6 +1889,24 @@ function regen_mode(){	//please sync to initial() : //Change wireless mode help 
 										<td style="border:0px;width:60px;">
 											<div id="tx_power_desc" style="width:150px;font-size:14px;"></div>
 											<div id="tx_power_desc_EG" style="margin-top:-20px;margin-left:140px;display:none;"></div>
+										</td>					
+
+									</tr>
+								</table>
+							</div>
+						</td>
+					</tr>
+					<tr id="wl_custompower_field">
+						<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(0, 16);"><#WLANConfig11b_TxPower_itemname#></a></th>
+						<td>
+							<div>
+								<table>
+									<tr>
+										<td style="border:0px;padding-left:0px;">
+											<div id="slider1" style="width:300px;"></div>
+										</td>									
+										<td style="border:0px;width:60px;">
+											<div id="tx_power1_desc" style="width:150px;font-size:14px;"></div>
 										</td>					
 
 									</tr>
@@ -1844,3 +1952,4 @@ function regen_mode(){	//please sync to initial() : //Change wireless mode help 
 <div id="footer"></div>
 </body>
 </html>
+

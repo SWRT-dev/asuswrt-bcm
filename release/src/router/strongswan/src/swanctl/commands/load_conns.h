@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2014 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * Copyright (C) 2014 revosec AG
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -14,9 +13,6 @@
  * for more details.
  */
 
-#ifndef LOAD_CONNS_H_
-#define LOAD_CONNS_H_
-
 #include "command.h"
 
 /**
@@ -28,5 +24,3 @@
  */
 int load_conns_cfg(vici_conn_t *conn, command_format_options_t format,
 				   settings_t *cfg);
-
-#endif /** LOAD_CONNS_H_ */

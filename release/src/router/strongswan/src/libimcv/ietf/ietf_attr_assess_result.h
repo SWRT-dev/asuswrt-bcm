@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2012-2014 Andreas Steffen
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,7 +14,7 @@
  */
 
 /**
- * @defgroup ietf_attr_assess_result ietf_attr_assess_result
+ * @defgroup ietf_attr_assess_resultt ietf_attr_assess_result
  * @{ @ingroup ietf_attr
  */
 

@@ -51,56 +51,56 @@ OBJS += nas_eap.o wps_eap.o
 ifeq ($(CONFIG_WAPI),y)
 OBJS += wai_eap.o
 endif
-#endif
+#endif // endif
 
 #ifdef BCM_CUSTOM_EVENT
 ifeq ($(CONFIG_BCM_CUSTOM_EVENT),y)
 OBJS +=  custom_eventd_eap.o
 CFLAGS += -DBCM_CUSTOM_EVENT
 endif
-#endif
+#endif // endif
 
 #ifdef BCM_DCS
 ifeq ($(RTCONFIG_BCMDCS),y)
 OBJS += dcs_eap.o
 CFLAGS += -DBCM_DCS
 endif
-#endif
+#endif // endif
 
 #ifdef BCM_MEVENT
 ifeq ($(CONFIG_BCM_MEVENT),y)
 OBJS += mevent_eap.o
 CFLAGS += -DBCM_MEVENT
 endif
-#endif
+#endif // endif
 
 #ifdef BCM_BSD
 ifeq ($(RTCONFIG_BCMBSD),y)
 OBJS += bsd_eap.o
 CFLAGS += -DBCM_BSD
 endif
-#endif
+#endif // endif
 
 #ifdef BCM_DRSDBD
 ifeq ($(RTCONFIG_BCMDRSDBD),y)
 OBJS += drsdbd_eap.o
 CFLAGS += -DBCM_DRSDBD
 endif
-#endif
+#endif // endif
 
 #ifdef BCM_SSD
 ifeq ($(RTCONFIG_BCMSSD),y)
 OBJS += ssd_eap.o
 CFLAGS += -DBCM_SSD
 endif
-#endif
+#endif // endif
 
 #ifdef BCM_EVENTD
 ifeq ($(or $(RTCONFIG_BCMEVENTD),$(RTCONFIG_BCN_RPT)),y)
 OBJS += eventd_eap.o
 CFLAGS += -DBCM_EVENTD
 endif
-#endif
+#endif // endif
 
 ifneq ($(BCM_ECBD),)
 OBJS += ecbd_eap.o
@@ -114,20 +114,20 @@ OBJS += aspm_eap.o
 CFLAGS += -DBCM_ASPMD
 endif
 endif
-#endif
+#endif // endif
 
 #ifdef CONFIG_VISUALIZATION
 ifeq ($(RTCONFIG_VISUALIZATION),y)
 OBJS += visdcoll_eap.o
 endif
-#endif
+#endif // endif
 
 #ifdef BCM_CEVENT
 ifeq ($(CONFIG_BCM_CEVENT),y)
 OBJS += cevent_eap.o
 CFLAGS += -DBCM_CEVENT
 endif
-#endif
+#endif // endif
 
 OBJS += rgd_eap.o
 CFLAGS += -DBCM_RGD
@@ -136,7 +136,7 @@ CFLAGS += -DBCM_RGD
 ifeq ($(CONFIG_WBD),y)
 OBJS += wbd_eap.o
 endif
-#endif
+#endif // endif
 
 OBJS += wlevent_eap.o
 CFLAGS += -DBCM_WLEVENT

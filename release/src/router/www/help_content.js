@@ -102,7 +102,7 @@ helpcontent[5] = new Array("",
 							 "<#RouterConfig_MLDver_itemname#>",
 							 "Enable Fast Leave",
 							 "<#LANHostConfig_x_DDNS_retrieve_IP_note#>",
-							 "<#DDNS_ipv6_update_desc#>");
+							 "If the client's network environment uses an IPv6 network address, enabling this feature will resolve domain to an IPv6 network address first when remote device accessing.");
 helpcontent[6] = new Array("",
 						   "<#RHELP_desc4#>",
 						   "<#RHELP_desc5#>",

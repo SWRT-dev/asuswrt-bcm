@@ -30,15 +30,13 @@ written consent.
  ************************************************************************/
 
 #include <stdio.h>
-#include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <dirent.h>
 #include <errno.h>
-#include <sys/statvfs.h>
-
+ 
 #include "sysutil_fs.h"
 
 
@@ -117,80 +115,3 @@ BcmRet sysUtil_copyToBuffer(const char *filename, UINT8 *buf, UINT32 *bufSize)
    *bufSize = (UINT32) actualFileSize;
    return BCMRET_SUCCESS;
 }
-
-
-BcmRet sysUtil_readProcToBuffer(const char *filename, char *buf, UINT32 bufLen)
-{
-   BcmRet ret = BCMRET_NO_MORE_INSTANCES;
-   FILE *fp = NULL;
-
-   if ((fp = fopen(filename, "r")) == NULL)
-   {
-      return BCMRET_OBJECT_NOT_FOUND;
-   }
-
-   if (fgets(buf, bufLen, fp) != NULL )
-   {
-      ret = BCMRET_SUCCESS;
-   }
-   fclose(fp);
-
-   return ret;
-}
-
-
-BcmRet sysUtil_writeBufferToFile(const char *filename, const UINT8 *buf, UINT32 bufLen)
-{
-   BcmRet ret=BCMRET_SUCCESS;
-   SINT32 fd, rc;
-
-   if ((fd = open(filename, O_RDWR|O_CREAT|O_TRUNC, S_IRWXU)) < 0)
-   {
-      fprintf(stderr, "%s: could not open %s", __FUNCTION__, filename);
-      return BCMRET_INTERNAL_ERROR;
-   }
-
-   rc = write(fd, buf, bufLen);
-
-   if (rc < (SINT32) bufLen)
-   {
-      fprintf(stderr, "%s: write to %s failed, rc=%d", __FUNCTION__, filename, rc);
-      ret = BCMRET_INTERNAL_ERROR;
-   }
-
-   close(fd);
-
-   return ret;
-}
-
-
-BcmRet sysUtil_getFileSystemInfo(const char *path,
-                                 UINT32 *freeKB, UINT32 *totalKB)
-{
-   int rc;
-   struct statvfs vfs;
-   memset(&vfs, 0, sizeof(vfs));
-
-   // statvfs does not return good data for /var (the tmp fs, which is probably
-   // the most important one).
-   rc = statvfs(path, &vfs);
-   if (rc < 0)
-   {
-      fprintf(stderr, "%s: could not statvfs %s, errno=%d",
-              __FUNCTION__, path, errno);
-      return BCMRET_INVALID_ARGUMENTS;
-   }
-
-   if (freeKB != NULL)
-   {
-      *freeKB = (UINT32) ((vfs.f_bsize * vfs.f_bfree) / 1024);
-   }
-
-   if (totalKB != NULL)
-   {
-      *totalKB = (UINT32) ((vfs.f_bsize * vfs.f_blocks) / 1024);
-   }
-
-   return BCMRET_SUCCESS;
-}
-

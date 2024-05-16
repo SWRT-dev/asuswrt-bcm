@@ -25,7 +25,7 @@
 
 /*
  * Automatically generated make config: don't edit
- * Date: Tue Aug 16 16:37:45 2022
+ * Date: Tue May 17 14:20:01 2022
  */
 #ifndef __TMCFG__UDB_AUTOCONF_OUTPUT_H_
 #define __TMCFG__UDB_AUTOCONF_OUTPUT_H_
@@ -215,8 +215,8 @@
 #define TMCFG_E_UDB_SHELL_PROCFS 1 // y
 #define TMCFG_E_REL_PKG_MAJ_VER 2
 #define TMCFG_E_REL_PKG_MIN_VER 0
-#define TMCFG_E_REL_PKG_REV_VER 6
-#define TMCFG_E_REL_PKG_LOCAL_VER "9d6bb50"
+#define TMCFG_E_REL_PKG_REV_VER 3
+#define TMCFG_E_REL_PKG_LOCAL_VER "77b1a29"
 
 /*
  * Accompany applications or modules

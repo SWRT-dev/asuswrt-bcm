@@ -1,8 +1,7 @@
 /*
  * Copyright (C) 2010 Tobias Brunner
  * Copyright (C) 2009 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -36,7 +35,7 @@ struct private_gcrypt_dh_t {
 	/**
 	 * Diffie Hellman group number
 	 */
-	key_exchange_method_t group;
+	diffie_hellman_group_t group;
 
 	/*
 	 * Generator value
@@ -74,13 +73,13 @@ struct private_gcrypt_dh_t {
 	size_t p_len;
 };
 
-METHOD(key_exchange_t, set_public_key, bool,
+METHOD(diffie_hellman_t, set_other_public_value, bool,
 	private_gcrypt_dh_t *this, chunk_t value)
 {
 	gcry_mpi_t p_min_1;
 	gcry_error_t err;
 
-	if (!key_exchange_verify_pubkey(this->group, value))
+	if (!diffie_hellman_verify_value(this->group, value))
 	{
 		return FALSE;
 	}
@@ -100,22 +99,25 @@ METHOD(key_exchange_t, set_public_key, bool,
 	p_min_1 = gcry_mpi_new(this->p_len * 8);
 	gcry_mpi_sub_ui(p_min_1, this->p, 1);
 
-	/* check that the public value y satisfies 1 < y < p-1.
-	 * according to RFC 6989, section 2.1, this is enough for the common safe-
-	 * prime DH groups (i.e. with q=(p-1)/2 being prime) and also for those
-	 * with small subgroups (22, 23, 24) if private keys are not reused, which
-	 * we never do and explicitly prevent by not resetting this->zz when a
-	 * different public key is set. */
-	if (gcry_mpi_cmp_ui(this->yb, 1) <= 0 ||
-		gcry_mpi_cmp(this->yb, p_min_1) >= 0)
+	/* check public value:
+	 * 1. 0 or 1 is invalid as 0^a = 0 and 1^a = 1
+	 * 2. a public value larger or equal the modulus is invalid */
+	if (gcry_mpi_cmp_ui(this->yb, 1) > 0 &&
+		gcry_mpi_cmp(this->yb, p_min_1) < 0)
 	{
-		DBG1(DBG_LIB, "public DH value verification failed: "
-			 "y <= 1 || y >= p - 1");
-		gcry_mpi_release(p_min_1);
-		return FALSE;
+		if (!this->zz)
+		{
+			this->zz = gcry_mpi_new(this->p_len * 8);
+		}
+		gcry_mpi_powm(this->zz, this->yb, this->xa, this->p);
+	}
+	else
+	{
+		DBG1(DBG_LIB, "public DH value verification failed:"
+			 " y < 2 || y > p - 1 ");
 	}
 	gcry_mpi_release(p_min_1);
-	return TRUE;
+	return this->zz != NULL;
 }
 
 /**
@@ -136,14 +138,14 @@ static chunk_t export_mpi(gcry_mpi_t value, size_t len)
 	return chunk;
 }
 
-METHOD(key_exchange_t, get_public_key, bool,
+METHOD(diffie_hellman_t, get_my_public_value, bool,
 	private_gcrypt_dh_t *this, chunk_t *value)
 {
 	*value = export_mpi(this->ya, this->p_len);
 	return TRUE;
 }
 
-METHOD(key_exchange_t, set_private_key, bool,
+METHOD(diffie_hellman_t, set_private_value, bool,
 	private_gcrypt_dh_t *this, chunk_t value)
 {
 	gcry_error_t err;
@@ -161,25 +163,24 @@ METHOD(key_exchange_t, set_private_key, bool,
 	return !err;
 }
 
-METHOD(key_exchange_t, get_shared_secret, bool,
+METHOD(diffie_hellman_t, get_shared_secret, bool,
 	private_gcrypt_dh_t *this, chunk_t *secret)
 {
 	if (!this->zz)
 	{
-		this->zz = gcry_mpi_new(this->p_len * 8);
-		gcry_mpi_powm(this->zz, this->yb, this->xa, this->p);
+		return FALSE;
 	}
 	*secret = export_mpi(this->zz, this->p_len);
 	return TRUE;
 }
 
-METHOD(key_exchange_t, get_method, key_exchange_method_t,
+METHOD(diffie_hellman_t, get_dh_group, diffie_hellman_group_t,
 	private_gcrypt_dh_t *this)
 {
 	return this->group;
 }
 
-METHOD(key_exchange_t, destroy, void,
+METHOD(diffie_hellman_t, destroy, void,
 	private_gcrypt_dh_t *this)
 {
 	gcry_mpi_release(this->p);
@@ -194,7 +195,7 @@ METHOD(key_exchange_t, destroy, void,
 /*
  * Generic internal constructor
  */
-static gcrypt_dh_t *create_generic(key_exchange_method_t group, size_t exp_len,
+static gcrypt_dh_t *create_generic(diffie_hellman_group_t group, size_t exp_len,
 								   chunk_t g, chunk_t p)
 {
 	private_gcrypt_dh_t *this;
@@ -204,12 +205,12 @@ static gcrypt_dh_t *create_generic(key_exchange_method_t group, size_t exp_len,
 
 	INIT(this,
 		.public = {
-			.ke = {
+			.dh = {
 				.get_shared_secret = _get_shared_secret,
-				.set_public_key = _set_public_key,
-				.get_public_key = _get_public_key,
-				.set_private_key = _set_private_key,
-				.get_method = _get_method,
+				.set_other_public_value = _set_other_public_value,
+				.get_my_public_value = _get_my_public_value,
+				.set_private_value = _set_private_value,
+				.get_dh_group = _get_dh_group,
 				.destroy = _destroy,
 			},
 		},
@@ -271,7 +272,7 @@ static gcrypt_dh_t *create_generic(key_exchange_method_t group, size_t exp_len,
 /*
  * Described in header.
  */
-gcrypt_dh_t *gcrypt_dh_create(key_exchange_method_t group)
+gcrypt_dh_t *gcrypt_dh_create(diffie_hellman_group_t group)
 {
 
 	diffie_hellman_params_t *params;
@@ -288,7 +289,7 @@ gcrypt_dh_t *gcrypt_dh_create(key_exchange_method_t group)
 /*
  * Described in header.
  */
-gcrypt_dh_t *gcrypt_dh_create_custom(key_exchange_method_t group, ...)
+gcrypt_dh_t *gcrypt_dh_create_custom(diffie_hellman_group_t group, ...)
 {
 	if (group == MODP_CUSTOM)
 	{

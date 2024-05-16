@@ -1,8 +1,7 @@
 /*
  * Copyright (C) 2010 Tobias Brunner
  * Copyright (C) 2009 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -343,7 +342,7 @@ METHOD(attr_provider_t, reload, void,
 /*
  * see header file
  */
-attr_provider_t *attr_provider_create()
+attr_provider_t *attr_provider_create(database_t *db)
 {
 	private_attr_provider_t *this;
 

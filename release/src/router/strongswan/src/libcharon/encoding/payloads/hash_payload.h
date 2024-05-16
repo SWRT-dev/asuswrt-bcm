@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2011 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * Copyright (C) 2011 revosec AG
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -47,7 +46,7 @@ struct hash_payload_t {
 	/**
 	 * Get the hash value.
 	 *
-	 * @return				chunk to internal hash data
+	 * @return				chunkt to internal hash data
 	 */
 	chunk_t (*get_hash) (hash_payload_t *this);
 

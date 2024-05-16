@@ -229,7 +229,7 @@ Vici::Message - Perl extension for building and parsing strongSwan VICI messages
 
 =head1 SYNOPSIS
 
-use Vici::Message;
+  use Vici::Message;
 
 =head1 DESCRIPTION
 
@@ -245,7 +245,9 @@ None by default.
 
 =head1 SEE ALSO
 
-strongSwan Documentation:  https://docs.strongswan.org/docs/5.9/plugins/vici.html
+strongSwan Wiki:  https://wiki.strongswan.org/projects/strongswan/wiki/Vici
+
+strongSwan Mailing list:  users@lists.strongswan.org
 
 =head1 AUTHOR
 

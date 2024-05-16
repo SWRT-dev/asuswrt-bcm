@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2012 Andreas Steffen
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -155,7 +154,7 @@ METHOD(imv_remediation_string_t, add_instruction, void,
 			items ? items : "");
 	free(header);
 	free(items);
-	this->instructions = chunk_cat("mm", this->instructions,
+	this->instructions = chunk_cat("mm", this->instructions, 
 							chunk_create(instruction, strlen(instruction)));
 }
 

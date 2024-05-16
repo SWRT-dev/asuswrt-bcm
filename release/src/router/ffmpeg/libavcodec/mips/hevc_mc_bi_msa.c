@@ -48,7 +48,7 @@ static const uint8_t ff_hevc_mask_arr[16 * 2] __attribute__((aligned(0x40))) = {
 {                                                                  \
     ADDS_SH2_SH(vec0, in0, vec1, in1, out0, out1);                 \
     SRARI_H2_SH(out0, out1, rnd_val);                              \
-    CLIP_SH2_0_255(out0, out1);                                    \
+    CLIP_SH2_0_255_MAX_SATU(out0, out1);                           \
 }
 
 #define HEVC_BI_RND_CLIP4_MAX_SATU(in0, in1, in2, in3, vec0, vec1, vec2,    \
@@ -83,10 +83,10 @@ static void hevc_bi_copy_4w_msa(uint8_t *src0_ptr,
         dst0 <<= 6;
         dst0 += in0;
         dst0 = __msa_srari_h(dst0, 7);
-        CLIP_SH_0_255(dst0);
+        dst0 = CLIP_SH_0_255_MAX_SATU(dst0);
 
         dst0 = (v8i16) __msa_pckev_b((v16i8) dst0, (v16i8) dst0);
-        ST_W2(dst0, 0, 1, dst, dst_stride);
+        ST4x2_UB(dst0, dst, dst_stride);
     } else if (4 == height) {
         LW4(src0_ptr, src_stride, tp0, tp1, tp2, tp3);
         INSERT_W4_SB(tp0, tp1, tp2, tp3, src0);
@@ -97,7 +97,7 @@ static void hevc_bi_copy_4w_msa(uint8_t *src0_ptr,
         SLLI_2V(dst0, dst1, 6);
         HEVC_BI_RND_CLIP2_MAX_SATU(in0, in1, dst0, dst1, 7, dst0, dst1);
         dst0 = (v8i16) __msa_pckev_b((v16i8) dst1, (v16i8) dst0);
-        ST_W4(dst0, 0, 1, 2, 3, dst, dst_stride);
+        ST4x4_UB(dst0, dst0, 0, 1, 2, 3, dst, dst_stride);
     } else if (0 == height % 8) {
         for (loop_cnt = (height >> 3); loop_cnt--;) {
             LW4(src0_ptr, src_stride, tp0, tp1, tp2, tp3);
@@ -120,7 +120,7 @@ static void hevc_bi_copy_4w_msa(uint8_t *src0_ptr,
             HEVC_BI_RND_CLIP4_MAX_SATU(in0, in1, in2, in3, dst0, dst1, dst2,
                                        dst3, 7, dst0, dst1, dst2, dst3);
             PCKEV_B2_SH(dst1, dst0, dst3, dst2, dst0, dst1);
-            ST_W8(dst0, dst1, 0, 1, 2, 3, 0, 1, 2, 3, dst, dst_stride);
+            ST4x8_UB(dst0, dst1, dst, dst_stride);
             dst += (8 * dst_stride);
         }
     }
@@ -165,15 +165,9 @@ static void hevc_bi_copy_6w_msa(uint8_t *src0_ptr,
                                    7, dst4, dst5, dst6, dst7);
         PCKEV_B2_UB(dst1, dst0, dst3, dst2, out0, out1);
         PCKEV_B2_UB(dst5, dst4, dst7, dst6, out2, out3);
-        ST_W2(out0, 0, 2, dst, dst_stride);
-        ST_H2(out0, 2, 6, dst + 4, dst_stride);
-        ST_W2(out1, 0, 2, dst + 2 * dst_stride, dst_stride);
-        ST_H2(out1, 2, 6, dst + 2 * dst_stride + 4, dst_stride);
+        ST6x4_UB(out0, out1, dst, dst_stride);
         dst += (4 * dst_stride);
-        ST_W2(out2, 0, 2, dst, dst_stride);
-        ST_H2(out2, 2, 6, dst + 4, dst_stride);
-        ST_W2(out3, 0, 2, dst + 2 * dst_stride, dst_stride);
-        ST_H2(out3, 2, 6, dst + 2 * dst_stride + 4, dst_stride);
+        ST6x4_UB(out2, out3, dst, dst_stride);
         dst += (4 * dst_stride);
     }
 }
@@ -201,7 +195,7 @@ static void hevc_bi_copy_8w_msa(uint8_t *src0_ptr,
         SLLI_2V(dst0, dst1, 6);
         HEVC_BI_RND_CLIP2_MAX_SATU(in0, in1, dst0, dst1, 7, dst0, dst1);
         out0 = (v16u8) __msa_pckev_b((v16i8) dst1, (v16i8) dst0);
-        ST_D2(out0, 0, 1, dst, dst_stride);
+        ST8x2_UB(out0, dst, dst_stride);
     } else if (4 == height) {
         LD4(src0_ptr, src_stride, tp0, tp1, tp2, tp3);
         INSERT_D2_SB(tp0, tp1, src0);
@@ -213,7 +207,7 @@ static void hevc_bi_copy_8w_msa(uint8_t *src0_ptr,
         HEVC_BI_RND_CLIP4_MAX_SATU(in0, in1, in2, in3, dst0, dst1, dst2, dst3,
                                    7, dst0, dst1, dst2, dst3);
         PCKEV_B2_UB(dst1, dst0, dst3, dst2, out0, out1);
-        ST_D4(out0, out1, 0, 1, 0, 1, dst, dst_stride);
+        ST8x4_UB(out0, out1, dst, dst_stride);
     } else if (6 == height) {
         LD4(src0_ptr, src_stride, tp0, tp1, tp2, tp3);
         src0_ptr += 4 * src_stride;
@@ -231,8 +225,9 @@ static void hevc_bi_copy_8w_msa(uint8_t *src0_ptr,
                                    7, dst0, dst1, dst2, dst3);
         HEVC_BI_RND_CLIP2_MAX_SATU(in4, in5, dst4, dst5, 7, dst4, dst5);
         PCKEV_B3_UB(dst1, dst0, dst3, dst2, dst5, dst4, out0, out1, out2);
-        ST_D4(out0, out1, 0, 1, 0, 1, dst, dst_stride);
-        ST_D2(out2, 0, 1, dst + 4 * dst_stride, dst_stride);
+        ST8x4_UB(out0, out1, dst, dst_stride);
+        dst += (4 * dst_stride);
+        ST8x2_UB(out2, dst, dst_stride);
     } else if (0 == height % 8) {
         uint32_t loop_cnt;
 
@@ -260,7 +255,7 @@ static void hevc_bi_copy_8w_msa(uint8_t *src0_ptr,
                                        dst7, 7, dst4, dst5, dst6, dst7);
             PCKEV_B2_UB(dst1, dst0, dst3, dst2, out0, out1);
             PCKEV_B2_UB(dst5, dst4, dst7, dst6, out2, out3);
-            ST_D8(out0, out1, out2, out3, 0, 1, 0, 1, 0, 1, 0, 1, dst, dst_stride);
+            ST8x8_UB(out0, out1, out2, out3, dst, dst_stride);
             dst += (8 * dst_stride);
         }
     }
@@ -299,8 +294,7 @@ static void hevc_bi_copy_12w_msa(uint8_t *src0_ptr,
                                    7, dst0, dst1, dst2, dst3);
         HEVC_BI_RND_CLIP2_MAX_SATU(in4, in5, dst4, dst5, 7, dst4, dst5);
         PCKEV_B3_UB(dst1, dst0, dst3, dst2, dst5, dst4, out0, out1, out2);
-        ST_D4(out0, out1, 0, 1, 0, 1, dst, dst_stride);
-        ST_W4(out2, 0, 1, 2, 3, dst + 8, dst_stride);
+        ST12x4_UB(out0, out1, out2, dst, dst_stride);
         dst += (4 * dst_stride);
     }
 }
@@ -384,7 +378,7 @@ static void hevc_bi_copy_24w_msa(uint8_t *src0_ptr,
         PCKEV_B3_UB(dst1, dst0, dst3, dst2, dst5, dst4, out0, out1, out2);
         PCKEV_B3_UB(dst7, dst6, dst9, dst8, dst11, dst10, out3, out4, out5);
         ST_UB4(out0, out1, out3, out4, dst, dst_stride);
-        ST_D4(out2, out5, 0, 1, 0, 1, dst + 16, dst_stride);
+        ST8x4_UB(out2, out5, dst + 16, dst_stride);
         dst += (4 * dst_stride);
     }
 }
@@ -594,7 +588,7 @@ static void hevc_hz_bi_8t_4w_msa(uint8_t *src0_ptr,
                           dst0, dst1, dst2, dst3, 7, dst0, dst1, dst2, dst3);
 
         PCKEV_B2_SH(dst1, dst0, dst3, dst2, dst0, dst1);
-        ST_W8(dst0, dst1, 0, 1, 2, 3, 0, 1, 2, 3, dst, dst_stride);
+        ST4x8_UB(dst0, dst1, dst, dst_stride);
         dst += (8 * dst_stride);
     }
 }
@@ -662,7 +656,7 @@ static void hevc_hz_bi_8t_8w_msa(uint8_t *src0_ptr,
                           dst0, dst1, dst2, dst3, 7, dst0, dst1, dst2, dst3);
 
         PCKEV_B2_SH(dst1, dst0, dst3, dst2, dst0, dst1);
-        ST_D4(dst0, dst1, 0, 1, 0, 1, dst, dst_stride);
+        ST8x4_UB(dst0, dst1, dst, dst_stride);
         dst += (4 * dst_stride);
     }
 }
@@ -739,7 +733,7 @@ static void hevc_hz_bi_8t_12w_msa(uint8_t *src0_ptr,
         HEVC_BI_RND_CLIP2(in0, in1, dst0, dst1, 7, dst0, dst1);
         dst2 = __msa_adds_s_h(in2, dst2);
         dst2 = __msa_srari_h(dst2, 7);
-        CLIP_SH_0_255(dst2);
+        dst2 = CLIP_SH_0_255(dst2);
         PCKEV_B2_SH(dst1, dst0, dst2, dst2, dst0, dst1);
 
         tmp2 = __msa_copy_s_d((v2i64) dst0, 0);
@@ -888,7 +882,7 @@ static void hevc_hz_bi_8t_24w_msa(uint8_t *src0_ptr,
         HEVC_BI_RND_CLIP2(in0, in1, dst0, dst1, 7, dst0, dst1);
         dst2 = __msa_adds_s_h(dst2, in2);
         dst2 = __msa_srari_h(dst2, 7);
-        CLIP_SH_0_255(dst2);
+        dst2 = CLIP_SH_0_255(dst2);
 
         PCKEV_B2_SB(dst1, dst0, dst2, dst2, tmp0, tmp1);
         dst_val0 = __msa_copy_u_d((v2i64) tmp1, 0);
@@ -1248,7 +1242,7 @@ static void hevc_vt_bi_8t_4w_msa(uint8_t *src0_ptr,
                           dst10, dst32, dst54, dst76);
 
         PCKEV_B2_SH(dst32, dst10, dst76, dst54, dst10, dst54);
-        ST_W8(dst10, dst54, 0, 1, 2, 3, 0, 1, 2, 3, dst, dst_stride);
+        ST4x8_UB(dst10, dst54, dst, dst_stride);
         dst += (8 * dst_stride);
 
         src2110 = src10998;
@@ -1322,7 +1316,7 @@ static void hevc_vt_bi_8t_8w_msa(uint8_t *src0_ptr,
                           dst0_r, dst1_r, dst2_r, dst3_r);
 
         PCKEV_B2_SH(dst1_r, dst0_r, dst3_r, dst2_r, dst0_r, dst1_r);
-        ST_D4(dst0_r, dst1_r, 0, 1, 0, 1, dst, dst_stride);
+        ST8x4_UB(dst0_r, dst1_r, dst, dst_stride);
         dst += (4 * dst_stride);
 
         src10_r = src54_r;
@@ -1426,8 +1420,7 @@ static void hevc_vt_bi_8t_12w_msa(uint8_t *src0_ptr,
 
         PCKEV_B2_SH(dst1_r, dst0_r, dst3_r, dst2_r, dst0_r, dst1_r);
         dst0_l = (v8i16) __msa_pckev_b((v16i8) dst1_l, (v16i8) dst0_l);
-        ST_D4(dst0_r, dst1_r, 0, 1, 0, 1, dst, dst_stride);
-        ST_W4(dst0_l, 0, 1, 2, 3, dst + 8, dst_stride);
+        ST12x4_UB(dst0_r, dst1_r, dst0_l, dst, dst_stride);
         dst += (4 * dst_stride);
 
         src10_r = src54_r;
@@ -1726,9 +1719,9 @@ static void hevc_hv_bi_8t_4w_msa(uint8_t *src0_ptr,
         ADDS_SH2_SH(out0, in0, out1, in1, out0, out1);
         ADDS_SH2_SH(out0, const_vec, out1, const_vec, out0, out1);
         SRARI_H2_SH(out0, out1, 7);
-        CLIP_SH2_0_255(out0, out1);
+        CLIP_SH2_0_255_MAX_SATU(out0, out1);
         out = (v16u8) __msa_pckev_b((v16i8) out1, (v16i8) out0);
-        ST_W4(out, 0, 1, 2, 3, dst, dst_stride);
+        ST4x4_UB(out, out, 0, 1, 2, 3, dst, dst_stride);
         dst += (4 * dst_stride);
 
         dst10 = dst54;
@@ -1854,9 +1847,9 @@ static void hevc_hv_bi_8t_8multx1mult_msa(uint8_t *src0_ptr,
             tmp = __msa_pckev_h((v8i16) dst0_l, (v8i16) dst0_r);
             ADDS_SH2_SH(tmp, in0, tmp, const_vec, tmp, tmp);
             tmp = __msa_srari_h(tmp, 7);
-            CLIP_SH_0_255(tmp);
+            tmp = CLIP_SH_0_255_MAX_SATU(tmp);
             out = (v16u8) __msa_pckev_b((v16i8) tmp, (v16i8) tmp);
-            ST_D1(out, 0, dst_tmp);
+            ST8x1_UB(out, dst_tmp);
             dst_tmp += dst_stride;
 
             dst0 = dst1;
@@ -2000,9 +1993,9 @@ static void hevc_hv_bi_8t_12w_msa(uint8_t *src0_ptr,
         tmp = __msa_pckev_h((v8i16) dst0_l, (v8i16) dst0_r);
         ADDS_SH2_SH(tmp, in0, tmp, const_vec, tmp, tmp);
         tmp = __msa_srari_h(tmp, 7);
-        CLIP_SH_0_255(tmp);
+        tmp = CLIP_SH_0_255_MAX_SATU(tmp);
         out = (v16u8) __msa_pckev_b((v16i8) tmp, (v16i8) tmp);
-        ST_D1(out, 0, dst_tmp);
+        ST8x1_UB(out, dst_tmp);
         dst_tmp += dst_stride;
 
         dst0 = dst1;
@@ -2088,9 +2081,9 @@ static void hevc_hv_bi_8t_12w_msa(uint8_t *src0_ptr,
         ADDS_SH2_SH(out0, in0, out1, in1, out0, out1);
         ADDS_SH2_SH(out0, const_vec, out1, const_vec, out0, out1);
         SRARI_H2_SH(out0, out1, 7);
-        CLIP_SH2_0_255(out0, out1);
+        CLIP_SH2_0_255_MAX_SATU(out0, out1);
         out = (v16u8) __msa_pckev_b((v16i8) out1, (v16i8) out0);
-        ST_W4(out, 0, 1, 2, 3, dst, dst_stride);
+        ST4x4_UB(out, out, 0, 1, 2, 3, dst, dst_stride);
         dst += (4 * dst_stride);
 
         dst10 = dst54;
@@ -2215,10 +2208,10 @@ static void hevc_hz_bi_4t_4x2_msa(uint8_t *src0_ptr,
 
     tmp0 = __msa_adds_s_h(tmp0, in0);
     tmp0 = __msa_srari_h(tmp0, 7);
-    CLIP_SH_0_255(tmp0);
+    tmp0 = CLIP_SH_0_255(tmp0);
     dst0 = __msa_pckev_b((v16i8) tmp0, (v16i8) tmp0);
 
-    ST_W2(dst0, 0, 1, dst, dst_stride);
+    ST4x2_UB(dst0, dst, dst_stride);
 }
 
 static void hevc_hz_bi_4t_4x4_msa(uint8_t *src0_ptr,
@@ -2264,7 +2257,7 @@ static void hevc_hz_bi_4t_4x4_msa(uint8_t *src0_ptr,
     HEVC_BI_RND_CLIP2(in0, in1, tmp0, tmp1, 7, tmp0, tmp1);
     dst0 = __msa_pckev_b((v16i8) tmp1, (v16i8) tmp0);
 
-    ST_W4(dst0, 0, 1, 2, 3, dst, dst_stride);
+    ST4x4_UB(dst0, dst0, 0, 1, 2, 3, dst, dst_stride);
 }
 
 static void hevc_hz_bi_4t_4x8multiple_msa(uint8_t *src0_ptr,
@@ -2325,7 +2318,7 @@ static void hevc_hz_bi_4t_4x8multiple_msa(uint8_t *src0_ptr,
                           tmp0, tmp1, tmp2, tmp3, 7, tmp0, tmp1, tmp2, tmp3);
 
         PCKEV_B2_SB(tmp1, tmp0, tmp3, tmp2, dst0, dst1);
-        ST_W8(dst0, dst1, 0, 1, 2, 3, 0, 1, 2, 3, dst, dst_stride);
+        ST4x8_UB(dst0, dst1, dst, dst_stride);
         dst += (8 * dst_stride);
     }
 }
@@ -2405,10 +2398,7 @@ static void hevc_hz_bi_4t_6w_msa(uint8_t *src0_ptr,
                           dst0, dst1, dst2, dst3, 7, dst0, dst1, dst2, dst3);
 
         PCKEV_B2_SH(dst1, dst0, dst3, dst2, dst0, dst1);
-        ST_W2(dst0, 0, 2, dst, dst_stride);
-        ST_H2(dst0, 2, 6, dst + 4, dst_stride);
-        ST_W2(dst1, 0, 2, dst + 2 * dst_stride, dst_stride);
-        ST_H2(dst1, 2, 6, dst + 2 * dst_stride + 4, dst_stride);
+        ST6x4_UB(dst0, dst1, dst, dst_stride);
         dst += (4 * dst_stride);
     }
 }
@@ -2453,7 +2443,7 @@ static void hevc_hz_bi_4t_8x2_msa(uint8_t *src0_ptr,
     HEVC_BI_RND_CLIP2(in0, in1, dst0, dst1, 7, dst0, dst1);
 
     dst0 = (v8i16) __msa_pckev_b((v16i8) dst1, (v16i8) dst0);
-    ST_D2(dst0, 0, 1, dst, dst_stride);
+    ST8x2_UB(dst0, dst, dst_stride);
 }
 
 static void hevc_hz_bi_4t_8x6_msa(uint8_t *src0_ptr,
@@ -2516,8 +2506,9 @@ static void hevc_hz_bi_4t_8x6_msa(uint8_t *src0_ptr,
 
     PCKEV_B2_SH(dst1, dst0, dst3, dst2, dst0, dst1);
     dst2 = (v8i16) __msa_pckev_b((v16i8) dst5, (v16i8) dst4);
-    ST_D4(dst0, dst1, 0, 1, 0, 1, dst, dst_stride);
-    ST_D2(dst2, 0, 1, dst + 4 * dst_stride, dst_stride);
+    ST8x4_UB(dst0, dst1, dst, dst_stride);
+    dst += (4 * dst_stride);
+    ST8x2_UB(dst2, dst, dst_stride);
 }
 
 static void hevc_hz_bi_4t_8x4multiple_msa(uint8_t *src0_ptr,
@@ -2573,7 +2564,7 @@ static void hevc_hz_bi_4t_8x4multiple_msa(uint8_t *src0_ptr,
                           dst0, dst1, dst2, dst3, 7, dst0, dst1, dst2, dst3);
 
         PCKEV_B2_SH(dst1, dst0, dst3, dst2, dst0, dst1);
-        ST_D4(dst0, dst1, 0, 1, 0, 1, dst, dst_stride);
+        ST8x4_UB(dst0, dst1, dst, dst_stride);
         dst += (4 * dst_stride);
     }
 }
@@ -2668,8 +2659,7 @@ static void hevc_hz_bi_4t_12w_msa(uint8_t *src0_ptr,
 
         PCKEV_B2_SH(dst1, dst0, dst3, dst2, dst0, dst1);
         dst2 = (v8i16) __msa_pckev_b((v16i8) dst5, (v16i8) dst4);
-        ST_D4(dst0, dst1, 0, 1, 0, 1, dst, dst_stride);
-        ST_W4(dst2, 0, 1, 2, 3, dst + 8, dst_stride);
+        ST12x4_UB(dst0, dst1, dst2, dst, dst_stride);
         dst += (4 * dst_stride);
     }
 }
@@ -2835,7 +2825,7 @@ static void hevc_hz_bi_4t_24w_msa(uint8_t *src0_ptr,
                           dst0, dst1, dst2, dst3, 7, dst0, dst1, dst2, dst3);
 
         PCKEV_B2_SH(dst1, dst0, dst3, dst2, dst0, dst1);
-        ST_D4(dst0, dst1, 0, 1, 0, 1, dst_tmp, dst_stride);
+        ST8x4_UB(dst0, dst1, dst_tmp, dst_stride);
         dst_tmp += (4 * dst_stride);
     }
 }
@@ -2943,10 +2933,10 @@ static void hevc_vt_bi_4t_4x2_msa(uint8_t *src0_ptr,
     DPADD_SB2_SH(src2110, src4332, filt0, filt1, dst10, dst10);
     dst10 = __msa_adds_s_h(dst10, in0);
     dst10 = __msa_srari_h(dst10, 7);
-    CLIP_SH_0_255(dst10);
+    dst10 = CLIP_SH_0_255(dst10);
 
     dst10 = (v8i16) __msa_pckev_b((v16i8) dst10, (v16i8) dst10);
-    ST_W2(dst10, 0, 1, dst, dst_stride);
+    ST4x2_UB(dst10, dst, dst_stride);
 }
 
 static void hevc_vt_bi_4t_4x4_msa(uint8_t *src0_ptr,
@@ -2995,7 +2985,7 @@ static void hevc_vt_bi_4t_4x4_msa(uint8_t *src0_ptr,
     HEVC_BI_RND_CLIP2(in0, in1, dst10, dst32, 7, dst10, dst32);
 
     dst10 = (v8i16) __msa_pckev_b((v16i8) dst32, (v16i8) dst10);
-    ST_W4(dst10, 0, 1, 2, 3, dst, dst_stride);
+    ST4x4_UB(dst10, dst10, 0, 1, 2, 3, dst, dst_stride);
 }
 
 static void hevc_vt_bi_4t_4x8multiple_msa(uint8_t *src0_ptr,
@@ -3066,7 +3056,7 @@ static void hevc_vt_bi_4t_4x8multiple_msa(uint8_t *src0_ptr,
                           dst10, dst32, dst54, dst76);
 
         PCKEV_B2_SH(dst32, dst10, dst76, dst54, dst10, dst54);
-        ST_W8(dst10, dst54, 0, 1, 2, 3, 0, 1, 2, 3, dst, dst_stride);
+        ST4x8_UB(dst10, dst54, dst, dst_stride);
         dst += (8 * dst_stride);
     }
 }
@@ -3157,10 +3147,7 @@ static void hevc_vt_bi_4t_6w_msa(uint8_t *src0_ptr,
                       dst0_r, dst1_r, dst2_r, dst3_r);
 
     PCKEV_B2_SH(dst1_r, dst0_r, dst3_r, dst2_r, dst0_r, dst1_r);
-    ST_W2(dst0_r, 0, 2, dst, dst_stride);
-    ST_H2(dst0_r, 2, 6, dst + 4, dst_stride);
-    ST_W2(dst1_r, 0, 2, dst + 2 * dst_stride, dst_stride);
-    ST_H2(dst1_r, 2, 6, dst + 2 * dst_stride + 4, dst_stride);
+    ST6x4_UB(dst0_r, dst1_r, dst, dst_stride);
     dst += (4 * dst_stride);
 
     LD_SH4(src1_ptr, src2_stride, in0, in1, in2, in3);
@@ -3184,10 +3171,7 @@ static void hevc_vt_bi_4t_6w_msa(uint8_t *src0_ptr,
                       dst0_r, dst1_r, dst2_r, dst3_r);
 
     PCKEV_B2_SH(dst1_r, dst0_r, dst3_r, dst2_r, dst0_r, dst1_r);
-    ST_W2(dst0_r, 0, 2, dst, dst_stride);
-    ST_H2(dst0_r, 2, 6, dst + 4, dst_stride);
-    ST_W2(dst1_r, 0, 2, dst + 2 * dst_stride, dst_stride);
-    ST_H2(dst1_r, 2, 6, dst + 2 * dst_stride + 4, dst_stride);
+    ST6x4_UB(dst0_r, dst1_r, dst, dst_stride);
     dst += (4 * dst_stride);
 }
 
@@ -3232,7 +3216,7 @@ static void hevc_vt_bi_4t_8x2_msa(uint8_t *src0_ptr,
     HEVC_BI_RND_CLIP2(in0, in1, dst0_r, dst1_r, 7, dst0_r, dst1_r);
     dst0_r = (v8i16) __msa_pckev_b((v16i8) dst1_r, (v16i8) dst0_r);
 
-    ST_D2(dst0_r, 0, 1, dst, dst_stride);
+    ST8x2_UB(dst0_r, dst, dst_stride);
 }
 
 static void hevc_vt_bi_4t_8x6_msa(uint8_t *src0_ptr,
@@ -3291,8 +3275,9 @@ static void hevc_vt_bi_4t_8x6_msa(uint8_t *src0_ptr,
 
     PCKEV_B2_SH(dst1_r, dst0_r, dst3_r, dst2_r, dst0_r, dst1_r);
     dst2_r = (v8i16) __msa_pckev_b((v16i8) dst5_r, (v16i8) dst4_r);
-    ST_D4(dst0_r, dst1_r, 0, 1, 0, 1, dst, dst_stride);
-    ST_D2(dst2_r, 0, 1, dst + 4 * dst_stride, dst_stride);
+    ST8x4_UB(dst0_r, dst1_r, dst, dst_stride);
+    dst += (4 * dst_stride);
+    ST8x2_UB(dst2_r, dst, dst_stride);
 }
 
 static void hevc_vt_bi_4t_8x4multiple_msa(uint8_t *src0_ptr,
@@ -3352,7 +3337,7 @@ static void hevc_vt_bi_4t_8x4multiple_msa(uint8_t *src0_ptr,
                           dst0_r, dst1_r, dst2_r, dst3_r);
 
         PCKEV_B2_SH(dst1_r, dst0_r, dst3_r, dst2_r, dst0_r, dst1_r);
-        ST_D4(dst0_r, dst1_r, 0, 1, 0, 1, dst, dst_stride);
+        ST8x4_UB(dst0_r, dst1_r, dst, dst_stride);
         dst += (4 * dst_stride);
     }
 }
@@ -3451,8 +3436,7 @@ static void hevc_vt_bi_4t_12w_msa(uint8_t *src0_ptr,
 
         PCKEV_B2_SH(dst1_r, dst0_r, dst3_r, dst2_r, dst0_r, dst1_r);
         dst0_l = (v8i16) __msa_pckev_b((v16i8) dst1_l, (v16i8) dst0_l);
-        ST_D4(dst0_r, dst1_r, 0, 1, 0, 1, dst, dst_stride);
-        ST_W4(dst0_l, 0, 1, 2, 3, dst + 8, dst_stride);
+        ST12x4_UB(dst0_r, dst1_r, dst0_l, dst, dst_stride);
         dst += (4 * dst_stride);
 
         src2 = src6;
@@ -3626,7 +3610,7 @@ static void hevc_vt_bi_4t_24w_msa(uint8_t *src0_ptr,
         PCKEV_B2_SH(dst0_l, dst0_r, dst1_l, dst1_r, dst0_r, dst1_r);
         dst2_r = (v8i16) __msa_pckev_b((v16i8) dst3_r, (v16i8) dst2_r);
         ST_SH2(dst0_r, dst1_r, dst, dst_stride);
-        ST_D2(dst2_r, 0, 1, dst + 16, dst_stride);
+        ST8x2_UB(dst2_r, dst + 16, dst_stride);
         dst += (2 * dst_stride);
 
         /* 16width */
@@ -3666,7 +3650,7 @@ static void hevc_vt_bi_4t_24w_msa(uint8_t *src0_ptr,
         PCKEV_B2_SH(dst0_l, dst0_r, dst1_l, dst1_r, dst0_r, dst1_r);
         dst2_r = (v8i16) __msa_pckev_b((v16i8) dst3_r, (v16i8) dst2_r);
         ST_SH2(dst0_r, dst1_r, dst, dst_stride);
-        ST_D2(dst2_r, 0, 1, dst + 16, dst_stride);
+        ST8x2_UB(dst2_r, dst + 16, dst_stride);
         dst += (2 * dst_stride);
     }
 }
@@ -3843,9 +3827,9 @@ static void hevc_hv_bi_4t_4x2_msa(uint8_t *src0_ptr,
     tmp = __msa_pckev_h((v8i16) dst1, (v8i16) dst0);
     tmp = __msa_adds_s_h(tmp, in0);
     tmp = __msa_srari_h(tmp, 7);
-    CLIP_SH_0_255(tmp);
+    tmp = CLIP_SH_0_255_MAX_SATU(tmp);
     out = (v16u8) __msa_pckev_b((v16i8) tmp, (v16i8) tmp);
-    ST_W2(out, 0, 1, dst, dst_stride);
+    ST4x2_UB(out, dst, dst_stride);
 }
 
 static void hevc_hv_bi_4t_4x4_msa(uint8_t *src0_ptr,
@@ -3919,9 +3903,9 @@ static void hevc_hv_bi_4t_4x4_msa(uint8_t *src0_ptr,
     PCKEV_H2_SH(dst1, dst0, dst3, dst2, tmp0, tmp1);
     ADDS_SH2_SH(tmp0, in0, tmp1, in1, tmp0, tmp1);
     SRARI_H2_SH(tmp0, tmp1, 7);
-    CLIP_SH2_0_255(tmp0, tmp1);
+    CLIP_SH2_0_255_MAX_SATU(tmp0, tmp1);
     out = (v16u8) __msa_pckev_b((v16i8) tmp1, (v16i8) tmp0);
-    ST_W4(out, 0, 1, 2, 3, dst, dst_stride);
+    ST4x4_UB(out, out, 0, 1, 2, 3, dst, dst_stride);
 }
 
 static void hevc_hv_bi_4t_4multx8mult_msa(uint8_t *src0_ptr,
@@ -4032,9 +4016,9 @@ static void hevc_hv_bi_4t_4multx8mult_msa(uint8_t *src0_ptr,
         ADDS_SH4_SH(in0, tmp0, in1, tmp1, in2, tmp2, in3, tmp3, tmp0, tmp1,
                     tmp2, tmp3);
         SRARI_H4_SH(tmp0, tmp1, tmp2, tmp3, 7);
-        CLIP_SH4_0_255(tmp0, tmp1, tmp2, tmp3);
+        CLIP_SH4_0_255_MAX_SATU(tmp0, tmp1, tmp2, tmp3);
         PCKEV_B2_UB(tmp1, tmp0, tmp3, tmp2, out0, out1);
-        ST_W8(out0, out1, 0, 1, 2, 3, 0, 1, 2, 3, dst, dst_stride);
+        ST4x8_UB(out0, out1, dst, dst_stride);
         dst += (8 * dst_stride);
 
         dst10_r = dst98_r;
@@ -4200,9 +4184,9 @@ static void hevc_hv_bi_4t_6w_msa(uint8_t *src0_ptr,
     ADDS_SH4_SH(in0, tmp0, in1, tmp1, in2, tmp2, in3, tmp3, tmp0, tmp1, tmp2,
                 tmp3);
     SRARI_H4_SH(tmp0, tmp1, tmp2, tmp3, 7);
-    CLIP_SH4_0_255(tmp0, tmp1, tmp2, tmp3);
+    CLIP_SH4_0_255_MAX_SATU(tmp0, tmp1, tmp2, tmp3);
     PCKEV_B2_UB(tmp1, tmp0, tmp3, tmp2, out0, out1);
-    ST_W8(out0, out1, 0, 1, 2, 3, 0, 1, 2, 3, dst, dst_stride);
+    ST4x8_UB(out0, out1, dst, dst_stride);
 
     LW4(src1_ptr + 4, src2_stride, tpw0, tpw1, tpw2, tpw3);
     src1_ptr += (4 * src2_stride);
@@ -4212,9 +4196,11 @@ static void hevc_hv_bi_4t_6w_msa(uint8_t *src0_ptr,
     ADDS_SH2_SH(in4, const_vec, in5, const_vec, in4, in5);
     ADDS_SH2_SH(in4, tmp4, in5, tmp5, tmp4, tmp5);
     SRARI_H2_SH(tmp4, tmp5, 7);
-    CLIP_SH2_0_255(tmp4, tmp5);
+    CLIP_SH2_0_255_MAX_SATU(tmp4, tmp5);
     out2 = (v16u8) __msa_pckev_b((v16i8) tmp5, (v16i8) tmp4);
-    ST_H8(out2, 0, 1, 2, 3, 4, 5, 6, 7, dst + 4, dst_stride);
+    ST2x4_UB(out2, 0, dst + 4, dst_stride);
+    dst += 4 * dst_stride;
+    ST2x4_UB(out2, 4, dst + 4, dst_stride);
 }
 
 static void hevc_hv_bi_4t_8x2_msa(uint8_t *src0_ptr,
@@ -4286,9 +4272,9 @@ static void hevc_hv_bi_4t_8x2_msa(uint8_t *src0_ptr,
     PCKEV_H2_SH(dst0_l, dst0_r, dst1_l, dst1_r, tmp0, tmp1);
     ADDS_SH2_SH(in0, tmp0, in1, tmp1, tmp0, tmp1);
     SRARI_H2_SH(tmp0, tmp1, 7);
-    CLIP_SH2_0_255(tmp0, tmp1);
+    CLIP_SH2_0_255_MAX_SATU(tmp0, tmp1);
     out = (v16u8) __msa_pckev_b((v16i8) tmp1, (v16i8) tmp0);
-    ST_D2(out, 0, 1, dst, dst_stride);
+    ST8x2_UB(out, dst, dst_stride);
 }
 
 static void hevc_hv_bi_4t_8multx4_msa(uint8_t *src0_ptr,
@@ -4380,9 +4366,9 @@ static void hevc_hv_bi_4t_8multx4_msa(uint8_t *src0_ptr,
         ADDS_SH4_SH(in0, tmp0, in1, tmp1, in2, tmp2, in3, tmp3,
                     tmp0, tmp1, tmp2, tmp3);
         SRARI_H4_SH(tmp0, tmp1, tmp2, tmp3, 7);
-        CLIP_SH4_0_255(tmp0, tmp1, tmp2, tmp3);
+        CLIP_SH4_0_255_MAX_SATU(tmp0, tmp1, tmp2, tmp3);
         PCKEV_B2_UB(tmp1, tmp0, tmp3, tmp2, out0, out1);
-        ST_D4(out0, out1, 0, 1, 0, 1, dst, dst_stride);
+        ST8x4_UB(out0, out1, dst, dst_stride);
         dst += 8;
     }
 }
@@ -4495,12 +4481,13 @@ static void hevc_hv_bi_4t_8x6_msa(uint8_t *src0_ptr,
     ADDS_SH2_SH(in4, tmp4, in5, tmp5, tmp4, tmp5);
     SRARI_H4_SH(tmp0, tmp1, tmp2, tmp3, 7);
     SRARI_H2_SH(tmp4, tmp5, 7);
-    CLIP_SH4_0_255(tmp0, tmp1, tmp2, tmp3);
-    CLIP_SH2_0_255(tmp4, tmp5);
+    CLIP_SH4_0_255_MAX_SATU(tmp0, tmp1, tmp2, tmp3);
+    CLIP_SH2_0_255_MAX_SATU(tmp4, tmp5);
     PCKEV_B2_UB(tmp1, tmp0, tmp3, tmp2, out0, out1);
     out2 = (v16u8) __msa_pckev_b((v16i8) tmp5, (v16i8) tmp4);
-    ST_D4(out0, out1, 0, 1, 0, 1, dst, dst_stride);
-    ST_D2(out2, 0, 1, dst + 4 * dst_stride, dst_stride);
+    ST8x4_UB(out0, out1, dst, dst_stride);
+    dst += (4 * dst_stride);
+    ST8x2_UB(out2, dst, dst_stride);
 }
 
 static void hevc_hv_bi_4t_8multx4mult_msa(uint8_t *src0_ptr,
@@ -4610,9 +4597,9 @@ static void hevc_hv_bi_4t_8multx4mult_msa(uint8_t *src0_ptr,
             ADDS_SH4_SH(in0, tmp0, in1, tmp1, in2, tmp2, in3, tmp3,
                         tmp0, tmp1, tmp2, tmp3);
             SRARI_H4_SH(tmp0, tmp1, tmp2, tmp3, 7);
-            CLIP_SH4_0_255(tmp0, tmp1, tmp2, tmp3);
+            CLIP_SH4_0_255_MAX_SATU(tmp0, tmp1, tmp2, tmp3);
             PCKEV_B2_UB(tmp1, tmp0, tmp3, tmp2, out0, out1);
-            ST_D4(out0, out1, 0, 1, 0, 1, dst_tmp, dst_stride);
+            ST8x4_UB(out0, out1, dst_tmp, dst_stride);
             dst_tmp += (4 * dst_stride);
 
             dst10_r = dst54_r;
@@ -4760,9 +4747,9 @@ static void hevc_hv_bi_4t_12w_msa(uint8_t *src0_ptr,
         ADDS_SH4_SH(in0, tmp0, in1, tmp1, in2, tmp2, in3, tmp3,
                     tmp0, tmp1, tmp2, tmp3);
         SRARI_H4_SH(tmp0, tmp1, tmp2, tmp3, 7);
-        CLIP_SH4_0_255(tmp0, tmp1, tmp2, tmp3);
+        CLIP_SH4_0_255_MAX_SATU(tmp0, tmp1, tmp2, tmp3);
         PCKEV_B2_UB(tmp1, tmp0, tmp3, tmp2, out0, out1);
-        ST_D4(out0, out1, 0, 1, 0, 1, dst_tmp, dst_stride);
+        ST8x4_UB(out0, out1, dst_tmp, dst_stride);
         dst_tmp += (4 * dst_stride);
 
         dst10_r = dst54_r;
@@ -4846,9 +4833,9 @@ static void hevc_hv_bi_4t_12w_msa(uint8_t *src0_ptr,
         ADDS_SH4_SH(in0, tmp0, in1, tmp1, in2, tmp2, in3, tmp3,
                     tmp0, tmp1, tmp2, tmp3);
         SRARI_H4_SH(tmp0, tmp1, tmp2, tmp3, 7);
-        CLIP_SH4_0_255(tmp0, tmp1, tmp2, tmp3);
+        CLIP_SH4_0_255_MAX_SATU(tmp0, tmp1, tmp2, tmp3);
         PCKEV_B2_UB(tmp1, tmp0, tmp3, tmp2, out0, out1);
-        ST_W8(out0, out1, 0, 1, 2, 3, 0, 1, 2, 3, dst, dst_stride);
+        ST4x8_UB(out0, out1, dst, dst_stride);
         dst += (8 * dst_stride);
 
         dst10_r = dst98_r;

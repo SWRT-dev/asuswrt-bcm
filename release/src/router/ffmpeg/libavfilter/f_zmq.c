@@ -139,7 +139,7 @@ static int recv_msg(AVFilterContext *ctx, char **buf, int *buf_size)
         ret = AVERROR(ENOMEM);
         goto end;
     }
-    memcpy(*buf, zmq_msg_data(&msg), *buf_size - 1);
+    memcpy(*buf, zmq_msg_data(&msg), *buf_size);
     (*buf)[*buf_size-1] = 0;
 
 end:

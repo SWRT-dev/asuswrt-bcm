@@ -1,8 +1,7 @@
 /*
  * Copyright (C) 2009 Martin Willi
  * Copyright (C) 2002-2009 Andreas Steffen
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -127,7 +126,7 @@ METHOD(private_key_t, sign_not_allowed, bool,
 
 METHOD(private_key_t, decrypt_not_allowed, bool,
 	private_key_t *this, encryption_scheme_t scheme,
-	void *params, chunk_t crypto, chunk_t *plain)
+	chunk_t crypto, chunk_t *plain)
 {
 	DBG1(DBG_LIB, "decryption failed - signature only key");
 	return FALSE;

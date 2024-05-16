@@ -5,7 +5,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2022, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2021, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -17,8 +17,6 @@
  *
  * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
  * KIND, either express or implied.
- *
- * SPDX-License-Identifier: curl
  *
  ***************************************************************************/
 #include "server_setup.h"
@@ -109,7 +107,6 @@
 #include "inet_pton.h"
 #include "util.h"
 #include "server_sockaddr.h"
-#include "timediff.h"
 #include "warnless.h"
 
 /* include memdebug.h last */
@@ -642,7 +639,7 @@ static int select_ws(int nfds, fd_set *readfds, fd_set *writefds,
 
   /* convert struct timeval to milliseconds */
   if(tv) {
-    timeout_ms = (DWORD)curlx_tvtoms(tv);
+    timeout_ms = (tv->tv_sec*1000) + (DWORD)(((double)tv->tv_usec)/1000.0);
   }
   else {
     timeout_ms = INFINITE;
@@ -1323,9 +1320,8 @@ int main(int argc, char *argv[])
   curl_socket_t sock = CURL_SOCKET_BAD;
   curl_socket_t msgsock = CURL_SOCKET_BAD;
   int wrotepidfile = 0;
-  int wroteportfile = 0;
   const char *pidname = ".sockfilt.pid";
-  const char *portname = NULL; /* none by default */
+  const char *portfile = NULL; /* none by default */
   bool juggle_again;
   int rc;
   int error;
@@ -1356,7 +1352,7 @@ int main(int argc, char *argv[])
     else if(!strcmp("--portfile", argv[arg])) {
       arg++;
       if(argc > arg)
-        portname = argv[arg++];
+        portfile = argv[arg++];
     }
     else if(!strcmp("--logfile", argv[arg])) {
       arg++;
@@ -1422,7 +1418,6 @@ int main(int argc, char *argv[])
            " --verbose\n"
            " --logfile [file]\n"
            " --pidfile [file]\n"
-           " --portfile [file]\n"
            " --ipv4\n"
            " --ipv6\n"
            " --bindonly\n"
@@ -1523,9 +1518,9 @@ int main(int argc, char *argv[])
     write_stdout("FAIL\n", 5);
     goto sockfilt_cleanup;
   }
-  if(portname) {
-    wroteportfile = write_portfile(portname, port);
-    if(!wroteportfile) {
+  if(portfile) {
+    wrotepidfile = write_portfile(portfile, port);
+    if(!wrotepidfile) {
       write_stdout("FAIL\n", 5);
       goto sockfilt_cleanup;
     }
@@ -1545,8 +1540,6 @@ sockfilt_cleanup:
 
   if(wrotepidfile)
     unlink(pidname);
-  if(wroteportfile)
-    unlink(portname);
 
   restore_signal_handlers(false);
 

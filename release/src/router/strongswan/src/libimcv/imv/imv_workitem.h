@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2013 Andreas Steffen
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -52,12 +51,12 @@ enum imv_workitem_type_t {
 extern enum_name_t *imv_workitem_type_names;
 
 /**
- * IMV database interface
+ * IMV database interface 
  */
 struct imv_workitem_t {
 
 	/**
-	 * Get primary workitem key
+	 * Get primary workitem key 
 	 *
 	 * @return				Primary workitem key
 	 */
@@ -105,16 +104,16 @@ struct imv_workitem_t {
 	 * @param eval			Evaluation Result
 	 * @return				Action Recommendation
 	 */
-	 TNC_IMV_Action_Recommendation (*set_result)(imv_workitem_t *this,
+	 TNC_IMV_Action_Recommendation (*set_result)(imv_workitem_t *this, 
 						char *result, TNC_IMV_Evaluation_Result eval);
 
 	/**
 	 * Set result string
 	 *
 	 * @param result		Result string
-	 * @return				Action Recommendation
+	 * @return				Action Recommendatino
 	 */
-	 TNC_IMV_Action_Recommendation (*get_result)(imv_workitem_t *this,
+	 TNC_IMV_Action_Recommendation (*get_result)(imv_workitem_t *this, 
 												 char **result);
 
 	/**

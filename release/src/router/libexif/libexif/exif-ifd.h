@@ -18,12 +18,8 @@
  * Boston, MA  02110-1301  USA.
  */
 
-#ifndef LIBEXIF_EXIF_IFD_H
-#define LIBEXIF_EXIF_IFD_H
-
-#ifdef __cplusplus
-extern "C" {
-#endif /* __cplusplus */
+#ifndef __EXIF_IFD_H__
+#define __EXIF_IFD_H__
 
 /*! Possible EXIF Image File Directories */
 typedef enum {
@@ -40,12 +36,8 @@ typedef enum {
  * characters.
  *
  * \param[in] ifd IFD
- * \return textual name of the IFD, or NULL if unknown
+ * \return textual name of the IFD
  */
 const char *exif_ifd_get_name (ExifIfd ifd);
 
-#ifdef __cplusplus
-}
-#endif /* __cplusplus */
-
-#endif /* !defined(LIBEXIF_EXIF_IFD_H) */
+#endif /* __EXIF_IFD_H__ */

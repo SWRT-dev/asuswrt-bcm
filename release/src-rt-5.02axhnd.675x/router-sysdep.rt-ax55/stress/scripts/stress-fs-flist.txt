@@ -1,6 +1,7 @@
 /lib/libwlctl.so
 /lib/libntfs-3g.so.85
 /lib/libc.so.0
+/lib/libwlmngr.so
 /lib/modules/*/extra/wl.ko
 /lib/modules/*/extra/dhd.ko
 /lib/modules/*/extra/bcm_enet.ko
@@ -16,6 +17,8 @@
 /lib/modules/*/kernel/net/netfilter/nf_conntrack_sip.ko
 /sbin/ipsec
 /bin/httpd
+/bin/tr64c
+/bin/swmdk
 /bin/tr69c
 /bin/pppd
 /bin/tc
@@ -24,6 +27,7 @@
 /lib/libutil.so.0
 /lib/libntfs-3g.so.85
 /lib/libwlctl.so
+/lib/libwlmngr.so
 /lib/private/libcms_core.so
 /lib/private/libcms_dal.so
 /lib/private/libmdm.so
@@ -44,4 +48,5 @@
 /bin/openssl
 /bin/wps_monitor
 /bin/racoon
+/bin/tr64c
 /bin/tr69c

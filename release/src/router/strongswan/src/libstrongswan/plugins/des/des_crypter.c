@@ -1,6 +1,7 @@
 /*
  * Copyright (C) 2009 Tobias Brunner
  * Copyright (C) 2006 Martin Willi
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * Derived from Plutos DES library by Eric Young.
  *

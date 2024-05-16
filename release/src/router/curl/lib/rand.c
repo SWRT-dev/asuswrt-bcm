@@ -5,7 +5,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2022, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2021, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -17,8 +17,6 @@
  *
  * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
  * KIND, either express or implied.
- *
- * SPDX-License-Identifier: curl
  *
  ***************************************************************************/
 
@@ -73,7 +71,7 @@ static CURLcode randit(struct Curl_easy *data, unsigned int *rnd)
 
   /* ---- non-cryptographic version following ---- */
 
-#if defined(RANDOM_FILE) && !defined(WIN32)
+#ifdef RANDOM_FILE
   if(!seeded) {
     /* if there's a random file to read a seed from, use it */
     int fd = open(RANDOM_FILE, O_RDONLY);
@@ -89,7 +87,7 @@ static CURLcode randit(struct Curl_easy *data, unsigned int *rnd)
 
   if(!seeded) {
     struct curltime now = Curl_now();
-    infof(data, "WARNING: using weak random seed");
+    infof(data, "WARNING: Using weak random seed");
     randseed += (unsigned int)now.tv_usec + (unsigned int)now.tv_sec;
     randseed = randseed * 1103515245 + 12345;
     randseed = randseed * 1103515245 + 12345;
@@ -108,8 +106,7 @@ static CURLcode randit(struct Curl_easy *data, unsigned int *rnd)
  * 'rndptr' points to.
  *
  * If libcurl is built without TLS support or with a TLS backend that lacks a
- * proper random API (rustls, Gskit or mbedTLS), this function will use "weak"
- * random.
+ * proper random API (Gskit or mbedTLS), this function will use "weak" random.
  *
  * When built *with* TLS support and a backend that offers strong random, it
  * will return error if it cannot provide strong random values.

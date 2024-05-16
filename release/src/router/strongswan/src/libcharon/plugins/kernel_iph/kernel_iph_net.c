@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2013 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * Copyright (C) 2013 revosec AG
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -716,14 +715,14 @@ static status_t manage_route(private_kernel_iph_net_t *this, bool add,
 
 METHOD(kernel_net_t, add_route, status_t,
 	private_kernel_iph_net_t *this, chunk_t dst, uint8_t prefixlen,
-	host_t *gateway, host_t *src, char *name, bool pass)
+	host_t *gateway, host_t *src, char *name)
 {
 	return manage_route(this, TRUE, dst, prefixlen, gateway, name);
 }
 
 METHOD(kernel_net_t, del_route, status_t,
 	private_kernel_iph_net_t *this, chunk_t dst, uint8_t prefixlen,
-	host_t *gateway, host_t *src, char *name, bool pass)
+	host_t *gateway, host_t *src, char *name)
 {
 	return manage_route(this, FALSE, dst, prefixlen, gateway, name);
 }

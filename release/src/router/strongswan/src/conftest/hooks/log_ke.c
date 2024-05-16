@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2010 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * Copyright (C) 2010 revosec AG
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -48,7 +47,7 @@ METHOD(listener_t, message, bool,
 			{
 				ke = (ke_payload_t*)payload;
 				DBG1(DBG_CFG, "received DH group %N",
-					 key_exchange_method_names, ke->get_key_exchange_method(ke));
+					 diffie_hellman_group_names, ke->get_dh_group_number(ke));
 			}
 		}
 		enumerator->destroy(enumerator);

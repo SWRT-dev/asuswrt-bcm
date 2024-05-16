@@ -1,7 +1,6 @@
 TARGET=aaews
 WSLIB=libws.so
 DOG=mastiff
-UAC=aaeuac
 
 include ../common.mak
 
@@ -18,7 +17,6 @@ ifeq ($(RTCONFIG_SW_HW_AUTH),y)
 SW_HW_AUTH_DIR=$(TOP)/sw-hw-auth
 endif
 SQLITE_DIR=$(TOP)/sqlite
-IPADDR_DIR=$(TOP)/ipaddr
 
 NATNL_DIR=$(TOP)/asusnatnl/natnl
 ASUSNATNL_CFLAGS=-I$(NATNL_DIR)
@@ -31,21 +29,20 @@ OUTPUT := $(WB_DIR)/output
 
 SRC=$(wildcard *.c)
 OBJS=$(patsubst %.c, %.o, $(SRC))
-OBJS_MAIN=$(filter-out $(DOG).o aae_ipc_handler.o aaeuac.o, $(OBJS))
+OBJS_MAIN=$(filter-out $(DOG).o, $(OBJS))
 WSLIB_OBJS := $(WS_SOURCES:%.c=$(OUTPUT)/%.o)
 
 ifeq ($(wildcard $(TOP)/aaews/*.c),)
 all:
 	-cp -f $(TOP)/aaews/prebuild/$(BUILD_NAME)/aaews aaews
 	-cp -f $(TOP)/aaews/prebuild/$(BUILD_NAME)/mastiff mastiff
-	-cp -f $(TOP)/aaews/prebuild/$(BUILD_NAME)/aaeuac aaeuac
 else
 all: $(WSLIB) $(TARGET)
 endif
 
 
-ifeq ("$(MAKECMDGOALS)", $(filter "$(MAKECMDGOALS)", "router" "mastiff" "aaeuac"))
-ROUTER_CFLAGS=-DNVRAM=1 -DEMBEDDED -I$(SHARED_DIR) -I$(IPADDR_DIR)
+ifeq ("$(MAKECMDGOALS)", $(filter "$(MAKECMDGOALS)", "router" "mastiff"))
+ROUTER_CFLAGS=-DNVRAM=1 -DEMBEDDED -I$(SHARED_DIR)
 ROUTER_CFLAGS+=-DTNL_CALLBACK_ENABLE -DTNL_2_X -DUSE_IM_IPC
 ifeq ($(RTCONFIG_QTN),y)
 ROUTER_LIBS=-lnvram -lshared -lqcsapi_client
@@ -95,8 +92,8 @@ LIBS = -lcurl -lssl -lcrypto -lxml2 -ljson-c -ldl -pthread -lrt $(ROUTER_LIBS) -
 LDFLAGS = -L$(OPENSSL_DIR) -L$(CURL_DIR)/lib/.libs -L$(XML2_DIR)/.libs -L$(JSON_C_DIR)/.libs -L. $(ROUTER_LDFLAGS) -L$(WS_SRC) -L$(WB_DIR) -L$(WB_DIR)/output
 
 ifeq ($(RTCONFIG_TR069),y)
-CFLAGS += -I$(TOP)/libssh2-1.10.0/include -I$(TOP)/zlib/include
-LDFLAGS += -L$(TOP)/libssh2-1.10.0/src/.libs -lssh2 -L$(TOP)/zlib -lz
+CFLAGS += -I$(TOP)/libssh2-1.9.0/include -I$(TOP)/zlib/include
+LDFLAGS += -L$(TOP)/libssh2-1.9.0/src/.libs -lssh2 -L$(TOP)/zlib -lz
 endif
 
 ifeq ($(RTCONFIG_QCA),y)
@@ -120,19 +117,9 @@ ifeq ($(wildcard $(TOP)/aaews/*.c),)
 $(DOG):
 	-cp -f $(TOP)/aaews/prebuild/$(BUILD_NAME)/mastiff mastiff
 else
-$(DOG): $(DOG).o nat_nvram.o aae_ipc_handler.o ws_caller.o nw_util.o natapi.o $(WSLIB_OBJS) info_report.o
-	$(CC) -fPIC $(CFLAGS) $(LDFLAGS) $(LIBS) $(ROUTER_LDFLAGS) $(ROUTER_LIBS) -o $@ $^
+$(DOG): $(DOG).o nat_nvram.o  ws_caller.o nw_util.o natapi.o $(WSLIB_OBJS) info_report.o
+	$(CC) -fPIC $(CFLAGS) $(LDFLAGS) $(LIBS) $(ROUTER_LDFLAGS) $(ROUTER_LIBS) -o $@ $^ 
 #	mipsel-uclibc-gcc -c $(CFLAGS) $(LDFLAGS) $(LIBS) -o $@ $^ 
-endif
-
-ifeq ($(and $(RTCONFIG_IG_SITE2SITE),$(RTCONFIG_WIREGUARD)),y)
-ifeq ($(wildcard $(TOP)/aaews/*.c),)
-$(UAC):
-	-cp -f $(TOP)/aaews/prebuild/$(BUILD_NAME)/aaeuac aaeuac
-else
-$(UAC): $(UAC).o nat_nvram.o natapi.o $(WSLIB_OBJS) queue_list.o queue_manager.o sync.o ws_caller.o nw_util.o info_report.o
-	$(CC) -fPIC $(CFLAGS) $(LDFLAGS) $(LIBS) $(ROUTER_LDFLAGS) $(ROUTER_LIBS) -o $@ $^
-endif
 endif
 aicam:$(TARGET)
 
@@ -140,11 +127,11 @@ ifeq ($(wildcard $(TOP)/aaews/*.c),)
 router:
 	-cp -f $(TOP)/aaews/prebuild/$(BUILD_NAME)/aaews aaews
 else
-router: $(WSLIB) $(TARGET) $(DOG) $(if $(and $(RTCONFIG_IG_SITE2SITE),$(RTCONFIG_WIREGUARD)),  $(UAC))
+router: $(WSLIB) $(TARGET) $(DOG)
 endif
 $(WSLIB):
 	cd $(WB_DIR) && \
-	CC=$(CC) AR=$(AR) RANLIB=$(RANLIB) LD=$(LD) CFLAGS="$(if $(RTCONFIG_DEBUG),-g,-Os) -Wall $(EXTRACFLAGS)" \
+	CC=$(CC) AR=$(AR) RANLIB=$(RANLIB) LD=$(LD) CFLAGS="-Os -Wall $(EXTRACFLAGS)" \
 	make libws.so
 
 
@@ -161,5 +148,5 @@ $(TARGET):  main.o  $(WSLIB_OBJS) $(OBJS_MAIN)
 clean:
 	echo $(WB_DIR)
 	echo $(TOP)
-	rm -f *.o  *.so *.dylib *.a aaews mastiff aaeuac -r output
+	rm -f *.o  *.so *.dylib *.a aaews mastiff -r output
 

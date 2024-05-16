@@ -22,9 +22,6 @@ iMenu results		error.host	1
 <server>
 gophers
 </server>
-<killserver>
-gophers
-</killserver>
  <name>
 Gophers index
  </name>

@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2014 Martin Willi
+ * Copyright (C) 2014 revosec AG
  *
  * libvici.h is MIT-licensed to simplify reuse, but please note that libvici.c
  * is not, as it depends on the GPLv2 licensed libstrongswan.
@@ -57,7 +58,7 @@
  * - vici_end_list(): Close a previously opened list
  * - vici_add_list_item() / vici_add_list_itemf(): Add list item
  *
- * Once the request message is complete, it can be sent or canceled with:
+ * Once the request message is complete, it can be sent or cancelled with:
  *
  * - vici_submit()
  * - vici_free_req()
@@ -90,7 +91,7 @@ extern "C" {
 #endif
 
 /**
- * Opaque vici connection context.
+ * Opaque vici connection contex.
  */
 typedef struct vici_conn_t vici_conn_t;
 
@@ -323,7 +324,7 @@ vici_parse_t vici_parse(vici_res_t *res);
 char* vici_parse_name(vici_res_t *res);
 
 /**
- * Compare name tag / key of a previously parsed element.
+ * Compare name tag / key of a previusly parsed element.
  *
  * This call is valid only after vici_parse() returned VICI_PARSE_KEY_VALUE,
  * VICI_PARSE_BEGIN_SECTION or VICI_PARSE_BEGIN_LIST.

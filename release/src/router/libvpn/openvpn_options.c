@@ -13,8 +13,6 @@
 #include <openvpn_config.h>
 #include "openvpn_options.h"
 
-char ignore_options[2048];
-
 char* ovpn_client_option_list[] = {
 	"local",
 	"remote",
@@ -64,7 +62,7 @@ char* ovpn_client_option_list[] = {
 	"push-peer-info",
 	"setenv",
 	"setenv-safe",
-	"ignore-unknown-option",
+	"ignore-unkown-option",
 	"script-security",
 	"shaper",
 	"keepalive",
@@ -780,15 +778,6 @@ add_option (char *p[], int line, int unit)
 			;//TODO: not support?
 		return VPN_UPLOAD_NEED_CRL;
 	}
-	else if (streq(p[0], "ignore-unknown-option") && p[1])
-	{
-		int i;
-		for (i = 1; p[i]; i++)
-		{
-			strlcat(ignore_options, p[i], sizeof(ignore_options));
-			strlcat(ignore_options, " ", sizeof(ignore_options));
-		}
-	}
 	else
 	{
 		if ( streq (p[0], "client")
@@ -820,15 +809,6 @@ check_valid_option(const char* data)
 			return 1;
 		i++;
 	}
-	if (ignore_options[0]) {
-		char word[256] = {0};
-		char *next = NULL;
-		foreach(word, ignore_options, next) {
-			if (!strcmp(word, data)) {
-				return 2;
-			}
-		}
-	}
 	return 0;
 }
 
@@ -845,12 +825,10 @@ read_config_file (const char *file, int unit)
 	fp = fopen (file, "r");
 	if (fp)
 	{
-		memset(ignore_options, 0 , sizeof(ignore_options));
 		line_num = 0;
 		while (fgets(line, sizeof (line), fp))
 		{
 			int offset = 0;
-			int check_option_result = 0;
 			CLEAR (p);
 			++line_num;
 			/* Ignore UTF-8 BOM at start of stream */
@@ -860,22 +838,14 @@ read_config_file (const char *file, int unit)
 			{
 				bypass_doubledash (&p[0]);
 				check_inline_file_via_fp (fp, p);
-				if ((check_option_result = check_valid_option(p[0])) == 0)
+				if (!check_valid_option(p[0]))
 				{
 					_dprintf("Unrecoginzed or unsupported option: [%s]\n", p[0]);
 					logmessage ("OVPN", "Unrecoginzed or unsupported option: [%s]", p[0]);
 					ret = -1;
 					break;
 				}
-				else if (check_option_result == 2)
-				{
-					_dprintf("Ignore unknown option: [%s]\n", p[0]);
-					// logmessage ("OVPN", "Ignore unknown option: [%s]", p[0]);
-				}
-				else
-				{
-					ret |= add_option (p, line_num, unit);
-				}
+				ret |= add_option (p, line_num, unit);
 			}
 		}
 		fclose (fp);

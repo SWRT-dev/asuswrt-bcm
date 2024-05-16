@@ -1,6 +1,7 @@
 /*
  * Copyright (C) 2005-2006 Martin Willi
  * Copyright (C) 2005 Jan Hutter
+ * HSR Hochschule fuer Technik Rapperswil
  * Copyright (C) 1991-1992, RSA Data Security, Inc. Created 1991.
  * All rights reserved.
  *
@@ -90,7 +91,7 @@ Rotation is separate from addition to prevent recomputation.
 typedef struct private_md5_hasher_t private_md5_hasher_t;
 
 /**
- * Private data structure with hashing context.
+ * Private data structure with hasing context.
  */
 struct private_md5_hasher_t {
 	/**

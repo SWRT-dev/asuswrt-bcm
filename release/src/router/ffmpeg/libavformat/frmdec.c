@@ -29,19 +29,20 @@
 #include "libavutil/intreadwrite.h"
 #include "avformat.h"
 
-static const enum AVPixelFormat frm_pix_fmt_tags[] = {
-    AV_PIX_FMT_RGB555,
-    AV_PIX_FMT_RGB0,
-    AV_PIX_FMT_RGB24,
-    AV_PIX_FMT_BGR0,
-    AV_PIX_FMT_BGRA,
+static const PixelFormatTag frm_pix_fmt_tags[] = {
+    { AV_PIX_FMT_RGB555, 1 },
+    { AV_PIX_FMT_RGB0,   2 },
+    { AV_PIX_FMT_RGB24,  3 },
+    { AV_PIX_FMT_BGR0,   4 },
+    { AV_PIX_FMT_BGRA,   5 },
+    { AV_PIX_FMT_NONE,   0 },
 };
 
 typedef struct {
     int count;
 } FrmContext;
 
-static int frm_read_probe(const AVProbeData *p)
+static int frm_read_probe(AVProbeData *p)
 {
     if (p->buf_size > 8 &&
         p->buf[0] == 'F' && p->buf[1] == 'R' && p->buf[2] == 'M' &&
@@ -54,8 +55,6 @@ static int frm_read_header(AVFormatContext *avctx)
 {
     AVIOContext *pb = avctx->pb;
     AVStream *st = avformat_new_stream(avctx, 0);
-    unsigned idx;
-
     if (!st)
         return AVERROR(ENOMEM);
 
@@ -63,10 +62,9 @@ static int frm_read_header(AVFormatContext *avctx)
     st->codecpar->codec_id   = AV_CODEC_ID_RAWVIDEO;
     avio_skip(pb, 3);
 
-    idx = avio_r8(pb) - 1;
-    if (idx >= FF_ARRAY_ELEMS(frm_pix_fmt_tags))
+    st->codecpar->format    = avpriv_find_pix_fmt(frm_pix_fmt_tags, avio_r8(pb));
+    if (!st->codecpar->format)
         return AVERROR_INVALIDDATA;
-    st->codecpar->format = frm_pix_fmt_tags[idx];
 
     st->codecpar->codec_tag  = 0;
     st->codecpar->width      = avio_rl16(pb);

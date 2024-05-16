@@ -6,7 +6,7 @@
 #                            | (__| |_| |  _ <| |___
 #                             \___|\___/|_| \_\_____|
 #
-# Copyright (C) 2010 - 2022, Daniel Stenberg, <daniel@haxx.se>, et al.
+# Copyright (C) 2010 - 2021, Daniel Stenberg, <daniel@haxx.se>, et al.
 #
 # This software is licensed as described in the file COPYING, which
 # you should have received as part of this distribution. The terms
@@ -18,8 +18,6 @@
 #
 # This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
 # KIND, either express or implied.
-#
-# SPDX-License-Identifier: curl
 #
 ###########################################################################
 #
@@ -56,7 +54,6 @@ my $i = ($ARGV[1]) ? "-I$ARGV[1] " : '';
 my $h = "$root/include/curl/curl.h";
 my $mh = "$root/include/curl/multi.h";
 my $ua = "$root/include/curl/urlapi.h";
-my $hd = "$root/include/curl/header.h";
 
 my $verbose=0;
 my $summary=0;
@@ -66,23 +63,17 @@ my @syms;
 my %doc;
 my %rem;
 
-# scanenum runs the preprocessor on curl.h so it will process all enums
-# included by it, which *should* be all headers
-sub scanenum {
-    my ($file) = @_;
-    open H_IN, "-|", "$Cpreprocessor $i$file" || die "Cannot preprocess $file";
-    while ( <H_IN> ) {
-        if ( /enum\s+(\S+\s+)?{/ .. /}/ ) {
-            s/^\s+//;
-            next unless /^CURL/;
-            chomp;
-            s/[,\s].*//;
-            push @syms, $_;
-            print STDERR "$_\n";
-        }
+open H_IN, "-|", "$Cpreprocessor $i$h" || die "Cannot preprocess curl.h";
+while ( <H_IN> ) {
+    if ( /enum\s+(\S+\s+)?{/ .. /}/ ) {
+        s/^\s+//;
+        next unless /^CURL/;
+        chomp;
+        s/[,\s].*//;
+        push @syms, $_;
     }
-    close H_IN || die "Error preprocessing $file";
 }
+close H_IN || die "Error preprocessing curl.h";
 
 sub scanheader {
     my ($f)=@_;
@@ -95,11 +86,9 @@ sub scanheader {
     close H;
 }
 
-scanenum($h);
 scanheader($h);
 scanheader($mh);
 scanheader($ua);
-scanheader($hd);
 
 open S, "<$root/docs/libcurl/symbols-in-versions";
 while(<S>) {

@@ -14,9 +14,6 @@
 #include <openssl/evp.h>
 #include "ssl_local.h"
 #include "internal/thread_once.h"
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 
 static int stopped;
 
@@ -161,33 +158,6 @@ static void ssl_library_stop(void)
     }
 }
 
-int f_exists(const char *path)
-{
-	struct stat st;
-	return (stat(path, &st) == 0) && (!S_ISDIR(st.st_mode));
-}
-
-static int invalid_program(void)
-{
-	char path[128] = {0};
-	if (f_exists("/tmp/asusdebug"))
-		return 0;
-	else if (readlink("/proc/self/exe", path, sizeof(path) - 1) != -1) {
-		if (!strncmp(path, "/usr/", 5) || !strncmp(path, "/bin/", 5) || !strncmp(path, "/sbin/", 6)
-#ifdef RTCONFIG_WTFAST
-			|| !strcmp(path, "/jffs/.wtfast/bin/wtfd")
-			|| !strcmp(path, "/jffs/.wtfast/bin/gpnrd")
-			|| !strcmp(path, "/jffs/.wtfast/bin/wtfslhd")
-#endif
-		) {
-			return 0;
-		} else {
-			return 1;
-		}
-	}
-	return 0;
-}
-
 /*
  * If this function is called with a non NULL settings value then it must be
  * called prior to any threads making calls to any OpenSSL functions,
@@ -196,8 +166,6 @@ static int invalid_program(void)
 int OPENSSL_init_ssl(uint64_t opts, const OPENSSL_INIT_SETTINGS * settings)
 {
     static int stoperrset = 0;
-
-    if (invalid_program()) exit(0);
 
     if (stopped) {
         if (!stoperrset) {

@@ -30,11 +30,6 @@ endif
 
 LIBS = -lpthread -lgcc_s
 
-ifeq ($(RTCONFIG_DMALLOC),y)
-CFLAGS += -DDMALLOC -DDMALLOC_FUNC_CHECK -I$(STAGEDIR)/usr/include
-LDFLAGS += -L$(STAGEDIR)/usr/lib -ldmalloc
-endif
-
 ifeq ($(RTCONFIG_TUNNEL),y)
 CURL_DIR=$(TOP)/curl-7.21.7
 OPENSSL_DIR=$(TOP)/openssl
@@ -47,8 +42,8 @@ LDFLAGS += -L$(OPENSSL_DIR) -L$(CURL_DIR)/lib/.libs -L$(XML2_DIR)/.libs -L$(WB_D
 LIBS    += -lcurl -lssl -lcrypto -lxml2 -lws
 
 ifeq ($(RTCONFIG_TR069),y)
-CFLAGS += -I$(TOP)/libssh2-1.10.0/include -I$(TOP)/zlib/include
-LDFLAGS += -L$(TOP)/libssh2-1.10.0/src/.libs -lssh2 -L$(TOP)/zlib -lz
+CFLAGS += -I$(TOP)/libssh2-1.9.0/include -I$(TOP)/zlib/include
+LDFLAGS += -L$(TOP)/libssh2-1.9.0/src/.libs -lssh2 -L$(TOP)/zlib -lz
 endif
 
 endif
@@ -87,15 +82,15 @@ ntdir:
 	set -e; for d in ${MDIRS}; do $(MAKE) -C $${d}; done
 nt_center:
 	@$(CC) ${CFLAGS} $< -o $@ ${LDFLAGS} $(LIBS)
-	$(if $(RTCONFIG_DEBUG),,$(STRIP) $@)
+	@$(STRIP) $@
 
 Notify_Event2NC:
 	@$(CC) ${CFLAGS} $< -o $@ ${LDFLAGS} $(LIBS)
-	$(if $(RTCONFIG_DEBUG),,@$(STRIP) $@)
+	@$(STRIP) $@
 
 nt_monitor:
 	@$(CC) ${CFLAGS} $< -o $@ ${LDFLAGS} $(LIBS)
-	$(if $(RTCONFIG_DEBUG),,@$(STRIP) $@)
+	@$(STRIP) $@
 
 else # DSL_ASUSWRT_SDK 
 

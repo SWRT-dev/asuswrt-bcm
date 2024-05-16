@@ -100,11 +100,11 @@ BLEND_FUNC(xor_16, sse2)
 BLEND_FUNC(xor_16, avx2)
 #endif /* ARCH_X86_64 */
 
-av_cold void ff_blend_init_x86(FilterParams *param, int depth)
+av_cold void ff_blend_init_x86(FilterParams *param, int is_16bit)
 {
     int cpu_flags = av_get_cpu_flags();
 
-    if (depth == 8) {
+    if (!is_16bit) {
         if (EXTERNAL_SSE2(cpu_flags) && param->opacity == 1) {
             switch (param->mode) {
             case BLEND_ADDITION:     param->blend = ff_blend_addition_sse2;     break;
@@ -156,7 +156,7 @@ av_cold void ff_blend_init_x86(FilterParams *param, int depth)
             case BLEND_NEGATION:     param->blend = ff_blend_negation_avx2;     break;
             }
         }
-    } else if (depth == 16) {
+    } else { /* is_16_bit */
 #if ARCH_X86_64
         if (EXTERNAL_SSE2(cpu_flags) && param->opacity == 1) {
             switch (param->mode) {

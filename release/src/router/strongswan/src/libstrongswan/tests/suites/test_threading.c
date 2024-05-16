@@ -1,8 +1,7 @@
 /*
  * Copyright (C) 2013-2018 Tobias Brunner
  * Copyright (C) 2008 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -1091,7 +1090,7 @@ END_TEST
 
 static void *cancel_run(void *data)
 {
-	/* default cancelability should be TRUE, so don't change it */
+	/* default cancellability should be TRUE, so don't change it */
 	while (TRUE)
 	{
 		sleep(10);
@@ -1119,22 +1118,17 @@ START_TEST(test_cancel)
 }
 END_TEST
 
-typedef struct {
-	semaphore_t *sem;
-	bool cancellable;
-} cancel_onoff_data_t;
-
-static void *cancel_onoff_run(void *data_in)
+static void *cancel_onoff_run(void *data)
 {
-	cancel_onoff_data_t *data = (cancel_onoff_data_t*)data_in;
+	bool *cancellable = (bool*)data;
 
 	thread_cancelability(FALSE);
-	data->cancellable = FALSE;
+	*cancellable = FALSE;
 
-	/* we should not get canceled here */
-	data->sem->wait(data->sem);
+	/* we should not get cancelled here */
+	usleep(50000);
 
-	data->cancellable = TRUE;
+	*cancellable = TRUE;
 	thread_cancelability(TRUE);
 
 	/* but here */
@@ -1148,37 +1142,28 @@ static void *cancel_onoff_run(void *data_in)
 START_TEST(test_cancel_onoff)
 {
 	thread_t *threads[THREADS];
-	cancel_onoff_data_t data[THREADS];
-	semaphore_t *sem;
+	bool cancellable[THREADS];
 	int i;
 
-	sem = semaphore_create(0);
 	for (i = 0; i < THREADS; i++)
 	{
-		data[i].sem = sem;
-		data[i].cancellable = TRUE;
-		threads[i] = thread_create(cancel_onoff_run, &data[i]);
-		/* wait until thread has cleared its cancelability */
-		while (data[i].cancellable)
+		cancellable[i] = TRUE;
+		threads[i] = thread_create(cancel_onoff_run, &cancellable[i]);
+	}
+	for (i = 0; i < THREADS; i++)
+	{
+		/* wait until thread has cleared its cancellability */
+		while (cancellable[i])
 		{
 			sched_yield();
 		}
-	}
-	for (i = 0; i < THREADS; i++)
-	{
 		threads[i]->cancel(threads[i]);
-	}
-	/* let all threads continue */
-	for (i = 0; i < THREADS; i++)
-	{
-		sem->post(sem);
 	}
 	for (i = 0; i < THREADS; i++)
 	{
 		threads[i]->join(threads[i]);
-		ck_assert(data[i].cancellable);
+		ck_assert(cancellable[i]);
 	}
-	sem->destroy(sem);
 }
 END_TEST
 
@@ -1187,7 +1172,7 @@ static void *cancel_point_run(void *data)
 	thread_cancelability(FALSE);
 	while (TRUE)
 	{
-		/* implicitly enables cancelability */
+		/* implicitly enables cancellability */
 		thread_cancellation_point();
 	}
 	return NULL;
@@ -1214,8 +1199,6 @@ START_TEST(test_cancel_point)
 }
 END_TEST
 
-/* not sure why AddressSanitizer complains here, pointer looks fine */
-ADDRESS_SANITIZER_EXCLUDE
 static void close_fd_ptr(void *fd)
 {
 	close(*(int*)fd);
@@ -1255,8 +1238,6 @@ static void cancellation_read()
 	}
 }
 
-/* the AddressSaniziter complains about the fd_set here for some reason */
-ADDRESS_SANITIZER_EXCLUDE
 static void cancellation_select()
 {
 	int sv[2];

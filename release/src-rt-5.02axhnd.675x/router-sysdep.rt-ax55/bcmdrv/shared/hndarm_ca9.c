@@ -1,7 +1,7 @@
 /*
  * BCM43XX Sonics SiliconBackplane ARM core routines
  *
- * Copyright (C) 2022, Broadcom. All Rights Reserved.
+ * Copyright (C) 2021, Broadcom. All Rights Reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -138,7 +138,7 @@ BCMINITFN(si_cpu_clock)(si_t *sih)
 #ifdef _CFE_	/* only compile tailed 53573 block in cfe, to avoid impact 4708 cfez size \
 	*/
 	if (PMUCTL_ENAB(sih))
-#endif
+#endif // endif
 	if (BCM53573_CHIP(CHIPID(sih->chip))) {
 		pmuregs_t *pmu;
 		uint origidx;
@@ -206,7 +206,7 @@ BCMINITFN(si_mem_clock)(si_t *sih)
 #ifdef _CFE_	/* only compile tailed 53573 block in cfe, to avoid impact 4708 cfez size \
 	*/
 	if (PMUCTL_ENAB(sih))
-#endif
+#endif // endif
 	if (BCM53573_CHIP(CHIPID(sih->chip))) {
 		pmuregs_t *pmu;
 		uint origidx;

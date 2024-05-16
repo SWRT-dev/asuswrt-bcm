@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2014 Tobias Brunner
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -141,93 +140,93 @@ START_TEST(test_create_rng)
 }
 END_TEST
 
-static key_exchange_t *ke_create(char *plugin)
+static diffie_hellman_t *dh_create(char *plugin)
 {
-	return (key_exchange_t*)plugin;
+	return (diffie_hellman_t*)plugin;
 }
 
-static key_exchange_t *ke_create_modp1024(key_exchange_method_t group, ...)
+static diffie_hellman_t *dh_create_modp1024(diffie_hellman_group_t group, ...)
 {
 	ck_assert(group == MODP_1024_BIT);
-	return ke_create("plugin1");
+	return dh_create("plugin1");
 }
 
-static key_exchange_t *ke_create_modp1024_second(key_exchange_method_t group,
-												 ...)
+static diffie_hellman_t *dh_create_modp1024_second(diffie_hellman_group_t group,
+												   ...)
 {
 	ck_assert(group == MODP_1024_BIT);
-	return ke_create("plugin2");
+	return dh_create("plugin2");
 }
 
-static key_exchange_t *ke_create_modp2048(key_exchange_method_t group, ...)
+static diffie_hellman_t *dh_create_modp2048(diffie_hellman_group_t group, ...)
 {
 	ck_assert(group == MODP_2048_BIT);
-	return ke_create("plugin1");
+	return dh_create("plugin1");
 }
 
-static key_exchange_t *ke_create_modp2048_second(key_exchange_method_t group,
-												 ...)
+static diffie_hellman_t *dh_create_modp2048_second(diffie_hellman_group_t group,
+												   ...)
 {
 	ck_assert(group == MODP_2048_BIT);
-	return ke_create("plugin2");
+	return dh_create("plugin2");
 }
 
 static struct {
 	char *exp1024;
 	char *exp2048;
 	struct {
-		key_exchange_method_t ke;
-		ke_constructor_t create;
+		diffie_hellman_group_t g;
+		dh_constructor_t create;
 		char *plugin;
 	} data[4];
-} ke_data[] = {
+} dh_data[] = {
 	{ NULL, NULL, {
-		{ KE_NONE, NULL, NULL }
+		{ MODP_NONE, NULL, NULL }
 	}},
 	{ "plugin1", NULL, {
-		{ MODP_1024_BIT, ke_create_modp1024, "plugin1" },
-		{ KE_NONE, NULL, NULL }
+		{ MODP_1024_BIT, dh_create_modp1024, "plugin1" },
+		{ MODP_NONE, NULL, NULL }
 	}},
 	{ "plugin1", NULL, {
-		{ MODP_1024_BIT, ke_create_modp1024, "plugin1" },
-		{ MODP_1024_BIT, ke_create_modp1024_second, "plugin2" },
-		{ KE_NONE, NULL, NULL }
+		{ MODP_1024_BIT, dh_create_modp1024, "plugin1" },
+		{ MODP_1024_BIT, dh_create_modp1024_second, "plugin2" },
+		{ MODP_NONE, NULL, NULL }
 	}},
 	{ "plugin2", NULL, {
-		{ MODP_1024_BIT, ke_create_modp1024_second, "plugin2" },
-		{ MODP_1024_BIT, ke_create_modp1024, "plugin1" },
-		{ KE_NONE, NULL, NULL }
+		{ MODP_1024_BIT, dh_create_modp1024_second, "plugin2" },
+		{ MODP_1024_BIT, dh_create_modp1024, "plugin1" },
+		{ MODP_NONE, NULL, NULL }
 	}},
 	{ "plugin1", "plugin1", {
-		{ MODP_1024_BIT, ke_create_modp1024, "plugin1" },
-		{ MODP_2048_BIT, ke_create_modp2048, "plugin1" },
-		{ KE_NONE, NULL }
+		{ MODP_1024_BIT, dh_create_modp1024, "plugin1" },
+		{ MODP_2048_BIT, dh_create_modp2048, "plugin1" },
+		{ MODP_NONE, NULL }
 	}},
 	{ "plugin1", "plugin1", {
-		{ MODP_2048_BIT, ke_create_modp2048, "plugin1" },
-		{ MODP_1024_BIT, ke_create_modp1024, "plugin1" },
-		{ KE_NONE, NULL }
+		{ MODP_2048_BIT, dh_create_modp2048, "plugin1" },
+		{ MODP_1024_BIT, dh_create_modp1024, "plugin1" },
+		{ MODP_NONE, NULL }
 	}},
 	{ "plugin1", "plugin1", {
-		{ MODP_2048_BIT, ke_create_modp2048, "plugin1" },
-		{ MODP_2048_BIT, ke_create_modp2048_second, "plugin2" },
-		{ MODP_1024_BIT, ke_create_modp1024, "plugin1" },
-		{ KE_NONE, NULL }
+		{ MODP_2048_BIT, dh_create_modp2048, "plugin1" },
+		{ MODP_2048_BIT, dh_create_modp2048_second, "plugin2" },
+		{ MODP_1024_BIT, dh_create_modp1024, "plugin1" },
+		{ MODP_NONE, NULL }
 	}},
 	{ "plugin1", "plugin2", {
-		{ MODP_2048_BIT, ke_create_modp2048_second, "plugin2" },
-		{ MODP_2048_BIT, ke_create_modp2048, "plugin1" },
-		{ MODP_1024_BIT, ke_create_modp1024, "plugin1" },
-		{ KE_NONE, NULL }
+		{ MODP_2048_BIT, dh_create_modp2048_second, "plugin2" },
+		{ MODP_2048_BIT, dh_create_modp2048, "plugin1" },
+		{ MODP_1024_BIT, dh_create_modp1024, "plugin1" },
+		{ MODP_NONE, NULL }
 	}},
 };
 
-static void verify_ke(crypto_factory_t *factory, key_exchange_method_t request,
+static void verify_dh(crypto_factory_t *factory, diffie_hellman_group_t request,
 					  char *expected)
 {
 	char *plugin;
 
-	plugin = (char*)factory->create_ke(factory, request);
+	plugin = (char*)factory->create_dh(factory, request);
 	if (!expected)
 	{
 		ck_assert(!plugin);
@@ -239,56 +238,56 @@ static void verify_ke(crypto_factory_t *factory, key_exchange_method_t request,
 	}
 }
 
-START_TEST(test_create_ke)
+START_TEST(test_create_dh)
 {
 	enumerator_t *enumerator;
 	crypto_factory_t *factory;
-	key_exchange_method_t ke;
+	diffie_hellman_group_t group;
 	char *plugin;
 	int i, len = 0;
 
 
 	factory = crypto_factory_create();
-	for (i = 0; ke_data[_i].data[i].ke != KE_NONE; i++)
+	for (i = 0; dh_data[_i].data[i].g != MODP_NONE; i++)
 	{
-		ck_assert(factory->add_ke(factory, ke_data[_i].data[i].ke,
-								  ke_data[_i].data[i].plugin,
-								  ke_data[_i].data[i].create));
+		ck_assert(factory->add_dh(factory, dh_data[_i].data[i].g,
+								  dh_data[_i].data[i].plugin,
+								  dh_data[_i].data[i].create));
 	}
-	verify_ke(factory, MODP_1024_BIT, ke_data[_i].exp1024);
-	verify_ke(factory, MODP_2048_BIT, ke_data[_i].exp2048);
+	verify_dh(factory, MODP_1024_BIT, dh_data[_i].exp1024);
+	verify_dh(factory, MODP_2048_BIT, dh_data[_i].exp2048);
 
-	len = countof(ke_data[_i].data);
-	enumerator = factory->create_ke_enumerator(factory);
-	for (i = 0; enumerator->enumerate(enumerator, &ke, &plugin) && i < len;)
+	len = countof(dh_data[_i].data);
+	enumerator = factory->create_dh_enumerator(factory);
+	for (i = 0; enumerator->enumerate(enumerator, &group, &plugin) && i < len;)
 	{
-		ck_assert_int_eq(ke_data[_i].data[i].ke, ke);
-		while (ke_data[_i].data[i].ke == ke)
-		{	/* skip other entries of the same method */
+		ck_assert_int_eq(dh_data[_i].data[i].g, group);
+		while (dh_data[_i].data[i].g == group)
+		{	/* skip other entries by the same group */
 			i++;
 		}
-		switch (ke)
+		switch (group)
 		{
 			case MODP_1024_BIT:
-				ck_assert(ke_data[_i].exp1024);
-				ck_assert_str_eq(ke_data[_i].exp1024, plugin);
+				ck_assert(dh_data[_i].exp1024);
+				ck_assert_str_eq(dh_data[_i].exp1024, plugin);
 				break;
 			case MODP_2048_BIT:
-				ck_assert(ke_data[_i].exp2048);
-				ck_assert_str_eq(ke_data[_i].exp2048, plugin);
+				ck_assert(dh_data[_i].exp2048);
+				ck_assert_str_eq(dh_data[_i].exp2048, plugin);
 				break;
 			default:
-				fail("unexpected key exchange method");
+				fail("unexpected DH group");
 				break;
 		}
 	}
 	ck_assert(!enumerator->enumerate(enumerator));
-	ck_assert_int_eq(ke_data[_i].data[i].ke, KE_NONE);
+	ck_assert_int_eq(dh_data[_i].data[i].g, MODP_NONE);
 	enumerator->destroy(enumerator);
 
-	for (i = 0; ke_data[_i].data[i].ke != KE_NONE; i++)
+	for (i = 0; dh_data[_i].data[i].g != MODP_NONE; i++)
 	{
-		factory->remove_ke(factory, ke_data[_i].data[i].create);
+		factory->remove_dh(factory, dh_data[_i].data[i].create);
 	}
 	factory->destroy(factory);
 }
@@ -305,8 +304,8 @@ Suite *crypto_factory_suite_create()
 	tcase_add_loop_test(tc, test_create_rng, 0, countof(rng_data));
 	suite_add_tcase(s, tc);
 
-	tc = tcase_create("create_ke");
-	tcase_add_loop_test(tc, test_create_ke, 0, countof(ke_data));
+	tc = tcase_create("create_dh");
+	tcase_add_loop_test(tc, test_create_dh, 0, countof(dh_data));
 	suite_add_tcase(s, tc);
 
 	return s;

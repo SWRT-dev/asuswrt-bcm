@@ -1,6 +1,7 @@
 /*
  * Copyright (C) 2018 Tobias Brunner
  * Copyright (C) 2018 Andreas Steffen
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * Copyright (C) 2018 René Korthaus
  * Rohde & Schwarz Cybersecurity GmbH
@@ -158,10 +159,9 @@ METHOD(private_key_t, sign, bool,
 
 METHOD(private_key_t, decrypt, bool,
 	private_botan_rsa_private_key_t *this, encryption_scheme_t scheme,
-	void *params, chunk_t crypto, chunk_t *plain)
+	chunk_t crypto, chunk_t *plain)
 {
 	botan_pk_op_decrypt_t decrypt_op;
-	chunk_t label = chunk_empty;
 	const char *padding;
 
 	switch (scheme)
@@ -190,16 +190,6 @@ METHOD(private_key_t, decrypt, bool,
 			return FALSE;
 	}
 
-	if (scheme != ENCRYPT_RSA_PKCS1 && params != NULL)
-	{
-		label = *(chunk_t *)params;
-		if (label.len > 0)
-		{
-			DBG1(DBG_LIB, "RSA OAEP decryption with a label not supported");
-			return FALSE;
-		}
-	}
-
 	if (botan_pk_op_decrypt_create(&decrypt_op, this->key, padding, 0))
 	{
 		return FALSE;
@@ -216,7 +206,6 @@ METHOD(private_key_t, decrypt, bool,
 	if (botan_pk_op_decrypt(decrypt_op, plain->ptr, &plain->len, crypto.ptr,
 							crypto.len))
 	{
-		DBG1(DBG_LIB, "RSA decryption failed");
 		chunk_free(plain);
 		botan_pk_op_decrypt_destroy(decrypt_op);
 		return FALSE;
@@ -236,7 +225,7 @@ METHOD(private_key_t, get_keysize, int,
 		return 0;
 	}
 
-	if (botan_privkey_get_field(n, this->key, "n") ||
+	if (botan_privkey_rsa_get_n(n, this->key) ||
 		botan_mp_num_bits(n, &bits))
 	{
 		botan_mp_destroy(n);
@@ -357,7 +346,6 @@ botan_rsa_private_key_t *botan_rsa_private_key_gen(key_type_t type,
 {
 	private_botan_rsa_private_key_t *this;
 	botan_rng_t rng;
-	char buf[BUF_LEN];
 	u_int key_size = 0;
 
 	while (TRUE)
@@ -380,16 +368,14 @@ botan_rsa_private_key_t *botan_rsa_private_key_gen(key_type_t type,
 		return NULL;
 	}
 
-	if (!botan_get_rng(&rng, RNG_TRUE))
+	if (botan_rng_init(&rng, "system"))
 	{
 		return NULL;
 	}
 
 	this = create_empty();
 
-	snprintf(buf, sizeof(buf), "%u", key_size);
-
-	if (botan_privkey_create(&this->key, "RSA", buf, rng))
+	if (botan_privkey_create_rsa(&this->key, rng, key_size))
 	{
 		botan_rng_destroy(rng);
 		free(this);
@@ -426,7 +412,7 @@ static bool calculate_pq(botan_mp_t *n, botan_mp_t *e, botan_mp_t *d,
 	}
 
 	/* k must be even */
-	if (botan_mp_get_bit(k, 0) != 0)
+	if (!botan_mp_is_even(k))
 	{
 		goto error;
 	}
@@ -438,7 +424,7 @@ static bool calculate_pq(botan_mp_t *n, botan_mp_t *e, botan_mp_t *d,
 		goto error;
 	}
 
-	for (t = 0; botan_mp_get_bit(r, 0) != 1; t++)
+	for (t = 0; !botan_mp_is_odd(r); t++)
 	{
 		if (botan_mp_rshift(r, r, 1))
 		{
@@ -459,7 +445,7 @@ static bool calculate_pq(botan_mp_t *n, botan_mp_t *e, botan_mp_t *d,
 		goto error;
 	}
 
-	if (!botan_get_rng(&rng, RNG_STRONG))
+	if (botan_rng_init(&rng, "user"))
 	{
 		goto error;
 	}

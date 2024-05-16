@@ -1,4 +1,4 @@
-/* dnsmasq is Copyright (c) 2000-2022 Simon Kelley
+/* dnsmasq is Copyright (c) 2000-2021 Simon Kelley
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -118,12 +118,14 @@ static int read_leases(time_t now, FILE *leasestream)
 
 	ei = atol(daemon->dhcp_buff3);
 
-#ifdef HAVE_BROKEN_RTC
+#if defined(HAVE_BROKEN_RTC) || defined(HAVE_LEASEFILE_EXPIRE)
 	if (ei != 0)
 	  lease->expires = (time_t)ei + now;
 	else
 	  lease->expires = (time_t)0;
+#ifdef HAVE_BROKEN_RTC
 	lease->length = ei;
+#endif
 #else
 	/* strictly time_t is opaque, but this hack should work on all sane systems,
 	   even when sizeof(time_t) == 8 */
@@ -248,6 +250,22 @@ static void ourprintf(int *errp, char *format, ...)
   va_end(ap);
 }
 
+#ifdef HAVE_LEASEFILE_EXPIRE
+void lease_flush_file(time_t now)
+{
+  static time_t flush_time = 0;
+
+  if (difftime(flush_time, now) < 0)
+    file_dirty = 1;
+
+  lease_prune(NULL, now);
+  lease_update_file(now);
+
+  if (file_dirty == 0)
+    flush_time = now;
+}
+#endif
+
 void lease_update_file(time_t now)
 {
   struct dhcp_lease *lease;
@@ -269,7 +287,15 @@ void lease_update_file(time_t now)
 	    continue;
 #endif
 
+#ifdef HAVE_LEASEFILE_EXPIRE
+	  ourprintf(&err, "%u ",
 #ifdef HAVE_BROKEN_RTC
+		    (lease->length == 0) ? 0 :
+#else
+		    (lease->expires == 0) ? 0 :
+#endif
+		    (unsigned int)difftime(lease->expires, now));
+#elif defined(HAVE_BROKEN_RTC)
 	  ourprintf(&err, "%u ", lease->length);
 #else
 	  ourprintf(&err, "%lu ", (unsigned long)lease->expires);
@@ -313,7 +339,15 @@ void lease_update_file(time_t now)
 	      if (!(lease->flags & (LEASE_TA | LEASE_NA)))
 		continue;
 
+#ifdef HAVE_LEASEFILE_EXPIRE
+	      ourprintf(&err, "%u ",
 #ifdef HAVE_BROKEN_RTC
+			(lease->length == 0) ? 0 :
+#else
+			(lease->expires == 0) ? 0 :
+#endif
+			(unsigned int)difftime(lease->expires, now));
+#elif defined(HAVE_BROKEN_RTC)
 	      ourprintf(&err, "%u ", lease->length);
 #else
 	      ourprintf(&err, "%lu ", (unsigned long)lease->expires);
@@ -378,7 +412,7 @@ void lease_update_file(time_t now)
       if (next_event == 0 || difftime(next_event, LEASE_RETRY + now) > 0.0)
 	next_event = LEASE_RETRY + now;
       
-      my_syslog(MS_DHCP | LOG_ERR, _("failed to write %s: %s (retry in %u s)"), 
+      my_syslog(MS_DHCP | LOG_ERR, _("failed to write %s: %s (retry in %us)"), 
 		daemon->lease_file, strerror(err),
 		(unsigned int)difftime(next_event, now));
     }
@@ -606,6 +640,26 @@ struct dhcp_lease *lease_find_by_client(unsigned char *hwaddr, int hw_len, int h
 #endif   
       if ((!lease->clid || !clid) && 
 	  hw_len != 0 && 
+	  lease->hwaddr_len == hw_len &&
+	  lease->hwaddr_type == hw_type &&
+	  memcmp(hwaddr, lease->hwaddr, hw_len) == 0)
+	return lease;
+    }
+
+  return NULL;
+}
+
+struct dhcp_lease *lease_find_by_hwaddr(unsigned char *hwaddr, int hw_len, int hw_type)
+{
+  struct dhcp_lease *lease;
+
+  for (lease = leases; lease; lease = lease->next)
+    {
+#ifdef HAVE_DHCP6
+      if (lease->flags & (LEASE_TA | LEASE_NA))
+	continue;
+#endif
+      if (hw_len != 0 &&
 	  lease->hwaddr_len == hw_len &&
 	  lease->hwaddr_type == hw_type &&
 	  memcmp(hwaddr, lease->hwaddr, hw_len) == 0)
@@ -952,7 +1006,7 @@ void lease_set_hostname(struct dhcp_lease *lease, const char *name, int auth, ch
   char *new_name = NULL, *new_fqdn = NULL;
 
   if (config_domain && (!domain || !hostname_isequal(domain, config_domain)))
-    my_syslog(MS_DHCP | LOG_WARNING, _("Ignoring domain %s for DHCP host name %s"), config_domain, name);
+    my_syslog(MS_DHCP | LOG_INFO, _("Ignoring domain %s for DHCP host name %s"), config_domain, name);
   
   if (lease->hostname && name && hostname_isequal(lease->hostname, name))
     {
@@ -1021,7 +1075,6 @@ void lease_set_hostname(struct dhcp_lease *lease, const char *name, int auth, ch
 	    }
 	
 	  kill_name(lease_tmp);
-	  lease_tmp->flags |= LEASE_CHANGED; /* run script on change */
 	  break;
 	}
     }
@@ -1180,11 +1233,17 @@ void lease_add_extradata(struct dhcp_lease *lease, unsigned char *data, unsigned
   if ((lease->extradata_size - lease->extradata_len) < (len + 1))
     {
       size_t newsz = lease->extradata_len + len + 100;
-      unsigned char *new = whine_realloc(lease->extradata, newsz);
+      unsigned char *new = whine_malloc(newsz);
   
       if (!new)
 	return;
       
+      if (lease->extradata)
+	{
+	  memcpy(new, lease->extradata, lease->extradata_len);
+	  free(lease->extradata);
+	}
+
       lease->extradata = new;
       lease->extradata_size = newsz;
     }
@@ -1196,4 +1255,8 @@ void lease_add_extradata(struct dhcp_lease *lease, unsigned char *data, unsigned
 }
 #endif
 
-#endif /* HAVE_DHCP */
+#endif
+	  
+
+      
+

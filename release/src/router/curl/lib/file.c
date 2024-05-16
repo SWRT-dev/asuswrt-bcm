@@ -5,7 +5,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2022, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2021, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -17,8 +17,6 @@
  *
  * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
  * KIND, either express or implied.
- *
- * SPDX-License-Identifier: curl
  *
  ***************************************************************************/
 
@@ -149,7 +147,7 @@ static CURLcode file_connect(struct Curl_easy *data, bool *done)
 #endif
   size_t real_path_len;
 
-  CURLcode result = Curl_urldecode(data->state.up.path, 0, &real_path,
+  CURLcode result = Curl_urldecode(data, data->state.up.path, 0, &real_path,
                                    &real_path_len, REJECT_ZERO);
   if(result)
     return result;
@@ -202,7 +200,7 @@ static CURLcode file_connect(struct Curl_easy *data, bool *done)
   file->freepath = real_path; /* free this when done */
 
   file->fd = fd;
-  if(!data->state.upload && (fd == -1)) {
+  if(!data->set.upload && (fd == -1)) {
     failf(data, "Couldn't open file %s", data->state.up.path);
     file_done(data, CURLE_FILE_COULDNT_READ_FILE, FALSE);
     return CURLE_FILE_COULDNT_READ_FILE;
@@ -384,7 +382,7 @@ static CURLcode file_do(struct Curl_easy *data, bool *done)
 
   Curl_pgrsStartNow(data);
 
-  if(data->state.upload)
+  if(data->set.upload)
     return file_upload(data);
 
   file = data->req.p.file;

@@ -23,8 +23,6 @@
 #include "libavutil/imgutils.h"
 #include "libavutil/pixdesc.h"
 #include "libavutil/opt.h"
-#include "libavutil/video_enc_params.h"
-
 #include "avfilter.h"
 #include "formats.h"
 #include "internal.h"
@@ -37,8 +35,6 @@ typedef struct QPContext {
     int h, qstride;
     int evaluate_per_mb;
 } QPContext;
-
-static const char *const var_names[] = { "known", "qp", "x", "y", "w", "h", NULL };
 
 #define OFFSET(x) offsetof(QPContext, x)
 #define FLAGS AV_OPT_FLAG_FILTERING_PARAM|AV_OPT_FLAG_VIDEO_PARAM
@@ -57,6 +53,7 @@ static int config_input(AVFilterLink *inlink)
     int i;
     int ret;
     AVExpr *e = NULL;
+    static const char *var_names[] = { "known", "qp", "x", "y", "w", "h", NULL };
 
     if (!s->qp_expr_str)
         return 0;
@@ -92,59 +89,39 @@ static int filter_frame(AVFilterLink *inlink, AVFrame *in)
     AVFilterContext *ctx = inlink->dst;
     AVFilterLink *outlink = ctx->outputs[0];
     QPContext *s = ctx->priv;
+    AVBufferRef *out_qp_table_buf;
     AVFrame *out = NULL;
-    int ret;
-
-    AVFrameSideData *sd_in;
-    AVVideoEncParams *par_in = NULL;
-    int8_t in_qp_global = 0;
-
-    AVVideoEncParams *par_out;
+    const int8_t *in_qp_table;
+    int type, stride, ret;
 
     if (!s->qp_expr_str || ctx->is_disabled)
         return ff_filter_frame(outlink, in);
 
-    sd_in = av_frame_get_side_data(in, AV_FRAME_DATA_VIDEO_ENC_PARAMS);
-    if (sd_in && sd_in->size >= sizeof(AVVideoEncParams)) {
-        par_in = (AVVideoEncParams*)sd_in->data;
-
-        // we accept the input QP table only if it is of the MPEG2 type
-        // and contains either no blocks at all or 16x16 macroblocks
-        if (par_in->type == AV_VIDEO_ENC_PARAMS_MPEG2 &&
-            (par_in->nb_blocks == s->h * s->qstride || !par_in->nb_blocks)) {
-            in_qp_global = par_in->qp;
-            if (!par_in->nb_blocks)
-                par_in = NULL;
-        } else
-            par_in = NULL;
+    out_qp_table_buf = av_buffer_alloc(s->h * s->qstride);
+    if (!out_qp_table_buf) {
+        ret = AVERROR(ENOMEM);
+        goto fail;
     }
 
     out = av_frame_clone(in);
     if (!out) {
+        av_buffer_unref(&out_qp_table_buf);
         ret = AVERROR(ENOMEM);
         goto fail;
     }
 
-    par_out = av_video_enc_params_create_side_data(out, AV_VIDEO_ENC_PARAMS_MPEG2,
-                                                   (s->evaluate_per_mb || sd_in) ?
-                                                   s->h * s->qstride : 0);
-    if (!par_out) {
-        ret = AVERROR(ENOMEM);
-        goto fail;
-    }
+    in_qp_table = av_frame_get_qp_table(in, &stride, &type);
+    av_frame_set_qp_table(out, out_qp_table_buf, s->qstride, type);
 
-#define BLOCK_QP_DELTA(block_idx) \
-    (par_in ? av_video_enc_params_block(par_in, block_idx)->delta_qp : 0)
 
     if (s->evaluate_per_mb) {
         int y, x;
 
         for (y = 0; y < s->h; y++)
             for (x = 0; x < s->qstride; x++) {
-                unsigned int block_idx = y * s->qstride + x;
-                AVVideoBlockParams *b = av_video_enc_params_block(par_out, block_idx);
-                int qp = sd_in ? in_qp_global + BLOCK_QP_DELTA(block_idx) : NAN;
-                double var_values[] = { !!sd_in, qp, x, y, s->qstride, s->h, 0};
+                int qp = in_qp_table ? in_qp_table[x + stride * y] : NAN;
+                double var_values[] = { !!in_qp_table, qp, x, y, s->qstride, s->h, 0};
+                static const char *var_names[] = { "known", "qp", "x", "y", "w", "h", NULL };
                 double temp_val;
 
                 ret = av_expr_parse_and_eval(&temp_val, s->qp_expr_str,
@@ -152,19 +129,21 @@ static int filter_frame(AVFilterLink *inlink, AVFrame *in)
                                             NULL, NULL, NULL, NULL, 0, 0, ctx);
                 if (ret < 0)
                     goto fail;
-                b->delta_qp = lrintf(temp_val);
+                out_qp_table_buf->data[x + s->qstride * y] = lrintf(temp_val);
             }
-    } else if (sd_in) {
+    } else if (in_qp_table) {
         int y, x;
 
         for (y = 0; y < s->h; y++)
-            for (x = 0; x < s->qstride; x++) {
-                unsigned int block_idx = y * s->qstride + x;
-                AVVideoBlockParams *b = av_video_enc_params_block(par_out, block_idx);
-                b->delta_qp = s->lut[129 + (int8_t)(in_qp_global + BLOCK_QP_DELTA(block_idx))];
-            }
+            for (x = 0; x < s->qstride; x++)
+                out_qp_table_buf->data[x + s->qstride * y] = s->lut[129 +
+                    ((int8_t)in_qp_table[x + stride * y])];
     } else {
-        par_out->qp = s->lut[0];
+        int y, x, qp = s->lut[0];
+
+        for (y = 0; y < s->h; y++)
+            for (x = 0; x < s->qstride; x++)
+                out_qp_table_buf->data[x + s->qstride * y] = qp;
     }
 
     ret = ff_filter_frame(outlink, out);

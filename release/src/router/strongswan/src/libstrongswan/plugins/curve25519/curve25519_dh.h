@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2014 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * Copyright (C) 2014 revosec AG
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -32,9 +31,9 @@ typedef struct curve25519_dh_t curve25519_dh_t;
 struct curve25519_dh_t {
 
 	/**
-	 * Implements key_exchange_t interface.
+	 * Implements diffie_hellman_t interface.
 	 */
-	key_exchange_t ke;
+	diffie_hellman_t dh;
 };
 
 /**
@@ -43,6 +42,6 @@ struct curve25519_dh_t {
  * @param group			DH group, CURVE_25519
  * @return				curve25519_dh_t object, NULL on error
  */
-curve25519_dh_t *curve25519_dh_create(key_exchange_method_t group);
+curve25519_dh_t *curve25519_dh_create(diffie_hellman_group_t group);
 
 #endif /** CURVE25519_DH_H_ @}*/

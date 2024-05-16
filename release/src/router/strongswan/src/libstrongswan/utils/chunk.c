@@ -1,9 +1,8 @@
 /*
- * Copyright (C) 2008-2019 Tobias Brunner
+ * Copyright (C) 2008-2013 Tobias Brunner
  * Copyright (C) 2005-2006 Martin Willi
  * Copyright (C) 2005 Jan Hutter
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -397,9 +396,9 @@ chunk_t *chunk_map(char *path, bool wr)
 }
 
 /**
- * Unmap the given chunk and optionally clear it
+ * See header.
  */
-static bool chunk_unmap_internal(chunk_t *public, bool clear)
+bool chunk_unmap(chunk_t *public)
 {
 	mmaped_chunk_t *chunk;
 	bool ret = FALSE;
@@ -409,10 +408,6 @@ static bool chunk_unmap_internal(chunk_t *public, bool clear)
 #ifdef HAVE_MMAP
 	if (chunk->map && chunk->map != MAP_FAILED)
 	{
-		if (!chunk->wr && clear)
-		{
-			memwipe(chunk->map, chunk->len);
-		}
 		ret = munmap(chunk->map, chunk->len) == 0;
 		tmp = errno;
 	}
@@ -441,10 +436,6 @@ static bool chunk_unmap_internal(chunk_t *public, bool clear)
 	{
 		ret = TRUE;
 	}
-	if (clear)
-	{
-		memwipe(chunk->map, chunk->len);
-	}
 	free(chunk->map);
 #endif /* !HAVE_MMAP */
 	close(chunk->fd);
@@ -452,22 +443,6 @@ static bool chunk_unmap_internal(chunk_t *public, bool clear)
 	errno = tmp;
 
 	return ret;
-}
-
-/*
- * Described in header
- */
-bool chunk_unmap(chunk_t *public)
-{
-	return chunk_unmap_internal(public, FALSE);
-}
-
-/*
- * Described in header
- */
-bool chunk_unmap_clear(chunk_t *public)
-{
-	return chunk_unmap_internal(public, TRUE);
 }
 
 /** hex conversion digits */
@@ -777,26 +752,6 @@ bool chunk_increment(chunk_t chunk)
 	return TRUE;
 }
 
-/*
- * Described in header
- */
-chunk_t chunk_copy_pad(chunk_t dst, chunk_t src, u_char chr)
-{
-	if (dst.ptr)
-	{
-		if (dst.len > src.len)
-		{
-			memcpy(dst.ptr + dst.len - src.len, src.ptr, src.len);
-			memset(dst.ptr, chr, dst.len - src.len);
-		}
-		else
-		{
-			memcpy(dst.ptr, src.ptr + src.len - dst.len, dst.len);
-		}
-	}
-	return dst;
-}
-
 /**
  * Remove non-printable characters from a chunk.
  */
@@ -955,7 +910,7 @@ uint64_t chunk_mac(chunk_t chunk, u_char *key)
 /**
  * Secret key allocated randomly with chunk_hash_seed().
  */
-static u_char hash_key[16] = {};
+static u_char key[16] = {};
 
 /**
  * Static key used in case predictable hash values are required.
@@ -982,9 +937,9 @@ void chunk_hash_seed()
 	fd = open("/dev/urandom", O_RDONLY);
 	if (fd >= 0)
 	{
-		while (done < sizeof(hash_key))
+		while (done < sizeof(key))
 		{
-			len = read(fd, hash_key + done, sizeof(hash_key) - done);
+			len = read(fd, key + done, sizeof(key) - done);
 			if (len < 0)
 			{
 				break;
@@ -994,12 +949,12 @@ void chunk_hash_seed()
 		close(fd);
 	}
 	/* on error we use random() to generate the key (better than nothing) */
-	if (done < sizeof(hash_key))
+	if (done < sizeof(key))
 	{
 		srandom(time(NULL) + getpid());
-		for (; done < sizeof(hash_key); done++)
+		for (; done < sizeof(key); done++)
 		{
-			hash_key[done] = (u_char)random();
+			key[done] = (u_char)random();
 		}
 	}
 	seeded = TRUE;
@@ -1011,7 +966,7 @@ void chunk_hash_seed()
 uint32_t chunk_hash_inc(chunk_t chunk, uint32_t hash)
 {
 	/* we could use a mac of the previous hash, but this is faster */
-	return chunk_mac_inc(chunk, hash_key, ((uint64_t)hash) << 32 | hash);
+	return chunk_mac_inc(chunk, key, ((uint64_t)hash) << 32 | hash);
 }
 
 /**
@@ -1019,7 +974,7 @@ uint32_t chunk_hash_inc(chunk_t chunk, uint32_t hash)
  */
 uint32_t chunk_hash(chunk_t chunk)
 {
-	return chunk_mac(chunk, hash_key);
+	return chunk_mac(chunk, key);
 }
 
 /**

@@ -1208,7 +1208,7 @@ int wl_wlif_unblock_mac(char *ifname, struct ether_addr addr, int flag)
 
 	return TRUE;
 }
-#if 0
+
 /* get the Max NSS */
 int
 wl_wlif_get_max_nss(wl_bss_info_t *bi)
@@ -1259,7 +1259,6 @@ wl_wlif_get_max_nss(wl_bss_info_t *bi)
 
 	return nss;
 }
-#endif
 #endif
 
 #if defined(CONFIG_HOSTAPD) && defined(BCA_HNDROUTER)
@@ -1493,23 +1492,6 @@ wl_wlif_save_wpa_settings(char *type, char *val, wlif_wps_nw_creds_t *creds)
 			creds->encr |= WLIF_WPA_ENCR_AES;
 		}
 	}
-}
-
-/* convert ascii string to hex string */
-void wl_ascii_str_to_hex_str(char *ascii_str, uint16 ascii_len, char *hex_str, uint16 hex_len)
-{
-	int i = 0;
-
-	if (!ascii_str || !hex_str || !ascii_len || !hex_len) {
-		return;
-	}
-
-	while (ascii_str[i] != '\0' && i < (ascii_len - 1) && (i * 2) < (hex_len - 1)) {
-		snprintf((hex_str + i*2), 3,"%02X", ascii_str[i]);
-		i = i + 1;
-	}
-	hex_str[hex_len - 1] = '\0';
-	return;
 }
 
 /* Apply the network credentials to radio interface received from the wps session */

@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2009 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -113,7 +112,7 @@ bool pgp_read_mpi(chunk_t *blob, chunk_t *mpi);
  *
  * @param blob		blob to read from, gets advanced
  * @param bytes		number of bytes the scalar uses for encoding
- * @param scalar	resulting scalar
+ * @param scalar	resultin scalar
  * @return			TRUE if scalar parsed successfully
  */
 bool pgp_read_scalar(chunk_t *blob, size_t bytes, uint32_t *scalar);

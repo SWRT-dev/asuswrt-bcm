@@ -25,6 +25,5 @@ OBJS-$(CONFIG_SHARED)        += log2_tab.o
 SLIBOBJS-$(HAVE_GNU_WINDRES) += swscaleres.o
 
 TESTPROGS = colorspace                                                  \
-            floatimg_cmp                                                \
             pixdesc_query                                               \
             swscale                                                     \

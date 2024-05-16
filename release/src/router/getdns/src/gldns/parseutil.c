@@ -14,8 +14,12 @@
 
 #include "config.h"
 #include "gldns/parseutil.h"
+#ifdef HAVE_SYS_TIME_H
 #include <sys/time.h>
+#endif
+#ifdef HAVE_TIME_H
 #include <time.h>
+#endif
 #include <ctype.h>
 
 gldns_lookup_table *
@@ -167,7 +171,7 @@ gldns_gmtime64_r(int64_t clock, struct tm *result)
 static int64_t
 gldns_serial_arithmetics_time(int32_t time, time_t now)
 {
-	int32_t offset = (int32_t)((uint32_t) time - (uint32_t) now);
+	int32_t offset = time - (int32_t) now;
 	return (int64_t) now + offset;
 }
 
@@ -209,13 +213,11 @@ gldns_hexdigit_to_int(char ch)
 }
 
 uint32_t
-gldns_str2period(const char *nptr, const char **endptr, int* overflow)
+gldns_str2period(const char *nptr, const char **endptr)
 {
 	int sign = 0;
 	uint32_t i = 0;
 	uint32_t seconds = 0;
-	const uint32_t maxint = 0xffffffff;
-	*overflow = 0;
 
 	for(*endptr = nptr; **endptr; (*endptr)++) {
 		switch (**endptr) {
@@ -238,46 +240,26 @@ gldns_str2period(const char *nptr, const char **endptr, int* overflow)
 				break;
 			case 's':
 			case 'S':
-				if(seconds > maxint-i) {
-					*overflow = 1;
-					return 0;
-				}
 				seconds += i;
 				i = 0;
 				break;
 			case 'm':
 			case 'M':
-				if(i > maxint/60 || seconds > maxint-(i*60)) {
-					*overflow = 1;
-					return 0;
-				}
 				seconds += i * 60;
 				i = 0;
 				break;
 			case 'h':
 			case 'H':
-				if(i > maxint/(60*60) || seconds > maxint-(i*60*60)) {
-					*overflow = 1;
-					return 0;
-				}
 				seconds += i * 60 * 60;
 				i = 0;
 				break;
 			case 'd':
 			case 'D':
-				if(i > maxint/(60*60*24) || seconds > maxint-(i*60*60*24)) {
-					*overflow = 1;
-					return 0;
-				}
 				seconds += i * 60 * 60 * 24;
 				i = 0;
 				break;
 			case 'w':
 			case 'W':
-				if(i > maxint/(60*60*24*7) || seconds > maxint-(i*60*60*24*7)) {
-					*overflow = 1;
-					return 0;
-				}
 				seconds += i * 60 * 60 * 24 * 7;
 				i = 0;
 				break;
@@ -291,26 +273,14 @@ gldns_str2period(const char *nptr, const char **endptr, int* overflow)
 			case '7':
 			case '8':
 			case '9':
-				if(i > maxint/10 || i*10 > maxint - (**endptr - '0')) {
-					*overflow = 1;
-					return 0;
-				}
 				i *= 10;
 				i += (**endptr - '0');
 				break;
 			default:
-				if(seconds > maxint-i) {
-					*overflow = 1;
-					return 0;
-				}
 				seconds += i;
 				/* disregard signedness */
 				return seconds;
 		}
-	}
-	if(seconds > maxint-i) {
-		*overflow = 1;
-		return 0;
 	}
 	seconds += i;
 	/* disregard signedness */
@@ -653,18 +623,13 @@ size_t gldns_b64_ntop_calculate_size(size_t srcsize)
  *
  * This routine does not insert spaces or linebreaks after 76 characters.
  */
-static int gldns_b64_ntop_base(uint8_t const *src, size_t srclength,
-	char *target, size_t targsize, int base64url, int padding)
+int gldns_b64_ntop(uint8_t const *src, size_t srclength,
+	char *target, size_t targsize)
 {
-	char* b64;
+	const char* b64 =
+	"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 	const char pad64 = '=';
 	size_t i = 0, o = 0;
-	if(base64url)
-		b64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123"
-			"456789-_";
-	else
-		b64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123"
-			"456789+/";
 	if(targsize < gldns_b64_ntop_calculate_size(srclength))
 		return -1;
 	/* whole chunks: xxxxxxyy yyyyzzzz zzwwwwww */
@@ -684,26 +649,18 @@ static int gldns_b64_ntop_base(uint8_t const *src, size_t srclength,
 		target[o] = b64[src[i] >> 2];
 		target[o+1] = b64[ ((src[i]&0x03)<<4) | (src[i+1]>>4) ];
 		target[o+2] = b64[ ((src[i+1]&0x0f)<<2) ];
-		if(padding) {
-			target[o+3] = pad64;
-			/* i += 2; */
-			o += 4;
-		} else {
-			o += 3;
-		}
+		target[o+3] = pad64;
+		/* i += 2; */
+		o += 4;
 		break;
 	case 1:
 		/* one at end, converted into A B = = */
 		target[o] = b64[src[i] >> 2];
 		target[o+1] = b64[ ((src[i]&0x03)<<4) ];
-		if(padding) {
-			target[o+2] = pad64;
-			target[o+3] = pad64;
-			/* i += 1; */
-			o += 4;
-		} else {
-			o += 2;
-		}
+		target[o+2] = pad64;
+		target[o+3] = pad64;
+		/* i += 1; */
+		o += 4;
 		break;
 	case 0:
 	default:
@@ -716,36 +673,19 @@ static int gldns_b64_ntop_base(uint8_t const *src, size_t srclength,
 	return (int)o;
 }
 
-int gldns_b64_ntop(uint8_t const *src, size_t srclength, char *target,
-	size_t targsize)
-{
-	return gldns_b64_ntop_base(src, srclength, target, targsize,
-		0 /* no base64url */, 1 /* padding */);
-}
-
-int gldns_b64url_ntop(uint8_t const *src, size_t srclength, char *target,
-	size_t targsize)
-{
-	return gldns_b64_ntop_base(src, srclength, target, targsize,
-		1 /* base64url */, 0 /* no padding */);
-}
-
 size_t gldns_b64_pton_calculate_size(size_t srcsize)
 {
 	return (((((srcsize + 3) / 4) * 3)) + 1);
 }
 
-/* padding not required if srcsize is set */
-static int gldns_b64_pton_base(char const *src, size_t srcsize, uint8_t *target,
-	size_t targsize, int base64url)
+int gldns_b64_pton(char const *src, uint8_t *target, size_t targsize)
 {
 	const uint8_t pad64 = 64; /* is 64th in the b64 array */
 	const char* s = src;
 	uint8_t in[4];
 	size_t o = 0, incount = 0;
-	int check_padding = (srcsize) ? 0 : 1;
 
-	while(*s && (check_padding || srcsize)) {
+	while(*s) {
 		/* skip any character that is not base64 */
 		/* conceptually we do:
 		const char* b64 =      pad'=' is appended to array
@@ -754,43 +694,30 @@ static int gldns_b64_pton_base(char const *src, size_t srcsize, uint8_t *target,
 		and use d-b64;
 		*/
 		char d = *s++;
-		srcsize--;
 		if(d <= 'Z' && d >= 'A')
 			d -= 'A';
 		else if(d <= 'z' && d >= 'a')
 			d = d - 'a' + 26;
 		else if(d <= '9' && d >= '0')
 			d = d - '0' + 52;
-		else if(!base64url && d == '+')
+		else if(d == '+')
 			d = 62;
-		else if(base64url && d == '-')
-			d = 62;
-		else if(!base64url && d == '/')
+		else if(d == '/')
 			d = 63;
-		else if(base64url && d == '_')
-			d = 63;
-		else if(d == '=') {
-			if(!check_padding)
-				continue;
+		else if(d == '=')
 			d = 64;
-		} else	continue;
-
+		else	continue;
 		in[incount++] = (uint8_t)d;
-		/* work on block of 4, unless padding is not used and there are
-		 * less than 4 chars left */
-		if(incount != 4 && (check_padding || srcsize))
+		if(incount != 4)
 			continue;
-		assert(!check_padding || incount==4);
 		/* process whole block of 4 characters into 3 output bytes */
-		if((incount == 2 ||
-			(incount == 4 && in[3] == pad64 && in[2] == pad64))) { /* A B = = */
+		if(in[3] == pad64 && in[2] == pad64) { /* A B = = */
 			if(o+1 > targsize)
 				return -1;
 			target[o] = (in[0]<<2) | ((in[1]&0x30)>>4);
 			o += 1;
 			break; /* we are done */
-		} else if(incount == 3 ||
-			(incount == 4 && in[3] == pad64)) { /* A B C = */
+		} else if(in[3] == pad64) { /* A B C = */
 			if(o+2 > targsize)
 				return -1;
 			target[o] = (in[0]<<2) | ((in[1]&0x30)>>4);
@@ -798,7 +725,7 @@ static int gldns_b64_pton_base(char const *src, size_t srcsize, uint8_t *target,
 			o += 2;
 			break; /* we are done */
 		} else {
-			if(incount != 4 || o+3 > targsize)
+			if(o+3 > targsize)
 				return -1;
 			/* write xxxxxxyy yyyyzzzz zzwwwwww */
 			target[o] = (in[0]<<2) | ((in[1]&0x30)>>4);
@@ -809,33 +736,4 @@ static int gldns_b64_pton_base(char const *src, size_t srcsize, uint8_t *target,
 		incount = 0;
 	}
 	return (int)o;
-}
-
-int gldns_b64_pton(char const *src, uint8_t *target, size_t targsize)
-{
-	return gldns_b64_pton_base(src, 0, target, targsize, 0);
-}
-
-int gldns_b64url_pton(char const *src, size_t srcsize, uint8_t *target,
-	size_t targsize)
-{
-	if(!srcsize) {
-		return 0;
-	}
-	return gldns_b64_pton_base(src, srcsize, target, targsize, 1);
-}
-
-int gldns_b64_contains_nonurl(char const *src, size_t srcsize)
-{
-	const char* s = src;
-	while(*s && srcsize) {
-		char d = *s++;
-		srcsize--;
-		/* the '+' and the '/' and padding '=' is not allowed in b64
-		 * url encoding */
-		if(d == '+' || d == '/' || d == '=') {
-			return 1;
-		}
-	}
-	return 0;
 }

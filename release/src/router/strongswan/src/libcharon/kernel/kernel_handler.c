@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2010 Tobias Brunner
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -54,27 +53,20 @@ static inline protocol_id_t proto_ip2ike(uint8_t protocol)
 }
 
 METHOD(kernel_listener_t, acquire, bool,
-	private_kernel_handler_t *this, uint32_t reqid, kernel_acquire_data_t *data)
+	private_kernel_handler_t *this, uint32_t reqid,
+	traffic_selector_t *src_ts, traffic_selector_t *dst_ts)
 {
-	char buf[BUF_LEN] = "";
-
-	if (data->label)
-	{
-		snprintf(buf, sizeof(buf), ", label {%s}",
-				 data->label->get_string(data->label));
-	}
-	if (data->src && data->dst)
+	if (src_ts && dst_ts)
 	{
 		DBG1(DBG_KNL, "creating acquire job for policy %R === %R with "
-			 "reqid {%u}%s", data->src, data->dst, reqid, buf);
+			 "reqid {%u}", src_ts, dst_ts, reqid);
 	}
 	else
 	{
-		DBG1(DBG_KNL, "creating acquire job for policy with reqid {%u}%s",
-			 reqid, buf);
+		DBG1(DBG_KNL, "creating acquire job for policy with reqid {%u}", reqid);
 	}
 	lib->processor->queue_job(lib->processor,
-							  (job_t*)acquire_job_create(reqid, data));
+							(job_t*)acquire_job_create(reqid, src_ts, dst_ts));
 	return TRUE;
 }
 

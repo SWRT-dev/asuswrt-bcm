@@ -58,7 +58,7 @@ typedef struct MmDemuxContext {
   unsigned int audio_pts, video_pts;
 } MmDemuxContext;
 
-static int probe(const AVProbeData *p)
+static int probe(AVProbeData *p)
 {
     int len, type, fps, w, h;
     if (p->buf_size < MM_HEADER_LEN_AV + MM_PREAMBLE_SIZE)
@@ -142,7 +142,6 @@ static int read_packet(AVFormatContext *s,
     AVIOContext *pb = s->pb;
     unsigned char preamble[MM_PREAMBLE_SIZE];
     unsigned int type, length;
-    int ret;
 
     while(1) {
 
@@ -162,8 +161,8 @@ static int read_packet(AVFormatContext *s,
         case MM_TYPE_INTRA_HHV :
         case MM_TYPE_INTER_HHV :
             /* output preamble + data */
-            if ((ret = av_new_packet(pkt, length + MM_PREAMBLE_SIZE)) < 0)
-                return ret;
+            if (av_new_packet(pkt, length + MM_PREAMBLE_SIZE))
+                return AVERROR(ENOMEM);
             memcpy(pkt->data, preamble, MM_PREAMBLE_SIZE);
             if (avio_read(pb, pkt->data + MM_PREAMBLE_SIZE, length) != length)
                 return AVERROR(EIO);
@@ -175,10 +174,8 @@ static int read_packet(AVFormatContext *s,
             return 0;
 
         case MM_TYPE_AUDIO :
-            if (s->nb_streams < 2)
-                return AVERROR_INVALIDDATA;
-            if ((ret = av_get_packet(s->pb, pkt, length)) < 0)
-                return ret;
+            if (av_get_packet(s->pb, pkt, length)<0)
+                return AVERROR(ENOMEM);
             pkt->stream_index = 1;
             pkt->pts = mm->audio_pts++;
             return 0;

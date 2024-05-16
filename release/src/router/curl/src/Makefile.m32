@@ -5,7 +5,7 @@
 #                            | (__| |_| |  _ <| |___
 #                             \___|\___/|_| \_\_____|
 #
-# Copyright (C) 1999 - 2022, Daniel Stenberg, <daniel@haxx.se>, et al.
+# Copyright (C) 1999 - 2021, Daniel Stenberg, <daniel@haxx.se>, et al.
 #
 # This software is licensed as described in the file COPYING, which
 # you should have received as part of this distribution. The terms
@@ -17,8 +17,6 @@
 #
 # This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
 # KIND, either express or implied.
-#
-# SPDX-License-Identifier: curl
 #
 #***************************************************************************
 
@@ -115,8 +113,10 @@ CURL_AR := $(CROSSPREFIX)ar
 endif
 
 CC = $(CURL_CC)
-CFLAGS = -O3 $(CURL_CFLAG_EXTRAS) -W -Wall
-LDFLAGS = $(CURL_LDFLAG_EXTRAS) $(CURL_LDFLAG_EXTRAS_EXE)
+CFLAGS = $(CURL_CFLAG_EXTRAS) -g -O2 -Wall -W
+CFLAGS += -fno-strict-aliasing
+# comment LDFLAGS below to keep debug info
+LDFLAGS = $(CURL_LDFLAG_EXTRAS) $(CURL_LDFLAG_EXTRAS_EXE) -s
 AR = $(CURL_AR)
 RC = $(CROSSPREFIX)windres
 RCFLAGS = --include-dir=$(PROOT)/include -O coff -DCURL_EMBED_MANIFEST
@@ -136,7 +136,7 @@ endif
 endif
 
 ifeq ($(ARCH),w64)
-CFLAGS  += -m64
+CFLAGS  += -m64 -D_AMD64_
 LDFLAGS += -m64
 RCFLAGS += -F pe-x86-64
 else
@@ -176,80 +176,75 @@ endif
 ########################################################
 ## Nothing more to do below this line!
 
-ifneq ($(findstring -dyn,$(CFG)),)
+ifeq ($(findstring -dyn,$(CFG)),-dyn)
 DYN = 1
 endif
-ifneq ($(findstring -ares,$(CFG)),)
+ifeq ($(findstring -ares,$(CFG)),-ares)
 ARES = 1
 endif
-ifneq ($(findstring -sync,$(CFG)),)
+ifeq ($(findstring -sync,$(CFG)),-sync)
 SYNC = 1
 endif
-ifneq ($(findstring -rtmp,$(CFG)),)
+ifeq ($(findstring -rtmp,$(CFG)),-rtmp)
 RTMP = 1
+SSL = 1
 ZLIB = 1
 endif
-ifneq ($(findstring -ssh2,$(CFG)),)
+ifeq ($(findstring -ssh2,$(CFG)),-ssh2)
 SSH2 = 1
+SSL = 1
 ZLIB = 1
 endif
-ifneq ($(findstring -ssl,$(CFG)),)
+ifeq ($(findstring -ssl,$(CFG)),-ssl)
 SSL = 1
 endif
-ifneq ($(findstring -zlib,$(CFG)),)
+ifeq ($(findstring -zlib,$(CFG)),-zlib)
 ZLIB = 1
 endif
-ifneq ($(findstring -zstd,$(CFG)),)
+ifeq ($(findstring -zstd,$(CFG)),-zstd)
 ZSTD = 1
 endif
-ifneq ($(findstring -brotli,$(CFG)),)
+ifeq ($(findstring -brotli,$(CFG)),-brotli)
 BROTLI = 1
 endif
-ifneq ($(findstring -gsasl,$(CFG)),)
+ifeq ($(findstring -gsasl,$(CFG)),-gsasl)
 GSASL = 1
 endif
-ifneq ($(findstring -idn2,$(CFG)),)
+ifeq ($(findstring -idn2,$(CFG)),-idn2)
 IDN2 = 1
 endif
-ifneq ($(findstring -winidn,$(CFG)),)
+ifeq ($(findstring -winidn,$(CFG)),-winidn)
 WINIDN = 1
 endif
-ifneq ($(findstring -sspi,$(CFG)),)
+ifeq ($(findstring -sspi,$(CFG)),-sspi)
 SSPI = 1
 endif
-ifneq ($(findstring -ldaps,$(CFG)),)
+ifeq ($(findstring -ldaps,$(CFG)),-ldaps)
 LDAPS = 1
 endif
-ifneq ($(findstring -ipv6,$(CFG)),)
+ifeq ($(findstring -ipv6,$(CFG)),-ipv6)
 IPV6 = 1
 endif
-ifneq ($(findstring -schannel,$(CFG))$(findstring -winssl,$(CFG)),)
-SCHANNEL = 1
+ifeq ($(findstring -winssl,$(CFG)),-winssl)
+WINSSL = 1
 SSPI = 1
 endif
-ifneq ($(findstring -nghttp2,$(CFG)),)
+ifeq ($(findstring -nghttp2,$(CFG)),-nghttp2)
 NGHTTP2 = 1
 endif
-ifneq ($(findstring -nghttp3,$(CFG)),)
+ifeq ($(findstring -nghttp3,$(CFG)),-nghttp3)
 NGHTTP3 = 1
 endif
-ifneq ($(findstring -ngtcp2,$(CFG)),)
+ifeq ($(findstring -ngtcp2,$(CFG)),-ngtcp2)
 NGTCP2 = 1
 endif
-ifneq ($(findstring -unicode,$(CFG)),)
+ifeq ($(findstring -unicode,$(CFG)),-unicode)
 UNICODE = 1
-endif
-
-# SSH2 and RTMP require an SSL library; assume OpenSSL if none specified
-ifneq ($(SSH2)$(RTMP),)
-  ifeq ($(SSL)$(SCHANNEL),)
-    SSL = 1
-  endif
 endif
 
 INCLUDES = -I. -I../include -I../lib
 ifdef SSL
-  ifdef SCHANNEL
+  ifdef WINSSL
     CFLAGS += -DCURL_WITH_MULTI_SSL
   endif
 endif
@@ -289,7 +284,7 @@ endif
 ifdef SSH2
   CFLAGS += -DUSE_LIBSSH2 -DHAVE_LIBSSH2_H
   curl_LDADD += -L"$(LIBSSH2_PATH)/win32" -lssh2
-  ifdef SCHANNEL
+  ifdef WINSSL
     ifndef DYN
       curl_LDADD += -lbcrypt -lcrypt32
     endif
@@ -314,7 +309,7 @@ ifdef SSL
     endif
   endif
   ifneq "$(wildcard $(OPENSSL_INCLUDE)/openssl/opensslv.h)" "$(OPENSSL_INCLUDE)/openssl/opensslv.h"
-    $(error Invalid path to OpenSSL package: $(OPENSSL_PATH))
+  $(error Invalid path to OpenSSL package: $(OPENSSL_PATH))
   endif
   ifndef OPENSSL_LIBPATH
     OPENSSL_LIBS = -lssl -lcrypto
@@ -335,7 +330,7 @@ ifdef SSL
   CFLAGS += -DUSE_OPENSSL
   curl_LDADD += -L"$(OPENSSL_LIBPATH)" $(OPENSSL_LIBS)
 endif
-ifdef SCHANNEL
+ifdef WINSSL
   CFLAGS += -DUSE_SCHANNEL
   curl_LDADD += -lcrypt32
 endif
@@ -381,7 +376,7 @@ ifdef SSPI
   CFLAGS += -DUSE_WINDOWS_SSPI
 endif
 ifdef IPV6
-  CFLAGS += -DENABLE_IPV6
+  CFLAGS += -DENABLE_IPV6 -D_WIN32_WINNT=0x0501
 endif
 ifdef LDAPS
   CFLAGS += -DHAVE_LDAP_SSL

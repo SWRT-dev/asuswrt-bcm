@@ -24,9 +24,9 @@
 #include "libavutil/intreadwrite.h"
 #include "libavcodec/vc1_common.h"
 
-static int vc1_probe(const AVProbeData *p)
+static int vc1_probe(AVProbeData *p)
 {
-    int seq = 0, entry = 0, invalid = 0, frame = 0, i;
+    int seq = 0, entry = 0, frame = 0, i;
 
     for (i = 0; i < p->buf_size + 5; i++) {
         uint32_t code = AV_RB32(p->buf + i);
@@ -39,19 +39,16 @@ static int vc1_probe(const AVProbeData *p)
                 profile = (p->buf[i] & 0xc0) >> 6;
                 if (profile != PROFILE_ADVANCED) {
                     seq = 0;
-                    invalid++;
                     continue;
                 }
                 level = (p->buf[i] & 0x38) >> 3;
                 if (level >= 5) {
                     seq = 0;
-                    invalid++;
                     continue;
                 }
                 chromaformat = (p->buf[i] & 0x6) >> 1;
                 if (chromaformat != 1) {
                     seq = 0;
-                    invalid++;
                     continue;
                 }
                 seq++;
@@ -59,10 +56,8 @@ static int vc1_probe(const AVProbeData *p)
                 break;
             }
             case VC1_CODE_ENTRYPOINT:
-                if (!seq) {
-                    invalid++;
+                if (!seq)
                     continue;
-                }
                 entry++;
                 i += 2;
                 break;
@@ -76,9 +71,9 @@ static int vc1_probe(const AVProbeData *p)
         }
     }
 
-    if (frame > 1 && frame >> 1 > invalid)
+    if (frame > 1)
         return AVPROBE_SCORE_EXTENSION / 2 + 1;
-    if (frame >= 1)
+    if (frame == 1)
         return AVPROBE_SCORE_EXTENSION / 4;
     return 0;
 }

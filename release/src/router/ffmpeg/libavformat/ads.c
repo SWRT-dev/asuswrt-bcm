@@ -23,7 +23,7 @@
 #include "avformat.h"
 #include "internal.h"
 
-static int ads_probe(const AVProbeData *p)
+static int ads_probe(AVProbeData *p)
 {
     if (memcmp(p->buf, "SShd", 4) ||
         memcmp(p->buf+32, "SSbd", 4))
@@ -34,9 +34,8 @@ static int ads_probe(const AVProbeData *p)
 
 static int ads_read_header(AVFormatContext *s)
 {
-    int align, codec;
+    int align, codec, size;
     AVStream *st;
-    int64_t size;
 
     st = avformat_new_stream(s, NULL);
     if (!st)
@@ -63,7 +62,7 @@ static int ads_read_header(AVFormatContext *s)
     st->codecpar->block_align = st->codecpar->channels * align;
     avio_skip(s->pb, 12);
     size = avio_rl32(s->pb);
-    if (st->codecpar->codec_id == AV_CODEC_ID_ADPCM_PSX && size >= 0x40)
+    if (st->codecpar->codec_id == AV_CODEC_ID_ADPCM_PSX)
         st->duration = (size - 0x40) / 16 / st->codecpar->channels * 28;
     avpriv_set_pts_info(st, 64, 1, st->codecpar->sample_rate);
 

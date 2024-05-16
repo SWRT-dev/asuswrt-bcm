@@ -1,8 +1,7 @@
 /*
- * Copyright (C) 2016-2020 Tobias Brunner
+ * Copyright (C) 2016 Tobias Brunner
  * Copyright (C) 2015 Andreas Steffen
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -45,14 +44,14 @@ struct private_vici_authority_t {
 	vici_dispatcher_t *dispatcher;
 
 	/**
-	 * List of certification authorities (authority_t*)
+	 * credential backend managed by VICI used for our ca certificates
 	 */
-	linked_list_t *authorities;
+	vici_cred_t *cred;
 
 	/**
-	 * List of CA certificates (ca_cert_t*)
+	 * List of certification authorities
 	 */
-	linked_list_t *certs;
+	linked_list_t *authorities;
 
 	/**
 	 * rwlock to lock access to certification authorities
@@ -69,7 +68,7 @@ typedef struct authority_t authority_t;
 struct authority_t {
 
 	/**
-	 * Name of the certification authority
+	 * Name of the certification authoritiy
 	 */
 	char *name;
 
@@ -89,6 +88,11 @@ struct authority_t {
 	linked_list_t *ocsp_uris;
 
 	/**
+	 * Hashes of certificates issued by this CA
+	 */
+	linked_list_t *hashes;
+
+	/**
 	 * Base URI used for certificates from this CA
 	 */
 	char *cert_uri_base;
@@ -105,124 +109,26 @@ static authority_t *authority_create(char *name)
 		.name = strdup(name),
 		.crl_uris = linked_list_create(),
 		.ocsp_uris = linked_list_create(),
+		.hashes = linked_list_create(),
 	);
 
 	return authority;
 }
 
-CALLBACK(authority_destroy, void,
-	authority_t *this)
+/**
+ * destroy a certification authority
+ */
+static void authority_destroy(authority_t *this)
 {
 	this->crl_uris->destroy_function(this->crl_uris, free);
 	this->ocsp_uris->destroy_function(this->ocsp_uris, free);
+	this->hashes->destroy_offset(this->hashes, offsetof(identification_t, destroy));
 	DESTROY_IF(this->cert);
 	free(this->cert_uri_base);
 	free(this->name);
 	free(this);
 }
 
-typedef struct ca_cert_t ca_cert_t;
-
-/**
- * Loaded CA certificate.
- */
-struct ca_cert_t {
-
-	/**
-	 * Reference to certificate.
-	 */
-	certificate_t *cert;
-
-	/**
-	 * The number of authority sections referring to this certificate.
-	 */
-	u_int count;
-
-	/**
-	 * TRUE if this certificate was (also) added externally.
-	 */
-	bool external;
-};
-
-/**
- * Destroy a CA certificate entry
- */
-CALLBACK(ca_cert_destroy, void,
-	ca_cert_t *this)
-{
-	this->cert->destroy(this->cert);
-	free(this);
-}
-
-CALLBACK(match_cert, bool,
-	ca_cert_t *item, va_list args)
-{
-	certificate_t *cert;
-
-	VA_ARGS_VGET(args, cert);
-	return cert->equals(cert, item->cert);
-}
-
-/**
- * Add a CA certificate to the local store
- */
-static certificate_t *add_cert_internal(private_vici_authority_t *this,
-										certificate_t *cert, bool external)
-{
-	ca_cert_t *found;
-
-	if (this->certs->find_first(this->certs, match_cert, (void**)&found, cert))
-	{
-		cert->destroy(cert);
-		cert = found->cert->get_ref(found->cert);
-	}
-	else
-	{
-		INIT(found,
-			.cert = cert->get_ref(cert)
-		);
-		this->certs->insert_first(this->certs, found);
-	}
-	if (external)
-	{
-		found->external = TRUE;
-	}
-	else
-	{
-		found->count++;
-	}
-	return cert;
-}
-
-CALLBACK(remove_external_certs, bool,
-	ca_cert_t *item, void *unused)
-{
-	if (item->external)
-	{
-		item->external = FALSE;
-
-		if (!item->count)
-		{
-			ca_cert_destroy(item);
-			return TRUE;
-		}
-	}
-	return FALSE;
-}
-
-CALLBACK2(remove_cert, bool,
-	ca_cert_t *item, certificate_t *cert)
-{
-	if (cert == item->cert)
-	{
-		if (--item->count == 0 && !item->external)
-		{
-			ca_cert_destroy(item);
-			return TRUE;
-		}
-	}
-	return FALSE;
-}
 
 /**
  * Create a (error) reply message
@@ -480,6 +386,7 @@ CALLBACK(authority_sn, bool,
 	enumerator_t *enumerator;
 	linked_list_t *authorities;
 	authority_t *authority;
+	vici_cred_t *cred;
 	load_data_t *data;
 	chunk_t handle;
 
@@ -537,9 +444,6 @@ CALLBACK(authority_sn, bool,
 
 	request->this->lock->write_lock(request->this->lock);
 
-	data->authority->cert = add_cert_internal(request->this,
-											  data->authority->cert, FALSE);
-
 	authorities = request->this->authorities;
 	enumerator = authorities->create_enumerator(authorities);
 	while (enumerator->enumerate(enumerator, &authority))
@@ -548,8 +452,6 @@ CALLBACK(authority_sn, bool,
 		{
 			/* remove the old authority definition */
 			authorities->remove_at(authorities, enumerator);
-			request->this->certs->remove(request->this->certs, authority->cert,
-										 remove_cert);
 			authority_destroy(authority);
 			break;
 		}
@@ -557,8 +459,11 @@ CALLBACK(authority_sn, bool,
 	enumerator->destroy(enumerator);
 	authorities->insert_last(authorities, data->authority);
 
-	request->this->lock->unlock(request->this->lock);
+	cred = request->this->cred;
+	data->authority->cert = cred->add_cert(cred, data->authority->cert);
 	data->authority = NULL;
+
+	request->this->lock->unlock(request->this->lock);
 	free_load_data(data);
 
 	return TRUE;
@@ -603,7 +508,6 @@ CALLBACK(unload_authority, vici_message_t*,
 		if (streq(authority->name, authority_name))
 		{
 			this->authorities->remove_at(this->authorities, enumerator);
-			this->certs->remove(this->certs, authority->cert, remove_cert);
 			authority_destroy(authority);
 			found = TRUE;
 			break;
@@ -616,7 +520,6 @@ CALLBACK(unload_authority, vici_message_t*,
 	{
 		return create_reply("unload: authority '%s' not found", authority_name);
 	}
-	lib->credmgr->flush_cache(lib->credmgr, CERT_ANY);
 	return create_reply(NULL);
 }
 
@@ -731,63 +634,27 @@ static void manage_commands(private_vici_authority_t *this, bool reg)
 }
 
 /**
- * Data for the certificate and CDP enumerator
+ * data to pass to create_inner_cdp
  */
 typedef struct {
 	private_vici_authority_t *this;
 	certificate_type_t type;
-	key_type_t key;
 	identification_t *id;
-} cert_data_t;
+} cdp_data_t;
 
-CALLBACK(cert_data_destroy, void,
-	cert_data_t *data)
+/**
+ * destroy cdp enumerator data and unlock list
+ */
+static void cdp_data_destroy(cdp_data_t *data)
 {
 	data->this->lock->unlock(data->this->lock);
 	free(data);
 }
 
-CALLBACK(certs_filter, bool,
-	cert_data_t *data, enumerator_t *orig, va_list args)
-{
-	ca_cert_t *ca;
-	certificate_t **out;
-
-	VA_ARGS_VGET(args, out);
-
-	while (orig->enumerate(orig, &ca))
-	{
-		if (certificate_matches(ca->cert, data->type, data->key, data->id))
-		{
-			*out = ca->cert;
-			return TRUE;
-		}
-	}
-	return FALSE;
-}
-
-METHOD(credential_set_t, create_cert_enumerator, enumerator_t*,
-	private_vici_authority_t *this, certificate_type_t cert, key_type_t key,
-	identification_t *id, bool trusted)
-{
-	enumerator_t *enumerator;
-	cert_data_t *data;
-
-	INIT(data,
-		.this = this,
-		.type = cert,
-		.key = key,
-		.id = id,
-	);
-
-	this->lock->read_lock(this->lock);
-	enumerator = this->certs->create_enumerator(this->certs);
-	return enumerator_create_filter(enumerator, certs_filter, data,
-									cert_data_destroy);
-}
-
-CALLBACK(create_inner_cdp, enumerator_t*,
-	authority_t *authority, cert_data_t *data)
+/**
+ * inner enumerator constructor for CDP URIs
+ */
+static enumerator_t *create_inner_cdp(authority_t *authority, cdp_data_t *data)
 {
 	public_key_t *public;
 	enumerator_t *enumerator = NULL;
@@ -811,8 +678,7 @@ CALLBACK(create_inner_cdp, enumerator_t*,
 		}
 		else
 		{
-			if (public->has_fingerprint(public,
-										data->id->get_encoding(data->id)))
+			if (public->has_fingerprint(public, data->id->get_encoding(data->id)))
 			{
 				enumerator = list->create_enumerator(list);
 			}
@@ -822,22 +688,38 @@ CALLBACK(create_inner_cdp, enumerator_t*,
 	return enumerator;
 }
 
-CALLBACK(create_inner_cdp_hashandurl, enumerator_t*,
-	authority_t *authority, cert_data_t *data)
+/**
+ * inner enumerator constructor for "Hash and URL"
+ */
+static enumerator_t *create_inner_cdp_hashandurl(authority_t *authority,
+												 cdp_data_t *data)
 {
-	enumerator_t *enumerator = NULL;
+	enumerator_t *enumerator = NULL, *hash_enum;
+	identification_t *current;
 
 	if (!data->id || !authority->cert_uri_base)
 	{
 		return NULL;
 	}
 
-	if (authority->cert->has_subject(authority->cert,
-									 data->id) != ID_MATCH_NONE)
+	hash_enum = authority->hashes->create_enumerator(authority->hashes);
+	while (hash_enum->enumerate(hash_enum, &current))
 	{
-		enumerator = enumerator_create_single(strdup(authority->cert_uri_base),
-											  free);
+		if (current->matches(current, data->id))
+		{
+			char *url, *hash;
+
+			url = malloc(strlen(authority->cert_uri_base) + 40 + 1);
+			strcpy(url, authority->cert_uri_base);
+			hash = chunk_to_hex(current->get_encoding(current), NULL, FALSE).ptr;
+			strncat(url, hash, 40);
+			free(hash);
+
+			enumerator = enumerator_create_single(url, free);
+			break;
+		}
 	}
+	hash_enum->destroy(hash_enum);
 	return enumerator;
 }
 
@@ -845,7 +727,7 @@ METHOD(credential_set_t, create_cdp_enumerator, enumerator_t*,
 	private_vici_authority_t *this, certificate_type_t type,
 	identification_t *id)
 {
-	cert_data_t *data;
+	cdp_data_t *data;
 
 	switch (type)
 	{	/* we serve CRLs, OCSP responders and URLs for "Hash and URL" */
@@ -857,35 +739,59 @@ METHOD(credential_set_t, create_cdp_enumerator, enumerator_t*,
 		default:
 			return NULL;
 	}
-
-	INIT(data,
-		.this = this,
-		.type = type,
-		.id = id,
-	);
+	data = malloc_thing(cdp_data_t);
+	data->this = this;
+	data->type = type;
+	data->id = id;
 
 	this->lock->read_lock(this->lock);
+
 	return enumerator_create_nested(
 			this->authorities->create_enumerator(this->authorities),
 			(type == CERT_X509) ? (void*)create_inner_cdp_hashandurl :
-			(void*)create_inner_cdp, data, cert_data_destroy);
+			(void*)create_inner_cdp, data, (void*)cdp_data_destroy);
 }
 
-METHOD(vici_authority_t, add_ca_cert, certificate_t*,
-	private_vici_authority_t *this, certificate_t *cert)
+METHOD(vici_authority_t, check_for_hash_and_url, void,
+	private_vici_authority_t *this, certificate_t* cert)
 {
-	this->lock->write_lock(this->lock);
-	cert = add_cert_internal(this, cert, TRUE);
-	this->lock->unlock(this->lock);
-	return cert;
-}
+	authority_t *authority;
+	enumerator_t *enumerator;
+	hasher_t *hasher;
 
-METHOD(vici_authority_t, clear_ca_certs, void,
-	private_vici_authority_t *this)
-{
+	hasher = lib->crypto->create_hasher(lib->crypto, HASH_SHA1);
+	if (hasher == NULL)
+	{
+		DBG1(DBG_CFG, "unable to use hash-and-url: sha1 not supported");
+		return;
+	}
+
 	this->lock->write_lock(this->lock);
-	this->certs->remove(this->certs, NULL, remove_external_certs);
+	enumerator = this->authorities->create_enumerator(this->authorities);
+	while (enumerator->enumerate(enumerator, &authority))
+	{
+		if (authority->cert_uri_base &&
+			cert->issued_by(cert, authority->cert, NULL))
+		{
+			chunk_t hash, encoded;
+
+			if (cert->get_encoding(cert, CERT_ASN1_DER, &encoded))
+			{
+				if (hasher->allocate_hash(hasher, encoded, &hash))
+				{
+					authority->hashes->insert_last(authority->hashes,
+						identification_create_from_encoding(ID_KEY_ID, hash));
+					chunk_free(&hash);
+				}
+				chunk_free(&encoded);
+			}
+			break;
+		}
+	}
+	enumerator->destroy(enumerator);
 	this->lock->unlock(this->lock);
+
+	hasher->destroy(hasher);
 }
 
 METHOD(vici_authority_t, destroy, void,
@@ -895,7 +801,6 @@ METHOD(vici_authority_t, destroy, void,
 
 	this->authorities->destroy_function(this->authorities,
 									   (void*)authority_destroy);
-	this->certs->destroy_function(this->certs, ca_cert_destroy);
 	this->lock->destroy(this->lock);
 	free(this);
 }
@@ -903,7 +808,8 @@ METHOD(vici_authority_t, destroy, void,
 /**
  * See header
  */
-vici_authority_t *vici_authority_create(vici_dispatcher_t *dispatcher)
+vici_authority_t *vici_authority_create(vici_dispatcher_t *dispatcher,
+										vici_cred_t *cred)
 {
 	private_vici_authority_t *this;
 
@@ -911,18 +817,17 @@ vici_authority_t *vici_authority_create(vici_dispatcher_t *dispatcher)
 		.public = {
 			.set = {
 				.create_private_enumerator = (void*)return_null,
-				.create_cert_enumerator = _create_cert_enumerator,
+				.create_cert_enumerator = (void*)return_null,
 				.create_shared_enumerator = (void*)return_null,
 				.create_cdp_enumerator = _create_cdp_enumerator,
 				.cache_cert = (void*)nop,
 			},
-			.add_ca_cert = _add_ca_cert,
-			.clear_ca_certs = _clear_ca_certs,
+			.check_for_hash_and_url = _check_for_hash_and_url,
 			.destroy = _destroy,
 		},
 		.dispatcher = dispatcher,
+		.cred = cred,
 		.authorities = linked_list_create(),
-		.certs = linked_list_create(),
 		.lock = rwlock_create(RWLOCK_TYPE_DEFAULT),
 	);
 

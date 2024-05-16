@@ -1,8 +1,7 @@
 
 /*
  * Copyright (C) 2010 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * Copyright (C) 2010 revosec AG
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -324,7 +323,7 @@ static chunk_t create_ack(private_tls_eap_t *this)
 		default:
 			break;
 	}
-	DBG2(DBG_TLS, "sending %N acknowledgment packet",
+	DBG2(DBG_TLS, "sending %N acknowledgement packet",
 		 eap_type_names, this->type);
 	return chunk_clone(chunk_from_thing(pkt));
 }
@@ -371,7 +370,7 @@ METHOD(tls_eap_t, process, status_t,
 	{
 		if (in.len == sizeof(eap_tls_packet_t))
 		{
-			DBG2(DBG_TLS, "received %N acknowledgment packet",
+			DBG2(DBG_TLS, "received %N acknowledgement packet",
 				 eap_type_names, this->type);
 			status = build_pkt(this, out);
 			if (status == INVALID_STATE && this->tls->is_complete(this->tls))
@@ -395,10 +394,6 @@ METHOD(tls_eap_t, process, status_t,
 	switch (status)
 	{
 		case INVALID_STATE:
-			if (this->is_server && this->tls->is_complete(this->tls))
-			{
-				return SUCCESS;
-			}
 			*out = create_ack(this);
 			return NEED_MORE;
 		case FAILED:

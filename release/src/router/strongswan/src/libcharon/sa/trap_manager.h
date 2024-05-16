@@ -1,8 +1,7 @@
 /*
  * Copyright (C) 2013-2017 Tobias Brunner
  * Copyright (C) 2009 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -26,7 +25,6 @@
 #include <library.h>
 #include <collections/enumerator.h>
 #include <config/peer_cfg.h>
-#include <sa/child_sa.h>
 
 typedef struct trap_manager_t trap_manager_t;
 
@@ -57,31 +55,7 @@ struct trap_manager_t {
 	bool (*uninstall)(trap_manager_t *this, char *peer, char *child);
 
 	/**
-	 * Install and register an externally managed trap policy using the two
-	 * lists of local and remote addresses when deriving traffic selectors.
-	 *
-	 * @param peer		peer configuration to register
-	 * @param child 	CHILD_SA to install and register
-	 * @param local		list of local addresses (virtual or physical)
-	 * @param remote	list of remote addresses (virtual or physical)
-	 * @return			TRUE if successfully installed and registered
-	 */
-	bool (*install_external)(trap_manager_t *this, peer_cfg_t *peer,
-							 child_sa_t *child, linked_list_t *local,
-							 linked_list_t *remote);
-
-	/**
-	 * Remove and uninstall a previously registered externally managed trap
-	 * policy.
-	 *
-	 * @param child 	CHILD_SA to remove
-	 * @return			TRUE if successfully removed
-	 */
-	bool (*remove_external)(trap_manager_t *this, child_sa_t *child);
-
-	/**
-	 * Create an enumerator over all installed traps (does not include
-	 * externally managed trap policies).
+	 * Create an enumerator over all installed traps.
 	 *
 	 * @return			enumerator over (peer_cfg_t, child_sa_t)
 	 */
@@ -90,11 +64,12 @@ struct trap_manager_t {
 	/**
 	 * Acquire an SA triggered by an installed trap.
 	 *
-	 * @param reqid		reqid of the triggered policy
-	 * @param data		data from the acquire
+	 * @param reqid		requid of the triggering CHILD_SA
+	 * @param src		source of the triggering packet
+	 * @param dst		destination of the triggering packet
 	 */
 	void (*acquire)(trap_manager_t *this, uint32_t reqid,
-					kernel_acquire_data_t *data);
+					traffic_selector_t *src, traffic_selector_t *dst);
 
 	/**
 	 * Clear any installed trap.

@@ -1,9 +1,3 @@
-<!--
-Copyright (C) 1998 - 2022 Daniel Stenberg, <daniel@haxx.se>, et al.
-
-SPDX-License-Identifier: curl
--->
-
 # Unit tests
 
 The goal is to add tests for *all* functions in libcurl. If functions are too

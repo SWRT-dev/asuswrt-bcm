@@ -22,7 +22,6 @@
 #include "libavutil/channel_layout.h"
 #include "libavutil/common.h"
 #include "libavutil/mem.h"
-#include "libavutil/mem_internal.h"
 #include "libavutil/opt.h"
 
 #include "avcodec.h"
@@ -782,5 +781,5 @@ AVCodec ff_dss_sp_decoder = {
     .priv_data_size = sizeof(DssSpContext),
     .init           = dss_sp_decode_init,
     .decode         = dss_sp_decode_frame,
-    .capabilities   = AV_CODEC_CAP_DR1 | AV_CODEC_CAP_CHANNEL_CONF,
+    .capabilities   = AV_CODEC_CAP_DR1,
 };

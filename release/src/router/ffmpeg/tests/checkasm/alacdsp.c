@@ -24,7 +24,6 @@
 #include "libavcodec/mathops.h"
 #include "libavutil/common.h"
 #include "libavutil/internal.h"
-#include "libavutil/mem_internal.h"
 
 #define BUF_SIZE 256
 #define MAX_CHANNELS 2

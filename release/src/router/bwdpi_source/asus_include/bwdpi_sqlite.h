@@ -13,13 +13,10 @@
 #define BWHIS_LOCK   "/var/lock/WebHistory.lock"
 #define BWHIS_PID    "/var/run/WebHistory.pid"
 
-#define BWANA_LOCK   "/var/lock/TrafficAnalyzer.lock"
-#define BWANA_PID    "/var/run/TrafficAnalyzer.pid"
-
 // traffic_analyzer.c
 extern int traffic_analyzer_main(int argc, char **argv);
 extern int sql_integrity_check(sqlite3 *db, char *db_path);
-int sql_remove_journal(char *db_file);
+extern void sql_remove_journal(char *db_file);
 
 // sqlite_stat.c
 extern int sql_get_table(sqlite3 *db, const char *sql, char ***pazResult, int *pnRow, int *pnColumn);

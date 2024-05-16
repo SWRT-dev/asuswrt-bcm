@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2011 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * Copyright (C) 2011 revosec AG
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -114,7 +113,7 @@ static bool verify_eap(private_xauth_eap_t *this, eap_method_t *backend)
 	eap_payload_t *request, *response;
 	eap_method_t *frontend;
 	eap_type_t type;
-	pen_t vendor;
+	uint32_t vendor;
 	status_t status;
 
 	if (backend->initiate(backend, &request) != NEED_MORE)

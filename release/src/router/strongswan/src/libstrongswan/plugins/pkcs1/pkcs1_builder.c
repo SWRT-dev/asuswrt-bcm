@@ -2,8 +2,7 @@
  * Copyright (C) 2008-2016 Tobias Brunner
  * Copyright (C) 2008-2009 Martin Willi
  * Copyright (C) 2000-2008 Andreas Steffen
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -86,13 +85,6 @@ static public_key_t *parse_public_key(chunk_t blob)
 					/* Need the whole subjectPublicKeyInfo for Ed25519 public keys */
 					key = lib->creds->create(lib->creds, CRED_PUBLIC_KEY,
 								KEY_ED25519, BUILD_BLOB_ASN1_DER, blob, BUILD_END);
-					goto end;
-				}
-				else if (oid == OID_ED448)
-				{
-					/* Need the whole subjectPublicKeyInfo for Ed448 public keys */
-					key = lib->creds->create(lib->creds, CRED_PUBLIC_KEY,
-								KEY_ED448, BUILD_BLOB_ASN1_DER, blob, BUILD_END);
 					goto end;
 				}
 				else

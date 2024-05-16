@@ -1,5 +1,5 @@
-carol::systemctl stop strongswan
-moon::systemctl stop strongswan
+moon::ipsec stop
+carol::ipsec stop
 alice::killall freeradius
 moon::iptables-restore < /etc/iptables.flush
 carol::iptables-restore < /etc/iptables.flush

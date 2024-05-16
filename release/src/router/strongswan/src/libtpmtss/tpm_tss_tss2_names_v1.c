@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2016-2018 Andreas Steffen
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -60,7 +59,6 @@ ENUM_NEXT(tpm_alg_id_names, TPM_ALG_SM3_256, TPM_ALG_ECMQV, TPM_ALG_NULL,
 	"OAEP",
 	"ECDSA",
 	"ECDH",
-	"ECDAA",
 	"SM2",
 	"ECSCHNORR",
 	"ECMQV"
@@ -106,7 +104,7 @@ ENUM_END(tpm_ecc_curve_names, TPM_ECC_SM2_P256);
 
 #else /* TSS_TSS2_V1 */
 
-#ifndef TSS_TSS2_V2
+#ifndef TSS_TSS2_V2 
 
 /**
  * TPM 2.0 algorithm ID names

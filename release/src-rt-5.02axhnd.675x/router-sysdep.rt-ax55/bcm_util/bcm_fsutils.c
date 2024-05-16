@@ -38,10 +38,6 @@ written consent.
 
 #include "bcm_fsutils.h"
 #include "bcm_ulog.h"
-#include "sysutil_fs.h"
-
-#include "cms_params.h"  // for SMD_SHUTDOWN_IN_PROGRESS
-
 
 BcmRet bcmUtl_getBaseDir(char *pathBuf, UINT32 pathBufLen)
 {
@@ -134,39 +130,3 @@ BcmRet bcmUtl_getBaseDir(char *pathBuf, UINT32 pathBufLen)
 
    return BCMRET_SUCCESS;
 }
-
-
-void bcmUtl_declareShutdownInProgress(const char *requestingApp)
-{
-   const char *unknown="unknown";
-   BcmRet ret = BCMRET_INTERNAL_ERROR;
-
-   if (requestingApp != NULL)
-   {
-      printf("%s is about to shut system down...", requestingApp);
-      ret = sysUtil_writeBufferToFile(SMD_SHUTDOWN_IN_PROGRESS,
-                            (UINT8 *) requestingApp, strlen(requestingApp));
-   }
-   else
-   {
-      printf("unknown app is about to shut system down...");
-      ret = sysUtil_writeBufferToFile(SMD_SHUTDOWN_IN_PROGRESS,
-                            (UINT8 *) unknown, strlen(unknown));
-   }
-   fflush(stdout);
-
-   if (ret != BCMRET_SUCCESS)
-   {
-      bcmuLog_error("write of %s failed, ret=%d",
-                    SMD_SHUTDOWN_IN_PROGRESS, ret);
-   }
-
-   return;
-}
-
-
-int bcmUtl_isShutdownInProgress()
-{
-   return (sysUtil_isFilePresent(SMD_SHUTDOWN_IN_PROGRESS));
-}
-

@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2012 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * Copyright (C) 2012 revosec AG
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -86,7 +85,7 @@ static bool make_connection(private_pt_tls_client_t *this)
 	}
 
 	this->tls = tls_socket_create(FALSE, this->server, this->client, fd,
-								  NULL, TLS_UNSPEC, TLS_UNSPEC, 0);
+								  NULL, TLS_1_2, FALSE);
 	if (!this->tls)
 	{
 		close(fd);
@@ -250,7 +249,7 @@ static status_t do_sasl(private_pt_tls_client_t *this, sasl_mechanism_t *sasl)
 			case INVALID_STATE:
 				break;
 			case SUCCESS:
-				/* shouldn't happen, continue until we get a result */
+				/* shoudln't happen, continue until we get a result */
 			case NEED_MORE:
 				writer->write_data(writer, data);
 				free(data.ptr);

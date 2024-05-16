@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2013 Andreas Steffen
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -16,7 +15,7 @@
 
 /**
  * @defgroup tnc_ifmap_http tnc_ifmap_http
- * @{ @ingroup tnc_ifmap
+ * @{ @ingroup tnc_ifmap 
  */
 
 #ifndef TNC_IFMAP_HTTP_H_

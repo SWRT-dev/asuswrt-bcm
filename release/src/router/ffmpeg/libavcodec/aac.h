@@ -34,7 +34,6 @@
 #include "aac_defines.h"
 #include "libavutil/float_dsp.h"
 #include "libavutil/fixed_dsp.h"
-#include "libavutil/mem_internal.h"
 #include "avcodec.h"
 #if !USE_FIXED
 #include "mdct15.h"
@@ -357,7 +356,7 @@ struct AACContext {
     OutputConfiguration oc[2];
     int warned_num_aac_frames;
     int warned_960_sbr;
-    unsigned warned_71_wide;
+
     int warned_gain_control;
 
     /* aacdec functions pointers */
@@ -369,7 +368,7 @@ struct AACContext {
                                    INTFLOAT *in, IndividualChannelStream *ics);
     void (*update_ltp)(AACContext *ac, SingleChannelElement *sce);
     void (*vector_pow43)(int *coefs, int len);
-    void (*subband_scale)(int *dst, int *src, int scale, int offset, int len, void *log_context);
+    void (*subband_scale)(int *dst, int *src, int scale, int offset, int len);
 
 };
 

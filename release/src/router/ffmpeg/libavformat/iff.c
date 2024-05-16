@@ -142,7 +142,7 @@ static int get_metadata(AVFormatContext *s,
     return 0;
 }
 
-static int iff_probe(const AVProbeData *p)
+static int iff_probe(AVProbeData *p)
 {
     const uint8_t *d = p->buf;
 
@@ -223,9 +223,6 @@ static int parse_dsd_diin(AVFormatContext *s, AVStream *st, uint64_t eof)
         uint64_t orig_pos = avio_tell(pb);
         const char * metadata_tag = NULL;
 
-        if (size >= INT64_MAX)
-            return AVERROR_INVALIDDATA;
-
         switch(tag) {
         case MKTAG('D','I','A','R'): metadata_tag = "artist"; break;
         case MKTAG('D','I','T','I'): metadata_tag = "title";  break;
@@ -258,9 +255,6 @@ static int parse_dsd_prop(AVFormatContext *s, AVStream *st, uint64_t eof)
         uint32_t tag      = avio_rl32(pb);
         uint64_t size     = avio_rb64(pb);
         uint64_t orig_pos = avio_tell(pb);
-
-        if (size >= INT64_MAX)
-            return AVERROR_INVALIDDATA;
 
         switch(tag) {
         case MKTAG('A','B','S','S'):
@@ -318,8 +312,8 @@ static int parse_dsd_prop(AVFormatContext *s, AVStream *st, uint64_t eof)
             id3v2_extra_meta = NULL;
             ff_id3v2_read(s, ID3v2_DEFAULT_MAGIC, &id3v2_extra_meta, size);
             if (id3v2_extra_meta) {
-                if ((ret = ff_id3v2_parse_apic(s, id3v2_extra_meta)) < 0 ||
-                    (ret = ff_id3v2_parse_chapters(s, id3v2_extra_meta)) < 0) {
+                if ((ret = ff_id3v2_parse_apic(s, &id3v2_extra_meta)) < 0 ||
+                    (ret = ff_id3v2_parse_chapters(s, &id3v2_extra_meta)) < 0) {
                     ff_id3v2_free_extra_meta(&id3v2_extra_meta);
                     return ret;
                 }
@@ -368,7 +362,7 @@ static int read_dst_frame(AVFormatContext *s, AVPacket *pkt)
         data_size = iff->is_64bit ? avio_rb64(pb) : avio_rb32(pb);
         data_pos = avio_tell(pb);
 
-        if (data_size < 1 || data_size >= INT64_MAX)
+        if (data_size < 1)
             return AVERROR_INVALIDDATA;
 
         switch (chunk_id) {
@@ -385,7 +379,7 @@ static int read_dst_frame(AVFormatContext *s, AVPacket *pkt)
                 avio_skip(pb, 1);
             pkt->flags |= AV_PKT_FLAG_KEY;
             pkt->stream_index = 0;
-            pkt->duration = 588LL * s->streams[0]->codecpar->sample_rate / 44100;
+            pkt->duration = 588 * s->streams[0]->codecpar->sample_rate / 44100;
             pkt->pos = chunk_pos;
 
             chunk_pos = avio_tell(pb);
@@ -454,9 +448,6 @@ static int iff_read_header(AVFormatContext *s)
         chunk_id = avio_rl32(pb);
         data_size = iff->is_64bit ? avio_rb64(pb) : avio_rb32(pb);
         orig_pos = avio_tell(pb);
-
-        if (data_size >= INT64_MAX)
-            return AVERROR_INVALIDDATA;
 
         switch(chunk_id) {
         case ID_VHDR:
@@ -534,15 +525,12 @@ static int iff_read_header(AVFormatContext *s)
                         data_size);
                  return AVERROR_INVALIDDATA;
             }
-            res = ff_alloc_extradata(st->codecpar,
-                                     data_size + IFF_EXTRA_VIDEO_SIZE);
-            if (res < 0)
-                return res;
-            if (avio_read(pb, st->codecpar->extradata + IFF_EXTRA_VIDEO_SIZE, data_size) < 0) {
-                av_freep(&st->codecpar->extradata);
-                st->codecpar->extradata_size = 0;
+            st->codecpar->extradata_size = data_size + IFF_EXTRA_VIDEO_SIZE;
+            st->codecpar->extradata      = av_malloc(data_size + IFF_EXTRA_VIDEO_SIZE + AV_INPUT_BUFFER_PADDING_SIZE);
+            if (!st->codecpar->extradata)
+                return AVERROR(ENOMEM);
+            if (avio_read(pb, st->codecpar->extradata + IFF_EXTRA_VIDEO_SIZE, data_size) < 0)
                 return AVERROR(EIO);
-            }
             break;
 
         case ID_BMHD:
@@ -763,7 +751,7 @@ static int iff_read_header(AVFormatContext *s)
         st->codecpar->bits_per_coded_sample = av_get_bits_per_sample(st->codecpar->codec_id);
         st->codecpar->bit_rate = (int64_t)st->codecpar->channels * st->codecpar->sample_rate * st->codecpar->bits_per_coded_sample;
         st->codecpar->block_align = st->codecpar->channels * st->codecpar->bits_per_coded_sample;
-        if ((st->codecpar->codec_tag == ID_DSD || st->codecpar->codec_tag == ID_MAUD) && st->codecpar->block_align <= 0)
+        if (st->codecpar->codec_tag == ID_DSD && st->codecpar->block_align <= 0)
             return AVERROR_INVALIDDATA;
         break;
 
@@ -780,9 +768,10 @@ static int iff_read_header(AVFormatContext *s)
         iff->transparency = transparency;
 
         if (!st->codecpar->extradata) {
-            int ret = ff_alloc_extradata(st->codecpar, IFF_EXTRA_VIDEO_SIZE);
-            if (ret < 0)
-                return ret;
+            st->codecpar->extradata_size = IFF_EXTRA_VIDEO_SIZE;
+            st->codecpar->extradata      = av_malloc(IFF_EXTRA_VIDEO_SIZE + AV_INPUT_BUFFER_PADDING_SIZE);
+            if (!st->codecpar->extradata)
+                return AVERROR(ENOMEM);
         }
         av_assert0(st->codecpar->extradata_size >= IFF_EXTRA_VIDEO_SIZE);
         buf = st->codecpar->extradata;
@@ -845,7 +834,7 @@ static int iff_read_packet(AVFormatContext *s,
         } else if (st->codecpar->codec_tag == ID_DST) {
             return read_dst_frame(s, pkt);
         } else {
-            if (iff->body_size > INT_MAX || !iff->body_size)
+            if (iff->body_size > INT_MAX)
                 return AVERROR_INVALIDDATA;
             ret = av_get_packet(pb, pkt, iff->body_size);
         }
@@ -881,8 +870,6 @@ static int iff_read_packet(AVFormatContext *s,
             pkt->flags |= AV_PKT_FLAG_KEY;
     } else if (st->codecpar->codec_type == AVMEDIA_TYPE_VIDEO &&
                st->codecpar->codec_tag  != ID_ANIM) {
-        if (iff->body_size > INT_MAX || !iff->body_size)
-            return AVERROR_INVALIDDATA;
         ret = av_get_packet(pb, pkt, iff->body_size);
         pkt->pos = pos;
         if (pos == iff->body_pos)

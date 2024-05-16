@@ -20,8 +20,8 @@
  * Boston, MA  02110-1301  USA.
  */
 
-#ifndef LIBEXIF_EXIF_MNOTE_DATA_H
-#define LIBEXIF_EXIF_MNOTE_DATA_H
+#ifndef __EXIF_MNOTE_DATA_H__
+#define __EXIF_MNOTE_DATA_H__
 
 #ifdef __cplusplus
 extern "C" {
@@ -39,10 +39,10 @@ void exif_mnote_data_unref (ExifMnoteData *);
  *
  * \param[in] d MakerNote data
  * \param[in] buf pointer to raw MakerNote tag data
- * \param[in] buf_size number of bytes of data at buf
+ * \param[in] buf_siz number of bytes of data at buf
  */
 void exif_mnote_data_load (ExifMnoteData *d, const unsigned char *buf,
-			   unsigned int buf_size);
+			   unsigned int buf_siz);
 
 /*!
  * Save the raw MakerNote data into a memory buffer.  The buffer is
@@ -51,10 +51,10 @@ void exif_mnote_data_load (ExifMnoteData *d, const unsigned char *buf,
  *
  * \param[in,out] d extract the data from this structure 
  * \param[out] buf pointer to buffer pointer containing MakerNote data on return
- * \param[out] buf_size pointer to the size of the buffer
+ * \param[out] buf_siz pointer to the size of the buffer
  */
 void exif_mnote_data_save (ExifMnoteData *d, unsigned char **buf,
-			   unsigned int *buf_size);
+			   unsigned int *buf_siz);
 
 /*! Return the number of tags in the MakerNote.
  *
@@ -78,7 +78,7 @@ unsigned int exif_mnote_data_get_id          (ExifMnoteData *d, unsigned int n);
  *
  * \param[in] d MakerNote data
  * \param[in] n index of the entry within the MakerNote data
- * \return textual name of the tag or NULL on error
+ * \return textual name of the tag
  */
 const char  *exif_mnote_data_get_name        (ExifMnoteData *d, unsigned int n);
 
@@ -87,7 +87,7 @@ const char  *exif_mnote_data_get_name        (ExifMnoteData *d, unsigned int n);
  *
  * \param[in] d MakerNote data
  * \param[in] n index of the entry within the MakerNote data
- * \return textual name of the tag or NULL on error
+ * \return textual name of the tag
  */
 const char  *exif_mnote_data_get_title       (ExifMnoteData *d, unsigned int n);
 
@@ -95,7 +95,7 @@ const char  *exif_mnote_data_get_title       (ExifMnoteData *d, unsigned int n);
  *
  * \param[in] d MakerNote data
  * \param[in] n index of the entry within the MakerNote data
- * \return textual description of the tag or NULL on error
+ * \return textual description of the tag
  */
 const char  *exif_mnote_data_get_description (ExifMnoteData *d, unsigned int n);
 
@@ -119,4 +119,4 @@ void exif_mnote_data_log (ExifMnoteData *, ExifLog *);
 }
 #endif /* __cplusplus */
 
-#endif /* !defined(LIBEXIF_EXIF_MNOTE_DATA_H) */
+#endif /* __EXIF_MNOTE_DATA_H__ */

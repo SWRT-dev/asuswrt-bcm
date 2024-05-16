@@ -1,14 +1,10 @@
-c: Copyright (C) 1998 - 2022, Daniel Stenberg, <daniel@haxx.se>, et al.
-SPDX-License-Identifier: curl
 Long: config
 Arg: <file>
 Help: Read config from a file
 Short: K
 Category: curl
-Example: --config file.txt $URL
-Added: 4.10
-See-also: disable
 ---
+
 Specify a text file to read curl arguments from. The command line arguments
 found in the text file will be used as if they were provided on the command
 line.
@@ -38,40 +34,38 @@ line. So, it could look similar to this:
 
 url = "https://curl.se/docs/"
 
- # --- Example file ---
- # this is a comment
- url = "example.com"
- output = "curlhere.html"
- user-agent = "superagent/1.0"
-
- # and fetch another URL too
- url = "example.com/docs/manpage.html"
- -O
- referer = "http://nowhereatall.example.com/"
- # --- End of example file ---
-
 When curl is invoked, it (unless --disable is used) checks for a default
-config file and uses it if found, even when --config is used. The default
-config file is checked for in the following places in this order:
+config file and uses it if found. The default config file is checked for in
+the following places in this order:
 
-1) "$CURL_HOME/.curlrc"
+1) Use the CURL_HOME environment variable if set
 
-2) "$XDG_CONFIG_HOME/.curlrc" (Added in 7.73.0)
+2) Use the XDG_CONFIG_HOME environment variable if set (Added in 7.73.0)
 
-3) "$HOME/.curlrc"
+3) Use the HOME environment variable if set
 
-4) Windows: "%USERPROFILE%\\.curlrc"
+4) Non-windows: use getpwuid to find the home directory
 
-5) Windows: "%APPDATA%\\.curlrc"
+5) Windows: use APPDATA if set
 
-6) Windows: "%USERPROFILE%\\Application Data\\.curlrc"
+6) Windows: use "USERPROFILE\Application Data" if set
 
-7) Non-Windows: use getpwuid to find the home directory
+7) On windows, if there is no .curlrc file in the home dir, it checks for one
+in the same dir the curl executable is placed. On Unix-like systems, it will
+simply try to load .curlrc from the determined home dir.
 
-8) On Windows, if it finds no .curlrc file in the sequence described above, it
-checks for one in the same dir the curl executable is placed.
+.nf
+# --- Example file ---
+# this is a comment
+url = "example.com"
+output = "curlhere.html"
+user-agent = "superagent/1.0"
 
-On Windows two filenames are checked per location: .curlrc and _curlrc,
-preferring the former. Older versions on Windows checked for _curlrc only.
+# and fetch another URL too
+url = "example.com/docs/manpage.html"
+-O
+referer = "http://nowhereatall.example.com/"
+# --- End of example file ---
+.fi
 
 This option can be used multiple times to load multiple config files.

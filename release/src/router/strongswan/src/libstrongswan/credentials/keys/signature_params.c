@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2017 Tobias Brunner
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -191,7 +190,6 @@ bool signature_params_parse(chunk_t asn1, int level0,
 
 	oid = asn1_parse_algorithmIdentifier(asn1, level0, &parameters);
 	params->scheme = signature_scheme_from_oid(oid);
-	params->params = NULL;
 	switch (params->scheme)
 	{
 		case SIGN_UNKNOWN:
@@ -210,13 +208,7 @@ bool signature_params_parse(chunk_t asn1, int level0,
 			break;
 		}
 		default:
-			if (parameters.len &&
-				!chunk_equals(parameters, chunk_from_chars(0x05, 0x00)))
-			{
-				DBG1(DBG_IKE, "unexpected parameters for %N",
-					 signature_scheme_names, params->scheme);
-				return FALSE;
-			}
+			params->params = NULL;
 			break;
 	}
 	return TRUE;
@@ -330,11 +322,7 @@ bool rsa_pss_params_parse(chunk_t asn1, int level0, rsa_pss_params_t *params)
 			case RSASSA_PSS_PARAMS_SALT_LEN:
 				if (object.len)
 				{
-					params->salt_len = (ssize_t)asn1_parse_integer_uint64(object);
-					if (params->salt_len < 0)
-					{
-						goto end;
-					}
+					params->salt_len = (size_t)asn1_parse_integer_uint64(object);
 				}
 				break;
 			case RSASSA_PSS_PARAMS_TRAILER:
@@ -360,7 +348,6 @@ end:
 bool rsa_pss_params_build(rsa_pss_params_t *params, chunk_t *asn1)
 {
 	chunk_t hash = chunk_empty, mgf = chunk_empty, slen = chunk_empty;
-	chunk_t trfd = chunk_empty;
 	int alg;
 
 	if (params->hash != HASH_SHA1)
@@ -371,13 +358,6 @@ bool rsa_pss_params_build(rsa_pss_params_t *params, chunk_t *asn1)
 			return FALSE;
 		}
 		hash = asn1_algorithmIdentifier(alg);
-
-		/* set explicit trailerField with default value of 0x01 */
-		if (lib->settings->get_bool(lib->settings, "%s.rsa_pss_trailerfield",
-								FALSE, lib->ns))
-		{
-			trfd = asn1_integer("m", asn1_integer_from_uint64(0x01));
-		}
 	}
 	if (params->mgf1_hash != HASH_SHA1)
 	{	/* with MGF1-SHA1 we MUST omit the field */
@@ -400,10 +380,9 @@ bool rsa_pss_params_build(rsa_pss_params_t *params, chunk_t *asn1)
 	{
 		slen = asn1_integer("m", asn1_integer_from_uint64(params->salt_len));
 	}
-	*asn1 = asn1_wrap(ASN1_SEQUENCE, "mmmm",
+	*asn1 = asn1_wrap(ASN1_SEQUENCE, "mmm",
 				hash.len ? asn1_wrap(ASN1_CONTEXT_C_0, "m", hash) : chunk_empty,
-				mgf.len  ? asn1_wrap(ASN1_CONTEXT_C_1, "m", mgf)  : chunk_empty,
-				slen.len ? asn1_wrap(ASN1_CONTEXT_C_2, "m", slen) : chunk_empty,
-				trfd.len ? asn1_wrap(ASN1_CONTEXT_C_3, "m", trfd) : chunk_empty);
+				mgf.len ? asn1_wrap(ASN1_CONTEXT_C_1, "m", mgf) : chunk_empty,
+				slen.len ? asn1_wrap(ASN1_CONTEXT_C_2, "m", slen) : chunk_empty);
 	return TRUE;
 }

@@ -101,6 +101,8 @@ static int ast_write_header(AVFormatContext *s)
     avio_wb64(pb, 0);
     avio_wb32(pb, 0);
 
+    avio_flush(pb);
+
     return 0;
 }
 
@@ -178,6 +180,7 @@ static int ast_write_trailer(AVFormatContext *s)
         }
 
         avio_seek(pb, file_size, SEEK_SET);
+        avio_flush(pb);
     }
     return 0;
 }
@@ -207,5 +210,5 @@ AVOutputFormat ff_ast_muxer = {
     .write_packet      = ast_write_packet,
     .write_trailer     = ast_write_trailer,
     .priv_class        = &ast_muxer_class,
-    .codec_tag         = ff_ast_codec_tags_list,
+    .codec_tag         = (const AVCodecTag* const []){ff_codec_ast_tags, 0},
 };

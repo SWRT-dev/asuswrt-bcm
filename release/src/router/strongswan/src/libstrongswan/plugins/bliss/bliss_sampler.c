@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2014 Andreas Steffen
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -186,7 +185,7 @@ METHOD(bliss_sampler_t, gaussian, bool,
 				return FALSE;
 			}
 			if (x || y || u)
-			{
+			{ 
 				break;
 			}
 		}

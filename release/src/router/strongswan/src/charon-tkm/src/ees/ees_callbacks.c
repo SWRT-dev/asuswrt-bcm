@@ -1,8 +1,7 @@
 /*
  * Copyright (C) 2012-2014 Reto Buerki
  * Copyright (C) 2012 Adrian-Ken Rueegsegger
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -25,10 +24,8 @@
 
 void charon_esa_acquire(result_type *res, const sp_id_type sp_id)
 {
-	kernel_acquire_data_t data = {};
-
 	DBG1(DBG_KNL, "ees: acquire received for reqid %u", sp_id);
-	charon->kernel->acquire(charon->kernel, sp_id, &data);
+	charon->kernel->acquire(charon->kernel, sp_id, NULL, NULL);
 	*res = TKM_OK;
 }
 

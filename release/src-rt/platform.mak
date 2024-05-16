@@ -146,7 +146,7 @@ define platformRouterOptions
 		sed -i "/RTCONFIG_HAS_5G_2/d" $(1); \
 		echo "RTCONFIG_HAS_5G_2=y" >>$(1); \
 	fi; \
-	if [ "$(RTAX92U)" = "y" -o "$(GTAX11000)" = "y" -o "$(RTAX95Q)" = "y" -o "$(XT8PRO)" = "y" -o "$(BM68)" = "y" -o "$(XT8_V2)" = "y" ]; then \
+	if [ "$(RTAX92U)" = "y" -o "$(GTAX11000)" = "y" -o "$(RTAX95Q)" = "y" -o "$(XT8PRO)" = "y" -o "$(XT8_V2)" = "y" ]; then \
 		sed -i "/RTCONFIG_HAS_5G_2/d" $(1); \
 		echo "RTCONFIG_HAS_5G_2=y" >>$(1); \
 	fi; \
@@ -511,26 +511,19 @@ define platformKernelConfig
 					cp $(TOP_PLATFORM)/hnd_extra/prebuilt/bcmlibs.o $(HND_SRC)/bcmdrivers/broadcom/char/bcmlibs/impl1/bcmlibs$(PRBM_EXT).o ; \
 				fi; \
 				if [ "$(HND_ROUTER_AX_6756)" = "y" ]; then \
-					cp -f $(TOP_PLATFORM)/hnd_extra/prebuilt/archer.o $(HND_SRC)/bcmdrivers/broadcom/char/archer/impl1/ ; \
-					cp -f $(TOP_PLATFORM)/hnd_extra/prebuilt/bcmlibs.o $(HND_SRC)/bcmdrivers/broadcom/char/bcmlibs/impl1/ ; \
-					cp -f $(TOP_PLATFORM)/hnd_extra/prebuilt/bcm_bpm.o $(HND_SRC)/bcmdrivers/broadcom/char/bpm/impl1/ ; \
-					cp -f $(TOP_PLATFORM)/hnd_extra/prebuilt/chipinfo.o $(HND_SRC)/bcmdrivers/broadcom/char/chipinfo/impl1/ ; \
-					cp -f $(TOP_PLATFORM)/hnd_extra/prebuilt/bcm_cleds.o $(HND_SRC)/bcmdrivers/broadcom/char/cleds/impl1/ ; \
-					cp -f $(TOP_PLATFORM)/hnd_extra/prebuilt/cmdlist.o $(HND_SRC)/bcmdrivers/broadcom/char/cmdlist/impl1/ ; \
-					cp -f $(TOP_PLATFORM)/hnd_extra/prebuilt/bcm_ingqos.o $(HND_SRC)/bcmdrivers/broadcom/char/ingqos/impl1/ ; \
-					cp -f $(TOP_PLATFORM)/hnd_extra/prebuilt/otp.o $(HND_SRC)/bcmdrivers/broadcom/char/otp/impl1/ ; \
-					cp -f $(TOP_PLATFORM)/hnd_extra/prebuilt/pktflow.o $(HND_SRC)/bcmdrivers/broadcom/char/pktflow/impl1/ ; \
-					cp -f $(TOP_PLATFORM)/hnd_extra/prebuilt/pktrunner.o $(HND_SRC)/bcmdrivers/broadcom/char/pktrunner/impl2/ ;\
-					cp -f $(TOP_PLATFORM)/hnd_extra/prebuilt/pwrmngtd.o $(HND_SRC)/bcmdrivers/broadcom/char/pwrmngt/impl1/ ; \
-					cp -f $(TOP_PLATFORM)/hnd_extra/prebuilt/bcmvlan.o $(HND_SRC)/bcmdrivers/broadcom/char/vlan/impl1/ ; \
-					cp -f $(TOP_PLATFORM)/hnd_extra/prebuilt/wlcsm.o $(HND_SRC)/bcmdrivers/broadcom/char/wlcsm_ext/impl1/ ; \
-					cp -f $(TOP_PLATFORM)/hnd_extra/prebuilt/bcm_license.o $(HND_SRC)/bcmdrivers/broadcom/char/license/impl1/ ; \
-					cp -f $(TOP_PLATFORM)/hnd_extra/prebuilt/bcm_mpm.o $(HND_SRC)/bcmdrivers/broadcom/char/mpm/impl1/ ; \
-					if [ "$(BUILD_NAME)" = "GT10" ]; then \
-						cp -f $(TOP_PLATFORM)/hnd_extra/prebuilt/bcmepon.o $(HND_SRC)/bcmdrivers/broadcom/char/epon/impl2/ ; \
-						cp -f $(TOP_PLATFORM)/hnd_extra/prebuilt/bcm_pondrv.o $(HND_SRC)/bcmdrivers/broadcom/char/pon_drv/impl1/ ; \
-						cp -f $(TOP_PLATFORM)/hnd_extra/prebuilt/laser_dev.o $(HND_SRC)/bcmdrivers/broadcom/char/laser/impl2/ ; \
-					fi; \
+					cp $(TOP_PLATFORM)/hnd_extra/prebuilt/bcmlibs.o $(HND_SRC)/bcmdrivers/broadcom/char/bcmlibs/impl1/ ; \
+					cp $(TOP_PLATFORM)/hnd_extra/prebuilt/bcm_bpm.o $(HND_SRC)/bcmdrivers/broadcom/char/bpm/impl1/ ; \
+					cp $(TOP_PLATFORM)/hnd_extra/prebuilt/chipinfo.o $(HND_SRC)/bcmdrivers/broadcom/char/chipinfo/impl1/ ; \
+					cp $(TOP_PLATFORM)/hnd_extra/prebuilt/cmdlist.o $(HND_SRC)/bcmdrivers/broadcom/char/cmdlist/impl1/ ; \
+					cp $(TOP_PLATFORM)/hnd_extra/prebuilt/bcm_ingqos.o $(HND_SRC)/bcmdrivers/broadcom/char/ingqos/impl1/ ; \
+					cp $(TOP_PLATFORM)/hnd_extra/prebuilt/otp.o $(HND_SRC)/bcmdrivers/broadcom/char/otp/impl1/ ; \
+					cp $(TOP_PLATFORM)/hnd_extra/prebuilt/pktflow.o $(HND_SRC)/bcmdrivers/broadcom/char/pktflow/impl1/ ; \
+					cp $(TOP_PLATFORM)/hnd_extra/prebuilt/pktrunner.o $(HND_SRC)/bcmdrivers/broadcom/char/pktrunner/impl2/ ;\
+					cp $(TOP_PLATFORM)/hnd_extra/prebuilt/pwrmngtd.o $(HND_SRC)/bcmdrivers/broadcom/char/pwrmngt/impl1/ ; \
+					cp $(TOP_PLATFORM)/hnd_extra/prebuilt/bcmvlan.o $(HND_SRC)/bcmdrivers/broadcom/char/vlan/impl1/ ; \
+					cp $(TOP_PLATFORM)/hnd_extra/prebuilt/wlcsm.o $(HND_SRC)/bcmdrivers/broadcom/char/wlcsm_ext/impl1/ ; \
+					cp $(TOP_PLATFORM)/hnd_extra/prebuilt/bcm_license.o $(HND_SRC)/bcmdrivers/broadcom/char/license/impl1/ ; \
+					cp $(TOP_PLATFORM)/hnd_extra/prebuilt/bcm_mpm.o $(HND_SRC)/bcmdrivers/broadcom/char/mpm/impl1/ ; \
 				fi; \
 				cp $(TOP_PLATFORM)/hnd_extra/prebuilt/bcm63xx_flash.o $(HND_SRC)/bcmdrivers/opensource/char/board/bcm963xx/impl1/ ; \
 				cp $(TOP_PLATFORM)/hnd_extra/prebuilt/bcm63xx_gpio.o $(HND_SRC)/bcmdrivers/opensource/char/board/bcm963xx/impl1/ ; \
@@ -661,13 +654,8 @@ define platformKernelConfig
 		sed -i "/CONFIG_PRINTK_TIME/d" $(1); \
 		echo "CONFIG_PRINTK_TIME=y" >>$(1); \
 	fi; \
-	if [ "$(HND_ROUTER_AX_6756)" = "y" ]; then \
-		if [ "$(BUILD_NAME)" != "RT-AX3000N" ] && [ "$(BUILD_NAME)" != "XD4PRO" ] ; then \
-			sed -i "/CONFIG_BCM_BPM_DYNAMIC_PRCNT_MAX_BUF/d" $(1); \
-			echo "CONFIG_BCM_BPM_DYNAMIC_PRCNT_MAX_BUF=20" >>$(1); \
-		fi; \
-	fi; \
 	)
 endef
 
 export PARALLEL_BUILD := -j$(shell grep -c '^processor' /proc/cpuinfo)
+

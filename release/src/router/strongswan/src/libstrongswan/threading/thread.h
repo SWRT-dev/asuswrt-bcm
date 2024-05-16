@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2009 Tobias Brunner
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -110,7 +109,7 @@ u_int thread_current_id();
 
 /**
  * Push a function onto the current thread's cleanup handler stack.
- * The callback function is called whenever the thread is canceled, exits or
+ * The callback function is called whenever the thread is cancelled, exits or
  * thread_cleanup_pop is called with TRUE as execute argument.
  *
  * @param cleanup		function called on thread exit

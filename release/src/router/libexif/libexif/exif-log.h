@@ -20,8 +20,8 @@
  * Boston, MA  02110-1301  USA.
  */
 
-#ifndef LIBEXIF_EXIF_LOG_H
-#define LIBEXIF_EXIF_LOG_H
+#ifndef __EXIF_LOG_H__
+#define __EXIF_LOG_H__
 
 #ifdef __cplusplus
 extern "C" {
@@ -61,14 +61,14 @@ typedef enum {
 /*! Return a textual description of the given class of error log.
  *
  * \param[in] code logging message class
- * \return textual description of the log class, or NULL if unknown
+ * \return textual description of the log class
  */
 const char *exif_log_code_get_title   (ExifLogCode code);
 
 /*! Return a verbose description of the given class of error log.
  *
  * \param[in] code logging message class
- * \return verbose description of the log class, or NULL if unknown
+ * \return verbose description of the log class
  */
 const char *exif_log_code_get_message (ExifLogCode code);
 
@@ -113,4 +113,4 @@ void     exif_logv (ExifLog *log, ExifLogCode, const char *domain,
 }
 #endif /* __cplusplus */
 
-#endif /* !defined(LIBEXIF_EXIF_LOG_H) */
+#endif /* __EXIF_LOG_H__ */

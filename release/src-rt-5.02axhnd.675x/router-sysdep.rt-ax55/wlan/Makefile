@@ -42,18 +42,9 @@ DHD_WL_EXE=$(shell if [ "$(IMPL)" -ge 22 ]; then echo dhd/src/wl/exe; else echo 
 DHD_EXE=$(shell if [ "$(IMPL)" -ge 22 ]; then echo dhd/src; else echo dhd; fi ;)
 
 export SRCBASE=$(BUILD_DIR)/bcmdrivers/broadcom/net/wl/bcm9$(BRCM_CHIP)/$(WL_SRC_BASE)
-ifneq ($(strip $(HNDAPPS_IN_COMP)),)
-export TOP := $(BUILD_DIR)/bcmdrivers/broadcom/net/wl/impl$(IMPL)/$(HNDAPPS_BASE)
-export ALLSRCBASE :=$(BUILD_DIR)/bcmdrivers/broadcom/net/wl/impl$(IMPL)
-export WLSRCBASE :=$(BUILD_DIR)/bcmdrivers/broadcom/net/wl/impl$(IMPL)/main/src
-else
 export TOP=$(SRCBASE)/router
-endif
 export INSTALLDIR=$(INSTALL_DIR)
 export CFLAGS += -DDSLCPE -DDSLCPE_ENDIAN
-
-export TOP=$(SRCBASE)/router
-CFLAGS += -DWL_DEFAULT_NUM_SSID=$(BRCM_DEFAULT_NUM_MBSS)
 
 # contains e.g. WlGetDriverCfg.sh
 export APPS_UTILS_DIR := $(COMPDIR)/apps/utils
@@ -106,9 +97,12 @@ DSLCPE_WLAN_VERSION=cpe$(BRCM_VERSION).$(BRCM_VERSION)$(BRCM_RELEASE).$(DSLCPE_W
 CFLAGS += -DDSLCPE_WLAN_VERSION=\"$(DSLCPE_WLAN_VERSION)\"
 CFLAGS += $(BRCM_WERROR_CFLAGS)
 
+# WLMNGR2_APP = wlmngr2
 
-WLLIB_APPS = wlctl dhdctl
-WLLIBS += bcmwlshared bshared $(WLLIB_APPS)
+
+WLLIB_APPS = nvram wlctl dhdctl
+# WLLIBS += nvram bcmwlcrypto bcmwlshared bshared $(WLLIB_APPS)
+WLLIBS += nvram bcmwlshared bshared $(WLLIB_APPS)
 
 
 ROUTER_SHARED_DIR = $(BUILD_DIR)/bcmdrivers/broadcom/net/wl/bcm9$(BRCM_CHIP)$(WL_SRC_BASE)/router/shared
@@ -117,63 +111,21 @@ BCMCRYPTO_DIR = $(BUILD_DIR)/bcmdrivers/broadcom/net/wl/bcm9$(BRCM_CHIP)$(WL_SRC
 WLANAPP_DIRS = acsd epittcp libupnp wps ses wapi ias hspot_ap bsd ssd toad eventd aspmd appeventd utils dhd_monitor
 
 ifeq ($(strip $(BRCM_IKOS)),)
-# WLANAPP_DIRS += wlssk
+ifneq ($(strip $(BUILD_BRCM_UNFWLCFG)),)
+WLANAPP_DIRS += wlssk 
 ifneq ($(strip $(BUILD_BRCM_CMS)),)
 WLANAPP_DIRS += wlDiag
 endif
 export BUILD_BRCM_UNFWLCFG
-ifneq ($(strip $(BUILD_WLDATAELD)),)
-WLANAPP_DIRS += wldataeld
+else
+WLANAPP_DIRS += $(WLMNGR2_APP)
+# WLLIBS += wlcsm_dm
+EXTRA_LDFLAGS +=  -lwlcsm
+export EXTRA_LDFLAGS
 endif
 endif #BRCM_IKOS
 
-WLANAPP_DIRS += util scripts nvram
-
-ifneq ($(strip $(BUILD_RDKWIFI)),)
-
-ifneq ($(strip $(BUILD_BRCM_UNFWLCFG)),)
-ifneq ($(strip $(BUILD_BRCM_BDK)),)
-# Remove all mdm_cbk_* and bcm_*_hal libs from CMS_CORE_LIBS.  The local
-# Makefile will specify which mdm_cbk and hal libs it needs.
-MDM_CORE_LIBS := $(patsubst -lmdm_cbk_%,,$(CMS_CORE_LIBS))
-MDM_CORE_LIBS := $(patsubst -lbcm_%_hal,,$(MDM_CORE_LIBS))
-MDM_CORE_LIBS += -lmdm_cbk_wifi
-else
-MDM_CORE_LIBS := $(CMS_CORE_LIBS)
-endif
-UNFCFG_LIBS += -lcms_msg $(CMS_COMMON_LIBS) -lcms_dal -lcms_msg $(CMS_COMMON_LIBS) $(MDM_CORE_LIBS)
-UNFCFG_LIBS += -lstaged -ljson-c -lpthread -lbcm_util -lsys_util
- ifneq ($(strip $(BUILD_CUSTOMER)),)
-  UNFCFG_LIBS += -lwlmdm_customer
- else
-  UNFCFG_LIBS += -lwlmdm
- endif
-endif
-
-WLANAPP_DIRS += cmwifi hapdconf
-
-ifneq ($(strip $(RDK_BUILD)),)
-WLANAPP_DIRS += wifi_rdk_initd
-endif
-
-ifneq ($(strip $(BCM4906_504)),)
-WLANAPP_DIRS = scripts nvram
-endif
-
-cmwifi:
-	$(MAKE) -C $@ all install
-hapdconf:
-ifneq ($(strip $(BUILD_BRCM_HOSTAPD)),)
-	$(MAKE) -C ./components/router/hapdconf install BUILD_RDKWIFI=1  CONFIG_HOSTAPD=y EXTRA_LDFLAGS="$(UNFCFG_LIBS)"
-else
-	$(MAKE) -C ./components/router/hapdconf install BUILD_RDKWIFI=1 EXTRA_LDFLAGS="$(UNFCFG_LIBS)"
-endif
-
-wifi_rdk_initd:
-	$(MAKE) -C ./wifi_rdk_initd -f Bcmbuild.mk 
-
-
-endif
+WLANAPP_DIRS += util scripts
 #
 # We need to declare these directory names as phony targets,
 # otherwise make will think the directories themselves are
@@ -188,21 +140,13 @@ else
 endif
 
 
-$(WLANAPP_DIRS): $(WLLIBS) wlcsmdbg_tools
-
-wlcsmdbg_tools: 
-ifneq ($(strip $(WLCSM_DEBUG_TRACE)),)
-	$(MAKE) -C ./nvram wlcsmdbg_tools
-endif
+$(WLANAPP_DIRS): $(WLLIBS)
 
 ifneq ($(PREBUILT_BCMBIN),1)
 ifneq ($(strip $(WL_BASE)),)
 #when it is impl22 or above, it will instal www for wirless router. 
+#all: setuplink $(WLANAPP_DIRS) www_install
 all: setuplink $(WLANAPP_DIRS)
-
-www_install: | setuplink $(WLANAPP_DIRS) 
-
-$(WLANAPP_DIRS): | setuplink 
 else
 all: $(WLANAPP_DIRS)
 endif
@@ -232,10 +176,7 @@ endif
 endif
 	-rm -rf src
 	-rm -rf components
-ifneq ($(strip $(BUILD_RDKWIFI)),)
-	$(MAKE) -C $(BUILD_DIR)/userspace/private/libs/wlcsm BUILD_RDKWIFI_LIB=1 clean
-	-rm -rf ./cmwifi/wifi_hal
-endif
+	$(MAKE) -C wlcsm_dm clean
 	$(foreach dir, $(WLANAPP_DIRS) $(WLLIB_APPS) bshared $(ROUTER_SHARED_DIR) $(BCMCRYPTO_DIR), \
 	  if [ -e $(dir) ]; then \
 	   if [ -e $(dir)/Makefile.dslcpe ]; then \
@@ -419,14 +360,41 @@ epittcp:
 	@echo "skipping $@ (not configured)"
 endif
 
+
+#
+#nvram emulation
+#
+export BUILD_NVRAM=dynamic
+ifneq ($(strip $(BUILD_NVRAM)),)
+nvram:
+ifneq ($(PREBUILT_BCMBIN),1)
+	$(MAKE) -C $@ $(BUILD_NVRAM)
+else
+	-cp -f $(TOP_PLATFORM)/wlan/nvram/$(PRBM_DIR)/libnvram.so nvram/
+	-cp -f $(TOP_PLATFORM)/wlan/nvram/$(PRBM_DIR)/nvram nvram/
+	$(MAKE) -C $@ all
+endif
+else
+nvram:
+	@echo "skipping $@ (not configured)"
+endif
+
+ifneq ($(strip $(BUILD_BRCM_UNFWLCFG)),)
+unfnvram:
+	$(MAKE) -C $@ $(BUILD_BRCM_UNFWLCFG)
+else
+unfnvram:
+	@echo "skipping $@ (not configured)"
+endif
+
 scripts: 
 	$(MAKE) -C $@ install
 
-
-wlssk:
+$(WLMNGR2_APP): wlcsm_dm
 	$(MAKE) -C $@ all install
 
-wldataeld:
+
+wlssk:
 	$(MAKE) -C $@ all install
 
 util:
@@ -434,18 +402,6 @@ ifneq ($(PREBUILT_BCMBIN),1)
 	$(MAKE) -C $@ all install
 else
 	-cp -f $(TOP_PLATFORM)/wlan/util/$(PRBM_DIR)/nvramUpdate util/
-	$(MAKE) -C $@ install
-endif
-	install -d $(INSTALLDIR)/usr/sbin
-	install -m 755 $(APPS_UTILS_DIR)/WlGetDriverCfg.sh $(INSTALLDIR)/usr/sbin
-	install -m 755 $(APPS_UTILS_DIR)/WlGetDriverStats.sh $(INSTALLDIR)/usr/sbin
-
-nvram:
-ifneq ($(PREBUILT_BCMBIN),1)
-	# $(MAKE) -C $@ all install
-	$(MAKE) -C $@ dynamic install
-else
-	-cp -f $(TOP_PLATFORM)/wlan/nvram/$(PRBM_DIR)/libnvram.so nvram/
 	$(MAKE) -C $@ install
 endif
 
@@ -460,21 +416,18 @@ ifeq ($(strip $(BUILD_BRCM_UNFWLCFG)),)
 CFLAGS += -DDSLCPE_WLCSM_EXT
 export DSLCPE_WLCSM_EXT=1
 endif
+wlcsm_dm:
+	# "make regenerate_dm_files" first to avoid parallel compiling issue.
+	$(MAKE) -C $@ regenerate_dm_files
+	$(MAKE) -C $@ install 
 
 setuplink: 
-	mkdir -p  $(INSTALL_DIR)/webs
 	if [ ! -d src ]; then \
 	   ln -s $(BRCMDRIVERS_DIR)/broadcom/net/wl/impl$(IMPL)$(WL_SRC_BASE) src ; \
 	fi; \
 	if [ ! -d components ]; then \
 	   ln -s $(BRCMDRIVERS_DIR)/broadcom/net/wl/impl$(IMPL)$(WL_BASE)/components components ; \
 	fi
-ifneq ($(strip $(BUILD_RDKWIFI)),)
-	if [ ! -d cmwifi/wifi_hal ]; then \
-	   ln -sf $(BRCMDRIVERS_DIR)/broadcom/net/wl/bcm9$(BRCM_CHIP)/main/components/rdk/ccsp/hal/wifi/source/wifi ./cmwifi/wifi_hal; \
-	   ln -sf $(BRCMDRIVERS_DIR)/broadcom/net/wl/bcm9$(BRCM_CHIP)/cmwifi/libs/wlcsm ./cmwifi/wlcsm; \
-	fi
-endif
 
 wifi_apps: setuplink $(WLLIBS)
 	if [ -e src/router/Makefile.dslcpe ]; then \
@@ -759,10 +712,11 @@ endif
 
 www_install:
 ifeq ($(strip $(BRCM_IKOS)),)
-	mkdir -p  $(INSTALL_DIR)/webs/wlrouter
-	rm -rf $(INSTALL_DIR)/www
-	install -m 644 $(WLROUTER_PAGES) $(INSTALL_DIR)/webs/wlrouter
-	install -m 644 ./css/* $(INSTALL_DIR)/webs/wlrouter
+	@mkdir -p  $(INSTALL_DIR)/webs/wlrouter
+	@rm -rf $(INSTALL_DIR)/www
+	@install -m 644 $(WLROUTER_PAGES) $(INSTALL_DIR)/webs/wlrouter
+	@install -m 644 $(CURR_DIR)/$(WLMNGR2_APP)/style.css $(INSTALL_DIR)/webs/wlrouter
+	@install -m 644 $(CURR_DIR)/$(WLMNGR2_APP)/visstyle.css $(INSTALL_DIR)/webs/wlrouter
 else
 	@echo "No www for ikos"
 endif

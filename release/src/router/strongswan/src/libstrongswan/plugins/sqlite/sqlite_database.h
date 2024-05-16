@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2007-2008 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -27,7 +26,7 @@
 typedef struct sqlite_database_t sqlite_database_t;
 
 /**
- * sqlite database_t implementation.
+ * sqlite databse_t implementation.
  */
 struct sqlite_database_t {
 

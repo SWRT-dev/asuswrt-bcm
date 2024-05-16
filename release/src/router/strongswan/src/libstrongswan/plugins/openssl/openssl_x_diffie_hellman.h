@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2018 Tobias Brunner
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -27,12 +26,12 @@
 #include <library.h>
 
 /**
- * Creates a new key_exchange_t object.
+ * Creates a new diffie_hellman_t object.
  *
- * @param ke			key exchange method to use
+ * @param group			Diffie Hellman group number to use
  * @return				object, NULL if not supported
  */
-key_exchange_t *openssl_x_diffie_hellman_create(key_exchange_method_t ke);
+diffie_hellman_t *openssl_x_diffie_hellman_create(diffie_hellman_group_t group);
 
 #endif /** OPENSSL_X_DIFFIE_HELLMAN_H_ @}*/
 

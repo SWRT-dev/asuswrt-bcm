@@ -63,7 +63,7 @@ static int fill_data_min_max(const uint8_t *ptr8, FITSHeader *header, const uint
     int i, j;
 
     header->data_min = DBL_MAX;
-    header->data_max = -DBL_MAX;
+    header->data_max = DBL_MIN;
     switch (header->bitpix) {
 #define CASE_N(a, t, rd) \
     case a: \
@@ -143,7 +143,7 @@ static int fits_read_header(AVCodecContext *avctx, const uint8_t **ptr, FITSHead
 
     size = abs(header->bitpix) >> 3;
     for (i = 0; i < header->naxis; i++) {
-        if (size == 0 || header->naxisn[i] > SIZE_MAX / size) {
+        if (header->naxisn[i] > SIZE_MAX / size) {
             av_log(avctx, AV_LOG_ERROR, "unsupported size of FITS image");
             return AVERROR_INVALIDDATA;
         }
@@ -167,14 +167,6 @@ static int fits_read_header(AVCodecContext *avctx, const uint8_t **ptr, FITSHead
          */
         header->data_min = (header->data_min - header->bzero) / header->bscale;
         header->data_max = (header->data_max - header->bzero) / header->bscale;
-    }
-    if (!header->rgb && header->data_min >= header->data_max) {
-        if (header->data_min > header->data_max) {
-            av_log(avctx, AV_LOG_ERROR, "data min/max (%g %g) is invalid\n", header->data_min, header->data_max);
-            return AVERROR_INVALIDDATA;
-        }
-        av_log(avctx, AV_LOG_WARNING, "data min/max indicates a blank image\n");
-        header->data_max ++;
     }
 
     return 0;
@@ -264,13 +256,6 @@ static int fits_decode_frame(AVCodecContext *avctx, void *data, int *got_frame, 
             CASE_RGB(16, dst16, uint16_t, AV_RB16);
         }
     } else {
-        double scale = header.data_max - header.data_min;
-
-        if (scale <= 0 || !isfinite(scale)) {
-            scale = 1;
-        }
-        scale = 1/scale;
-
         switch (header.bitpix) {
 #define CASE_GRAY(cas, dst, type, t, rd) \
     case cas: \
@@ -279,7 +264,7 @@ static int fits_decode_frame(AVCodecContext *avctx, void *data, int *got_frame, 
             for (j = 0; j < avctx->width; j++) { \
                 t = rd; \
                 if (!header.blank_found || t != header.blank) { \
-                    *dst++ = lrint(((t - header.data_min) * ((1 << (sizeof(type) * 8)) - 1)) * scale); \
+                    *dst++ = ((t - header.data_min) * ((1 << (sizeof(type) * 8)) - 1)) / (header.data_max - header.data_min); \
                 } else { \
                     *dst++ = fitsctx->blank_val; \
                 } \

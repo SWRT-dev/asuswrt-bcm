@@ -2,8 +2,7 @@
  * Copyright (C) 2008-2017 Tobias Brunner
  * Copyright (C) 2007-2009 Martin Willi
  * Copyright (C) 2016 Andreas Steffen
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -43,7 +42,6 @@ ENUM(auth_rule_names, AUTH_RULE_IDENTITY, AUTH_HELPER_AC_CERT,
 	"RULE_EAP_VENDOR",
 	"RULE_XAUTH_BACKEND",
 	"RULE_XAUTH_IDENTITY",
-	"AUTH_RULE_CA_IDENTITY",
 	"RULE_CA_CERT",
 	"RULE_IM_CERT",
 	"RULE_SUBJECT_CERT",
@@ -90,7 +88,6 @@ static inline bool is_multi_value_rule(auth_rule_t type)
 		case AUTH_RULE_CRL_VALIDATION:
 		case AUTH_RULE_GROUP:
 		case AUTH_RULE_SUBJECT_CERT:
-		case AUTH_RULE_CA_IDENTITY:
 		case AUTH_RULE_CA_CERT:
 		case AUTH_RULE_IM_CERT:
 		case AUTH_RULE_CERT_POLICY:
@@ -229,7 +226,6 @@ static void init_entry(entry_t *this, auth_rule_t type, va_list args)
 		case AUTH_RULE_XAUTH_BACKEND:
 		case AUTH_RULE_XAUTH_IDENTITY:
 		case AUTH_RULE_GROUP:
-		case AUTH_RULE_CA_IDENTITY:
 		case AUTH_RULE_CA_CERT:
 		case AUTH_RULE_IM_CERT:
 		case AUTH_RULE_SUBJECT_CERT:
@@ -291,7 +287,6 @@ static bool entry_equals(entry_t *e1, entry_t *e2)
 			return c1->equals(c1, c2);
 		}
 		case AUTH_RULE_IDENTITY:
-		case AUTH_RULE_CA_IDENTITY:
 		case AUTH_RULE_EAP_IDENTITY:
 		case AUTH_RULE_AAA_IDENTITY:
 		case AUTH_RULE_XAUTH_IDENTITY:
@@ -330,7 +325,6 @@ static void destroy_entry_value(entry_t *entry)
 	switch (entry->type)
 	{
 		case AUTH_RULE_IDENTITY:
-		case AUTH_RULE_CA_IDENTITY:
 		case AUTH_RULE_EAP_IDENTITY:
 		case AUTH_RULE_AAA_IDENTITY:
 		case AUTH_RULE_GROUP:
@@ -412,7 +406,6 @@ static void replace(private_auth_cfg_t *this, entry_enumerator_t *enumerator,
 				entry->value = (void*)(uintptr_t)va_arg(args, u_int);
 				break;
 			case AUTH_RULE_IDENTITY:
-			case AUTH_RULE_CA_IDENTITY:
 			case AUTH_RULE_EAP_IDENTITY:
 			case AUTH_RULE_AAA_IDENTITY:
 			case AUTH_RULE_XAUTH_BACKEND:
@@ -493,7 +486,6 @@ METHOD(auth_cfg_t, get, void*,
 		case AUTH_RULE_CERT_VALIDATION_SUSPENDED:
 			return (void*)FALSE;
 		case AUTH_RULE_IDENTITY:
-		case AUTH_RULE_CA_IDENTITY:
 		case AUTH_RULE_EAP_IDENTITY:
 		case AUTH_RULE_AAA_IDENTITY:
 		case AUTH_RULE_XAUTH_BACKEND:
@@ -816,8 +808,8 @@ METHOD(auth_cfg_t, complies, bool,
 	enumerator_t *e1, *e2;
 	bool success = TRUE, group_match = FALSE;
 	bool ca_match = FALSE, cert_match = FALSE;
-	identification_t *require_group = NULL, *require_ca = NULL;
-	certificate_t *require_cert = NULL;
+	identification_t *require_group = NULL;
+	certificate_t *require_ca = NULL, *require_cert = NULL;
 	signature_params_t *ike_scheme = NULL, *scheme = NULL;
 	u_int strength = 0;
 	auth_rule_t t1, t2;
@@ -832,35 +824,16 @@ METHOD(auth_cfg_t, complies, bool,
 			case AUTH_RULE_CA_CERT:
 			case AUTH_RULE_IM_CERT:
 			{
-				certificate_t *cert, *ca;
-
-				/* for CA certs, a match of a single cert is sufficient */
-				ca = (certificate_t*)value;
-				require_ca = ca->get_subject(ca);
-
-				e2 = create_enumerator(this);
-				while (e2->enumerate(e2, &t2, &cert))
-				{
-					if ((t2 == AUTH_RULE_CA_CERT || t2 == AUTH_RULE_IM_CERT) &&
-						cert->equals(cert, ca))
-					{
-						ca_match = TRUE;
-					}
-				}
-				e2->destroy(e2);
-				break;
-			}
-			case AUTH_RULE_CA_IDENTITY:
-			{
 				certificate_t *cert;
 
-				require_ca = (identification_t*)value;
+				/* for CA certs, a match of a single cert is sufficient */
+				require_ca = (certificate_t*)value;
 
 				e2 = create_enumerator(this);
 				while (e2->enumerate(e2, &t2, &cert))
 				{
 					if ((t2 == AUTH_RULE_CA_CERT || t2 == AUTH_RULE_IM_CERT) &&
-						cert->has_subject(cert, require_ca))
+						cert->equals(cert, require_ca))
 					{
 						ca_match = TRUE;
 					}
@@ -1165,7 +1138,8 @@ METHOD(auth_cfg_t, complies, bool,
 		if (log_error)
 		{
 			DBG1(DBG_CFG, "constraint check failed: peer not "
-				 "authenticated by CA '%Y'", require_ca);
+				 "authenticated by CA '%Y'",
+				 require_ca->get_subject(require_ca));
 		}
 		return FALSE;
 	}
@@ -1231,7 +1205,6 @@ static void merge(private_auth_cfg_t *this, private_auth_cfg_t *other, bool copy
 					break;
 				}
 				case AUTH_RULE_IDENTITY:
-				case AUTH_RULE_CA_IDENTITY:
 				case AUTH_RULE_EAP_IDENTITY:
 				case AUTH_RULE_AAA_IDENTITY:
 				case AUTH_RULE_GROUP:
@@ -1364,7 +1337,6 @@ METHOD(auth_cfg_t, clone_, auth_cfg_t*,
 		switch (type)
 		{
 			case AUTH_RULE_IDENTITY:
-			case AUTH_RULE_CA_IDENTITY:
 			case AUTH_RULE_EAP_IDENTITY:
 			case AUTH_RULE_AAA_IDENTITY:
 			case AUTH_RULE_GROUP:

@@ -27,7 +27,6 @@
 #include "libavutil/fifo.h"
 
 #include "avcodec.h"
-#include "hwconfig.h"
 
 
 /**
@@ -118,8 +117,6 @@ typedef struct AmfContext {
     int                 tier;
 } AmfContext;
 
-extern const AVCodecHWConfigInternal *const ff_amfenc_hw_configs[];
-
 /**
 * Common encoder initization function
 */
@@ -132,6 +129,8 @@ int ff_amf_encode_close(AVCodecContext *avctx);
 /**
 * Ecoding one frame - common function for all AMF encoders
 */
+
+int ff_amf_send_frame(AVCodecContext *avctx, const AVFrame *frame);
 int ff_amf_receive_packet(AVCodecContext *avctx, AVPacket *avpkt);
 
 /**

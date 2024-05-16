@@ -1,7 +1,7 @@
 /*
  * Broadcom 53xx RoboSwitch device driver.
  *
- * Copyright (C) 2022, Broadcom. All Rights Reserved.
+ * Copyright (C) 2021, Broadcom. All Rights Reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -38,7 +38,7 @@
 #include <hndpmu.h>
 #ifdef BCMFA
 #include <etioctl.h>
-#endif
+#endif // endif
 
 #ifdef	BCMDBG
 #define	ET_ERROR(args)	printf args
@@ -1538,7 +1538,7 @@ robo_cpu_port_upd(robo_info_t *robo, pdesc_t *pdesc, int pdescsz)
 
 #if !defined(_CFE_) && defined(BCMFA)
 			pid = robo_fa_imp_port_upd(robo, port, pid, vid, pdescsz);
-#endif
+#endif // endif
 			if (strchr(port, FLAG_LAN) || strchr(port, FLAG_UNTAG)) {
 				/* Change it and return */
 				pdesc[pid].cpu = 1;
@@ -1994,7 +1994,7 @@ bcm_robo_config_vlan(robo_info_t *robo, uint8 *mac_addr)
 #ifndef	_CFE_
 #ifdef BCMFA
 			pid = robo_fa_imp_port_upd(robo, port, pid, vid, pdescsz);
-#endif
+#endif // endif
 			if ((!pdesc[pid].cpu && !strchr(port, FLAG_TAGGED)) ||
 			    (pdesc[pid].cpu && strchr(port, FLAG_UNTAG)))
 #endif /* !_CFE_ */
@@ -2303,7 +2303,7 @@ bcm_robo_enable_switch(robo_info_t *robo)
 			val8 |= 0x71;	/* Make it link by default. */
 			robo->ops->write_reg(robo, PAGE_CTRL, i, &val8, sizeof(val8));
 		}
-#endif
+#endif // endif
 
 		/* Find the first cpu port and do software override */
 		for (i = 0; i < pdescsz; i++) {

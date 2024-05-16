@@ -1,7 +1,7 @@
 /*
  * RoboSwitch setup functions
  *
- * Copyright (C) 2022, Broadcom. All Rights Reserved.
+ * Copyright (C) 2021, Broadcom. All Rights Reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -177,7 +177,7 @@ extern void robo_eee_advertise_init(robo_info_t *robo);
 extern void robo_fa_aux_init(robo_info_t *robo);
 extern void robo_fa_aux_enable(robo_info_t *robo, bool enable);
 extern void robo_fa_enable(robo_info_t *robo, bool on, bool bhdr);
-#endif
+#endif // endif
 
 extern void bcm_robo_check_gphy_reset(robo_info_t *robo, uint8 page, uint8 reg,
 	void *val, int len);

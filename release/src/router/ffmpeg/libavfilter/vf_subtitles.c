@@ -66,10 +66,10 @@ typedef struct AssContext {
 #define FLAGS AV_OPT_FLAG_FILTERING_PARAM|AV_OPT_FLAG_VIDEO_PARAM
 
 #define COMMON_OPTIONS \
-    {"filename",       "set the filename of file to read",                         OFFSET(filename),   AV_OPT_TYPE_STRING,     {.str = NULL},  0, 0, FLAGS }, \
-    {"f",              "set the filename of file to read",                         OFFSET(filename),   AV_OPT_TYPE_STRING,     {.str = NULL},  0, 0, FLAGS }, \
-    {"original_size",  "set the size of the original video (used to scale fonts)", OFFSET(original_w), AV_OPT_TYPE_IMAGE_SIZE, {.str = NULL},  0, 0, FLAGS }, \
-    {"fontsdir",       "set the directory containing the fonts to read",           OFFSET(fontsdir),   AV_OPT_TYPE_STRING,     {.str = NULL},  0, 0, FLAGS }, \
+    {"filename",       "set the filename of file to read",                         OFFSET(filename),   AV_OPT_TYPE_STRING,     {.str = NULL},  CHAR_MIN, CHAR_MAX, FLAGS }, \
+    {"f",              "set the filename of file to read",                         OFFSET(filename),   AV_OPT_TYPE_STRING,     {.str = NULL},  CHAR_MIN, CHAR_MAX, FLAGS }, \
+    {"original_size",  "set the size of the original video (used to scale fonts)", OFFSET(original_w), AV_OPT_TYPE_IMAGE_SIZE, {.str = NULL},  CHAR_MIN, CHAR_MAX, FLAGS }, \
+    {"fontsdir",       "set the directory containing the fonts to read",           OFFSET(fontsdir),   AV_OPT_TYPE_STRING,     {.str = NULL},  CHAR_MIN, CHAR_MAX, FLAGS }, \
     {"alpha",          "enable processing of alpha channel",                       OFFSET(alpha),      AV_OPT_TYPE_BOOL,       {.i64 = 0   },         0,        1, FLAGS }, \
 
 /* libass supports a log level ranging from 0 to 7 */
@@ -145,16 +145,9 @@ static int config_input(AVFilterLink *inlink)
     ff_draw_init(&ass->draw, inlink->format, ass->alpha ? FF_DRAW_PROCESS_ALPHA : 0);
 
     ass_set_frame_size  (ass->renderer, inlink->w, inlink->h);
-    if (ass->original_w && ass->original_h) {
+    if (ass->original_w && ass->original_h)
         ass_set_aspect_ratio(ass->renderer, (double)inlink->w / inlink->h,
                              (double)ass->original_w / ass->original_h);
-#if LIBASS_VERSION > 0x01010000
-        ass_set_storage_size(ass->renderer, ass->original_w, ass->original_h);
-    } else {
-        ass_set_storage_size(ass->renderer, inlink->w, inlink->h);
-#endif
-    }
-
     if (ass->shaping != -1)
         ass_set_shaper(ass->renderer, ass->shaping);
 
@@ -270,10 +263,10 @@ AVFilter ff_vf_ass = {
 
 static const AVOption subtitles_options[] = {
     COMMON_OPTIONS
-    {"charenc",      "set input character encoding", OFFSET(charenc),      AV_OPT_TYPE_STRING, {.str = NULL}, 0, 0, FLAGS},
+    {"charenc",      "set input character encoding", OFFSET(charenc),      AV_OPT_TYPE_STRING, {.str = NULL}, CHAR_MIN, CHAR_MAX, FLAGS},
     {"stream_index", "set stream index",             OFFSET(stream_index), AV_OPT_TYPE_INT,    { .i64 = -1 }, -1,       INT_MAX,  FLAGS},
     {"si",           "set stream index",             OFFSET(stream_index), AV_OPT_TYPE_INT,    { .i64 = -1 }, -1,       INT_MAX,  FLAGS},
-    {"force_style",  "force subtitle style",         OFFSET(force_style),  AV_OPT_TYPE_STRING, {.str = NULL}, 0, 0, FLAGS},
+    {"force_style",  "force subtitle style",         OFFSET(force_style),  AV_OPT_TYPE_STRING, {.str = NULL}, CHAR_MIN, CHAR_MAX, FLAGS},
     {NULL},
 };
 
@@ -309,7 +302,7 @@ static av_cold int init_subtitles(AVFilterContext *ctx)
     AVDictionary *codec_opts = NULL;
     AVFormatContext *fmt = NULL;
     AVCodecContext *dec_ctx = NULL;
-    const AVCodec *dec;
+    AVCodec *dec = NULL;
     const AVCodecDescriptor *dec_desc;
     AVStream *st;
     AVPacket pkt;
@@ -391,25 +384,22 @@ static av_cold int init_subtitles(AVFilterContext *ctx)
     if (!dec) {
         av_log(ctx, AV_LOG_ERROR, "Failed to find subtitle codec %s\n",
                avcodec_get_name(st->codecpar->codec_id));
-        ret = AVERROR_DECODER_NOT_FOUND;
-        goto end;
+        return AVERROR(EINVAL);
     }
     dec_desc = avcodec_descriptor_get(st->codecpar->codec_id);
     if (dec_desc && !(dec_desc->props & AV_CODEC_PROP_TEXT_SUB)) {
         av_log(ctx, AV_LOG_ERROR,
                "Only text based subtitles are currently supported\n");
-        ret = AVERROR_PATCHWELCOME;
-        goto end;
+        return AVERROR_PATCHWELCOME;
     }
     if (ass->charenc)
         av_dict_set(&codec_opts, "sub_charenc", ass->charenc, 0);
-    av_dict_set(&codec_opts, "sub_text_format", "ass", 0);
+    if (LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(57,26,100))
+        av_dict_set(&codec_opts, "sub_text_format", "ass", 0);
 
     dec_ctx = avcodec_alloc_context3(dec);
-    if (!dec_ctx) {
-        ret = AVERROR(ENOMEM);
-        goto end;
-    }
+    if (!dec_ctx)
+        return AVERROR(ENOMEM);
 
     ret = avcodec_parameters_to_context(dec_ctx, st->codecpar);
     if (ret < 0)
@@ -455,6 +445,9 @@ static av_cold int init_subtitles(AVFilterContext *ctx)
         ass_process_codec_private(ass->track,
                                   dec_ctx->subtitle_header,
                                   dec_ctx->subtitle_header_size);
+    av_init_packet(&pkt);
+    pkt.data = NULL;
+    pkt.size = 0;
     while (av_read_frame(fmt, &pkt) >= 0) {
         int i, got_subtitle;
         AVSubtitle sub = {0};
@@ -471,8 +464,11 @@ static av_cold int init_subtitles(AVFilterContext *ctx)
                     char *ass_line = sub.rects[i]->ass;
                     if (!ass_line)
                         break;
-                    ass_process_chunk(ass->track, ass_line, strlen(ass_line),
-                                      start_time, duration);
+                    if (LIBAVCODEC_VERSION_INT < AV_VERSION_INT(57,25,100))
+                        ass_process_data(ass->track, ass_line, strlen(ass_line));
+                    else
+                        ass_process_chunk(ass->track, ass_line, strlen(ass_line),
+                                          start_time, duration);
                 }
             }
         }
@@ -482,6 +478,7 @@ static av_cold int init_subtitles(AVFilterContext *ctx)
 
 end:
     av_dict_free(&codec_opts);
+    avcodec_close(dec_ctx);
     avcodec_free_context(&dec_ctx);
     avformat_close_input(&fmt);
     return ret;

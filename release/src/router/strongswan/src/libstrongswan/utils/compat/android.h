@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2010-2015 Tobias Brunner
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -37,9 +36,6 @@
 
 #define HAVE_PTHREAD_CONDATTR_INIT 1
 #define HAVE_CONDATTR_CLOCK_MONOTONIC 1
-
-#undef TIME_CLOCK_ID
-#define TIME_CLOCK_ID CLOCK_REALTIME
 
 #define HAVE_SYS_CAPABILITY_H 1
 

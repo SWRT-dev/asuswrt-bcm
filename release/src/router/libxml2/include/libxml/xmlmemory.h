@@ -126,14 +126,12 @@ XMLPUBFUN int XMLCALL
 /*
  * Initialization of the memory layer.
  */
-XML_DEPRECATED
 XMLPUBFUN int XMLCALL
 	xmlInitMemory	(void);
 
 /*
  * Cleanup of the memory layer.
  */
-XML_DEPRECATED
 XMLPUBFUN void XMLCALL
                 xmlCleanupMemory        (void);
 /*

@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2011-2015 Andreas Steffen
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -54,7 +53,7 @@ struct pa_tnc_msg_t {
 	/**
 	 * Add a PA-TNC attribute
 	 *
-	 * @param attr				PA-TNC attribute to be added
+	 * @param attr				PA-TNC attribute to be addedd
 	 * @return					TRUE if attribute fit into message and was added
 	 */
 	bool (*add_attribute)(pa_tnc_msg_t *this, pa_tnc_attr_t* attr);

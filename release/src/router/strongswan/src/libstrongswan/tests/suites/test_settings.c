@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2014-2018 Tobias Brunner
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -199,13 +198,6 @@ START_TEST(test_set_default_str)
 	verify_string("added", "main.sub1.new");
 	settings->set_str(settings, "main.sub1.new", "changed");
 	verify_string("changed", "main.sub1.new");
-}
-END_TEST
-
-START_TEST(test_destroy_clear)
-{
-	/* just the most basic test as we can't reliably verify it works */
-	settings->destroy_clear(settings);
 }
 END_TEST
 
@@ -845,6 +837,7 @@ START_TEST(test_order_section)
 	unlink(include1);
 }
 END_TEST
+
 
 START_TEST(test_load_string)
 {
@@ -1659,11 +1652,6 @@ Suite *settings_suite_create()
 	tcase_add_test(tc, test_set_str);
 	tcase_add_test(tc, test_set_str_printf);
 	tcase_add_test(tc, test_set_default_str);
-	suite_add_tcase(s, tc);
-
-	tc = tcase_create("destroy_clear");
-	tcase_add_checked_fixture(tc, setup_base_config, NULL);
-	tcase_add_test(tc, test_destroy_clear);
 	suite_add_tcase(s, tc);
 
 	tc = tcase_create("get/set_bool");

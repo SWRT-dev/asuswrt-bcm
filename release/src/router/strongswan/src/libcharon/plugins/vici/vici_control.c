@@ -1,8 +1,9 @@
 /*
  * Copyright (C) 2015-2017 Tobias Brunner
- * Copyright (C) 2014 Martin Willi
+ * HSR Hochschule fuer Technik Rapperswil
  *
- * Copyright (C) secunet Security Networks AG
+ * Copyright (C) 2014 Martin Willi
+ * Copyright (C) 2014 revosec AG
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -137,7 +138,7 @@ static child_cfg_t* get_child_from_peer(peer_cfg_t *peer_cfg, char *name)
 }
 
 /**
- * Find a peer/child config from a config name
+ * Find a peer/child config from a child config name
  */
 static child_cfg_t* find_child_cfg(char *name, char *pname, peer_cfg_t **out)
 {
@@ -152,11 +153,6 @@ static child_cfg_t* find_child_cfg(char *name, char *pname, peer_cfg_t **out)
 		if (pname && !streq(pname, peer_cfg->get_name(peer_cfg)))
 		{
 			continue;
-		}
-		if (!name)
-		{
-			*out = peer_cfg->get_ref(peer_cfg);
-			break;
 		}
 		child_cfg = get_child_from_peer(peer_cfg, name);
 		if (child_cfg)
@@ -173,9 +169,9 @@ static child_cfg_t* find_child_cfg(char *name, char *pname, peer_cfg_t **out)
 CALLBACK(initiate, vici_message_t*,
 	private_vici_control_t *this, char *name, u_int id, vici_message_t *request)
 {
-	peer_cfg_t *peer_cfg = NULL;
-	child_cfg_t *child_cfg;
-	char *child, *ike, *type, *sa;
+	child_cfg_t *child_cfg = NULL;
+	peer_cfg_t *peer_cfg;
+	char *child, *ike;
 	int timeout;
 	bool limits;
 	controller_cb_t log_cb = NULL;
@@ -190,7 +186,7 @@ CALLBACK(initiate, vici_message_t*,
 	limits = request->get_bool(request, FALSE, "init-limits");
 	log.level = request->get_int(request, 1, "loglevel");
 
-	if (!child && !ike)
+	if (!child)
 	{
 		return send_reply(this, "missing configuration name");
 	}
@@ -199,15 +195,12 @@ CALLBACK(initiate, vici_message_t*,
 		log_cb = (controller_cb_t)log_vici;
 	}
 
-	type = child ? "CHILD_SA" : "IKE_SA";
-	sa = child ?: ike;
+	DBG1(DBG_CFG, "vici initiate '%s'", child);
 
 	child_cfg = find_child_cfg(child, ike, &peer_cfg);
-
-	DBG1(DBG_CFG, "vici initiate %s '%s'", type, sa);
-	if (!peer_cfg)
+	if (!child_cfg)
 	{
-		return send_reply(this, "%s config '%s' not found", type, sa);
+		return send_reply(this, "CHILD_SA config '%s' not found", child);
 	}
 	switch (charon->controller->initiate(charon->controller, peer_cfg,
 									child_cfg, log_cb, &log, timeout, limits))
@@ -215,14 +208,14 @@ CALLBACK(initiate, vici_message_t*,
 		case SUCCESS:
 			return send_reply(this, NULL);
 		case OUT_OF_RES:
-			return send_reply(this, "%s '%s' not established after %dms", type,
-							  sa, timeout);
+			return send_reply(this, "CHILD_SA '%s' not established after %dms",
+							  child, timeout);
 		case INVALID_STATE:
-			return send_reply(this, "establishing %s '%s' not possible at the "
-							  "moment due to limits", type, sa);
+			return send_reply(this, "establishing CHILD_SA '%s' not possible "
+							  "at the moment due to limits", child);
 		case FAILED:
 		default:
-			return send_reply(this, "establishing %s '%s' failed", type, sa);
+			return send_reply(this, "establishing CHILD_SA '%s' failed", child);
 	}
 }
 

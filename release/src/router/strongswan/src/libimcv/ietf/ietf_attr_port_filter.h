@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2011-2015 Andreas Steffen
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,7 +14,7 @@
  */
 
 /**
- * @defgroup ietf_attr_port_filter ietf_attr_port_filter
+ * @defgroup ietf_attr_port_filtert ietf_attr_port_filter
  * @{ @ingroup ietf_attr
  */
 

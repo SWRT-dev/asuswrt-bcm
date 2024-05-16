@@ -20,8 +20,8 @@
  * Boston, MA  02110-1301  USA.
  */
 
-#ifndef LIBEXIF_EXIF_ENTRY_H
-#define LIBEXIF_EXIF_ENTRY_H
+#ifndef __EXIF_ENTRY_H__
+#define __EXIF_ENTRY_H__
 
 #ifdef __cplusplus
 extern "C" {
@@ -156,8 +156,7 @@ void        exif_entry_fix        (ExifEntry *entry);
  *          supported.
  *
  * \param[in] entry EXIF entry
- * \param[out] val buffer in which to store value; if entry is valid and
- *   maxlen > 0 then this string will be NUL-terminated
+ * \param[out] val buffer in which to store value
  * \param[in] maxlen length of the buffer val
  * \return val pointer
  */
@@ -183,4 +182,4 @@ void        exif_entry_dump      (ExifEntry *entry, unsigned int indent);
 }
 #endif /* __cplusplus */
 
-#endif /* !defined(LIBEXIF_EXIF_ENTRY_H) */
+#endif /* __EXIF_ENTRY_H__ */

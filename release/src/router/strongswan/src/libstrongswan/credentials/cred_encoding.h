@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2009 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -202,16 +201,14 @@ struct cred_encoding_t {
 	 * Cache a credential encoding created externally.
 	 *
 	 * After calling cache(), the passed encoding is owned by the cred encoding
-	 * facility.  Note that if there already is a cached encoding for the same
-	 * key, the method will return that and free the passed value.
+	 * facility.
 	 *
 	 * @param type			format of the credential encoding
 	 * @param cache			key to use for caching, as given to encode()
-	 * @param encoding		encoding to cache, gets adopted, might get replaced
-	 *						with cached value
+	 * @param encoding		encoding to cache, gets owned by this
 	 */
 	void (*cache)(cred_encoding_t *this, cred_encoding_type_t type, void *cache,
-				  chunk_t *encoding);
+				  chunk_t encoding);
 
 	/**
 	 * Register a credential encoder function.

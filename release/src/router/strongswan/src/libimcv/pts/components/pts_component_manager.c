@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2011-2012 Andreas Steffen
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -51,7 +50,7 @@ struct vendor_entry_t {
 	char *qualifier_flag_names;
 
 	/**
-	 * Vendor-specific size of Qualifier Type field
+	 * Vendor-specific size of Qualfiier Type field
 	 */
 	int qualifier_type_size;
 

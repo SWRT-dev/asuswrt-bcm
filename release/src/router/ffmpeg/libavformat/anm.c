@@ -47,7 +47,7 @@ typedef struct AnmDemuxContext {
 #define LPF_TAG  MKTAG('L','P','F',' ')
 #define ANIM_TAG MKTAG('A','N','I','M')
 
-static int probe(const AVProbeData *p)
+static int probe(AVProbeData *p)
 {
     /* verify tags and video dimensions */
     if (AV_RL32(&p->buf[0])  == LPF_TAG &&
@@ -132,7 +132,12 @@ static int read_header(AVFormatContext *s)
     avio_skip(pb, 58);
 
     /* color cycling and palette data */
-    ret = ff_get_extradata(s, st->codecpar, s->pb, 16*8 + 4*256);
+    st->codecpar->extradata_size = 16*8 + 4*256;
+    st->codecpar->extradata      = av_mallocz(st->codecpar->extradata_size + AV_INPUT_BUFFER_PADDING_SIZE);
+    if (!st->codecpar->extradata) {
+        return AVERROR(ENOMEM);
+    }
+    ret = avio_read(pb, st->codecpar->extradata, st->codecpar->extradata_size);
     if (ret < 0)
         return ret;
 

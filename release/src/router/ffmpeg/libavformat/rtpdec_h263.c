@@ -30,7 +30,7 @@ int ff_h263_handle_packet(AVFormatContext *ctx, PayloadContext *data,
 {
     uint8_t *ptr;
     uint16_t header;
-    int startcode, vrc, picture_header, ret;
+    int startcode, vrc, picture_header;
 
     if (len < 2) {
         av_log(ctx, AV_LOG_ERROR, "Too short H.263 RTP packet\n");
@@ -73,9 +73,9 @@ int ff_h263_handle_packet(AVFormatContext *ctx, PayloadContext *data,
         return AVERROR_INVALIDDATA;
     }
 
-    if ((ret = av_new_packet(pkt, len + startcode)) < 0) {
+    if (av_new_packet(pkt, len + startcode)) {
         av_log(ctx, AV_LOG_ERROR, "Out of memory\n");
-        return ret;
+        return AVERROR(ENOMEM);
     }
     pkt->stream_index = st->index;
     ptr = pkt->data;

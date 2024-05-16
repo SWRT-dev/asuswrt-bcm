@@ -1,17 +1,20 @@
 /*
- * runxmlconf.c: C program to run XML W3C conformance testsuites
+ * runsuite.c: C program to run libxml2 againts published testsuites
  *
  * See Copyright for the status of this software.
  *
  * daniel@veillard.com
  */
 
+#ifdef HAVE_CONFIG_H
 #include "libxml.h"
+#else
 #include <stdio.h>
+#endif
 
 #ifdef LIBXML_XPATH_ENABLED
 
-#if !defined(_WIN32)
+#if !defined(_WIN32) || defined(__CYGWIN__)
 #include <unistd.h>
 #endif
 #include <string.h>
@@ -34,6 +37,13 @@ static int verbose = 0;
 
 #define NB_EXPECTED_ERRORS 15
 
+#if defined(_WIN32) && !defined(__CYGWIN__)
+
+#define vsnprintf _vsnprintf
+
+#define snprintf _snprintf
+
+#endif
 
 const char *skipped_tests[] = {
 /* http://lists.w3.org/Archives/Public/public-xml-testsuite/2008Jul/0000.html */
@@ -53,7 +63,7 @@ static int checkTestFile(const char *filename) {
     if (stat(filename, &buf) == -1)
         return(0);
 
-#if defined(_WIN32)
+#if defined(_WIN32) && !defined(__CYGWIN__)
     if (!(buf.st_mode & _S_IFREG))
         return(0);
 #else
@@ -164,8 +174,8 @@ initializeLibxml2(void) {
     * Deactivate the cache if created; otherwise we have to create/free it
     * for every test, since it will confuse the memory leak detection.
     * Note that normally this need not be done, since the cache is not
-    * created until set explicitly with xmlXPathContextSetCache();
-    * but for test purposes it is sometimes useful to activate the
+    * created until set explicitely with xmlXPathContextSetCache();
+    * but for test purposes it is sometimes usefull to activate the
     * cache by default for the whole library.
     */
     if (ctxtXPath->cache != NULL)
@@ -248,7 +258,7 @@ xmlconfTestNotNSWF(const char *id, const char *filename, int options) {
 
     /*
      * In case of Namespace errors, libxml2 will still parse the document
-     * but log a Namespace error.
+     * but log a Namesapce error.
      */
     doc = xmlReadFile(filename, NULL, options);
     if (doc == NULL) {
@@ -383,7 +393,7 @@ xmlconfTestItem(xmlDocPtr doc, xmlNodePtr cur) {
     if (xmlStrEqual(type, BAD_CAST "not-wf")) {
         if (nstest == 0)
 	    xmlconfTestNotWF((char *) id, (char *) filename, options);
-        else
+        else 
 	    xmlconfTestNotNSWF((char *) id, (char *) filename, options);
     } else if (xmlStrEqual(type, BAD_CAST "valid")) {
         options |= XML_PARSE_DTDVALID;
@@ -506,8 +516,8 @@ static void
 xmlconfInfo(void) {
     fprintf(stderr, "  you need to fetch and extract the\n");
     fprintf(stderr, "  latest XML Conformance Test Suites\n");
-    fprintf(stderr, "  http://www.w3.org/XML/Test/xmlts20080827.tar.gz\n");
-    fprintf(stderr, "  see http://www.w3.org/XML/Test/ for information\n");
+    fprintf(stderr, "  http://www.w3.org/XML/Test/xmlts20080205.tar.gz\n");
+    fprintf(stderr, "  see http://www.w3.org/XML/Test/ for informations\n");
 }
 
 static int
@@ -601,7 +611,7 @@ main(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED) {
 #else /* ! LIBXML_XPATH_ENABLED */
 #include <stdio.h>
 int
-main(int argc ATTRIBUTE_UNUSED, char **argv) {
+main(int argc, char **argv) {
     fprintf(stderr, "%s need XPath support\n", argv[0]);
 }
 #endif

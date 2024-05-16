@@ -37,7 +37,7 @@ typedef struct {
     AVRational frame_rate;
 } AQTitleContext;
 
-static int aqt_probe(const AVProbeData *p)
+static int aqt_probe(AVProbeData *p)
 {
     int frame;
     const char *ptr = p->buf;
@@ -74,19 +74,18 @@ static int aqt_read_header(AVFormatContext *s)
             new_event = 1;
             pos = avio_tell(s->pb);
             if (sub) {
-                if (frame >= sub->pts && (uint64_t)frame - sub->pts < INT64_MAX)
-                    sub->duration = frame - sub->pts;
+                sub->duration = frame - sub->pts;
                 sub = NULL;
             }
         } else if (*line) {
             if (!new_event) {
                 sub = ff_subtitles_queue_insert(&aqt->q, "\n", 1, 1);
                 if (!sub)
-                    goto fail;
+                    return AVERROR(ENOMEM);
             }
             sub = ff_subtitles_queue_insert(&aqt->q, line, strlen(line), !new_event);
             if (!sub)
-                goto fail;
+                return AVERROR(ENOMEM);
             if (new_event) {
                 sub->pts = frame;
                 sub->duration = -1;
@@ -98,9 +97,6 @@ static int aqt_read_header(AVFormatContext *s)
 
     ff_subtitles_queue_finalize(s, &aqt->q);
     return 0;
-fail:
-    ff_subtitles_queue_clean(&aqt->q);
-    return AVERROR(ENOMEM);
 }
 
 static int aqt_read_packet(AVFormatContext *s, AVPacket *pkt)

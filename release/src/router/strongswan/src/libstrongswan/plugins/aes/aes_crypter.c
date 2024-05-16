@@ -2,6 +2,7 @@
  * Copyright (C) 2001 Dr B. R. Gladman <brg@gladman.uk.net>
  * Copyright (C) 2005-2006 Martin Willi
  * Copyright (C) 2005 Jan Hutter
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -69,11 +70,6 @@ struct private_aes_crypter_t {
 	* Key size of this AES cypher object.
 	*/
 	uint32_t key_size;
-
-	/**
-	* Does AES mode require an IV
-	*/
-	bool has_iv;
 };
 
 /**
@@ -515,7 +511,7 @@ static const uint32_t im_tab[4][256] =
 
 #define nc   (AES_BLOCK_SIZE/4)
 
-// Initialize the key schedule from the user supplied key. The key
+// Initialise the key schedule from the user supplied key. The key
 // length is now specified in bytes - 16, 24 or 32 as appropriate.
 // This corresponds to bit lengths of 128, 192 and 256 bits, and
 // to Nk values of 4, 6 and 8 respectively.
@@ -808,29 +804,26 @@ METHOD(crypter_t, decrypt, bool,
 	in = data.ptr;
 
 	pos = data.len-16;
-	in  += pos;
+	in += pos;
 	out += pos;
 	while (pos >= 0)
 	{
 		decrypt_block(this, in, out);
-		if (this->has_iv)
+		if (pos==0)
 		{
-			if (pos == 0)
-			{
-				iv_i = (const uint32_t*) (iv.ptr);
-			}
-			else
-			{
-				iv_i = (const uint32_t*) (in-16);
-			}
-			*((uint32_t *)(&out[ 0])) ^= iv_i[0];
-			*((uint32_t *)(&out[ 4])) ^= iv_i[1];
-			*((uint32_t *)(&out[ 8])) ^= iv_i[2];
-			*((uint32_t *)(&out[12])) ^= iv_i[3];
+			iv_i=(const uint32_t*) (iv.ptr);
 		}
-		in-=  16;
-		out-= 16;
-		pos-= 16;
+		else
+		{
+			iv_i=(const uint32_t*) (in-16);
+		}
+		*((uint32_t *)(&out[ 0])) ^= iv_i[0];
+		*((uint32_t *)(&out[ 4])) ^= iv_i[1];
+		*((uint32_t *)(&out[ 8])) ^= iv_i[2];
+		*((uint32_t *)(&out[12])) ^= iv_i[3];
+		in-=16;
+		out-=16;
+		pos-=16;
 	}
 	return TRUE;
 }
@@ -842,7 +835,7 @@ METHOD(crypter_t, encrypt, bool,
 	const uint32_t *iv_i;
 	uint8_t *in, *out;
 
-	in  = data.ptr;
+	in = data.ptr;
 	out = data.ptr;
 	if (encrypted)
 	{
@@ -850,36 +843,25 @@ METHOD(crypter_t, encrypt, bool,
 		out = encrypted->ptr;
 	}
 
-	pos = 0;
-	while (pos < data.len)
+	pos=0;
+	while(pos<data.len)
 	{
-		if (this->has_iv)
+		if (pos==0)
 		{
-			if (pos == 0)
-			{
-				iv_i = (const uint32_t*) iv.ptr;
-			}
-			else
-			{
-				iv_i = (const uint32_t*) (out-16);
-			}
-			*((uint32_t *)(&out[ 0])) = iv_i[0]^*((const uint32_t *)(&in[ 0]));
-			*((uint32_t *)(&out[ 4])) = iv_i[1]^*((const uint32_t *)(&in[ 4]));
-			*((uint32_t *)(&out[ 8])) = iv_i[2]^*((const uint32_t *)(&in[ 8]));
-			*((uint32_t *)(&out[12])) = iv_i[3]^*((const uint32_t *)(&in[12]));
+			iv_i=(const uint32_t*) iv.ptr;
 		}
 		else
 		{
-			*((uint32_t *)(&out[ 0])) = *((const uint32_t *)(&in[ 0]));
-			*((uint32_t *)(&out[ 4])) = *((const uint32_t *)(&in[ 4]));
-			*((uint32_t *)(&out[ 8])) = *((const uint32_t *)(&in[ 8]));
-			*((uint32_t *)(&out[12])) = *((const uint32_t *)(&in[12]));
-
+			iv_i=(const uint32_t*) (out-16);
 		}
+		*((uint32_t *)(&out[ 0])) = iv_i[0]^*((const uint32_t *)(&in[ 0]));
+		*((uint32_t *)(&out[ 4])) = iv_i[1]^*((const uint32_t *)(&in[ 4]));
+		*((uint32_t *)(&out[ 8])) = iv_i[2]^*((const uint32_t *)(&in[ 8]));
+		*((uint32_t *)(&out[12])) = iv_i[3]^*((const uint32_t *)(&in[12]));
 		encrypt_block(this, out, out);
-		in+=  16;
-		out+= 16;
-		pos+= 16;
+		in+=16;
+		out+=16;
+		pos+=16;
 	}
 	return TRUE;
 }
@@ -893,7 +875,7 @@ METHOD(crypter_t, get_block_size, size_t,
 METHOD(crypter_t, get_iv_size, size_t,
 	private_aes_crypter_t *this)
 {
-	return this->has_iv ? AES_BLOCK_SIZE : 0;
+	return AES_BLOCK_SIZE;
 }
 
 METHOD(crypter_t, get_key_size, size_t,
@@ -996,20 +978,11 @@ METHOD(crypter_t, destroy, void,
 aes_crypter_t *aes_crypter_create(encryption_algorithm_t algo, size_t key_size)
 {
 	private_aes_crypter_t *this;
-	bool has_iv;
 
-	switch (algo)
+	if (algo != ENCR_AES_CBC)
 	{
-		case ENCR_AES_CBC:
-			has_iv = TRUE;
-			break;
-		case ENCR_AES_ECB:
-			has_iv = FALSE;
-			break;
-		default:
-			return NULL;
+		return NULL;
 	}
-
 	switch (key_size)
 	{
 		case 0:
@@ -1037,7 +1010,6 @@ aes_crypter_t *aes_crypter_create(encryption_algorithm_t algo, size_t key_size)
 		},
 		.key_size = key_size,
 		.aes_Nkey = key_size / 4,
-		.has_iv = has_iv,
 	);
 
 	return &this->public;

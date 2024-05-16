@@ -89,5 +89,4 @@ AVCodec ff_y41p_decoder = {
     .init         = y41p_decode_init,
     .decode       = y41p_decode_frame,
     .capabilities = AV_CODEC_CAP_DR1,
-    .caps_internal = FF_CODEC_CAP_INIT_THREADSAFE,
 };

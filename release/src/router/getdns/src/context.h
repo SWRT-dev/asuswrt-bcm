@@ -243,13 +243,15 @@ typedef struct getdns_upstream {
 	unsigned is_sync_loop : 1;
 
 	/* EDNS cookies */
-	uint8_t  server_cookie[40];
-	size_t   server_cookie_len;
-	
-	uint64_t                src_addr_checked;
-	struct sockaddr_storage src_addr;
-	socklen_t               src_addr_len;
-	char                    src_addr_str[INET6_ADDRSTRLEN];
+	uint32_t secret;
+	uint8_t  client_cookie[8];
+	uint8_t  prev_client_cookie[8];
+	uint8_t  server_cookie[32];
+
+	unsigned has_client_cookie : 1;
+	unsigned has_prev_client_cookie : 1;
+	unsigned has_server_cookie : 1;
+	unsigned server_cookie_len : 5;
 
 	/* TSIG */
 	uint8_t          tsig_dname[256];
@@ -325,7 +327,6 @@ struct getdns_context {
 	size_t               namespace_count;
 	uint64_t             timeout;
 	uint64_t             idle_timeout;
-	int                  tcp_send_timeout; /* -1 is unset */
 	getdns_redirects_t   follow_redirects;
 	getdns_list          *dns_root_servers;
 
@@ -397,7 +398,6 @@ struct getdns_context {
 
 	int processing;
 	int destroying;
-	int to_destroy;
 
 	struct mem_funcs mf;
 	struct mem_funcs my_mf;

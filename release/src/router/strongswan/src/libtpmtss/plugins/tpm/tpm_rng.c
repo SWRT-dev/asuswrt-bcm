@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2017 Andreas Steffen
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -76,7 +75,7 @@ tpm_rng_t *tpm_rng_create(rng_quality_t quality)
 	if (!tpm)
 	{
 		DBG1(DBG_LIB, "no TPM 2.0 found");
-		return NULL;
+		return NULL;	
 	}
 
 	INIT(this,

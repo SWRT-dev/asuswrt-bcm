@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2009-2011 Martin Willi
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -161,7 +160,7 @@ static uint32_t jhash(jhash_version_t version, uint32_t a, uint32_t b)
 }
 
 /**
- * Segment a calculated hash
+ * Segmentate a calculated hash
  */
 static u_int hash2segment(private_ha_kernel_t *this, uint64_t hash)
 {

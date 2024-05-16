@@ -8,7 +8,6 @@ listen {
 
 authorize {
   preprocess
-  suffix
   eap {
     ok = return
   }

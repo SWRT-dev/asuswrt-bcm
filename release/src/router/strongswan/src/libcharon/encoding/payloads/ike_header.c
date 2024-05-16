@@ -2,8 +2,7 @@
  * Copyright (C) 2007 Tobias Brunner
  * Copyright (C) 2005-2006 Martin Willi
  * Copyright (C) 2005 Jan Hutter
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -173,7 +172,7 @@ static encoding_rule_t encodings[] = {
 	{ FLAG,			offsetof(private_ike_header_t, flags.encryption)},
 	/* 4 Byte message id, stored in the field message_id */
 	{ U_INT_32,		offsetof(private_ike_header_t, message_id)		},
-	/* 4 Byte length field, stored in the field length */
+	/* 4 Byte length fied, stored in the field length */
 	{ HEADER_LENGTH,	offsetof(private_ike_header_t, length)			}
 };
 

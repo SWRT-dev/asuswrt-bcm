@@ -53,13 +53,8 @@ CFLAGS += -Werror
 # Implicit rule is $(CC) -c $(CPPFLAGS) $(CFLAGS)
 # See Section 10.2 of Gnu Make manual
 # 
-ifneq ($(wildcard prebuilt/libbdmf.so),)
-$(LIB):
-	cp prebuilt/libbdmf.so ./libbdmf.so
-else
 $(LIB): $(OBJS)
 	$(CC) -shared $(BCM_LD_FLAGS) -Wl,--whole-archive,-soname,$(notdir $@) -o $@ $(OBJS) -Wl,--no-whole-archive $(LOCAL_LDFLAGS)
-endif
 
 
 

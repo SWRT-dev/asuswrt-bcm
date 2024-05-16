@@ -68,14 +68,6 @@ int bcmNet_getRouteInfoToServer(const char *serverIp, char* intfName,
                                 char *intfIp, int *upSpeed, int *downSpeed);
 
 
-/* This function gets the uboot ipaddr/netmask environment parameters.
- * If the netmaks isn't specified, it will assigned it accordingly.
- * e.g.  192.168.1.x->255.255.255.0; 10.x.x.x->255.0.0.0; 172.x->255.240.0.0; others->255.255.0.0
- * If failed to get the values from uboot, it assigned the default setting which is 
- * 192.168.1.1/255.255.255.0
- */
-void bcmNet_getDefaultLanIpInfo(char *ipaddr, int iplen, char* netmask, int masklen);
-
 #if defined __cplusplus
 };
 #endif

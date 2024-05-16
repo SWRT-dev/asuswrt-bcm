@@ -5,7 +5,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 2016 - 2022, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 2016 - 2021, Daniel Stenberg, <daniel@haxx.se>, et al.
  * Copyright (C) 2014, Bill Nagel <wnagel@tycoint.com>, Exacq Technologies
  *
  * This software is licensed as described in the file COPYING, which
@@ -18,8 +18,6 @@
  *
  * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
  * KIND, either express or implied.
- *
- * SPDX-License-Identifier: curl
  *
  ***************************************************************************/
 
@@ -264,7 +262,7 @@ static CURLcode smb_connect(struct Curl_easy *data, bool *done)
   (void) done;
 
   /* Check we have a username and password to authenticate with */
-  if(!data->state.aptr.user)
+  if(!conn->bits.user_passwd)
     return CURLE_LOGIN_DENIED;
 
   /* Initialize the connection state */
@@ -301,7 +299,6 @@ static CURLcode smb_connect(struct Curl_easy *data, bool *done)
 static CURLcode smb_recv_message(struct Curl_easy *data, void **msg)
 {
   struct connectdata *conn = data->conn;
-  curl_socket_t sockfd = conn->sock[FIRSTSOCKET];
   struct smb_conn *smbc = &conn->proto.smbc;
   char *buf = smbc->recv_buf;
   ssize_t bytes_read;
@@ -310,7 +307,7 @@ static CURLcode smb_recv_message(struct Curl_easy *data, void **msg)
   size_t len = MAX_MESSAGE_SIZE - smbc->got;
   CURLcode result;
 
-  result = Curl_read(data, sockfd, buf + smbc->got, len, &bytes_read);
+  result = Curl_read(data, FIRSTSOCKET, buf + smbc->got, len, &bytes_read);
   if(result)
     return result;
 
@@ -380,12 +377,11 @@ static CURLcode smb_send(struct Curl_easy *data, ssize_t len,
                          size_t upload_size)
 {
   struct connectdata *conn = data->conn;
-  curl_socket_t sockfd = conn->sock[FIRSTSOCKET];
   struct smb_conn *smbc = &conn->proto.smbc;
   ssize_t bytes_written;
   CURLcode result;
 
-  result = Curl_write(data, sockfd, data->state.ulbuf,
+  result = Curl_write(data, FIRSTSOCKET, data->state.ulbuf,
                       len, &bytes_written);
   if(result)
     return result;
@@ -403,7 +399,6 @@ static CURLcode smb_send(struct Curl_easy *data, ssize_t len,
 static CURLcode smb_flush(struct Curl_easy *data)
 {
   struct connectdata *conn = data->conn;
-  curl_socket_t sockfd = conn->sock[FIRSTSOCKET];
   struct smb_conn *smbc = &conn->proto.smbc;
   ssize_t bytes_written;
   ssize_t len = smbc->send_size - smbc->sent;
@@ -412,7 +407,7 @@ static CURLcode smb_flush(struct Curl_easy *data)
   if(!smbc->send_size)
     return CURLE_OK;
 
-  result = Curl_write(data, sockfd,
+  result = Curl_write(data, FIRSTSOCKET,
                       data->state.ulbuf + smbc->sent,
                       len, &bytes_written);
   if(result)
@@ -464,10 +459,14 @@ static CURLcode smb_send_setup(struct Curl_easy *data)
   if(byte_count > sizeof(msg.bytes))
     return CURLE_FILESIZE_EXCEEDED;
 
-  Curl_ntlm_core_mk_lm_hash(conn->passwd, lm_hash);
+  Curl_ntlm_core_mk_lm_hash(data, conn->passwd, lm_hash);
   Curl_ntlm_core_lm_resp(lm_hash, smbc->challenge, lm);
-  Curl_ntlm_core_mk_nt_hash(conn->passwd, nt_hash);
+#ifdef USE_NTRESPONSES
+  Curl_ntlm_core_mk_nt_hash(data, conn->passwd, nt_hash);
   Curl_ntlm_core_lm_resp(nt_hash, smbc->challenge, nt);
+#else
+  memset(nt, 0, sizeof(nt));
+#endif
 
   memset(&msg, 0, sizeof(msg));
   msg.word_count = SMB_WC_SETUP_ANDX;
@@ -537,7 +536,7 @@ static CURLcode smb_send_open(struct Curl_easy *data)
   byte_count = strlen(req->path);
   msg.name_length = smb_swap16((unsigned short)byte_count);
   msg.share_access = smb_swap32(SMB_FILE_SHARE_ALL);
-  if(data->state.upload) {
+  if(data->set.upload) {
     msg.access = smb_swap32(SMB_GENERIC_READ | SMB_GENERIC_WRITE);
     msg.create_disposition = smb_swap32(SMB_FILE_OVERWRITE_IF);
   }
@@ -816,7 +815,7 @@ static CURLcode smb_request_state(struct Curl_easy *data, bool *done)
     smb_m = (const struct smb_nt_create_response*) msg;
     req->fid = smb_swap16(smb_m->fid);
     data->req.offset = 0;
-    if(data->state.upload) {
+    if(data->set.upload) {
       data->req.size = data->state.infilesize;
       Curl_pgrsSetUploadSize(data, data->req.size);
       next_state = SMB_UPLOAD;
@@ -990,7 +989,7 @@ static CURLcode smb_parse_url_path(struct Curl_easy *data,
   char *slash;
 
   /* URL decode the path */
-  CURLcode result = Curl_urldecode(data->state.up.path, 0, &path, NULL,
+  CURLcode result = Curl_urldecode(data, data->state.up.path, 0, &path, NULL,
                                    REJECT_CTRL);
   if(result)
     return result;

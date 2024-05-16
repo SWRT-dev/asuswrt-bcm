@@ -1,6 +1,8 @@
 winnetou::/etc/init.d/slapd start
-moon::systemctl start strongswan
-carol::systemctl start strongswan
+moon::iptables-restore < /etc/iptables.rules
+carol::iptables-restore < /etc/iptables.rules
+moon::ipsec start
+carol::ipsec start
 moon::expect-connection rw
 carol::expect-connection home
-carol::swanctl --initiate --child home 2> /dev/null
+carol::ipsec up home

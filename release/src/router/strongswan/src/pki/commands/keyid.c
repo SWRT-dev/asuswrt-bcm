@@ -1,8 +1,7 @@
 /*
  * Copyright (C) 2009 Martin Willi
  * Copyright (C) 2017 Andreas Steffen
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -22,46 +21,6 @@
 #include <credentials/certificates/certificate.h>
 #include <credentials/certificates/x509.h>
 
-typedef enum {
-		FORMAT_PRETTY,
-		FORMAT_HEX,
-		FORMAT_BASE64,
-		FORMAT_BINARY,
-} format_t;
-
-/**
- * Print a single keyid in the requested format
- */
-static bool print_id(chunk_t id, format_t format, char *desc)
-{
-	chunk_t chunk;
-
-	switch (format)
-	{
-		case FORMAT_PRETTY:
-			printf("%s:\n             %#B\n", desc, &id);
-			break;
-		case FORMAT_HEX:
-			chunk = chunk_to_hex(id, NULL, FALSE);
-			printf("%.*s\n", (int)chunk.len, chunk.ptr);
-			chunk_free(&chunk);
-			break;
-		case FORMAT_BASE64:
-			chunk = chunk_to_base64(id, NULL);
-			printf("%.*s\n", (int)chunk.len, chunk.ptr);
-			chunk_free(&chunk);
-			break;
-		case FORMAT_BINARY:
-			if (fwrite(id.ptr, id.len, 1, stdout) != 1)
-			{
-				fprintf(stderr, "writing %s failed\n", desc);
-				return FALSE;
-			}
-			break;
-	}
-	return TRUE;
-}
-
 /**
  * Calculate the keyid of a key/certificate
  */
@@ -72,15 +31,9 @@ static int keyid()
 	certificate_t *cert;
 	private_key_t *private;
 	public_key_t *public;
-	format_t format = FORMAT_PRETTY;
-	enum {
-		ID_TYPE_ALL,
-		ID_TYPE_SPK,
-		ID_TYPE_SPKI,
-	} id_type = ID_TYPE_ALL;
 	char *file = NULL, *keyid = NULL;
 	void *cred;
-	chunk_t id, spk = chunk_empty, spki = chunk_empty;
+	chunk_t id;
 	char *arg;
 
 	while (TRUE)
@@ -131,38 +84,6 @@ static int keyid()
 				else
 				{
 					return command_usage( "invalid input type");
-				}
-				continue;
-			case 'I':
-				if (streq(arg, "spk"))
-				{
-					id_type = ID_TYPE_SPK;
-				}
-				else if (streq(arg, "spki"))
-				{
-					id_type = ID_TYPE_SPKI;
-				}
-				else if (!streq(arg, "all"))
-				{
-					return command_usage( "invalid id type");
-				}
-				continue;
-			case 'f':
-				if (streq(arg, "hex"))
-				{
-					format = FORMAT_HEX;
-				}
-				else if (streq(arg, "base64"))
-				{
-					format = FORMAT_BASE64;
-				}
-				else if (streq(arg, "bin"))
-				{
-					format = FORMAT_BINARY;
-				}
-				else if (!streq(arg, "pretty"))
-				{
-					return command_usage( "invalid output format");
 				}
 				continue;
 			case 'i':
@@ -217,11 +138,11 @@ static int keyid()
 		private = cred;
 		if (private->get_fingerprint(private, KEYID_PUBKEY_SHA1, &id))
 		{
-			spk = chunk_clone(id);
+			printf("subjectKeyIdentifier:      %#B\n", &id);
 		}
 		if (private->get_fingerprint(private, KEYID_PUBKEY_INFO_SHA1, &id))
 		{
-			spki = chunk_clone(id);
+			printf("subjectPublicKeyInfo hash: %#B\n", &id);
 		}
 		private->destroy(private);
 	}
@@ -230,11 +151,11 @@ static int keyid()
 		public = cred;
 		if (public->get_fingerprint(public, KEYID_PUBKEY_SHA1, &id))
 		{
-			spk = chunk_clone(id);
+			printf("subjectKeyIdentifier:      %#B\n", &id);
 		}
 		if (public->get_fingerprint(public, KEYID_PUBKEY_INFO_SHA1, &id))
 		{
-			spki = chunk_clone(id);
+			printf("subjectPublicKeyInfo hash: %#B\n", &id);
 		}
 		public->destroy(public);
 	}
@@ -249,34 +170,15 @@ static int keyid()
 		}
 		if (public->get_fingerprint(public, KEYID_PUBKEY_SHA1, &id))
 		{
-			spk = chunk_clone(id);
+			printf("subjectKeyIdentifier:      %#B\n", &id);
 		}
 		if (public->get_fingerprint(public, KEYID_PUBKEY_INFO_SHA1, &id))
 		{
-			spki = chunk_clone(id);
+			printf("subjectPublicKeyInfo hash: %#B\n", &id);
 		}
 		public->destroy(public);
 		cert->destroy(cert);
 	}
-
-	if (id_type == ID_TYPE_ALL || id_type == ID_TYPE_SPK)
-	{
-		if (!spk.len ||
-			!print_id(spk, format, "subjkey (SHA-1 of subjectPublicKey)"))
-		{
-			return 1;
-		}
-	}
-	if (id_type == ID_TYPE_ALL || id_type == ID_TYPE_SPKI)
-	{
-		if (!spki.len ||
-			!print_id(spki, format, "keyid (SHA-1 of subjectPublicKeyInfo)"))
-		{
-			return 1;
-		}
-	}
-	chunk_free(&spk);
-	chunk_free(&spki);
 	return 0;
 }
 
@@ -288,15 +190,12 @@ static void __attribute__ ((constructor))reg()
 	command_register((command_t)
 		{ keyid, 'k', "keyid",
 		"calculate key identifiers of a key/certificate",
-		{"[--in file|--keyid hex] [--type priv|rsa|ecdsa|bliss|pub|pkcs10|x509]",
-		 "[--id all|spk|spki] [--format pretty|hex|base64|bin]"},
+		{"[--in file|--keyid hex] [--type priv|rsa|ecdsa|bliss|pub|pkcs10|x509]"},
 		{
 			{"help",	'h', 0, "show usage information"},
 			{"in",		'i', 1, "input file, default: stdin"},
 			{"keyid",	'x', 1, "smartcard or TPM private key object handle"},
 			{"type",	't', 1, "type of key, default: priv"},
-			{"id",		'I', 1, "type of identifier, default: all"},
-			{"format",	'f', 1, "output format, default: pretty"},
 		}
 	});
 }

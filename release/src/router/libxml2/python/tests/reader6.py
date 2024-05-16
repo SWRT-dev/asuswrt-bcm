@@ -1,15 +1,10 @@
-#!/usr/bin/env python
+#!/usr/bin/python -u
 #
 # this tests the entities substitutions with the XmlTextReader interface
 #
 import sys
+import StringIO
 import libxml2
-try:
-    import StringIO
-    str_io = StringIO.StringIO
-except:
-    import io
-    str_io = io.StringIO
 
 schema="""<element name="foo" xmlns="http://relaxng.org/ns/structure/1.0"
          datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
@@ -46,7 +41,7 @@ docstr="""<foo>
 <item>100</item>
 </foo>"""
 
-f = str_io(docstr)
+f = StringIO.StringIO(docstr)
 input = libxml2.inputBuffer(f)
 reader = input.newTextReader("correct")
 reader.RelaxNGSetSchema(rngs)
@@ -55,11 +50,11 @@ while ret == 1:
     ret = reader.Read()
 
 if ret != 0:
-    print("Error parsing the document")
+    print "Error parsing the document"
     sys.exit(1)
 
 if reader.IsValid() != 1:
-    print("Document failed to validate")
+    print "Document failed to validate"
     sys.exit(1)
 
 #
@@ -89,7 +84,7 @@ def callback(ctx, str):
     err = err + "%s" % (str)
 libxml2.registerErrorHandler(callback, "")
 
-f = str_io(docstr)
+f = StringIO.StringIO(docstr)
 input = libxml2.inputBuffer(f)
 reader = input.newTextReader("error")
 reader.RelaxNGSetSchema(rngs)
@@ -98,16 +93,16 @@ while ret == 1:
     ret = reader.Read()
 
 if ret != 0:
-    print("Error parsing the document")
+    print "Error parsing the document"
     sys.exit(1)
 
 if reader.IsValid() != 0:
-    print("Document failed to detect the validation error")
+    print "Document failed to detect the validation error"
     sys.exit(1)
 
 if err != expect:
-    print("Did not get the expected error message:")
-    print(err)
+    print "Did not get the expected error message:"
+    print err
     sys.exit(1)
 
 #
@@ -122,7 +117,7 @@ libxml2.relaxNGCleanupTypes()
 # Memory debug specific
 libxml2.cleanupParser()
 if libxml2.debugMemory(1) == 0:
-    print("OK")
+    print "OK"
 else:
-    print("Memory leak %d bytes" % (libxml2.debugMemory(1)))
+    print "Memory leak %d bytes" % (libxml2.debugMemory(1))
     libxml2.dumpMemory()

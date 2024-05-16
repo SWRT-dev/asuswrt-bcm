@@ -1,4 +1,4 @@
-/* dnsmasq is Copyright (c) 2000-2022 Simon Kelley
+/* dnsmasq is Copyright (c) 2000-2021 Simon Kelley
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -31,3 +31,4 @@
          && ((__const uint32_t *) (a))[1] == 0                                \
          && ((__const uint32_t *) (a))[2] == 0                                \
          && ((__const uint32_t *) (a))[3] == 0)
+

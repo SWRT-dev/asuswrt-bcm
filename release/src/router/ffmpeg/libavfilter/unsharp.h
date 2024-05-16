@@ -37,8 +37,7 @@ typedef struct UnsharpFilterParam {
     int steps_y;                             ///< vertical step count
     int scalebits;                           ///< bits to shift pixel
     int32_t halfscale;                       ///< amount to add to pixel
-    uint32_t *sr;        ///< finite state machine storage within a row
-    uint32_t **sc;       ///< finite state machine storage across rows
+    uint32_t *sc[MAX_MATRIX_SIZE - 1];       ///< finite state machine storage
 } UnsharpFilterParam;
 
 typedef struct UnsharpContext {
@@ -48,12 +47,8 @@ typedef struct UnsharpContext {
     UnsharpFilterParam luma;   ///< luma parameters (width, height, amount)
     UnsharpFilterParam chroma; ///< chroma parameters (width, height, amount)
     int hsub, vsub;
-    int bitdepth;
-    int bps;
-    int nb_threads;
     int opencl;
     int (* apply_unsharp)(AVFilterContext *ctx, AVFrame *in, AVFrame *out);
-    int (* unsharp_slice)(AVFilterContext *ctx, void *arg, int jobnr, int nb_jobs);
 } UnsharpContext;
 
 #endif /* AVFILTER_UNSHARP_H */

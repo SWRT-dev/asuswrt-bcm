@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2016 Andreas Steffen
- *
- * Copyright (C) secunet Security Networks AG
+ * HSR Hochschule fuer Technik Rapperswil
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -42,8 +41,8 @@ METHOD(plugin_t, get_features, int,
 	private_newhope_plugin_t *this, plugin_feature_t *features[])
 {
 	static plugin_feature_t f[] = {
-		PLUGIN_REGISTER(KE, newhope_ke_create),
-			PLUGIN_PROVIDE(KE, NH_128_BIT),
+		PLUGIN_REGISTER(DH, newhope_ke_create),
+			PLUGIN_PROVIDE(DH, NH_128_BIT),
 				PLUGIN_DEPENDS(XOF, XOF_SHAKE_128),
 				PLUGIN_DEPENDS(XOF, XOF_CHACHA20),
 	};

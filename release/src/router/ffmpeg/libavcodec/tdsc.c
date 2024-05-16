@@ -53,7 +53,6 @@ typedef struct TDSCContext {
     GetByteContext gbc;
 
     AVFrame *refframe;          // full decoded frame (without cursor)
-    AVPacket *jpkt;             // encoded JPEG tile
     AVFrame *jpgframe;          // decoded JPEG tile
     uint8_t *tilebuffer;        // buffer containing tile data
 
@@ -81,7 +80,6 @@ static av_cold int tdsc_close(AVCodecContext *avctx)
 
     av_frame_free(&ctx->refframe);
     av_frame_free(&ctx->jpgframe);
-    av_packet_free(&ctx->jpkt);
     av_freep(&ctx->deflatebuffer);
     av_freep(&ctx->tilebuffer);
     av_freep(&ctx->cursor);
@@ -113,8 +111,7 @@ static av_cold int tdsc_init(AVCodecContext *avctx)
     /* Allocate reference and JPEG frame */
     ctx->refframe = av_frame_alloc();
     ctx->jpgframe = av_frame_alloc();
-    ctx->jpkt     = av_packet_alloc();
-    if (!ctx->refframe || !ctx->jpgframe || !ctx->jpkt)
+    if (!ctx->refframe || !ctx->jpgframe)
         return AVERROR(ENOMEM);
 
     /* Prepare everything needed for JPEG decoding */
@@ -128,7 +125,7 @@ static av_cold int tdsc_init(AVCodecContext *avctx)
     ctx->jpeg_avctx->flags2 = avctx->flags2;
     ctx->jpeg_avctx->dct_algo = avctx->dct_algo;
     ctx->jpeg_avctx->idct_algo = avctx->idct_algo;
-    ret = avcodec_open2(ctx->jpeg_avctx, codec, NULL);
+    ret = ff_codec_open2_recursive(ctx->jpeg_avctx, codec, NULL);
     if (ret < 0)
         return ret;
 
@@ -190,7 +187,7 @@ static void tdsc_paint_cursor(AVCodecContext *avctx, uint8_t *dst, int stride)
 static int tdsc_load_cursor(AVCodecContext *avctx)
 {
     TDSCContext *ctx  = avctx->priv_data;
-    int i, j, k, ret, cursor_fmt;
+    int i, j, k, ret, bits, cursor_fmt;
     uint8_t *dst;
 
     ctx->cursor_hot_x = bytestream2_get_le16(&ctx->gbc);
@@ -234,7 +231,7 @@ static int tdsc_load_cursor(AVCodecContext *avctx)
     case CUR_FMT_MONO:
         for (j = 0; j < ctx->cursor_h; j++) {
             for (i = 0; i < ctx->cursor_w; i += 32) {
-                uint32_t bits = bytestream2_get_be32(&ctx->gbc);
+                bits = bytestream2_get_be32(&ctx->gbc);
                 for (k = 0; k < 32; k++) {
                     dst[0] = !!(bits & 0x80000000);
                     dst   += 4;
@@ -247,7 +244,7 @@ static int tdsc_load_cursor(AVCodecContext *avctx)
         dst = ctx->cursor;
         for (j = 0; j < ctx->cursor_h; j++) {
             for (i = 0; i < ctx->cursor_w; i += 32) {
-                uint32_t bits = bytestream2_get_be32(&ctx->gbc);
+                bits = bytestream2_get_be32(&ctx->gbc);
                 for (k = 0; k < 32; k++) {
                     int mask_bit = !!(bits & 0x80000000);
                     switch (dst[0] * 2 + mask_bit) {
@@ -345,14 +342,15 @@ static int tdsc_decode_jpeg_tile(AVCodecContext *avctx, int tile_size,
                                  int x, int y, int w, int h)
 {
     TDSCContext *ctx = avctx->priv_data;
+    AVPacket jpkt;
     int ret;
 
     /* Prepare a packet and send to the MJPEG decoder */
-    av_packet_unref(ctx->jpkt);
-    ctx->jpkt->data = ctx->tilebuffer;
-    ctx->jpkt->size = tile_size;
+    av_init_packet(&jpkt);
+    jpkt.data = ctx->tilebuffer;
+    jpkt.size = tile_size;
 
-    ret = avcodec_send_packet(ctx->jpeg_avctx, ctx->jpkt);
+    ret = avcodec_send_packet(ctx->jpeg_avctx, &jpkt);
     if (ret < 0) {
         av_log(avctx, AV_LOG_ERROR, "Error submitting a packet for decoding\n");
         return ret;
@@ -392,7 +390,7 @@ static int tdsc_decode_tiles(AVCodecContext *avctx, int number_tiles)
     for (i = 0; i < number_tiles; i++) {
         int tile_size;
         int tile_mode;
-        int x, y, x2, y2, w, h;
+        int x, y, w, h;
         int ret;
 
         if (bytestream2_get_bytes_left(&ctx->gbc) < 4 ||
@@ -410,19 +408,20 @@ static int tdsc_decode_tiles(AVCodecContext *avctx, int number_tiles)
         bytestream2_skip(&ctx->gbc, 4); // unknown
         x = bytestream2_get_le32(&ctx->gbc);
         y = bytestream2_get_le32(&ctx->gbc);
-        x2 = bytestream2_get_le32(&ctx->gbc);
-        y2 = bytestream2_get_le32(&ctx->gbc);
+        w = bytestream2_get_le32(&ctx->gbc) - x;
+        h = bytestream2_get_le32(&ctx->gbc) - y;
 
-        if (x < 0 || y < 0 || x2 <= x || y2 <= y ||
-            x2 > ctx->width || y2 > ctx->height
-        ) {
+        if (x >= ctx->width || y >= ctx->height) {
             av_log(avctx, AV_LOG_ERROR,
-                   "Invalid tile position (%d.%d %d.%d outside %dx%d).\n",
-                   x, y, x2, y2, ctx->width, ctx->height);
+                   "Invalid tile position (%d.%d outside %dx%d).\n",
+                   x, y, ctx->width, ctx->height);
             return AVERROR_INVALIDDATA;
         }
-        w = x2 - x;
-        h = y2 - y;
+        if (x + w > ctx->width || y + h > ctx->height) {
+            av_log(avctx, AV_LOG_ERROR,
+                   "Invalid tile size %dx%d\n", w, h);
+            return AVERROR_INVALIDDATA;
+        }
 
         ret = av_reallocp(&ctx->tilebuffer, tile_size);
         if (!ctx->tilebuffer)
@@ -485,7 +484,7 @@ static int tdsc_parse_tdsf(AVCodecContext *avctx, int number_tiles)
 
     /* Allocate the reference frame if not already done or on size change */
     if (init_refframe) {
-        ret = av_frame_get_buffer(ctx->refframe, 0);
+        ret = av_frame_get_buffer(ctx->refframe, 32);
         if (ret < 0)
             return ret;
     }
@@ -531,15 +530,10 @@ static int tdsc_decode_frame(AVCodecContext *avctx, void *data,
 
     /* Resize deflate buffer on resolution change */
     if (ctx->width != avctx->width || ctx->height != avctx->height) {
-        int deflatelen = avctx->width * avctx->height * (3 + 1);
-        if (deflatelen != ctx->deflatelen) {
-            ctx->deflatelen =deflatelen;
-            ret = av_reallocp(&ctx->deflatebuffer, ctx->deflatelen);
-            if (ret < 0) {
-                ctx->deflatelen = 0;
-                return ret;
-            }
-        }
+        ctx->deflatelen = avctx->width * avctx->height * (3 + 1);
+        ret = av_reallocp(&ctx->deflatebuffer, ctx->deflatelen);
+        if (ret < 0)
+            return ret;
     }
     dlen = ctx->deflatelen;
 

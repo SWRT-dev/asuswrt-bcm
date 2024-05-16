@@ -1,8 +1,9 @@
 /*
  * Copyright (C) 2013-2017 Tobias Brunner
- * Copyright (C) 2013 Martin Willi
+ * HSR Hochschule fuer Technik Rapperswil
  *
- * Copyright (C) secunet Security Networks AG
+ * Copyright (C) 2013 Martin Willi
+ * Copyright (C) 2013 revosec AG
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -204,7 +205,7 @@ static bool load_validator(private_systime_fix_plugin_t *this)
 	struct tm tm = {
 		.tm_mday = 1,
 	};
-	char *str, *fmt, buf[32];
+	char *str, *fmt;
 
 	fmt = lib->settings->get_str(lib->settings,
 			"%s.plugins.%s.threshold_format", "%Y", lib->ns, get_name(this));
@@ -234,8 +235,7 @@ static bool load_validator(private_systime_fix_plugin_t *this)
 		return FALSE;
 	}
 
-	DBG1(DBG_CFG, "enabling %s, threshold: %s", get_name(this),
-		 asctime_r(&tm, buf));
+	DBG1(DBG_CFG, "enabling %s, threshold: %s", get_name(this), asctime(&tm));
 	this->validator = systime_fix_validator_create(this->threshold);
 	return TRUE;
 }
