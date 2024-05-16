@@ -131,6 +131,8 @@ sudo apt-get -y install build-essential asciidoc binutils bzip2 gawk gettext git
 
 	`make gt10`
 
+	`git checkout rtax3000n && make rt-ax3000n`
+
 	Build result will be produced to `asuswrt-bcm/release/src-rt-xxxxx/image` directory
 
 	`asuswrt-bcm/release/src-rt-5.02axhnd.675x/image`
