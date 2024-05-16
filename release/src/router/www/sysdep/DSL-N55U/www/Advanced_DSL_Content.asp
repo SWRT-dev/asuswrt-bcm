@@ -337,17 +337,12 @@ function showDSLWANList(){
 		}
 	}
 	if(config_num == 0){
-		addRow = document.getElementById('DSL_WAN_table').insertRow(2);
-		for (var i = 0; i <= 7; i++) {
-			cell[i] = addRow.insertCell(i);
-			if (i==3) cell[i].innerHTML = "<#IPConnection_VSList_Norule#>";
-			else cell[i].innerHTML = "&nbsp";
-			cell[i].style.color = "white";
-		}
 		if(!isSupport("is_ax5400_i1")){
-			cell[8] = addRow.insertCell(8);
-			cell[8].innerHTML = '<center><input class="add_btn" onclick="add_pvc();" value=""/></center>';
-			cell[8].style.color = "white";
+			addRow = document.getElementById('DSL_WAN_table').insertRow(2);
+			cell[0] = addRow.insertCell(0);
+			cell[0].colSpan = "9";
+			cell[0].style.color = "white";
+			cell[0].innerHTML = '<center><input class="add_btn" onclick="add_pvc();" value=""/></center>';
 		}
 	}
 	else{
@@ -409,15 +404,10 @@ function showDSLWANList(){
 		if (row_count <= 7) {
 			if(!isSupport("is_ax5400_i1")){
 				addRow = document.getElementById('DSL_WAN_table').insertRow(row_count+2);
-				for (var i = 0; i <= 7; i++) {
-					cell[i] = addRow.insertCell(i);
-					cell[i].innerHTML = "&nbsp";
-					cell[i].style.color = "white";
-				}
-			
-				cell[8] = addRow.insertCell(8);
-				cell[8].innerHTML = '<center><input class="add_btn" onclick="add_pvc();" value=""/></center>';
-				cell[8].style.color = "white";
+				cell[0] = addRow.insertCell(0);
+				cell[0].colSpan = "9";
+				cell[0].style.color = "white";
+				cell[0].innerHTML = '<center><input class="add_btn" onclick="add_pvc();" value=""/></center>';
 			}
 		}
 	}
@@ -1613,7 +1603,7 @@ function showDiableDHCPclientID(clientid_enable){
 												<th style="width: 10%;"><center><#Internet#></center></th>
 												<th style="width: 10%;"><center><#menu_dsl_iptv#></center></th>
 												<th style="width: 15%;"><center><#PVC_edit#></center></th>
-												<th style="width: 15%;" id="DSL_WAN_add_del"><center><#list_add_delete#></center></th>
+												<th style="width: 15%;" id="DSL_WAN_add_del"><center><#CTL_del#></center></th>
 											</tr>
 									</table>
 

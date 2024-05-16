@@ -454,7 +454,7 @@ table.fields {
 .FormTitle{
 	line-height:160%;
 	font-size:12px;
-	font-family:Microsoft Yahei UI, Arial, Verdana, Helvetica, MS UI Gothic, MS P Gothic, sans-serif;
+	font-family:Arial, Verdana, Helvetica, MS UI Gothic, MS P Gothic, Microsoft Yahei UI, sans-serif;
 	color:white;
 	position:relative
 }
@@ -467,12 +467,12 @@ table.fields {
 /*Viz Add  20120709   --- start */
 .DescTable{
 	font-size:12px;
-	font-family:Microsoft Yahei UI, Arial, Helvetica, MS UI Gothic, MS P Gothic, sans-serif;
+	font-family:Arial, Helvetica, MS UI Gothic, MS P Gothic, Microsoft Yahei UI, sans-serif;
 	border: 1px solid #000000;
 	border-collapse: collapse;
 }
 .DescTable th{
-	font-family:Microsoft Yahei UI, Arial, Helvetica, MS UI Gothic, MS P Gothic, sans-serif;
+	font-family:Arial, Helvetica, MS UI Gothic, MS P Gothic, Microsoft Yahei UI, sans-serif;
 	color:#FFFFFF	;
 	font-weight:normal;
 	line-height:15px;

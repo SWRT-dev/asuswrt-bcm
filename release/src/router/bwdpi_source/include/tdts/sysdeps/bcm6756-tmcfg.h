@@ -26,7 +26,7 @@
 
 /*
  * Automatically generated make config: don't edit
- * Date: Tue May 17 14:02:56 2022
+ * Date: Tue Aug 16 16:34:21 2022
  */
 #ifndef __TMCFG__AUTOCONF_OUTPUT_H_
 #define __TMCFG__AUTOCONF_OUTPUT_H_
@@ -93,7 +93,7 @@
 /*
  * Engine
  */
-#define TMCFG_E_EXTRA_CFLAGS "-I/opt/ASUS/asuswrt_AX58U_V2_GPL_386_48892/release/src-rt-5.04axhnd.675x/kernel/bcmkernel/include"
+#define TMCFG_E_EXTRA_CFLAGS "-I/opt/ASUS/asuswrt_GPL_XT8PRO_3.0.0.4.388/Kernel-Source-0808/kernel/bcmkernel/include"
 #define TMCFG_E_KMOD_NAME "tdts"
 #define TMCFG_E_KMOD_IOCTL_DEV_NAME "idp"
 #define TMCFG_E_KMOD_IOCTL_DEV_MAJ 190
@@ -105,8 +105,8 @@
  */
 #define TMCFG_E_MAJ_VER 2
 #define TMCFG_E_MID_VER 0
-#define TMCFG_E_MIN_VER 3
-#define TMCFG_E_LOCAL_VER "03e1542"
+#define TMCFG_E_MIN_VER 5
+#define TMCFG_E_LOCAL_VER "9adfb3a"
 
 /*
  * Engine core

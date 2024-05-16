@@ -426,9 +426,9 @@ $(CREATE_INSTALL):
 		mkdir -p $(INSTALL_DIR)/etc/snmp
 		mkdir -p $(INSTALL_DIR)/etc/iproute2
 		rm -rf $(INSTALL_DIR)/opt
-		mkdir -p $(INSTALL_DIR)/rom/bin
-		mkdir -p $(INSTALL_DIR)/rom/modules
-		mkdir -p $(INSTALL_DIR)/rom/scripts
+		mkdir -p $(INSTALL_DIR)/opt/bin
+		mkdir -p $(INSTALL_DIR)/opt/modules
+		mkdir -p $(INSTALL_DIR)/opt/scripts
 		touch $@
 
 $(KERNELLINKS): $(KERNEL_INCLUDE_LINK) $(KERNEL_ARM_INCLUDE_LINK)
@@ -844,6 +844,7 @@ endif
 	fi
 	cd $(TARGETS_DIR); ./buildFSopenwrt;
 else
+	cd $(BUILD_DIR); make -C router strips;
 	cd $(TARGETS_DIR); ./buildFS;
 endif
 
@@ -902,6 +903,7 @@ endif
 
 uboot:
 ifneq ($(BUILD_UBOOT),)
+	rm -f bootloaders/obj/binaries/*.pkgtb
 	$(MAKE) -f build/make.uboot INCLUDE_OPTEE=$(BCM_OPTEE) INCLUDE_ATF=$(BCM_ARMTF)
 endif
 

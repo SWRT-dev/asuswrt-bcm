@@ -24,7 +24,8 @@ MTD_BINS = \
 	nftldump nftl_format docfdisk \
 	rfddump rfdformat \
 	serve_image recv_image \
-	sumtool jffs2reader
+	sumtool jffs2reader \
+	nandflipbits
 UBI_BINS = \
 	ubiupdatevol ubimkvol ubirmvol ubicrc32 ubinfo ubiattach \
 	ubidetach ubinize ubiformat ubirename mtdinfo ubirsvol
@@ -42,6 +43,7 @@ BINS =
 endif
 SCRIPTS =
 
+BINS += $(if $(FLIPBITS),nandflipbits)
 ifeq ($(UBIFS),y)
 BINS += mkfs.ubifs/mkfs.ubifs
 BINS += nanddump mtd_debug
@@ -143,3 +145,4 @@ obj-ubiformat = libubigen.a libscan.a
 
 $(foreach v,libubi.a libubigen.a libiniparser.a libscan.a,$(eval $(call _mkdep,ubi-utils/,$(v))))
 $(foreach v,$(UBI_BINS),$(eval $(call mkdep,ubi-utils/,$(v),libubi.a ubiutils-common.o)))
+

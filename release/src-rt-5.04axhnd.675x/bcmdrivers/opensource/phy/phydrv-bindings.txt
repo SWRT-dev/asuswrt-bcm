@@ -79,6 +79,12 @@ Required properties for crossbar group:
 
 - phy-type:     "crossbar"
 
+- phy-fixed:    For Serdes-Moca Connection
+
+- config-speed: For Serdes-Moca fixed speed configuration
+
+- config-xfi:   For Serdes-Moca fixed XFI mode configuration: 2500Base-X, 1000Base-X, etc.
+                Add Suffix '_A' to set AN enable, ie. 2.5GBase-X_A means 2.5GBase-X with AN enabled
 
 Required properties for external endpoint PHY node:
 - xbar-ext-ep:  index, indicates external endpoint (based 0)

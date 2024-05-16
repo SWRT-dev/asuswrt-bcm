@@ -161,7 +161,7 @@ typedef struct ovpn_cconf {
 	int userauth;	//username, password
 	int useronly;	//client certificte not required
 	char username[64];
-	char password[64];
+	char password[256];
 
 //Data Channel Encryption Options:
 	int direction;	//key-direction of secret or tls-auth (hmac)
@@ -172,7 +172,7 @@ typedef struct ovpn_cconf {
 	int reneg;	//TLS Renegotiation Time
 	int tlscrypt;	//Encrypt and authenticate all control channel packets.
 	int verify_x509_type;	//TYPE of verify-x509-name
-	char verify_x509_name[32];	//NAME of verify-x509-name
+	char verify_x509_name[65];	//NAME of verify-x509-name
 
 //Router options and info
 	char firewall[8];	//auto
@@ -208,7 +208,7 @@ typedef enum ovpn_errno{
 typedef struct ovpn_accnt
 {
 	char username[128];
-	char password[128];
+	char password[256];
 } ovpn_accnt_t;
 
 

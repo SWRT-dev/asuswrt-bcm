@@ -195,13 +195,17 @@ function getInterface(){
 		'dualBand6GHzSmartConnect': [['0', '2.4 / 5 GHz', '0'], ['2', '6 GHz', '2']],
 		'dualBandSmartConnect': [['0', '<#smart_connect_dual#>', '0']],
 		'triBand5GHzSmartConnect': [['0', '2.4 GHz', '0'], ['1', '5GHz Smart Connect', '1']],
+		'GT6-5GHzSmartConnect': [['2', '2.4 GHz', '2'], ['1', '5GHz Smart Connect', '1']],
 		'triBandMeshSmartConnect': [['0', '<#smart_connect_dual#>', '0'], ['2', '5 GHz-2', '2']],
+		'GT6triBandMeshSmartConnect': [['0', '<#smart_connect_dual#>', '0'], ['1', '5 GHz-2', '1']],
 		'triBand6GHzMeshSmartConnect': [['0', '<#smart_connect_dual#>', '0'], ['2', '6 GHz', '2']],
 		'lyraHide': [['0', 'Wireless', '0']],
 		'2.4G':  [['0', '2.4 GHz', '0']],
 		'2.4G-AXE16000':  [['3', '2.4 GHz', '3']],
+		'2.4G-GT6':  [['2', '2.4 GHz', '2']],
 		'5GDualBand': [['1', '5 GHz', '1']],
 		'5GTriBand': [['1', '5 GHz-1', '1'], ['2', '5 GHz-2', '2']],
+		'GT6-5GTriBand': [['0', '5 GHz-1', '0'], ['1', '5 GHz-2', '1']],
 		'6GTriBand': [['1', '5 GHz', '1'], ['2', '6 GHz', '2']],
 		'6GQuadBand': [['0', '5 GHz-1', '0'], ['1', '5 GHz-2', '1'], ['2', '6 GHz', '2']],
 		'60G': [['3', '60 GHz','3']],
@@ -217,7 +221,7 @@ function getInterface(){
 		'2.4G5LSmartCommect': [['0', '2.4 GHz/5 GHz-1', '0'], ['1', '5 GHz-2', '1'], ['2', '6 GHz', '2']],
 	}
 
-	if(system.smartConnectSupport && variable.smart_connect_x != '0' && !qca_support){		// Smart Connect
+	if(system.smartConnectSupport && variable.smart_connect_x != '0'){		// Smart Connect
 		if(variable.smart_connect_x == '1'){	// Tri/Dual-Band Smart Connect		
 			if(system.modelName === 'GT-AXE16000'){
 				if(variable.smart_connect_selif_x === '15'){
@@ -262,7 +266,13 @@ function getInterface(){
 							_temp = typeObj['triBandSmartConnect'];
 						}
 						else{
-							_temp = typeObj['triBandMeshSmartConnect'];
+							if(odmpid === 'GT6'){								
+								_temp = typeObj['GT6triBandMeshSmartConnect'];
+							}
+							else {
+								_temp = typeObj['triBandMeshSmartConnect'];
+							}
+							
 							if(isSupport("amas_fronthaul_network")){
 								var fh_ap_enabled = httpApi.nvramGet(["fh_ap_enabled"]).fh_ap_enabled;
 								if(fh_ap_enabled == "2"){
@@ -284,8 +294,13 @@ function getInterface(){
 		else if(variable.smart_connect_x == '3'){
 			_temp = typeObj['dualBand6GHzSmartConnect'];
 		}
-		else{		// 5 GHz Smart Connect
-			_temp = typeObj['triBand5GHzSmartConnect'];
+		else{		// 5 GHz Smart Connect			
+			if(odmpid === 'GT6'){								
+				_temp = typeObj['GT6-5GHzSmartConnect'];
+			}
+			else {
+				_temp = typeObj['triBand5GHzSmartConnect'];
+			}			
 		}
 	}
 	else if(system.lyraHideSupport){
@@ -295,6 +310,10 @@ function getInterface(){
 		if(system.band2gSupport){
 			if(system.modelName === 'GT-AXE16000'){
 				_temp = _temp.concat(typeObj['2.4G-AXE16000']);
+			}
+			else if(odmpid === 'GT6'){
+				
+				_temp = _temp.concat(typeObj['2.4G-GT6']);
 			}
 			else{
 				_temp = _temp.concat(typeObj['2.4G']);
@@ -310,7 +329,12 @@ function getInterface(){
 					_temp = _temp.concat(typeObj['6GTriBand']);
 				}
 				else{
-					_temp = _temp.concat(typeObj['5GTriBand']);
+					if(odmpid === 'GT6'){								
+						_temp = _temp.concat(typeObj['GT6-5GTriBand']);
+					}
+					else {
+						_temp = _temp.concat(typeObj['5GTriBand']);
+					}					
 				}			
 			}
 			else{
@@ -331,7 +355,11 @@ function getInterface(){
 			});
 		}
 		else{
-			wlInterface[wlc_band][2] = wlc_band + '.1';
+			for(let i =0;i<wlInterface.length;i++){
+				if(wlInterface[i][0] === wlc_band){
+					wlInterface[i][2] = wlInterface[i][2] + '.1';
+				}
+			}
 		}
 	}
 
@@ -358,7 +386,7 @@ function genElement(){
 	}
 
 	// part of Smart Connect
-	if(system.smartConnectSupport && variable.smart_connect_x != '0' && !qca_support){
+	if(system.smartConnectSupport && variable.smart_connect_x != '0'){
 		$('#smart_connect_field').show();
 		if(system.modelName === 'GT-AXE16000'){
 			var smartConnectType_ori = nvram['smart_connect_x'];
@@ -369,8 +397,8 @@ function genElement(){
 			
 		
 			code += '<select class="input_option" onchange="enableSmartConnect(this.value)">'
-			code += '<option value="0" '+ (variable.smart_connect_x === '0' ? 'selected': '') +'>關閉';
-			code += '<option value="1" '+ (variable.smart_connect_x !== '0' ? 'selected': '') +'>開';			
+			code += '<option value="0" '+ (variable.smart_connect_x === '0' ? 'selected': '') +'><#CTL_close#>';
+			code += '<option value="1" '+ (variable.smart_connect_x !== '0' ? 'selected': '') +'><#CTL_Enabled#>';			
 			code += '</select>'
 	
 
@@ -650,6 +678,10 @@ function genAuthMethod(unit, id, nmode_x, auth_mode_x){
 					}
 					else{
 						auth_array = authObj['wifiNewCertWPA3'];
+						if(system.modelName === 'RT-AX92U' && unit === '2'
+						|| system.BRCMplatform && band5g_11ax_support && system.modelName !== 'RT-AX92U'){
+							auth_array.pop();
+						}
 					}
 				}
 				else{
@@ -658,20 +690,54 @@ function genAuthMethod(unit, id, nmode_x, auth_mode_x){
 							auth_array = authObj['6G'];
 						}
 						else{
-							auth_array = authObj['allWithWPA3OWE'];
+							if(wpa3_enterprise_support){
+								auth_array = authObj['allWithWPA3OWEWPA3E'];
+								if(system.modelName === 'RT-AX92U' && unit === '2'
+								|| system.BRCMplatform && band5g_11ax_support && system.modelName !== 'RT-AX92U'){
+									auth_array.pop();
+								}
+							}
+							else{
+								auth_array = authObj['allWithWPA3OWE'];
+								if(system.modelName === 'RT-AX92U' && unit === '2'
+								|| system.BRCMplatform && band5g_11ax_support && system.modelName !== 'RT-AX92U'){
+									auth_array.pop();
+								}
+							}							
 						}
 					}
 					else{
-						auth_array = authObj['allWithWPA3'];
+						if(wpa3_enterprise_support){
+							auth_array = authObj['allWithWPA3WPA3E'];
+							if(system.modelName === 'RT-AX92U' && unit === '2'
+							|| system.BRCMplatform && band5g_11ax_support && system.modelName !== 'RT-AX92U'){
+								auth_array.pop();
+							}
+						}
+						else{
+							auth_array = authObj['allWithWPA3'];
+							if(system.modelName === 'RT-AX92U' && unit === '2'
+							|| system.BRCMplatform && band5g_11ax_support && system.modelName !== 'RT-AX92U'){
+								auth_array.pop();
+							}
+						}						
 					}
 				}
 			}
 			else{
 				if(system.newWiFiCertSupport){
 					auth_array = authObj['wifiNewCertNoWPA3'];
+					if(system.modelName === 'RT-AX92U' && unit === '2'
+					|| system.BRCMplatform && band5g_11ax_support && system.modelName !== 'RT-AX92U'){
+						auth_array.pop();
+					}
 				}
 				else{
 					auth_array = authObj['allWithoutWPA3'];
+					if(system.modelName === 'RT-AX92U' && unit === '2'
+					|| system.BRCMplatform && band5g_11ax_support && system.modelName !== 'RT-AX92U'){
+						auth_array.pop();
+					}
 				}
 			}
 		}
@@ -693,6 +759,10 @@ function genAuthMethod(unit, id, nmode_x, auth_mode_x){
 		else{
 			auth_array = authObj['normalWithoutWPA3'];
 		}
+	}
+
+	if(is_KR_sku){ //remove Open System
+		auth_array = auth_array.filter(subArr => subArr[1] !== 'open');
 	}
 
 	if(isSupport("amas") && isSupport("amasRouter") && (isSwMode("rt") || isSwMode("ap"))){

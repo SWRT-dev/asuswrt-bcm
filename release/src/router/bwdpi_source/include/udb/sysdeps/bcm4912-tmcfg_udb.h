@@ -25,7 +25,7 @@
 
 /*
  * Automatically generated make config: don't edit
- * Date: Tue Jun  7 17:54:06 2022
+ * Date: Tue Aug 16 14:24:35 2022
  */
 #ifndef __TMCFG__UDB_AUTOCONF_OUTPUT_H_
 #define __TMCFG__UDB_AUTOCONF_OUTPUT_H_
@@ -217,8 +217,8 @@
 #define TMCFG_E_UDB_SHELL_PROCFS 1 // y
 #define TMCFG_E_REL_PKG_MAJ_VER 2
 #define TMCFG_E_REL_PKG_MIN_VER 0
-#define TMCFG_E_REL_PKG_REV_VER 3
-#define TMCFG_E_REL_PKG_LOCAL_VER "7b5a7529"
+#define TMCFG_E_REL_PKG_REV_VER 6
+#define TMCFG_E_REL_PKG_LOCAL_VER "9d6bb506"
 
 /*
  * Accompany applications or modules
@@ -227,7 +227,7 @@
 /*
  * Kernel
  */
-#define TMCFG_APP_K_EXTRA_CFLAGS "-I/opt/ASUS/asuswrt_XT12_GPL_386_48892/release/src-rt-5.04axhnd.675x/kernel/bcmkernel/include -I/opt/ASUS/asuswrt_XT12_GPL_386_48892/release/src-rt-5.04axhnd.675x/shared/opensource/include/bcm963xx -I/opt/ASUS/asuswrt_XT12_GPL_386_48892/release/src-rt-5.04axhnd.675x/bcmdrivers/broadcom/include/bcm963xx -I/opt/ASUS/asuswrt_XT12_GPL_386_48892/release/src-rt-5.04axhnd.675x/bcmdrivers/opensource/include/bcm963xx -I/opt/ASUS/asuswrt_XT12_GPL_386_48892/release/src-rt-5.04axhnd.675x/bcmdrivers/broadcom/include/bcm963xx"
+#define TMCFG_APP_K_EXTRA_CFLAGS "-I/opt/ASUS/asuswrt_XT12_GPL_386_48892/release/src-rt-5.04axhnd.675x/kernel/bcmkernel/include -I/opt/ASUS/asuswrt_XT12_GPL_386_48892/release/src-rt-5.04axhnd.675x/shared/opensource/include/bcm963xx -I/opt/ASUS/asuswrt_XT12_GPL_386_48892/release/src-rt-5.04axhnd.675x/bcmdrivers/broadcom/include/bcm963xx -I/opt/ASUS/asuswrt_XT12_GPL_386_48892/release/src-rt-5.04axhnd.675x/bcmdrivers/opensource/include/bcm963xx"
 #define TMCFG_APP_K_TDTS_NFFW 0 // n
 #define TMCFG_APP_K_TDTS_UDBFW 1 // y
 #define TMCFG_APP_K_TDTS_UDBFW_EXTRA_SYMBOLS ""

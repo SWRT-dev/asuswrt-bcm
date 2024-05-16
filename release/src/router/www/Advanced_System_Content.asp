@@ -300,7 +300,7 @@ function initial(){
 	}
 	else{
 
-		if(wan_proto=="v6plus" && s46_ports_check_flag && array_ipv6_s46_ports.length > 1){
+		if((wan_proto == "v6plus" || wan_proto == "ocnvc") && s46_ports_check_flag && array_ipv6_s46_ports.length > 1){
 			$(".setup_info_icon.https").show();
 			$(".setup_info_icon.https").click(
 				function() {
@@ -325,7 +325,7 @@ function initial(){
 	if(ssh_support){
 		check_sshd_enable('<% nvram_get("sshd_enable"); %>');
 
-		if(wan_proto=="v6plus" && s46_ports_check_flag && array_ipv6_s46_ports.length > 1){
+		if((wan_proto == "v6plus" || wan_proto == "ocnvc") && s46_ports_check_flag && array_ipv6_s46_ports.length > 1){
 			$(".setup_info_icon.ssh").show();
 			$(".setup_info_icon.ssh").click(
 				function() {
@@ -383,8 +383,16 @@ function initial(){
 	}
 	else{
 		document.getElementById("pwrsave_tr").style.display = "none";
-		document.form.pwrsave_mode[0].disabled = false;
-		document.form.pwrsave_mode[1].disabled = false;
+		document.form.pwrsave_mode[0].disabled = true;
+		document.form.pwrsave_mode[1].disabled = true;
+	}
+
+	if (pagecache_ratio_support) {
+		document.getElementById("pagecache_ratio_tr").style.display = "";
+		document.form.pagecache_ratio.disabled = false;
+	} else {
+		document.getElementById("pagecache_ratio_tr").style.display = "none";
+		document.form.pagecache_ratio.disabled = true;
 	}
 
 	if(hdspindown_support) {
@@ -394,7 +402,7 @@ function initial(){
 		$('input[name="usb_idle_timeout"]').prop("disabled", false);
 	}
 
-	$("#https_download_cert").css("display", (le_enable != "1" && orig_http_enable != "0")? "": "none");
+	$("#https_download_cert").css("display", (le_enable == "0" && orig_http_enable != "0")? "": "none");
 
 	$("#login_captcha_tr").css("display", captcha_support? "": "none");
 
@@ -421,7 +429,7 @@ function applyRule(){
 		var isFromWAN = (function(){
 			var lanIpAddr = '<% nvram_get("lan_ipaddr"); %>';
 			if(location.hostname == lanIpAddr) return false;
-			else if(location.hostname == "router.asus.com") return false;
+			else if(location.hostname == "<#Web_DOMAIN_NAME#>") return false;
 			else if(location.hostname == "repeater.asus.com") return false;
 			else if(location.hostname == "cellspot.asus.com") return false;
 			else return true;
@@ -596,7 +604,7 @@ function applyRule(){
 			
 			if (('<% nvram_get("enable_ftp"); %>' == "1")
 				&& ('<% nvram_get("ftp_tls"); %>' == "1")) {
-					action_script_tmp += ";restart_ftpd";
+					action_script_tmp += "restart_ftpd;";
 			}
 		}
 
@@ -613,6 +621,8 @@ function applyRule(){
 
 		if(pwrsave_support)
 			action_script_tmp += "pwrsave;";
+		if(pagecache_ratio_support)
+			action_script_tmp += "pagecache_ratio;";
 
 		if(needReboot){
 
@@ -667,9 +677,9 @@ function validForm(){
 			return false;
 		}
 
-		if(wan_proto=="v6plus" && s46_ports_check_flag && array_ipv6_s46_ports.length > 1 && document.form.sshd_enable.value == 1){
+		if((wan_proto == "v6plus" || wan_proto == "ocnvc") && s46_ports_check_flag && array_ipv6_s46_ports.length > 1 && document.form.sshd_enable.value == 1){
 			if (!validator.range_s46_ports(document.form.sshd_port, "none")){
-				if(!confirm("The following port related settings may not work properly since the port is not available in current v6plus usable port range. Do you want to continue?")){
+				if(!confirm(port_confirm)){
 					document.form.sshd_port.focus();
 					return false;
 				}
@@ -696,9 +706,9 @@ function validForm(){
 			if (!validator.range(document.form.misc_httpsport_x, 1024, 65535))
 				return false;
 
-			if (wan_proto=="v6plus" && s46_ports_check_flag && array_ipv6_s46_ports.length > 1){
+			if ((wan_proto == "v6plus" || wan_proto == "ocnvc") && s46_ports_check_flag && array_ipv6_s46_ports.length > 1){
 				if (!validator.range_s46_ports(document.form.misc_httpsport_x, "none")){
-					if(!confirm("The following port related settings may not work properly since the port is not available in current v6plus usable port range. Do you want to continue?")){
+					if(!confirm(port_confirm)){
 						document.form.misc_httpsport_x.focus();
 						return false;
 					}
@@ -752,6 +762,13 @@ function validForm(){
 	}
 	else if(!validator.rangeAllowZero(document.form.http_autologout, 10, 999, '<% nvram_get("http_autologout"); %>'))
 		return false;
+
+	if (pagecache_ratio_support) {
+		if (parseInt(document.form.pagecache_ratio.value) < 5)
+			document.form.pagecache_ratio.value = "5";
+		else if (parseInt(document.form.pagecache_ratio.value) > 90)
+			document.form.pagecache_ratio.value = "90";
+	}
 
 	if(reboot_schedule_support){
 		if(!document.form.reboot_date_x_Sun.checked && !document.form.reboot_date_x_Mon.checked &&
@@ -819,10 +836,10 @@ var timezones = [
 	["PST8DST",	"(GMT-08:00) <#TZ05#>"],
 	["MST7DST_1",	"(GMT-07:00) <#TZ06#>"],
 	["MST7_2",	"(GMT-07:00) <#TZ07#>"],
-	["MST7DST_3",	"(GMT-07:00) <#TZ08#>"],
+	["MST7_3",	"(GMT-07:00) <#TZ08#>"],	//MST7DST_3
 	["CST6_2",	"(GMT-06:00) <#TZ10#>"],
-	["CST6DST_3",	"(GMT-06:00) <#TZ11#>"],
-	["CST6DST_3_1",	"(GMT-06:00) <#TZ12#>"],
+	["CST6_3",	"(GMT-06:00) <#TZ11#>"],	//CST6DST_3
+	["CST6_3_1",	"(GMT-06:00) <#TZ12#>"],	//CST6DST_3_1
 	["UTC6DST",	"(GMT-06:00) <#TZ13#>"],
 	["EST5DST",	"(GMT-05:00) <#TZ14#>"],
 	["UTC5_1",	"(GMT-05:00) <#TZ15#>"],
@@ -831,12 +848,13 @@ var timezones = [
 	["UTC4_1",	"(GMT-04:00) <#TZ18#>"],
 	["UTC4_2",	"(GMT-04:00) <#TZ18_1#>"],
 	["UTC4DST_2",	"(GMT-04:00) <#TZ19#>"],
+	["UTC4DST_3",	"(GMT-04:00) <#TZ19_1#>"],
 	["NST3.30DST",	"(GMT-03:30) <#TZ20#>"],
 	["EBST3",	"(GMT-03:00) <#TZ21#>"],	//EBST3DST_1
 	["UTC3",	"(GMT-03:00) <#TZ22#>"],
-	["EBST3DST_2",	"(GMT-03:00) <#TZ23#>"],
+	["UTC3DST",     "(GMT-03:00) <#TZ87#>"],        //UTC2DST
+	["UTC2_1",	"(GMT-02:00) <#TZ23#>"],	//EBST3DST_2
 	["UTC2",	"(GMT-02:00) <#TZ24#>"],
-	["UTC2DST",	"(GMT-02:00) <#TZ87#>"],
 	["EUT1DST",	"(GMT-01:00) <#TZ25#>"],
 	["UTC1",	"(GMT-01:00) <#TZ26#>"],
 	["GMT0",	"(GMT) <#TZ27#>"],
@@ -868,7 +886,7 @@ var timezones = [
 	["UTC-3_5",     "(GMT+03:00) <#TZ45#>"],        //UTC-4_7
 	["IST-3",	"(GMT+03:00) <#TZ48#>"],
 	["UTC-3_6",	"(GMT+03:00) <#TZ48_1#>"],
-	["UTC-3.30DST",	"(GMT+03:30) <#TZ49#>"],	
+	["UTC-3.30",	"(GMT+03:30) <#TZ49#>"],	//UTC-3.30DST	
 	["UTC-4_1",	"(GMT+04:00) <#TZ50#>"],
 	["UTC-4_5",	"(GMT+04:00) <#TZ50_2#>"],
 	["UTC-4_4",	"(GMT+04:00) <#TZ50_1#>"],
@@ -908,7 +926,7 @@ var timezones = [
 	["UTC-11_3",	"(GMT+11:00) <#TZ86#>"],
 	["UTC-11_4",	"(GMT+11:00) <#TZ82_1#>"],
 	["UTC-12",      "(GMT+12:00) <#TZ82#>"],
-	["UTC-12DST",      "(GMT+12:00) <#TZ82_2#>"],
+	["UTC-12_3",      "(GMT+12:00) <#TZ82_2#>"],	//UTC-12DST
 	["UTC-12_2",      "(GMT+12:00) <#TZ85#>"],
 	["NZST-12DST",	"(GMT+12:00) <#TZ83#>"],
 	["UTC-13",	"(GMT+13:00) <#TZ84#>"]];
@@ -1026,11 +1044,22 @@ function hide_https_lanport(_value){
 		$("#https_download_cert").css("display", "");
 		if(orig_http_enable == "0"){
 			$("#download_cert_btn").css("display", "none");
+			$("#clear_server_cert_btn").css("display", "none");
+			$("#clear_cert_btn").css("display", "none");
 			$("#download_cert_desc").css("display", "");
 		}
 		else{
-			$("#download_cert_btn").css("display", "");
-			$("#download_cert_desc").css("display", "none");
+			if (le_enable == "0") {
+				$("#download_cert_btn").css("display", "");
+				$("#clear_server_cert_btn").css("display", "");
+				$("#clear_cert_btn").css("display", "");
+				$("#download_cert_desc").css("display", "");
+			} else {
+				$("#download_cert_btn").css("display", "none");
+				$("#clear_server_cert_btn").css("display", "none");
+				$("#clear_cert_btn").css("display", "none");
+				$("#download_cert_desc").css("display", "none");
+			}
 		}
 	}
 	else{
@@ -1588,6 +1617,44 @@ function save_cert_key(){
 	location.href = "cert.tar";
 }
 
+function clear_server_cert_key(){
+	$.ajax({url: "clear_file.cgi?clear_file_name=server_certs"})
+	showLoading();
+	setTimeout(function(){
+		setInterval(function(){
+			var http = new XMLHttpRequest
+			http.onreadystatechange=function(){
+				if(http.readyState==4 && http.status==200){
+					top.location.href="/Advanced_System_Content.asp"
+				}
+			},
+
+			http.open("GET","/httpd_check.xml",!0);
+			http.send(null);
+		}, 1000);
+	}, 1000)
+}
+
+function clear_cert_key(){
+	if(confirm("The new certificate will be loaded after the current session logout. Please export the new Root Certificate, extract cert.tar, and add cert.crt add it to \"Trusted Root Certification Authorization\". You may need to restart browser.")){<!-- untranslated -->
+		$.ajax({url: "clear_file.cgi?clear_file_name=cert.tgz"})
+		showLoading();
+		setTimeout(function(){
+			setInterval(function(){
+				var http = new XMLHttpRequest
+				http.onreadystatechange=function(){
+					if(http.readyState==4 && http.status==200){
+						top.location.href="/Advanced_System_Content.asp"
+					}
+				},
+
+				http.open("GET","/httpd_check.xml",!0);
+				http.send(null);
+			}, 1000);
+		}, 1000)
+	}
+}
+
 var NTPListArray = [
 		["time01.syd.optusnet.com.au", "time01.syd.optusnet.com.au"], ["time01.mel.optusnet.com.au", "time01.mel.optusnet.com.au"], 
 		["time02.mel.optusnet.com.au", "time02.mel.optusnet.com.au"], ["au.pool.ntp.org", "au.pool.ntp.org"],	["time.nist.gov", "time.nist.gov"],
@@ -1884,7 +1951,7 @@ function change_passwd(){
 function check_password_length(obj){
 
 	if(is_KR_sku || is_SG_sku || is_AA_sku){     /* MODELDEP by Territory Code */
-		showtext(document.getElementById("new_pwd_msg"),"");
+		showtext(document.getElementById("new_pwd_msg"),"<#JS_validLoginPWD#>");
 		return;
 	}
 	
@@ -2294,6 +2361,12 @@ function check_password_length(obj){
 						</select>
 					</td>
 				</tr>
+				<tr id="pagecache_ratio_tr" style="display:none;">
+					<th align="right"><a class="hintstyle" href="javascript:void(0);" onClick="overlib('Lower page cache ratio, poor NAS performance.');" onmouseout="nd();">Maximum page cache ratio</th>
+					<td>
+						<input type="text" class="input_3_table" maxlength="3" name="pagecache_ratio" value='<% nvram_get("pagecache_ratio"); %>' onblur="return validator.numberRange(this, 5, 90);" autocorrect="off" autocapitalize="off"> %
+					</td>
+				</tr>
 				<tr id="reboot_schedule_enable_tr">
 					<th><#Enable_reboot_scheduler#></th>
 					<td>
@@ -2439,6 +2512,8 @@ function check_password_length(obj){
 					<th><#Local_access_certificate_download#></th>
 					<td>
 						<input id="download_cert_btn" class="button_gen" onclick="save_cert_key();" type="button" value="<#btn_Export#>" />
+						<input id="clear_server_cert_btn" class="button_gen" style="margin-left:10px" onclick="clear_server_cert_key();" type="button" value="<#CTL_renew#> <#vpn_openvpn_KC_SA#>" /><!-- untranslated -->
+						<input id="clear_cert_btn" class="button_gen" style="margin-left:10px" onclick="clear_cert_key();" type="button" value="<#CTL_renew#> Root Certificate" /><!-- untranslated -->
 						<span id="download_cert_desc"><#Local_access_certificate_desc#></span><a id="creat_cert_link" href="" style="font-family:Lucida Console;text-decoration:underline;color:#FFCC00; margin-left: 5px;" target="_blank">FAQ</a>
 					</td>
 				</tr>

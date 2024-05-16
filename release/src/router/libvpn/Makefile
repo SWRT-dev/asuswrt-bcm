@@ -1,6 +1,6 @@
 include ../common.mak
 
-CFLAGS += -Os -Wall $(EXTRACFLAGS) -fPIC
+CFLAGS += $(if $(RTCONFIG_DEBUG),-g,-Os) -Wall $(EXTRACFLAGS) -fPIC
 CFLAGS += -I. -I$(TOP)/shared -I$(SRCBASE)/include
 CFLAGS += -I$(TOP)/openssl/include
 ifeq ($(HND_ROUTER),y)
@@ -35,7 +35,7 @@ install: all
 	@echo " [libvpn] Installing as $(INSTALLDIR)/usr/lib/libvpn.so"
 	@install -d $(INSTALLDIR)/usr/lib
 	@install -m 755 libvpn.so $(INSTALLDIR)/usr/lib
-	@$(STRIP) $(INSTALLDIR)/usr/lib/libvpn.so
+	@$(if $(RTCONFIG_DEBUG),,$(STRIP) $(INSTALLDIR)/usr/lib/libvpn.so)
 
 clean:
 	rm -f *.o *.so *.a .*.depend *.prep

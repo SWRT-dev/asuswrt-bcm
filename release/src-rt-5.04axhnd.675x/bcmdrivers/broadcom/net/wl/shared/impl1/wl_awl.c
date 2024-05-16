@@ -430,7 +430,7 @@ wl_awl_pktlist_free(struct wl_info *wl, pktlist_t *pktlist)
  * -----------------------------------------------------------------------------
  */
 void
-wl_awl_pktlist_flush(pktlist_t *pktlist, struct net_device *dev)
+wl_awl_pktlist_flush(struct wl_info *wl, pktlist_t *pktlist, struct net_device *dev)
 {
 	struct sk_buff *skb;
 	int pkts;
@@ -445,7 +445,7 @@ wl_awl_pktlist_flush(pktlist_t *pktlist, struct net_device *dev)
 			skb->next = skb->prev = NULL;
 
 			if (skb->dev == dev) {
-				PKTFREE(PKT_OSH_NA, skb, FALSE);
+				PKTFREE(wl->pub->osh, skb, FALSE);
 			} else {
 				wl_awl_pktlist_add(pktlist, skb);
 			}
@@ -922,6 +922,16 @@ wl_awl_upstream_add_pkt(struct wl_info * wl, struct net_device * net_device,
 	/* pass through mode or flow cache disabled, process within wlan thread */
 	if ((awl->rx.mode == WL_AWL_RX_MODE_PT) || fcacheStatus() == 0)
     {
+
+#if defined(BCM_WLAN_PER_CLIENT_FLOW_LEARNING) && defined(WL_PKTFWD_INTRABSS)
+	   uint8_t * d3_addr = (uint8_t *) PKTDATA(wl->osh, skb);
+	   if (ETHER_ISMULTI(d3_addr) &&
+	           wl_pktfwd_rx_mcast_handler(wl, WL_DEV_IF(net_device)->wlcif, skb) == BCME_OK) {
+	       awl->rx.w2a_flt_packets++;
+	       return;
+	   }
+#endif
+
 #if defined(WL_AWL_INTRABSS)
 	    if (wl_intrabss_forward(wl, net_device, skb) == FALSE)
 #endif /* WL_AWL_INTRABSS */
@@ -977,10 +987,18 @@ wl_awl_upstream_send_chain(struct wl_info * wl, struct sk_buff * skb)
 
 	/* pass through mode or flow cache disabled, process within wlan thread */
 	if ((awl->rx.mode == WL_AWL_RX_MODE_PT) || fcacheStatus() == 0) {
-#if defined(WL_AWL_INTRABSS)
-	    uint8_t * d3_addr = (uint8_t *) PKTDATA(wl->osh, skb);
 
-	    if (!ETHER_ISMULTI(d3_addr) && wl_intrabss_forward(wl, net, skb))
+#if (defined(BCM_WLAN_PER_CLIENT_FLOW_LEARNING) && defined(WL_PKTFWD_INTRABSS)) || defined(WL_AWL_INTRABSS)
+	    bool is_mcast = ETHER_ISMULTI((uint8_t *) PKTDATA(wl->osh, skb));
+#endif
+#if defined(BCM_WLAN_PER_CLIENT_FLOW_LEARNING) && defined(WL_PKTFWD_INTRABSS)
+	   if (is_mcast && wl_pktfwd_rx_mcast_handler(wl, WL_DEV_IF(net)->wlcif, skb) == BCME_OK) {
+	       awl->rx.w2a_rx_packets++;
+	       return BCME_OK;
+	   }
+#endif
+#if defined(WL_AWL_INTRABSS)
+	    if (!is_mcast && wl_intrabss_forward(wl, net, skb))
 	    {
 	        return BCME_OK;
 	    }
@@ -1222,12 +1240,12 @@ wl_awl_unregister_dev(struct net_device *dev)
 
 			/* Flush A2W packet SLL under lock */
 			WL_AWL_PKTLIST_LOCK(awl->rx.a2w_pktl_lock);
-			wl_awl_pktlist_flush(WL_AWL_RX_A2W_PKTL(awl), dev);
+			wl_awl_pktlist_flush(wlif->wl, WL_AWL_RX_A2W_PKTL(awl), dev);
 			WL_AWL_PKTLIST_UNLK(awl->rx.a2w_pktl_lock);
 
 			/* Flush W2A packet SLL */
 			WL_LOCK(wlif->wl);
-			wl_awl_pktlist_flush(WL_AWL_RX_W2A_PKTL(awl), dev);
+			wl_awl_pktlist_flush(wlif->wl, WL_AWL_RX_W2A_PKTL(awl), dev);
 			WL_UNLOCK(wlif->wl);
 		}
 	}

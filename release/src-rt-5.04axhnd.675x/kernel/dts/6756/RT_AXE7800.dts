@@ -80,7 +80,6 @@
 	};
 
 	phy_cascade0:cascade0 {
-		compatible = "brcm,intelphy";
 		phy-type = "GPY211";
 		reg = <25>;
 		status = "okay";
@@ -203,8 +202,8 @@
 	/* P4_LINKACT */
 	led0:port_0-led-1 {
 		active_low;
-		link = <(LED_SPEED_100|LED_SPEED_1G)>;
-		activity = <(LED_SPEED_100|LED_SPEED_1G)>;
+		link = <LED_SPEED_GBE>;
+		activity = <LED_SPEED_GBE>;
 		pinctrl-0=<&a_per_led_03_pin_3>;
 		status = "okay";
 	};

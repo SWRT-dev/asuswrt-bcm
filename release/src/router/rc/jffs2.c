@@ -100,13 +100,19 @@ unsigned int get_root_type(void)
 		case MODEL_GTAC5300:
 		case MODEL_RTAC86U:
 		case MODEL_RTAX88U:
+		case MODEL_BC109:
+		case MODEL_EBG19:
+		case MODEL_EBG15:
+		case MODEL_EBP15:
 		case MODEL_GTAX11000:
 		case MODEL_RTAX92U:
 		case MODEL_RTAX95Q:
 		case MODEL_XT8PRO:
+		case MODEL_BM68:
 		case MODEL_XT8_V2:
 		case MODEL_RTAXE95Q:
 		case MODEL_ET8PRO:
+		case MODEL_ET8_V2:
 		case MODEL_RTAX56_XD4:
 		case MODEL_XD4PRO:
 		case MODEL_CTAX56_XD4:
@@ -114,6 +120,7 @@ unsigned int get_root_type(void)
 		case MODEL_RTAX82_XD6S:
 		case MODEL_RTAX58U_V2:
 		case MODEL_RTAX3000N:
+		case MODEL_BR63:
 		case MODEL_RTAX55:
 		case MODEL_RTAX56U:
 		case MODEL_RPAX56:
@@ -127,6 +134,7 @@ unsigned int get_root_type(void)
 		case MODEL_RTAX86U:
 		case MODEL_RTAX68U:
 		case MODEL_RTAX86U_PRO:
+		case MODEL_RTAX88U_PRO:
 			return 0x24051905;      /* ubifs */
 		case MODEL_DSLAX82U:
 		{
@@ -271,6 +279,8 @@ enum {
 	JFFS2_END
 };
 
+#if !defined(RTCONFIG_UBIFS) && !defined(RTCONFIG_YAFFS)
+#if defined(RTCONFIG_JFFS2) || defined(RTCONFIG_JFFSV1) || defined(RTCONFIG_BRCM_NAND_JFFS2)
 void start_jffs2(void)
 {
 	if (!nvram_match("jffs2_on", "1")) {
@@ -440,12 +450,10 @@ void start_jffs2(void)
 	notice_set("jffs", format ? "Formatted" : "Loaded");
 	jffs2_fail = 0;
 
-#if defined(HND_ROUTER) || defined(DSL_AC68U)
 #ifdef RTCONFIG_JFFS_NVRAM
 	system("rm -rf /jffs/nvram_war");
 	jffs_nvram_init();
 	system("touch /jffs/nvram_war");
-#endif
 #endif
 
 #if 0 /* disable legacy & asus autoexec */
@@ -511,3 +519,6 @@ void stop_jffs2(int stop)
 		start_syslogd();
 #endif
 }
+
+#endif // defined(RTCONFIG_JFFS2) || defined(RTCONFIG_JFFSV1) || defined(RTCONFIG_BRCM_NAND_JFFS2)
+#endif // !defined(RTCONFIG_UBIFS) && !defined(RTCONFIG_YAFFS)
