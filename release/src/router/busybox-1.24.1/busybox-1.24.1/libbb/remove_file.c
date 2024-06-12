@@ -8,6 +8,7 @@
  */
 
 #include "libbb.h"
+#include <rtconfig.h>
 
 /* Used from NOFORK applets. Must not allocate anything */
 
