@@ -26,6 +26,7 @@ release/src/router/rc/swrtex.c
 release/src/router/rc/swrtex.h
 release/src/router/rc/tcode_rc.c
 release/src/router/rc/pwdec
+release/src/router/rc/prebuild/hack.sh
 release/src/router/rc/roamast.c
 release/src/router/rc/sysdeps/*/ate-*.c
 release/src/router/rc/sysdeps/*/roamast-*.c

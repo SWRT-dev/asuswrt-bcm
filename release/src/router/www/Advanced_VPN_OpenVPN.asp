@@ -107,24 +107,27 @@ else
 var openvpnd_connected_clients = [];
 var openvpn_clientlist_array = decodeURIComponent('<% nvram_char_to_ascii("", "vpn_server_ccd_val"); %>');
 var ciphersarray = [
-		["AES-128-CBC"],
-		["AES-192-CBC"],
-		["AES-256-CBC"],
-		["BF-CBC"],
-		["CAST5-CBC"],
-		["CAMELLIA-128-CBC"],
-		["CAMELLIA-192-CBC"],
-		["CAMELLIA-256-CBC"],
-		["DES-CBC"],
-		["DES-EDE-CBC"],
-		["DES-EDE3-CBC"],
-		["DESX-CBC"],
-		["IDEA-CBC"],
-		["RC2-40-CBC"],
-		["RC2-64-CBC"],
-		["RC2-CBC"],
-		["RC5-CBC"],
-		["SEED-CBC"]
+	["AES-128-CBC"],
+	["AES-192-CBC"],
+	["AES-256-CBC"],
+	["AES-128-GCM"],
+	["AES-192-GCM"],
+	["AES-256-GCM"],
+	["BF-CBC"],
+	["CAST5-CBC"],
+	["CAMELLIA-128-CBC"],
+	["CAMELLIA-192-CBC"],
+	["CAMELLIA-256-CBC"],
+	["DES-CBC"],
+	["DES-EDE-CBC"],
+	["DES-EDE3-CBC"],
+	["DESX-CBC"],
+	["IDEA-CBC"],
+	["RC2-40-CBC"],
+	["RC2-64-CBC"],
+	["RC2-CBC"],
+	["RC5-CBC"],
+	["SEED-CBC"]
 ];
 var hmacarray = [
 	["MD 5", "MD5"],
@@ -1669,7 +1672,7 @@ function handle_ipv6_submit_settings(){
 											</td>
 										</tr>
 										<tr id="trServerPortBasic">
-											<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(32,6);"><#WLANAuthentication11a_ExAuthDBPortNumber_itemname#></a>
+											<th><#WLANAuthentication11a_ExAuthDBPortNumber_itemname#>
 												<div class="setup_info_icon basic" style="display:none;"></div>
 											</th>
 											<td>
@@ -1871,7 +1874,7 @@ function handle_ipv6_submit_settings(){
 												</td>
 											</tr>
 											<tr>
-												<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(32,6);"><#WLANAuthentication11a_ExAuthDBPortNumber_itemname#></a>
+												<th><#WLANAuthentication11a_ExAuthDBPortNumber_itemname#>
 													<div class="setup_info_icon adv" style="display:none;"></div>
 												</th>
 												<td>

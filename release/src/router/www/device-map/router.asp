@@ -213,6 +213,7 @@ function getInterface(){
 		'2.4G5H6GSmartCommect': [['1', '2.4 GHz/5 GHz-2/6 GHz', '1'], ['0', '5 GHz-1', '0']],
 		'2.4G5L6GSmartCommect': [['0', '2.4 GHz/5 GHz-1/6 GHz', '0'], ['1', '5 GHz-2', '1']],
 		'2.4G5L5HSmartCommect': [['0', '2.4 GHz/5 GHz-1/5 GHz-2', '0'], ['2', '6 GHz', '2']],
+		'5L5HSmartCommect': [['0', '5 GHz-1/5 GHz-2', '0'], ['3', '2.4 GHz', '3'], ['2', '6 GHz', '2']],
 		'5H6GSmartCommect': [['1', '5 GHz-2/6 GHz', '1'], ['3', '2.4 GHz', '3'], ['0', '5 GHz-1', '0']],
 		'5L6GSmartCommect': [['0', '5 GHz-1/6 GHz', '0'], ['3', '2.4 GHz', '3'], ['1', '5 GHz-2', '1']],
 		'2.4G6GSmartCommect': [['3', '2.4 GHz/6 GHz', '3'], ['0', '5 GHz-1', '0'], ['1', '5 GHz-2', '1']],
@@ -258,6 +259,14 @@ function getInterface(){
 					_temp = typeObj['2.4G5LSmartCommect'];
 				}
 			}
+			else if(system.modelName === 'RT-BE96U'){
+				if(variable.smart_connect_selif_x === '11'){
+					_temp = typeObj['triBandSmartConnect'];
+				}
+				else if(variable.smart_connect_selif_x === '3'){
+					_temp = typeObj['triBand6GHzMeshSmartConnect'];
+				}				
+			}
 			else{
 				if(system.band5g2Support){
 					if(dwb_info.mode == '1'){
@@ -297,6 +306,20 @@ function getInterface(){
 		else{		// 5 GHz Smart Connect			
 			if(odmpid === 'GT6'){								
 				_temp = typeObj['GT6-5GHzSmartConnect'];
+			}
+			else if(system.modelName === 'GT-AXE16000'){
+				if(variable.smart_connect_selif_x === '14'){
+					_temp = typeObj['5L5H6GSmartCommect'];
+				}
+				else if(variable.smart_connect_selif_x === '12'){
+					_temp = typeObj['5H6GSmartCommect'];
+				}
+				else if(variable.smart_connect_selif_x === '10'){
+					_temp = typeObj['5L6GSmartCommect'];
+				}
+				else if(variable.smart_connect_selif_x === '6'){
+					_temp = typeObj['5L5HSmartCommect'];
+				}
 			}
 			else {
 				_temp = typeObj['triBand5GHzSmartConnect'];
@@ -482,8 +505,11 @@ function genElement(){
 			code += '<div class="info-block">';                                                                                                                                               
 			code += '<div class="info-title"><#WLANConfig11b_AuthenticationMethod_itemname#></div>';
 			code += '<div><select id="wl'+ unit +'_auth_mode_x" class="input_option" onchange="updateVariable(this.id, value)">'+ _temp +'</select></div>';
+			if(unit != '2'){
+				code += '<span id="wl'+ unit +'_open_suggest" style="color:#FC0;display:none">Suggest to use "Enhanced Open transition" for better device compatibility</span>';
+			}
+			
 			code += '</div>';
-
 			code += '<div id="wl'+ unit +'_no_wp3_hint" class="wpa3_hint" style="display:none;">';
 			code += '<span><#AiMesh_confirm_msg10#> <a id="wl'+ unit +'_wpa3FaqLink" class="faq-link" target="_blank" href="">FAQ</a></span>';
 			code += '</div>';
@@ -590,7 +616,13 @@ function genSmartConnect(){
 		else{
 			if(isSupport("wifi6e")){
 				_optionArray = [['<#wl_securitylevel_0#>', '0'], ['<#smart_connect_tri#>', '1'], ['<#smart_connect_dual#>', '3']];
-			}				
+			}
+			else if(system.modelName == 'RT-BE96U'){
+				_optionArray = [['<#wl_securitylevel_0#>', '0'], ['<#smart_connect_tri#>', '1'], ['2.4 GHz and 5 GHz Smart Connect', '3']];
+				if(variable['smart_connect_selif_x'] == '3'){
+					_smart_connect_x = '3';
+				}
+			}			
 			else{
 				_optionArray = [['<#wl_securitylevel_0#>', '0'], ['<#smart_connect_tri#>', '1'], ['5GHz Smart Connect', '2']];
 			}				
@@ -665,7 +697,7 @@ function genAuthMethod(unit, id, nmode_x, auth_mode_x){
 	}
 	else if(unit == '3'){
 		if(system.modelName === 'GT-AXE16000'){
-			auth_array = authObj['normalWithWPA3'];
+			auth_array = authObj['normalWithWPA3OWE'];
 		}
 		else{
 			auth_array = authObj['60G'];
@@ -782,6 +814,10 @@ function genAuthMethod(unit, id, nmode_x, auth_mode_x){
 		}
 	}
 
+	if(is_KR_sku){ //remove Open System
+		auth_array = auth_array.filter(subArr => subArr[1] !== 'open');
+	}
+
 	if(isSupport("amas") && isSupport("amasRouter") && (isSwMode("rt") || isSwMode("ap"))){
 		var re_count = httpApi.hookGet("get_cfg_clientlist", true).length;
 		if(re_count > 1){
@@ -842,16 +878,29 @@ function genAuthMethod(unit, id, nmode_x, auth_mode_x){
 	if(auth_mode_x == 'psk' || auth_mode_x == 'psk2' || auth_mode_x == 'sae' || auth_mode_x == 'pskpsk2' || auth_mode_x == 'psk2sae'){
 		genWPAEncryption(unit, 'wl'+ unit +'_crypto', auth_mode_x);
 		getWPAKey(unit, 'wl'+ unit +'_wpa_psk', variable['wl'+ unit +'_wpa_psk']);
+		if(document.getElementById('wl'+ unit +'_open_suggest')){
+			document.getElementById('wl'+ unit +'_open_suggest').style.display = 'none';
+		}
 	}
 	else if(auth_mode_x == 'shared'){
 		genWEPEncryption(unit, 'wl'+ unit +'_wep_x');
 		genWEPKeyIndex(unit, 'wl'+ unit +'_key');
 		getWEPKey(unit, 'wl'+ unit +'_wep_key', variable['wl'+ unit +'_key']);
+		if(document.getElementById('wl'+ unit +'_open_suggest')){
+			document.getElementById('wl'+ unit +'_open_suggest').style.display = 'none';
+		}
     }
     else if(auth_mode_x == 'owe' || auth_mode_x == 'openowe'){
         genWPAEncryption(unit, 'wl'+ unit +'_crypto', auth_mode_x);
+		if(document.getElementById('wl'+ unit +'_open_suggest')){
+			document.getElementById('wl'+ unit +'_open_suggest').style.display = 'none';
+		}
     }
 	else if(auth_mode_x == 'open'){
+		if(document.getElementById('wl'+ unit +'_open_suggest')){
+			document.getElementById('wl'+ unit +'_open_suggest').style.display = '';
+		}
+		
 		if(nmode_x == '2'){
 			if(wepEncryption != '0'){
 				genWEPEncryption(unit, 'wl'+ unit +'_wep_x', auth_mode_x);
@@ -866,6 +915,9 @@ function genAuthMethod(unit, id, nmode_x, auth_mode_x){
 	}
 	else if(auth_mode_x == 'wpa' || auth_mode_x == 'wpa2' || auth_mode_x == 'wpawpa2' || auth_mode_x == 'wpa3' || auth_mode_x == 'wpa2wpa3' || auth_mode_x == 'suite-b'){
 		genWPAEncryption(unit, 'wl'+ unit +'_crypto', auth_mode_x);
+		if(document.getElementById('wl'+ unit +'_open_suggest')){
+			document.getElementById('wl'+ unit +'_open_suggest').style.display = 'none';
+		}
 	}
 }
 
@@ -975,6 +1027,17 @@ function apply(rc_flag){
 		delete variable['smart_connect_selif_x'];
 	}
 
+	if(system.modelName == 'RT-BE96U'){
+		if(variable['smart_connect_x'] == '1'){
+			variable['smart_connect_selif_x'] = '11';
+			variable['smart_connect_x'] = '1';
+		}
+		else{
+			variable['smart_connect_selif_x'] = '3';
+			variable['smart_connect_x'] = '1';
+		}
+	}
+
 	if(validateInput()){
 		if(isSupport("amas_fronthaul_network")){
 			if(system.triBandSupport && dwb_info.mode && variable['smart_connect_x'] == "1"){
@@ -983,6 +1046,15 @@ function apply(rc_flag){
 		}
 		postObj = Object.assign(postObj, variable);
 		httpApi.nvramSet(postObj, function(){
+			if (Qcawifi_support || Rawifi_support) {
+				var restart_needed_time = this.restart_needed_time;	// restart wireless time
+				if (restart_needed_time) {
+					var tmp_rc_time = parseInt(restart_needed_time);
+					if (!isNaN(tmp_rc_time) && tmp_rc_time > 0 && tmp_rc_time < 300) {
+						rc_time = tmp_rc_time;
+					}
+				}
+			}
 			parent.showLoading(rc_time);
 			setTimeout(function(){
 				location.reload();
@@ -996,6 +1068,15 @@ function updateVariable(id, value, flag){
 	variable[id] = value;
 	var prefix = id.split('_')[0];
 	var wpsEnable = variable['wps_enable'];
+	if(system.modelName == 'RT-BE96U'){
+		if(value == '1'){
+			variable.smart_connect_selif_x = '11';
+		}
+		else if(value == '3'){
+			variable.smart_connect_selif_x = '3';
+		}
+	}
+
 	if(band6g_support && (id == "smart_connect_x")){
 		if(value == '0' || value == '3'){
 			

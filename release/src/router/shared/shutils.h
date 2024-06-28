@@ -629,6 +629,8 @@ extern char *trimWS(char *str);
 extern int get_char_count(char *str, int ch);
 extern pid_t get_pid_by_name(char *name);
 extern pid_t get_pid_by_thrd_name(char *name);
+extern void replace_null_to_space(char *str, int len);
+extern pid_t get_pid_by_process_name(char *name);
 extern char *get_process_name_by_pid(const int pid);
 extern char *ether_etoa2(const unsigned char *e, char *a);
 extern char *ATE_FACTORY_MODE_STR();
@@ -646,4 +648,5 @@ extern long get_sys_uptime();
 extern void wait_ntp_repeat(unsigned long usec, unsigned int count);
 extern int ping_target_with_size(char *target, unsigned int size, unsigned int count, unsigned int wait_time, double loss_rate);
 extern int parse_ping_content(char *fname, ping_result_t *out);
+extern int replace_literal_newline(char *inputstr, char *output, int buflen);
 #endif /* _shutils_h_ */

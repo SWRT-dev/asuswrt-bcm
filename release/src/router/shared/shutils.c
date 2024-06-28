@@ -271,6 +271,9 @@ int _eval(char *const argv[], const char *path, int timeout, int *ppid)
 		chld = signal(SIGCHLD, SIG_DFL);
 	}
 
+#if defined(RTCONFIG_VALGRIND)
+	setenv("USER", nvram_get("http_username")? : "admin", 1);
+#endif
 #ifdef HND_ROUTER
 	p = nvram_safe_get("env_path");
 	snprintf(s, sizeof(s), "%s%s/sbin:/bin:/usr/sbin:/usr/bin:/opt/sbin:/opt/bin", *p ? p : "", *p ? ":" : "");
@@ -643,6 +646,64 @@ get_pid_by_thrd_name(char *name)
 
         closedir(dir);
         return pid;
+}
+
+void replace_null_to_space(char *str, int len) {
+
+	int i = 0;
+	char *p = str;
+
+	for(i=0; i<len-1; i++){
+		if(*p == '\0')
+			*p = ' ';
+		p++;
+
+	}
+}
+
+pid_t
+get_pid_by_process_name(char *name)
+{
+	size_t size = 0;
+	char p_name[128] = {0}, filename[256] = {0};
+	pid_t           pid = -1;
+	DIR             *dir;
+	struct dirent   *next;
+
+	if ((dir = opendir("/proc")) == NULL) {
+		perror("Cannot open /proc");
+		return -1;
+	}
+
+	while ((next = readdir(dir)) != NULL) {
+		/* If it isn't a number, we don't want it */
+		if (!isdigit(*next->d_name))
+			continue;
+
+		memset(filename, 0, sizeof(filename));
+		snprintf(filename, sizeof(filename), "/proc/%s/cmdline", next->d_name);
+		FILE* f = fopen(filename,"r");
+		if(f){
+			size = fread(p_name, sizeof(char), sizeof(p_name), f);
+
+			if(size>0){
+				replace_null_to_space(p_name, size);
+				if('\n'==p_name[size-1])
+				p_name[size-1]='\0';
+			}else
+				memset(p_name, 0, sizeof(p_name));
+
+			fclose(f);
+		}
+
+		if (!strcmp(name, p_name)) {
+			pid = strtol(next->d_name, NULL, 0);
+			break;
+		}
+	}
+	closedir(dir);
+
+	return pid;
 }
 
 /*
@@ -1332,6 +1393,42 @@ add_to_list(const char *name, char *list, int listsize)
 	strncpy(&list[listlen], name, namelen + 1 /* terminate */);
 
 	return 0;
+}
+
+int
+_add_to_list(const char *name, char *list, int listsize, char deli)
+{
+        int listlen = 0;
+        int namelen = 0;
+        int newlen = 0;
+
+        if (!list || !name || (listsize <= 0))
+                return EINVAL;
+
+        listlen = strlen(list);
+        namelen = strlen(name);
+
+        /* is the item already in the list? */
+        if (_find_in_list(list, name, deli))
+                return 0;
+
+        newlen = listlen + namelen + 1 /* NULL */;
+        /* only add a space if the list isn't empty */
+        if (list[0] != 0)
+                newlen += 1; /* space */
+
+        if (listsize < newlen)
+                return EMSGSIZE;
+
+        /* add a space if the list isn't empty and it doesn't already have space */
+        if (list[0] != 0 && list[listlen-1] != deli)
+        {
+                list[listlen++] = deli;
+        }
+
+        strncpy(&list[listlen], name, namelen + 1 /* terminate */);
+
+        return 0;
 }
 
 /* Utility function to remove duplicate entries in a space separated list
@@ -2466,14 +2563,14 @@ int num_of_5g_if()
 	}
 #else
 	char word[256], *next;
-	int count = 0;
 	char wl_ifnames[32] = { 0 };
-	int band;
+	char prefix[] = "wlXXXXXXXXXXXX_", tmp[128];
+	int idx = 0, count = 0;
 
 	strlcpy(wl_ifnames, nvram_safe_get("wl_ifnames"), sizeof(wl_ifnames));
 	foreach (word, wl_ifnames, next) {
-		wl_ioctl(word, WLC_GET_BAND, &band, sizeof(band));
-		if(band == WLC_BAND_5G)
+		snprintf(prefix, sizeof(prefix), "wl%d_", idx++);
+		if (nvram_match(strcat_r(prefix, "nband", tmp), "1"))
 			count++;
 	}
 #endif
@@ -3052,6 +3149,7 @@ int ping_target_with_size(char *target, unsigned int pkt_size, unsigned int ping
 			snprintf(cmdbuf, sizeof(cmdbuf), "ping -c %d -W %d -s %d %s > %s 2>&1 || true && echo \"\" >> %s", ping_cnt, wait_time, pkt_size, target, ping_result, ping_done);
 			system(cmdbuf);
 			logmessage("ping_target_with_size", "Ping test is complete.\n");
+			exit(0);
 		}
 		else
 		{
@@ -3080,5 +3178,57 @@ int ping_target_with_size(char *target, unsigned int pkt_size, unsigned int ping
 			return 0;
 		}
 	}
+}
+
+/*******************************************************************
+* NAME: replace_literal_newline
+* AUTHOR: Renjie Lee
+* CREATE DATE: 2023/03/21
+* DESCRIPTION: Replace literal newline(s) ("\n")  with newline character(s) ('\n').
+*                        That is to say, from "\n" to '\n'.
+* INPUT:  inputstr, the string to be replaced.
+*         output, the replaced string will be stored in 'output'.
+*         buflen, the size of 'output' buffer.
+* OUTPUT: None
+* RETURN: -1 or -2, if something went wrong; 1, function works correctly.
+* NOTE:
+*******************************************************************/
+int replace_literal_newline(char *inputstr, char *output, int buflen)
+{
+	int in = 0;
+	int out = 0;
+	int len = 0;
+
+	if((!inputstr) || (strlen(inputstr) <= 0))
+	{
+		logmessage("replace_literal_newline", "Wrong inputstr.\n");
+		return -1;
+	}
+
+	if((!output) || (buflen == 0))
+	{
+		logmessage("replace_literal_newline", "Wrong output buffer\n");
+		return -2;
+	}
+
+	len = strlen(inputstr);
+	for(in = 0; (in < len) && (out < buflen); in++, out++)
+	{
+		if(in == len -1)
+		{
+			//boundary condition
+			output[out] = inputstr[in];
+		}
+		else if((inputstr[in] == '\\') && (inputstr[in+1] == 'n'))
+		{
+			output[out] = '\n';
+			in++;
+		}
+		else
+		{
+			output[out] = inputstr[in];
+		}
+	}
+	return 1;
 }
 

@@ -128,6 +128,7 @@ typedef struct ovpn_sconf {
 	int poll;	//polling interval of cron job in seconds
 	char lan_ipaddr[16];
 	char lan_netmask[16];
+	char lan_subnet[16];
 	int ipv6_enable;
 	int nat6;
 	char wan6_ifname[16];
@@ -173,7 +174,7 @@ typedef struct ovpn_cconf {
 	int reneg;	//TLS Renegotiation Time
 	int tlscrypt;	//Encrypt and authenticate all control channel packets.
 	int verify_x509_type;	//TYPE of verify-x509-name
-	char verify_x509_name[32];	//NAME of verify-x509-name
+	char verify_x509_name[65];	//NAME of verify-x509-name
 
 //Router options and info
 	char firewall[8];	//auto
@@ -230,6 +231,7 @@ extern int set_ovpn_key(ovpn_type_t type, int unit, ovpn_key_t key_type, char *b
 extern int ovpn_key_exists(ovpn_type_t type, int unit, ovpn_key_t key_type);
 
 extern int need_dnsmasq_serverfile();
+extern char* get_lan_subnet(char* buf, size_t len);
 extern char* get_lan_cidr(char* buf, size_t len);
 extern char* get_lan_cidr6(char* buf, size_t len);
 extern char* get_ovpn_sconf_remote(char* buf, size_t len);
@@ -243,4 +245,7 @@ extern ovpn_accnt_info_t* get_ovpn_accnt(ovpn_accnt_info_t *accnt_info);
 
 extern void reset_ovpn_setting(ovpn_type_t type, int unit);
 extern void ovpn_defaults();
+#ifdef RTCONFIG_MULTILAN_CFG
+extern char* ovpn_get_sdn_subnet_mask(ovpn_type_t type, int unit, char* buf, size_t len);
+#endif
 #endif

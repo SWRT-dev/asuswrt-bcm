@@ -331,6 +331,10 @@ LDFLAGS		:= $(LDFLAGS)
 EXTRA_LDFLAGS   :=
 LDLIBS		:=
 
+ifeq ($(HND_ROUTER_BE_4916),y)
+CFLAGS		+= -DRTCONFIG_HND_ROUTER_BE_4916
+endif
+
 # Read KERNELRELEASE from .kernelrelease (if it exists)
 KERNELRELEASE = $(shell cat .kernelrelease 2> /dev/null)
 KERNELVERSION = $(VERSION).$(PATCHLEVEL).$(SUBLEVEL)$(EXTRAVERSION)

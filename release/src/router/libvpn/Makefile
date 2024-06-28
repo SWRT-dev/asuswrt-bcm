@@ -9,27 +9,32 @@ endif
 ifeq ($(RTCONFIG_BCMARM),y)
 CFLAGS += -I$(SRCBASE)/shared/bcmwifi/include -DTYPEDEF_FLOAT_T
 endif
+
+ifeq ($(HND_ROUTER_BE_4916), y)
+CFLAGS+= -fcommon
+endif
+
 LDFLAGS += $(EXTRALDFLAGS) -L$(TOP_PLATFORM)/nvram${BCMEX}${EX7} -lnvram -L$(TOP)/shared -lshared
 ifeq ($(RTCONFIG_BCM_502L07P2),y)
 LDFLAGS += -L$(TOP_PLATFORM)/ethctl_lib -lethctl
 endif
 LDFLAGS += -lcrypt
-LDFLAGS += -L$(TOP)/openssl -lcrypto -lssl
+LDFLAGS += -L$(TOP)/openssl -lcrypto -lssl $(if $(or $(RTCONFIG_OPENSSL11),$(RTCONFIG_OPENSSL3)),-lpthread,) $(if $(RTCONFIG_OPENSSL3),-latomic,)
 
 INSTALL = install
 
 OBJS = openvpn_config.o openvpn_control.o openvpn_utils.o openvpn_options.o
 
-ifneq ($(wildcard ./prebuild/$(BUILD_NAME)/libvpn.so),)
-all:
-	cp -f ./prebuild/$(BUILD_NAME)/libvpn.so .
-else
+#ifneq ($(wildcard ./prebuild/$(BUILD_NAME)/libvpn.so),)
+#all:
+#	cp -f ./prebuild/$(BUILD_NAME)/libvpn.so .
+#else
 all: libvpn.so
 
 libvpn.so: $(OBJS)
 	@echo " [libvpn] LD $@"
 	@$(CC) $(LDFLAGS) -shared -o $@ $^
-endif
+#endif
 
 install: all
 	@echo " [libvpn] Installing as $(INSTALLDIR)/usr/lib/libvpn.so"
@@ -58,4 +63,3 @@ clean:
 	@$(CC) $(CFLAGS) -E $< > $@
 
 -include $(OBJS:%.o=.%.depend)
-

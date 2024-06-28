@@ -859,7 +859,7 @@ void setup_conntrack(void)
 		ct_modprobe_r("pptp");
 		ct_modprobe_r("proto_gre");
 	}
-#ifdef RTCONFIG_HND_ROUTER_AX_6756
+#if defined(RTCONFIG_HND_ROUTER_AX_6756) || defined(RTCONFIG_HND_ROUTER_BE_4916) || defined(RTCONFIG_MT798X)
 	f_write_string("/proc/sys/net/netfilter/nf_conntrack_helper", "1", 0, 0);
 #endif
 
@@ -1217,10 +1217,10 @@ const zoneinfo_t tz_list[] = {
         {"PST8DST",	"US/Pacific"},		// (GMT-08:00) Pacific Time (US & Canada)
         {"MST7DST_1",	"US/Mountain"},		// (GMT-07:00) Mountain Time (US & Canada)
         {"MST7_2",	"US/Arizona"},		// (GMT-07:00) Arizona
-	{"MST7DST_3",	"America/Chihuahua"},	// (GMT-07:00) Chihuahua, La Paz, Mazatlan
+	{"MST7_3",	"America/Mazatlan"},	// (GMT-07:00) La Paz, Mazatlan //MST7DST_3
         {"CST6_2",	"Canada/Saskatchewan"},	// (GMT-06:00) Saskatchewan
         {"CST6_3",	"Mexico/General"},	// (GMT-06:00) Guadalajara, Mexico City
-        {"CST6_3_1",	"America/Monterrey"},	// (GMT-06:00) Monterrey
+        {"CST6_3_1",	"America/Monterrey"},	// (GMT-06:00) Monterreyi, Chihuahua
         {"UTC6DST",	"US/Central"},		// (GMT-06:00) Central Time (US & Canada)
         {"EST5DST",	"US/Eastern"},		// (GMT-05:00) Eastern Time (US & Canada)
         {"UTC5_1",	"US/East-Indiana"},	// (GMT-05:00) Indiana (East)    US Eastern
@@ -1231,8 +1231,9 @@ const zoneinfo_t tz_list[] = {
         {"UTC4DST_2",	"America/Santiago"},	// (GMT-04:00) Santiago
         {"NST3.30DST",	"Canada/Newfoundland"},	// (GMT-03:30) Newfoundland
         {"EBST3",	"America/Araguaina"},	// (GMT-03:00) Brasilia //EBST3DST_1
-	{"UTC3",	"America/Araguaina"},	// (GMT-03:00) Buenos Aires, Georgetown
-        {"EBST3DST_2",	"America/Godthab"},	// (GMT-03:00) Greenland
+		{"UTC3DST",     "America/Saint-Pierre-et-Miquelon"},    // (GMT-03:00) Saint Pierre	//UTC2DST
+		{"UTC3",	"America/Araguaina"},	// (GMT-03:00) Buenos Aires, Georgetown
+        {"UTC2_1",	"America/Godthab"},	// (GMT-03:00) Greenland	//EBST3DST_2
         {"UTC2",	"Atlantic/South_Georgia"},	// (GMT-02:00) South Georgia
         {"EUT1DST",     "Atlantic/Azores"},	// (GMT-01:00) Azores
         {"UTC1",        "Atlantic/Cape_Verde"},	// (GMT-01:00) Cape Verde Is.
@@ -1265,7 +1266,7 @@ const zoneinfo_t tz_list[] = {
 	{"UTC-3_5",     "Europe/Volgograd"},    // (GMT+03:00) Volgograd        //UTC-4_7
         {"IST-3",       "Asia/Baghdad"},	// (GMT+03:00) Baghdad
         {"UTC-3_6",     "Asia/Istanbul"},	// (GMT+03:00) Istanbul
-        {"UTC-3.30DST", "Asia/Tehran"},		// (GMT+03:00) Tehran        
+        {"UTC-3.30",	"Asia/Tehran"},		// (GMT+03:00) Tehran       //UTC-3.30DST 
         {"UTC-4_1",     "Asia/Muscat"},		// (GMT+04:00) Abu Dhabi, Muscat
         {"UTC-4_5",     "Europe/Samara"},	// (GMT+04:00) Izhevsk, Samara
 	{"UTC-4_4",     "Asia/Tbilisi"},	// (GMT+04:00) Tbilisi, Yerevan
@@ -1292,7 +1293,7 @@ const zoneinfo_t tz_list[] = {
         {"UTC-8_1",     "Asia/Irkutsk"},	// (GMT+08:00) Irkutsk
         {"UTC-9_1",     "Asia/Seoul"},		// (GMT+09:00) Seoul
         {"UTC-9_3",     "Asia/Yakutsk"},	// (GMT+09:00) Yakutsk
-        {"JST",         "Asia/Tokyo"},		// (GMT+09:00) Osaka, Sapporo, Tokyo
+        {"JST-9",       "Asia/Tokyo"},		// (GMT+09:00) Osaka, Sapporo, Tokyo
         {"CST-9.30",    "Australia/Darwin"},	// (GMT+09:30) Darwin
         {"UTC-9.30DST", "Australia/Adelaide"},	// (GMT+09:30) Adelaide
         {"UTC-10DST_1", "Australia/Canberra"},	// (GMT+10:00) Canberra, Melbourne, Sydney
@@ -1341,7 +1342,16 @@ void time_zone_x_mapping(void)
 #endif
 
 	/* pre mapping because time_zone area changed*/
-	if (nvram_match("time_zone", "UTC-12DST")){             /*Fiji*/
+	if (nvram_match("time_zone", "UTC-3.30DST")){
+		nvram_set("time_zone", "UTC-3.30");               /*Tehran*/
+                nvram_set("time_zone_dst", "0");
+	}else if (nvram_match("time_zone", "MST7DST_3")){
+		nvram_set("time_zone", "MST7");               /*Mazatlan*/
+		nvram_set("time_zone_dst", "0");
+	}else if (nvram_match("time_zone", "EBST3DST_2")){
+		nvram_set("time_zone", "UTC2_1");		/*Greenland*/
+		nvram_set("time_zone_dst", "0");
+	}else if (nvram_match("time_zone", "UTC-12DST")){             /*Fiji*/
                 nvram_set("time_zone", "UTC-12_3");
                 nvram_set("time_zone_dst", "0");
         }else if (nvram_match("time_zone", "CST6DST_3")){		/*Guadalajara, Mexico City*/
@@ -1350,28 +1360,29 @@ void time_zone_x_mapping(void)
 	}else if (nvram_match("time_zone", "CST6DST_3_1")){	/*Monterrey*/
                 nvram_set("time_zone", "CST6_3_1");
 		nvram_set("time_zone_dst", "0");
-	}else if (nvram_match("time_zone", "KST-9KDT"))
+	}
+	/*}else if (nvram_match("time_zone", "KST-9KDT"))
 		nvram_set("time_zone", "UCT-9_1");
 	else if (nvram_match("time_zone", "RFT-9RFTDST"))
 		nvram_set("time_zone", "UCT-9_2");
-	else if (nvram_match("time_zone", "UTC-2DST_1"))	/*Minsk*/
+	else if (nvram_match("time_zone", "UTC-2DST_1"))	//Minsk
 		nvram_set("time_zone", "UTC-3_3");
-	else if (nvram_match("time_zone", "UTC-4_2"))		/*Moscow, St. Petersburg*/
+	else if (nvram_match("time_zone", "UTC-4_2"))		//Moscow, St. Petersburg
 		nvram_set("time_zone", "UTC-3_4");
-	else if (nvram_match("time_zone", "UTC-4_3"))		/*Volgograd*/
+	else if (nvram_match("time_zone", "UTC-4_3"))		//Volgograd
 		nvram_set("time_zone", "UTC-3_5");
-	else if (nvram_match("time_zone", "UTC-6_1"))		/*Yekaterinburg*/
+	else if (nvram_match("time_zone", "UTC-6_1"))		//Yekaterinburg
 		nvram_set("time_zone", "UTC-5_1");
-	else if (nvram_match("time_zone", "UTC-7_1"))		/*Novosibirsk*/
+	else if (nvram_match("time_zone", "UTC-7_1"))		//Novosibirsk
 		nvram_set("time_zone", "UTC-6_2");
-	else if (nvram_match("time_zone", "CST-8_2"))		/*Krasnoyarsk*/
+	else if (nvram_match("time_zone", "CST-8_2"))		//Krasnoyarsk
 		nvram_set("time_zone", "CST-7_2");
-	else if (nvram_match("time_zone", "UTC-9_2"))		/*Irkutsk*/
+	else if (nvram_match("time_zone", "UTC-9_2"))		//Irkutsk
 		nvram_set("time_zone", "UTC-8_1");
-	else if (nvram_match("time_zone", "UTC-10_3"))		/*Yakutsk*/
+	else if (nvram_match("time_zone", "UTC-10_3"))		//Yakutsk
 		nvram_set("time_zone", "UTC-9_3");
-	else if (nvram_match("time_zone", "UTC-11_2"))		/*Vladivostok*/
-		nvram_set("time_zone", "UTC-10_4");
+	else if (nvram_match("time_zone", "UTC-11_2"))		//Vladivostok
+		nvram_set("time_zone", "UTC-10_4");*/	
 	else if (nvram_match("time_zone", "UTC-12_1"))          /*Magadan*/
 		nvram_set("time_zone", "UTC-10_6");
 	else if (nvram_match("time_zone", "UTC4.30"))		/*Caracas*/
@@ -1405,6 +1416,13 @@ void time_zone_x_mapping(void)
 	else if (nvram_match("time_zone", "UTC-6_2")){  /*Novosibirsk*/
 		nvram_set("time_zone", "UTC-7_3");
 	}
+	else if (nvram_match("time_zone", "UTC2DST")){  /*Saint-Pierre-et-Miquelon*/
+		nvram_set("time_zone", "UTC3DST");
+	}
+	else if (nvram_match("time_zone", "JST")){	/* convert JST to JST-9 */
+		nvram_set("time_zone", "JST-9");
+	}
+
 
 	len = snprintf(tmpstr, sizeof(tmpstr), "%s", nvram_safe_get("time_zone"));
 	/* replace . with : */
@@ -1417,22 +1435,14 @@ void time_zone_x_mapping(void)
 
 	/* check time_zone_dst for daylight saving */
 	if (nvram_get_int("time_zone_dst"))
+    {
 		len += sprintf(tmpstr + len, ",%s", nvram_safe_get("time_zone_dstoff"));
+    }        
 #ifdef CONVERT_TZ_TO_GMT_DST
 	else	gettzoffset(tmpstr, tmpstr, sizeof(tmpstr));
 #endif
 
 	nvram_set("time_zone_x", tmpstr);
-
-	/* special mapping */
-	if (nvram_match("time_zone", "JST"))
-		nvram_set("time_zone_x", "UCT-9");
-#if 0
-	else if (nvram_match("time_zone", "TST-10TDT"))
-		nvram_set("time_zone_x", "UCT-10");
-	else if (nvram_match("time_zone", "CST-9:30CDT"))
-		nvram_set("time_zone_x", "UCT-9:30");
-#endif
 
 	if ((fp = fopen("/etc/TZ", "w")) != NULL) {
 		fprintf(fp, "%s\n", tmpstr);
@@ -1454,11 +1464,9 @@ void
 setup_timezone(void)
 {
 #ifndef RC_BUILDTIME
-#define RC_BUILDTIME	1525496688	// May  5 05:04:48 GMT 2018
+#define RC_BUILDTIME	1704067200	// Jan  1 00:00:00 GMT 2024
 #endif
 	time_t now;
-	struct tm gm, local;
-	struct timezone tz;
 	struct timeval tv = { RC_BUILDTIME, 0 };
 	struct timeval *tvp = NULL;
 
@@ -1470,8 +1478,12 @@ setup_timezone(void)
 	setenv("TZ", nvram_get("time_zone_x"), 1);
 #endif
 
-	/* Update kernel timezone */
 	time(&now);
+
+	struct tm gm, local;
+	struct timezone tz;
+
+	/* Update kernel timezone */
 	gmtime_r(&now, &gm);
 	localtime_r(&now, &local);
 	gm.tm_isdst = local.tm_isdst;
@@ -1480,6 +1492,9 @@ setup_timezone(void)
 
 #if !defined(__GLIBC__) && !defined(__UCLIBC__) /* musl */
 	if (syscall(SYS_settimeofday, NULL, &tz))
+		_dprintf("[%s]: can't set kernel time zone!!!!\n");
+#elif defined(RTCONFIG_HND_ROUTER_BE_4916)
+	if (syscall(__NR_settimeofday, NULL, &tz))
 		_dprintf("[%s]: can't set kernel time zone!!!!\n");
 #endif
 
@@ -1503,7 +1518,13 @@ setup_timezone(void)
 		tv.tv_sec += info.uptime;
 		tvp = &tv;
 	}
+
+#if defined(RTCONFIG_HND_ROUTER_BE_4916)
+	if (tvp)
+		settimeofday(tvp, NULL);
+#else
 	settimeofday(tvp, &tz);
+#endif
 }
 
 int get_meminfo_item(const char *name)
@@ -1889,5 +1910,29 @@ void envsave(const char* path)
 		}
 		fclose(fp);
 	}
+}
+
+int remove_ip_rules(const int pref, const int v6)
+{
+	char tmp[256], pref_str[8], tmp2[256];
+	FILE *fp;
+	static const char iprule_tmp[] = "/tmp/iprule_tmp";
+
+	// remove current default routing table
+	snprintf(pref_str, sizeof(pref_str), "%d", pref);
+	snprintf(tmp, sizeof(tmp), "ip %s rule show | grep %d > %s", (v6)?"-6":"-4", pref, iprule_tmp);
+
+	system(tmp);
+	fp = fopen(iprule_tmp, "r");
+	if(fp)
+	{
+		while(fgets(tmp, sizeof(tmp), fp))
+		{
+			eval("ip", (v6)?"-6":"-4", "rule", "del", "priority", pref_str);
+		}
+		fclose(fp);
+	}
+	unlink(iprule_tmp);
+	return 0;
 }
 

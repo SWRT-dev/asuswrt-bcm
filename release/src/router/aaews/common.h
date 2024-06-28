@@ -47,7 +47,7 @@
 //#define AIHOME_LEAST_VER	"1.0.0.2.29"
 #define ASUS_DEVICE_DESC	"{\"public\":\"0\", \"name\":\"%s\", \"tnlver\":\"%s\", \"AiHOMEAPILevel\":\"%d\", \"aae_enable\":\"%d\", \"fwver\":\"%s\", \"modelname\":\"%s\"}"
 #define ASUS_DESC_DEF		"Router"
-#define ASUS_DEVICE_DESC_LEN	512	
+#define ASUS_DEVICE_DESC_LEN	1024
 #define GEMTEK_DEVICE_NAME      "AiCam"
 #define GEMTEK_DEVICE_SERVICE   "1002"
 #define GEMTEK_DEVICE_DESC	"{\"name\":\"AiCam\"}"
@@ -63,6 +63,7 @@
 #define AWS_CERTS_KEY_FILE "/jffs/awscerts/private.pem.key"
 
 #define AAE_TUNNEL_STATUS_RES "{\"function_name\": \"tunnel_status\", \"status\": \"%d\"}"
+#define AAE_TUNNEL_TEST_RES "{\"function_name\": \"tunnel_test\", \"source\": \"%s\", \"target\": \"%s\", \"type\" : \"%s\", \"error\": \"%d\"}"
 
 #define my_memcpy(dst, src, dst_len, src_len) {memcpy(dst, src, dst_len < src_len ? dst_len : src_len);}
 

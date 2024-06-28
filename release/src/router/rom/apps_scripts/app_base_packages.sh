@@ -127,7 +127,7 @@ if [ ! -f "$APPS_INSTALL_PATH/bin/ipkg" ] || [ -z "$had_uclibc" ]; then
 		IS_SUPPORT_SSL=`nvram get rc_support|grep -i HTTPS`
 		if [ -n "$IS_SUPPORT_SSL" ]; then
 			dl_path=https://dlcdnets.asus.com/pub/ASUS/LiveUpdate/Release/Wireless
-			wget_options="$wget_options --no-check-certificate"
+			wget_options="$wget_options"
 		else
 			dl_path=http://dlcdnet.asus.com/pub/ASUS/LiveUpdate/Release/Wireless
 		fi
@@ -158,7 +158,7 @@ if [ ! -f "$APPS_INSTALL_PATH/bin/ipkg" ] || [ -z "$had_uclibc" ]; then
 		fi
 
 		#2016.7.1 sherry new oleg arm{
-		if [ $apps_new_arm -eq 1 ]; then
+		if [ $apps_new_arm -eq 1 ] || [ $pkg_type == 'mipsel' ]; then
 			echo "wget --spider $wget_options $dl_path/$BASELEN_TGZ"
 			wget --spider $wget_options $dl_path/$BASELEN_TGZ
 			if [ "$?" != "0" ]; then
@@ -285,7 +285,7 @@ if [ "$APPS_MOUNTED_TYPE" == "vfat" ] || [ "$APPS_MOUNTED_TYPE" == "tfat" ]; the
 fi
 
 #2016.7.6 sherry add for new arm{
-if [ $apps_new_arm -eq 1 ]; then
+if [ $apps_new_arm -eq 1 ] || [ $pkg_type == 'mipsel' ]; then
 	rm -f $TEMP_BASELEN_FILE
 	rm -f $APPS_INSTALL_PATH/$BASELEN_FILE
 fi

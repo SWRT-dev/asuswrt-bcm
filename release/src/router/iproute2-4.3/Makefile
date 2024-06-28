@@ -22,6 +22,10 @@ CONFIGURE := ./configure LD=$(CROSS_COMPILE)ld --host=aarch64-buildroot-linux-gn
 HOSTCONFIG := linux-aarch64 -DL_ENDIAN -march=armv8-a -fomit-frame-pointer -mabi=lp64 -ffixed-r8 -D__ARM_ARCH_8A__
 endif
 
+ifeq ($(HND_ROUTER_BE_4916), y)
+CFLAGS+= -fcommon
+endif
+
 .PHONY: check_untar_patch_configure conditional_build check_versions
 
 ifneq ("$(BUILD_IPROUTE2)$(BUILD_IPV6)$(BRCM_KERNEL_NETQOS)$(BUILD_GPONRG_OMCI_FULL)","")

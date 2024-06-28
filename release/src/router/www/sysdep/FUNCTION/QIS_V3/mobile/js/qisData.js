@@ -47,6 +47,16 @@ var wanObj = {
 	"ocnvc": {
 		"ipv6_service": "ipv6pt"
 	},
+
+	"dslite": {
+		"ipv6_service": "ipv6pt",
+		"wan_s46_dslite_mode": "0"
+	},
+
+	"wan46": {
+		"wan_proto": "",
+		"ipv6_service": "ipv6pt"
+	},
 	
 	"vpn": {
 		"wan_heartbeat_x": ""
@@ -199,7 +209,8 @@ var bwdpiObj = {
 
 var timeObj = {
 	"time_zone": "",
-	"time_zone_dst": ""
+	"time_zone_dst": "",
+	"time_zone_dstoff": ""
 }
 
 var iptvObj = {
@@ -268,6 +279,9 @@ var systemVariable = {
 	"detwanResult": {
 		"wanType": "",
 		"isIPConflict": false
+	},
+	"detwan46Result": {
+		"wan46State": ""
 	},
 	"isNewFw": 0,
 	"newFwVersion": "",

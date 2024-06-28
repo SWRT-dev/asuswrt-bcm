@@ -3154,7 +3154,7 @@ size_t smbc_cli_write(struct cli_state *cli, smb_file_t *smbf, uint16_t write_mo
 size_t smbc_cli_read(struct cli_state *cli, smb_file_t *smbf, char *buf, size_t size);
 uint32_t smbc_cli_close(struct cli_state *cli, smb_file_t *smbf);
 uint32_t smbc_cli_unlink(struct cli_state *cli, const char *fname, uint16_t mayhave_attrs);
-void smbc_cli_nmb_lookup( void *priv );
+void *smbc_cli_nmb_lookup( void *priv );
 void smbc_cli_nmb_terminate(int term);
 
 //- Jerry add

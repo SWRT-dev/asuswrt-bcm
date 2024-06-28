@@ -133,7 +133,7 @@ define(function(){
 					{url: "Main_TrafficMonitor_last24.asp", tabName: "__INHERIT__"},
 					{url: "Main_TrafficMonitor_daily.asp", tabName: "__INHERIT__"},
 					{url: "AdaptiveQoS_TrafficLimiter.asp", tabName: "Traffic Limiter"},
-					{url: "NULL", tabName: "__INHERIT__"}
+                                        {url: "NULL", tabName: "__INHERIT__"}
 				] 
 			},
 			{
@@ -631,7 +631,7 @@ define(function(){
 				if(!traffic_limiter_support){
 					retArray.push("AdaptiveQoS_TrafficLimiter.asp");		
 				}
-
+                                
 				if(downsize_4m_support){
 					retArray.push("Main_ConnStatus_Content.asp");
 					retArray.push("Main_TrafficMonitor_realtime.asp");
@@ -708,7 +708,7 @@ define(function(){
 					retArray.push("Advanced_Notification_Content.asp");
 				}
 
-				if(!smart_connect_support || Qcawifi_support){
+				if((!smart_connect_support && !smart_connect_v2_support) || Qcawifi_support || Rawifi_support){
 					retArray.push("Advanced_Smart_Connect.asp");
 				}
 				
@@ -956,3 +956,4 @@ define(function(){
 
 	return menuTree;
 });
+

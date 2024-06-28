@@ -1,5 +1,0 @@
-swanctl.load =
-	Plugins to load in swanctl.
-
-swanctl.socket = unix://${piddir}/charon.vici
-	VICI socket to connect to by default.

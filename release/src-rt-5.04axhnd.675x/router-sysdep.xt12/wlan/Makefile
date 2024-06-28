@@ -156,6 +156,10 @@ ifneq ($(strip $(RDK_BUILD)),)
 WLANAPP_DIRS += wifi_rdk_initd
 endif
 
+ifneq ($(strip $(BCM4906_504)),)
+WLANAPP_DIRS = scripts nvram
+endif
+
 cmwifi:
 	$(MAKE) -C $@ all install
 hapdconf:
@@ -205,6 +209,7 @@ endif
 else
 all:
 	-cp -f $(TOP_PLATFORM)/wlan/nvram/$(PRBM_DIR)/libnvram.so nvram/
+	make -C nvram dynamic install
 endif
 install:
 	@echo done

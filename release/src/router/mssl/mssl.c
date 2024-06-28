@@ -52,8 +52,10 @@
 #define DSA_get0_pub_key(d) ((d)->pub_key)
 #endif
 
-#if !defined(__GLIBC__) && !defined(__UCLIBC__) /* musl */
-// introduce musl fopencookie patch & copy some musl definition here (musl-1.1.16)
+#if defined(RTCONFIG_MUSL_LIBC_1116_WAR)
+/* Workaround for musl libc earlier than v1.1.19 that has its own fopencookie() implementation.
+ * introduce musl fopencookie patch & copy some musl definition here (musl-1.1.16)
+ */
 typedef ssize_t (cookie_read_function_t)(void *, char *, size_t);
 typedef ssize_t (cookie_write_function_t)(void *, const char *, size_t);
 typedef int (cookie_seek_function_t)(void *, off_t *, int);
@@ -237,7 +239,7 @@ FILE *fopencookie(void *cookie, const char *mode, cookie_io_functions_t iofuncs)
 	/* Add new FILE to open file list */
 	return __ofl_add(&f->f);
 }
-#endif
+#endif	/* RTCONFIG_MUSL_LIBC_1116_WAR */
 
 typedef struct {
 	SSL* ssl;
@@ -598,6 +600,8 @@ int mssl_cert_key_match(const char *cert_path, const char *key_path)
 	RSA *rsa_pri = NULL;
 	DSA *dsa_pub = NULL;
 	DSA *dsa_pri = NULL;
+	EC_KEY *ec_pub = NULL;
+	EC_KEY *ec_pri = NULL;
 	int pem = 1;
 	int ret = 0;
 
@@ -652,6 +656,11 @@ int mssl_cert_key_match(const char *cert_path, const char *key_path)
 		//_dprintf("DSA public key\n");
 		dsa_pub = EVP_PKEY_get1_DSA(pkey);
 	}
+	else if(EVP_PKEY_id(pkey) == EVP_PKEY_EC)
+	{
+		//_dprintf("EC public key\n");
+		ec_pub = EVP_PKEY_get1_EC_KEY(pkey);
+	}
 	EVP_PKEY_free(pkey);
 	pkey = NULL;
 
@@ -691,6 +700,11 @@ int mssl_cert_key_match(const char *cert_path, const char *key_path)
 		//_dprintf("DSA private key\n");
 		dsa_pri = EVP_PKEY_get1_DSA(pkey);
 	}
+	else if(EVP_PKEY_id(pkey) == EVP_PKEY_EC)
+	{
+		//_dprintf("EC private key\n");
+		ec_pri  = EVP_PKEY_get1_EC_KEY(pkey);
+	}
 	EVP_PKEY_free(pkey);
 	pkey = NULL;
 
@@ -721,9 +735,22 @@ int mssl_cert_key_match(const char *cert_path, const char *key_path)
 			ret = 1;
 		}
 	}
+	else if(ec_pub && ec_pri)
+	{
+		if(EC_POINT_cmp(EC_KEY_get0_group(ec_pub), EC_KEY_get0_public_key(ec_pub), EC_KEY_get0_public_key(ec_pri), NULL))
+		{
+			_dprintf("[mssl] ec not match\n");
+			ret = 0;
+		}
+		else
+		{
+			_dprintf("[mssl] ec match\n");
+			ret = 1;
+		}
+	}
 	else
 	{
-		_dprintf("[mssl] compare failed");
+		_dprintf("[mssl] compare failed\n");
 	}
 
 end:
@@ -735,10 +762,14 @@ end:
 		RSA_free(rsa_pub);
 	if(dsa_pub)
 		DSA_free(dsa_pub);
+	if(ec_pub)
+		EC_KEY_free(ec_pub);
 	if(rsa_pri)
 		RSA_free(rsa_pri);
 	if(dsa_pri)
 		DSA_free(dsa_pri);
+	if(ec_pri)
+		EC_KEY_free(ec_pri);
 
 	return ret;
 }

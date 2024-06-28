@@ -17,6 +17,9 @@ for CN in $NVCN; do
         I=$(($I + 1))
 done
 
+# add startdate option for certificate
+echo "default_startdate=`date +%Y%m%d%H%M%S%Z`" >> openssl.config
+
 # create the key and certificate request
 #openssl req -new -out /tmp/cert.csr -config openssl.config -keyout /tmp/privkey.pem -newkey rsa:1024 -passout pass:password
 # remove the passphrase from the key

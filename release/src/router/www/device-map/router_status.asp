@@ -508,13 +508,29 @@ function get_ethernet_ports() {
 								$("<span>").addClass("port_text").html(htmlEnDeCode.htmlEncode(port_item.special_port_name)).appendTo($port_bg);
 						}
 						else if(port_item.cap_support.LAN){
-							if(port_item.special_port_name != "")
-								$("<span>").addClass("port_text").html(htmlEnDeCode.htmlEncode(port_item.special_port_name)).appendTo($port_bg);
-							else
-								$("<div>").addClass("lan_idx").html(htmlEnDeCode.htmlEncode(port_item.label_idx)).appendTo($port_icon);
+							let port_text = "";
+							let port_idx = "";
+							if(port_item.ui_display != undefined && port_item.ui_display != ""){
+								port_text = port_item.ui_display;
+							}
+							else{
+								if(port_item.special_port_name != ""){
+									port_text = port_item.special_port_name;
+								}
+								port_idx = port_item.label_idx;
+							}
+							if(port_text != "")
+								$("<span>").addClass("port_text").html(htmlEnDeCode.htmlEncode(port_text)).appendTo($port_bg);
+							if(port_idx != "")
+								$("<div>").addClass("lan_idx").html(htmlEnDeCode.htmlEncode(port_idx)).appendTo($port_icon);
 						}
 						else if(port_item.cap_support.USB){
 							$port_icon.addClass("USB");
+							if(port_item.special_port_name != "")
+								$("<span>").addClass("port_text").html(htmlEnDeCode.htmlEncode(port_item.special_port_name)).appendTo($port_bg);
+						}
+						else if(port_item.cap_support.MOCA){
+							$port_icon.addClass("MoCa");
 							if(port_item.special_port_name != "")
 								$("<span>").addClass("port_text").html(htmlEnDeCode.htmlEncode(port_item.special_port_name)).appendTo($port_bg);
 						}
@@ -528,7 +544,7 @@ function get_ethernet_ports() {
 
 				var $port_status_icon_desc = $("<div>").addClass("port_status_icon_desc").appendTo($("#phy_ports"));
 				$("<div>").addClass("conn").html("<#Connected#>").appendTo($port_status_icon_desc);
-				$("<div>").addClass("warn").html("Warnings").appendTo($port_status_icon_desc);/* untranslated */
+				$("<div>").addClass("warn").html("<#Notice#>").appendTo($port_status_icon_desc);/* untranslated */
 				$("<div>").addClass("unplug").html("<#Status_Unplugged#>").appendTo($port_status_icon_desc);
 
 				if(show_notice){

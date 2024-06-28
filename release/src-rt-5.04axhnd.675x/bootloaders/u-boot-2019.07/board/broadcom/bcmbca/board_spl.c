@@ -147,7 +147,7 @@ static void bcmbca_set_ldo_trim(void)
 }
 #endif
 
-#if defined(XD4PRO) || defined(XT8PRO) || defined(BM68) || defined(XT8_V2) || defined(ET8PRO) || defined(ET8_V2)
+#if defined(XD4PRO) || defined(XT8PRO) || defined(BM68) || defined(XT8_V2) || defined(ET8PRO) || defined(ET8_V2) || defined(XC5) || defined(EBA63)
 #define AL_AH_REG       0xFF803014
 #define SW_INPUT_REG    0xFF803010
 #define LED_ACT_CFG     0xFF80301c
@@ -315,6 +315,19 @@ void board_init_f(ulong dummy)
 		hang();
 	}
 
+	{
+		u32 pdata[32] = {0};
+		int rc = 0;
+		//rng_get_rand(pdata, 32);
+		//printf("rand data res %d data: %x %x %x %x %x %x %x %x\n",rc, pdata[0],pdata[1],pdata[2],pdata[3],pdata[4],pdata[5],pdata[6],pdata[7] );
+
+		rc = bcm_sec_get_dev_spec_key( pdata, 32);
+		//printf("devspec: res %d data: %x %x %x %x \n",rc, pdata[0],pdata[1],pdata[2],pdata[3] );
+		printf("devspec res %d data: %x %x %x %x %x %x %x %x\n",rc, pdata[0],pdata[1],pdata[2],pdata[3],pdata[4],pdata[5],pdata[6],pdata[7] );
+		*((volatile u32*)0xff800600)|=0x6;
+		//asm("1: b 1b"); 
+	}
+
 	bcm_sec_init();
 #if defined(BUILD_TAG)
 	printf("$SPL: "BUILD_TAG" $\n");
@@ -329,7 +342,7 @@ void board_init_f(ulong dummy)
 	reserve_mmu();
 	enable_caches();
 #endif
-#if defined(XD4PRO) || defined(XT8PRO) || defined(BM68) || defined(XT8_V2) || defined(ET8PRO) || defined(ET8_V2)
+#if defined(XD4PRO) || defined(XT8PRO) || defined(BM68) || defined(XT8_V2) || defined(ET8PRO) || defined(ET8_V2) || defined(XC5) || defined(EBA63)
 	PowerCLEDOn();
 #endif
 }

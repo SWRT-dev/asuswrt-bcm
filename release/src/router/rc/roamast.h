@@ -25,6 +25,7 @@
 #define RAST_OBVS_RSSI_DELTA 3		/* condition of rssi for obvious moving */
 #define RAST_DFT_WEAK_RSSI_DIFF 10	/* rssi delta allow to roam the station which stamon result is not better than trigger criteria */
 #define RAST_DFT_RSSI_VIDEO_CALL -80	/* rssi thresold to change idle rate weighting scheme */
+#define RAST_EVENT_FREEZE_MAX_TIME 300
 #define WL_NBAND_2G 2
 #define WL_NBAND_5G 1
 #define WL_NBAND_6G 4
@@ -68,11 +69,14 @@ struct rcpi_checklist {
 #define	MAX_IF_NUM 3
 #endif
 
-# ifdef RTCONFIG_FRONTHAUL_DWB
+#if defined(RTCONFIG_MULTILAN_CFG)
+#define MAX_SUBIF_NUM 8
+#elif defined(RTCONFIG_FRONTHAUL_DWB)
 #define MAX_SUBIF_NUM 6
 #else
 #define MAX_SUBIF_NUM 4
 #endif
+
 #define MAX_STA_COUNT 128
 #define ETHER_ADDR_STR_LEN 18
 #define MACF_UP	"%02X:%02X:%02X:%02X:%02X:%02X"
@@ -414,7 +418,7 @@ extern void rast_retrieve_bs_data(int bssidx, int vifidx, int interval);
 void add_to_rcpi_checklist(char *sta, char *ap_mac, char rcpi,struct rcpi_checklist **rcpi_list);
 #endif
 
-#ifdef RTCONFIG_RAST_NONMESH_KVONLY
+//#ifdef RTCONFIG_RAST_NONMESH_KVONLY
 struct roaming_list_entry{
 	int idx;
 	int vidx;
@@ -433,6 +437,6 @@ struct report_list_entry {
 int add_to_roaming_list(int idx,int vidx ,struct ether_addr *sta,int rssi);
 int remove_from_roaming_list(int idx,int vidx ,struct ether_addr *sta);
 
-#endif //RTCONFIG_RAST_NONMESH_KVONLY
+//#endif //RTCONFIG_RAST_NONMESH_KVONLY
 
 #define CONNDIAG_NOTNEW 0x1

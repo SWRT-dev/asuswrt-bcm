@@ -2,11 +2,12 @@ include ../common.mak
 
 #OOKLA_VER = 36521# updated in 2019.12.31
 #OOKLA_VER = 371237# updated in 2021.10.19
-OOKLA_VER = 38000# updated in 2022.08.16
+#OOKLA_VER = 38000# updated in 2022.08.16
+OOKLA_VER = 38056# from GPL 388_24353
 OOKLA_PATH = OOKLA-$(OOKLA_VER)
 
 prebuild:
-	-@mkdir -p prebuild
+	-@mkdir prebuild
 # QCA
 ifeq ($(or $(RTCONFIG_SOC_IPQ8064),$(RTCONFIG_SOC_IPQ8074),$(RTCONFIG_SOC_IPQ40XX)),y)
 	-cp -f $(OOKLA_PATH)/ookla-IPQ807-401X  prebuild/ookla # IPQ80XX / IPQ40XX

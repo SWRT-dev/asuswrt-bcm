@@ -29,6 +29,7 @@ void hm_traffic_analyzer_save()
 	}
 
 	eval("TrafficAnalyzer", "-e");
+	//logmessage("hour monitor", "store traffic analyzer data"); // DEBUG
 }
 
 void hm_traffic_limiter_save()
@@ -103,8 +104,8 @@ static void catch_sig(int sig)
 	{
 		if (hm_alarm_status == 1)
 			hour_monitor_call_fucntion();
-		else if (hm_alarm_status == 0)
-			logmessage("hour monitor", "ntp sync fail, will retry after 120 sec");
+//		else if (hm_alarm_status == 0)
+//			logmessage("hour monitor", "ntp sync fail, will retry after 120 sec");
 	}
 	else if (sig == SIGTERM)
 	{

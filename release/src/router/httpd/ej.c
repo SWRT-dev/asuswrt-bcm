@@ -16,15 +16,6 @@
  */
 /*
  * Tiny Embedded JavaScript parser
- *
- * Copyright 2003, ASUSTeK Inc.
- * All Rights Reserved.		
- *				     
- * This is UNPUBLISHED PROPRIETARY SOURCE CODE of ASUSTeK Inc.;   
- * the contents of this file may not be disclosed to third parties, copied
- * or duplicated in any form, in whole or in part, without the prior      
- * written permission of ASUSTeK Inc..			    
- *
  */
 
 #include <stdio.h>
@@ -96,6 +87,7 @@ struct REPLACE_MODELNAME_S replace_modelname_t[] = {
 	{ "RGMA2820B" },
 	{ "TY6201PRO" },
 	{ "RGMA3062" },
+	{ "RAX80" },
 	{ NULL },
 };
 

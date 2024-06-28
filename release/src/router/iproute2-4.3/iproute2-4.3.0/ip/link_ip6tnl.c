@@ -355,6 +355,9 @@ get_failed:
 	addattr32(n, 1024, IFLA_IPTUN_LINK, link);
 	nest = addattr_nest(n, 1024, IFLA_IPTUN_FMRS);
 
+	if (fmr_cnt > 10)
+		fmr_cnt = 10;
+
 	for(i = 0; i < fmr_cnt; ++i)
 	{
 		nest_rule = addattr_nest(n, 1024, 0);

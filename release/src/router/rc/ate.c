@@ -1,6 +1,9 @@
 #include <rc.h>
 #include <shared.h>
 #include <shutils.h>
+#if defined(RTCONFIG_RALINK) || defined(RTCONFIG_QCA)
+#include <flash_mtd.h>
+#endif
 #ifdef RTCONFIG_RALINK
 #include <ralink.h>
 #if defined(RTN14U) || defined(RTAC52U) || defined(RTAC51U) || defined(RTN54U) || defined(RTAC1200HP) || defined(RTN56UB1) || defined(RTN56UB2) || defined(RTAC54U) || defined(RTAC1200GA1) || defined(RTAC1200GU) || defined(RTAC51UP) || defined(RTAC53)
@@ -378,6 +381,39 @@ static int setAllSpecificColorLedOn(enum ate_led_color color)
 		break;
 #endif
 
+#ifdef RTAX9000
+	case MODEL_RTAX9000:
+		{
+			static enum led_id white_led[] = {
+				LED_POWER,
+				LED_WPS,
+				LED_WAN_NORMAL,
+				LED_LAN,
+				LED_ID_MAX
+			};
+			static enum led_id red_led[] = {
+				LED_WAN,
+				LED_ID_MAX
+			};
+			all_led[LED_COLOR_WHITE] = white_led;
+			all_led[LED_COLOR_RED] = red_led;
+
+			if (color == LED_COLOR_WHITE)
+			{
+				eval("wl", "-i", "eth8", "ledbh", "0", "1");	// wl 2.4G
+				eval("wl", "-i", "eth6", "ledbh", "13", "1");	// wl 5G low
+				eval("wl", "-i", "eth7", "ledbh", "13", "1");	// wl 5G high
+			}
+			else
+			{
+				eval("wl", "-i", "eth8", "ledbh", "0", "0");	// wl 2.4G
+				eval("wl", "-i", "eth6", "ledbh", "13", "0");	// wl 5G low
+				eval("wl", "-i", "eth7", "ledbh", "13", "0");	// wl 5G high
+			}
+		}
+
+#endif
+
 #if defined(GTAX6000)
 	case MODEL_GTAX6000:
 		{
@@ -661,7 +697,7 @@ static int setAllSpecificColorLedOn(enum ate_led_color color)
 		}
 		return;
 #endif
-#if defined(RTAX95Q) || defined(XT8PRO) || defined(BM68) || defined(XT8_V2) || defined(RTAXE95Q) || defined(ET8PRO) || defined(ET8_V2) || defined(RTAX56_XD4) || defined(XD4PRO) || defined(CTAX56_XD4)
+#if defined(RTAX95Q) || defined(XT8PRO) || defined(BM68) || defined(XT8_V2) || defined(RTAXE95Q) || defined(ET8PRO) || defined(ET8_V2) || defined(RTAX56_XD4) || defined(XD4PRO) || defined(CTAX56_XD4) || defined(XC5) || defined(EBA63)
 	case MODEL_RTAX95Q:
 	case MODEL_XT8PRO:
 	case MODEL_BM68:
@@ -671,7 +707,9 @@ static int setAllSpecificColorLedOn(enum ate_led_color color)
 	case MODEL_ET8_V2:
 	case MODEL_RTAX56_XD4:
 	case MODEL_XD4PRO:
+	case MODEL_XC5:
 	case MODEL_CTAX56_XD4:
+	case MODEL_EBA63:
 		{
 			if(color == LED_COLOR_RED) {
 				setAllRedLedOn();
@@ -1889,6 +1927,16 @@ int asus_ate_command(const char *command, const char *value, const char *value2)
 #endif
 	/*** ATE Set function ***/
 	if (!strcmp(command, "Set_StartATEMode")) {
+		if (!nvram_match("noconsole", "0")) {
+			pid_t pid, pid1;
+			char *nv_commit[] = { "nvram", "commit", NULL };
+			char *console[] = { "console", NULL };
+
+			nvram_set("noconsole", "0");
+			_eval(nv_commit, NULL, 0, &pid);
+			killall_tk("console");
+			_eval(console, NULL, 0, &pid1);
+		}
 		asus_ate_StartATEMode();
 		stop_wanduck();
 #ifdef RTCONFIG_FIXED_BRIGHTNESS_RGBLED
@@ -2188,6 +2236,10 @@ int asus_ate_command(const char *command, const char *value, const char *value2)
 	}
 #endif
 	else if (!strcmp(command, "Set_MacAddr_2G") || !strcmp(command, "Set_MacAddr")) {
+		if (checkPASS("") < 0) {
+			puts("ATE_ERROR_CLEAR_PASS_FIRST");
+			return EINVAL;
+		}
 #if defined(RTCONFIG_CFEZ) && defined(RTCONFIG_BCMARM)
 		if (!chk_envrams_proc())
 			return EINVAL;
@@ -2893,7 +2945,7 @@ int asus_ate_command(const char *command, const char *value, const char *value2)
 	else if (!strcmp(command, "Get_SSID_2G")) {
 #ifdef GTAXE16000
 		puts(nvram_safe_get("wl3_ssid"));
-#elif defined(GT10)
+#elif defined(GT10) || defined(RTAX9000)
 		puts(nvram_safe_get("wl2_ssid"));
 #elif defined(RPAX56) || defined(RPAX58)
 		if(nvram_match("wl0_mode", "wet"))
@@ -2914,7 +2966,7 @@ int asus_ate_command(const char *command, const char *value, const char *value2)
 #else
 #ifdef GTAXE16000
 		puts(nvram_safe_get("wl0_ssid"));
-#elif defined(GT10)
+#elif defined(GT10) || defined(RTAX9000)
 		puts(nvram_safe_get("wl0_ssid"));
 #else
 		puts(nvram_safe_get("wl1_ssid"));
@@ -2925,7 +2977,7 @@ int asus_ate_command(const char *command, const char *value, const char *value2)
 	else if (!strcmp(command, "Get_SSID_5G_2")) {
 #ifdef GTAXE16000
 		puts(nvram_safe_get("wl1_ssid"));
-#elif defined(GT10)
+#elif defined(GT10) || defined(RTAX9000)
 		puts(nvram_safe_get("wl1_ssid"));
 #else
 		puts(nvram_safe_get("wl2_ssid"));
@@ -3109,6 +3161,12 @@ int asus_ate_command(const char *command, const char *value, const char *value2)
 
 		return 0;
 	}
+#if defined(HND_ROUTER)
+	else if (!strcmp(command, "Get_SecureBoot")) {
+		getSB();
+		return 0;
+	}
+#endif
 	else if (!strcmp(command, "Get_FwReadyStatus")) {
 		puts(nvram_safe_get("success_start_service"));
 		return 0;
@@ -3476,11 +3534,41 @@ int asus_ate_command(const char *command, const char *value, const char *value2)
 		puts(value);
 		return 0;
 	}
-	else if (!strcmp(command, "Get_PSK")) {
-		getPSK();
+	else if (!strcmp(command, "Check_PSK")) {
+		if (checkPSK(value) < 0)
+		{
+			puts("ATE_ERROR_INCORRECT_PARAMETER");
+			return EINVAL;
+		}
+		puts("ATE_OK");
 		return 0;
 	}
 #endif
+#endif
+#if defined(RTCONFIG_BCMARM) || defined(RTCONFIG_RALINK)
+	else if (!strcmp(command, "Set_PASS")) {
+#if defined(RTCONFIG_CFEZ) && defined(RTCONFIG_BCMARM)
+		if (!chk_envrams_proc())
+			return EINVAL;
+#endif
+
+		if (setPASS(value) < 0)
+		{
+			puts("ATE_ERROR_INCORRECT_PARAMETER");
+			return EINVAL;
+		}
+		puts(value);
+		return 0;
+	}
+	else if (!strcmp(command, "Check_PASS")) {
+		if (checkPASS(value) < 0)
+		{
+			puts("ATE_ERROR_INCORRECT_PARAMETER");
+			return EINVAL;
+		}
+		puts("ATE_OK");
+		return 0;
+	}
 #endif
 #ifdef RTCONFIG_QCA_PLC_UTILS
 	else if (!strcmp(command, "Set_MacAddr_Plc")) {
@@ -3581,7 +3669,7 @@ int asus_ate_command(const char *command, const char *value, const char *value2)
 	else if (!strcmp(command, "Get_SSID_2G")) {
 #ifdef GTAXE16000
 		getSSID(3);
-#elif defined(GT10)
+#elif defined(GT10) || defined(RTAX9000)
 		getSSID(2);
 #elif defined(RPAX56) || defined(RPAX58)
 		if(nvram_match("wl0_mode", "wet"))
@@ -3596,7 +3684,7 @@ int asus_ate_command(const char *command, const char *value, const char *value2)
 	else if (!strcmp(command, "Get_SSID_5G")) {
 #ifdef GTAXE16000
 		getSSID(0);
-#elif defined(GT10)
+#elif defined(GT10) || defined(RTAX9000)
 		getSSID(0);
 #elif defined(RPAX56) || defined(RPAX58)
 		if(nvram_match("wl1_mode", "wet"))
@@ -3611,7 +3699,7 @@ int asus_ate_command(const char *command, const char *value, const char *value2)
 	else if (!strcmp(command, "Get_SSID_5G_2")) {
 #ifdef GTAXE16000
 		getSSID(1);
-#elif defined(GT10)
+#elif defined(GT10) || defined(RTAX9000)
 		getSSID(1);
 #else
 		getSSID(2);
@@ -4047,11 +4135,12 @@ int asus_ate_command(const char *command, const char *value, const char *value2)
 #endif
 #ifdef CONFIG_BCMWL5
 	else if (!strcmp(command, "Set_CoBrand")) {
-		int n = atoi(value);
-		if ((n >= 0) && (n <= 100))
-			set_cb(n);
-		else
-			puts("ATE_ERROR");
+		int n ;
+		if (value && (n=atoi(value)) && ((n >= 0) && (n <= 100))) {
+			if(set_cb(n) < 0)
+				puts("ATE_ERROR_INCORRECT_PARAMETER");
+		} else
+			puts("ATE_ERROR_INCORRECT_PARAMETER");
 		return 0;
 	}
 	else if (!strcmp(command, "Unset_CoBrand")) {
@@ -4174,8 +4263,22 @@ int ate_dev_status(void)
 #ifdef RTCONFIG_BT_CONN
 	int have_bt_device = 1;
 #endif
-#if defined(RTCONFIG_BCMWL6) && defined(RTCONFIG_HAS_5G_2)
+#if defined(RTCONFIG_BCMWL6) && (defined(RTCONFIG_HAS_5G_2) || defined(RTCONFIG_HAS_6G_2))
 	int count_5g = 0;
+	int count_6g = 0;
+#ifdef RTCONFIG_QUADBAND
+#ifdef defined(RTCONFIG_HAS_6G_2)
+	char wlif_name[4][4] = {"2G", "5G", "6G", "6G2"};
+#else
+	char wlif_name[4][4] = {"2G", "5G", "5G2", "6G"};
+#endif
+#else // !RTCONFIG_QUADBAND
+#if defined(RTCONFIG_WIFI6E) || defined(RTCONFIG_WIFI7)
+	char wlif_name[3][4] = {"2G", "5G", "6G"};
+#else
+	char wlif_name[3][4] = {"2G", "5G", "5G2"};
+#endif
+#endif //RTCONFIG_QUADBAND
 #endif
 
 	memset(dev_chk_buf, 0, sizeof(dev_chk_buf));
@@ -4199,7 +4302,7 @@ int ate_dev_status(void)
 			ate_wl_band++;
 			continue;
 		}
-#if defined(GTAXE16000) || defined(GT10)
+#if defined(GTAXE16000) || defined(GT10) || defined(RTAX9000)
 		// override ate_wl_band since wifi radio sequence is not habitual
 		if (wl_get_band(word) == WLC_BAND_2G)
 			ate_wl_band = 1;
@@ -4213,8 +4316,7 @@ int ate_dev_status(void)
 			result = 'X';
 			ret = 0;
 		}
-
-#if defined(RTCONFIG_BCMWL6) && defined(RTCONFIG_HAS_5G_2)
+#if defined(RTCONFIG_BCMWL6) && (defined(RTCONFIG_HAS_5G_2) || defined(RTCONFIG_HAS_6G_2))
 		switch(wl_get_band(word)) {
 			case WLC_BAND_2G:
 			    	len = snprintf(p, remain, ",2G=%c", result);
@@ -4229,9 +4331,17 @@ int ate_dev_status(void)
 				break;
 #if defined(RTCONFIG_WIFI6E)
 		    	case WLC_BAND_6G:
-				len = snprintf(p, remain, ",6G=%c", result);
+				if(!count_6g) {
+					len = snprintf(p, remain, ",6G=%c", result);
+					count_6g++;
+				}
+				else
+					len = snprintf(p, remain, ",6G2=%c", result);
 				break;
 #endif
+			default:
+				len = snprintf(p, remain, ",%s=%c", wlif_name[ate_wl_band-1], result);
+				break;
 		}
 #else
 		if(ate_wl_band == 1)
@@ -4271,7 +4381,7 @@ int ate_dev_status(void)
 				have_bt_device = 0;
 		}
 #endif
-#if defined(RTCONFIG_LANTIQ) || defined(RTAX95Q) || defined(XT8PRO) || defined(BM68) || defined(XT8_V2) || defined(RTAXE95Q) || defined(ET8PRO) || defined(ET8_V2) || defined(RTAX56_XD4) || defined(XD4PRO) || defined(RTAX82_XD6) || defined(RTAX82_XD6S) || defined(ET12) || defined(XT12) || defined(XD6_V2)
+#if defined(RTCONFIG_LANTIQ) || defined(RTAX95Q) || defined(XT8PRO) || defined(BM68) || defined(XT8_V2) || defined(RTAXE95Q) || defined(ET8PRO) || defined(ET8_V2) || defined(RTAX56_XD4) || defined(XD4PRO) || defined(RTAX82_XD6) || defined(RTAX82_XD6S) || defined(ET12) || defined(XT12) || defined(XD6_V2) || defined(XC5)
 		if(have_bt_device == 1){
 			system("killall bluetoothd");
 			system("hciconfig hci0 down");
@@ -4322,6 +4432,8 @@ int ate_dev_status(void)
 			ethctl_get_link_status("eth5") == -1 || ethctl_get_link_status("eth6") == -1
 #elif defined(TUFAX3000_V2) || defined(RTAXE7800) || defined(GT10)
 			ethctl_get_link_status("eth0") == -1
+#elif defined(RTAX9000)
+			ethctl_get_link_status("eth0") == -1 || ethctl_get_link_status("eth5") == -1
 #else // RT-AX86U
 			ethctl_get_link_status("eth5") == -1 || (nvram_get_int("ext_phy_model") == EXT_PHY_BCM54991 && ethctl_phy_op("ext", EXTPHY_ADDR, 0x1e4037, 0, 0) == -1)
 #endif
@@ -4360,7 +4472,7 @@ int start_envrams(void) {
 	if (!pids("envrams")){
 		dbg("[%s][%d] start envrams\n", __func__, __LINE__);
 #if defined(XT8PRO) || defined(BM68) || defined(XT8_V2) || defined(ET8PRO) || defined(ET8_V2) || defined(XD4PRO) || defined(GTAXE16000) || defined(GTAX11000_PRO) || \
-	defined(ET12) || defined(XT12) || defined(RTAX88U_PRO) || defined(EBG19) || defined(EBG15)
+	defined(ET12) || defined(XT12) || defined(RTAX88U_PRO) || defined(EBG19) || defined(EBG15) || defined(XC5) || defined(EBA63)
 		dbg("[%s][%d] start envrams\n", __func__, __LINE__);
 		system("mkdir -p /tmp/mnt/defaults");
 		system("umount /tmp/mnt/defaults");
@@ -4386,7 +4498,11 @@ int start_envrams(void) {
 void stop_envrams(void) {
 	killall_tk("envrams");
 #ifdef RTCONFIG_HND_ROUTER_AX_6756
+#ifdef RTCONFIG_USB
 	system("umount /tmp/mnt/defaults &> /dev/null");
+#else
+	system("umount /mnt/defaults &> /dev/null");
+#endif
 #endif
 }
 #endif
@@ -4453,4 +4569,57 @@ int ate_get_fw_upgrade_state(void) {
 			puts("UNKNOWN STATE");
 #endif
 		return 0;
+}
+
+/* For init default password and need to be built in prebuild */
+/* copy password from memory to nvram */
+int init_pass_nvram(void)
+{
+#ifdef RTCONFIG_NVRAM_ENCRYPT
+	char dec_passwd[128] __attribute__((unused)) ={0};
+#endif
+#if defined(RTCONFIG_BCMARM)
+	if (!nvram_get_int("x_Setting")) {
+		char *forget_it = cfe_nvram_safe_get_raw("forget_it");
+#ifdef RTCONFIG_NVRAM_ENCRYPT
+		if(pw_dec(forget_it, dec_passwd, sizeof(dec_passwd), 0))
+			forget_it = dec_passwd;
+#endif
+		nvram_set("forget_it", forget_it);
+	}
+#elif defined(RTCONFIG_RALINK) || defined(RTCONFIG_QCA)
+	/* PASS */
+	{
+		char pass[PASS_LEN + 1];
+		memset(pass, 0, sizeof(pass));
+		if (FRead(pass, PASS_OFFSET, PASS_LEN) < 0) {
+			_dprintf("READ ASUS PASS: Out of scope\n");
+			nvram_set("forget_it", "");
+		 } else {
+			int i;
+			if (pass[0] == 0xff)
+				nvram_set("forget_it", "");
+			else
+			{
+				for(i = 0; i < PASS_LEN && pass[i] != '\0'; i++) {
+					if ((unsigned char)pass[i] == 0xff)
+					{
+						pass[i] = '\0';
+						break;
+					}
+				}
+#if defined(RTCONFIG_NVRAM_ENCRYPT) && defined(RTCONFIG_PASS_V2)
+				if(pw_dec(pass, dec_passwd, sizeof(dec_passwd), 0))
+					strlcpy(pass, dec_passwd, sizeof(pass));
+#endif
+				nvram_set("forget_it", pass);
+			}
+		}
+	}
+#endif
+
+	if (strcmp(nvram_safe_get("forget_it"), "") && !nvram_contains_word("rc_support", "defpass"))
+		add_rc_support("defpass");
+
+	return 0;
 }

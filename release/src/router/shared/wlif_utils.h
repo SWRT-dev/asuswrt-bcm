@@ -49,7 +49,7 @@
 #ifdef RTCONFIG_AMAS_WGN
 #define WLIFU_MAX_NO_BRIDGE		8
 #else
-#define WLIFU_MAX_NO_BRIDGE		2
+#define WLIFU_MAX_NO_BRIDGE		5
 #endif
 
 #define WLIFU_MAX_NO_WAN		2

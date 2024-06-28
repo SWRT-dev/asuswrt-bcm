@@ -29,6 +29,10 @@ config RTCONFIG_MUSL_LIBC
 	bool "MUSL libc"
 	default n
 
+config RTCONFIG_MUSL_LIBC_1116_WAR
+	bool "Workaround for MUSL libc prior v1.1.19"
+	default n
+
 config RTCONFIG_L2TP
 	bool "L2TP"
 	default y
@@ -225,6 +229,14 @@ config RTCONFIG_JFFS2
 	bool "JFFS Support"
 	default n
 
+config RTCONFIG_MXL371X
+	bool "Support MxL371x"
+	default n
+
+config RTCONFIG_MOCA
+        bool "Support MOCA"
+        default n
+
 config RTCONFIG_DISKTEST
 	bool "Disk test tools"
 	default n
@@ -249,7 +261,7 @@ config RTCONFIG_DDNS
 config RTCONFIG_INADYN
 	bool "Dynamic DNS"
 	depends on RTCONFIG_DDNS
-	default n
+	default y
 
 config RTCONFIG_L7
 	bool "Layer 7 Netfilter"
@@ -416,6 +428,10 @@ config RTCONFIG_IPERF
 
 config RTCONFIG_TCPDUMP
 	bool "tcpdump"
+	default n
+
+config RTCONFIG_TCPREPLAY
+	bool "tcpreplay"
 	default n
 
 config RTCONFIG_DUMP4000
@@ -924,6 +940,12 @@ config RTCONFIG_SPF11_4_QSDK
 	depends on RTCONFIG_QCA
 	default n
 
+config RTCONFIG_SPF11_5_QSDK
+	bool "SPF11.5 QSDK"
+	depends on RTCONFIG_QCA
+	depends on RTCONFIG_MUSL_LIBC
+	default n
+
 config RTCONFIG_QCA_BIGRATE_WIFI
 	bool "New QSDK wifi driver - need to adjust iwconfig bitrate"
 	default n
@@ -991,6 +1013,11 @@ config RTCONFIG_WIFI_QCA9994_QCA9994
 	depends on RTCONFIG_QCA
 	default n
 
+config RTCONFIG_NO_RELOAD_WIFI_DRV_IF_POSSIBLE
+	bool "Don't reload WiFi driver if possible"
+	depends on RTCONFIG_QCA
+	default n
+
 config RTCONFIG_CFG80211
 	bool "Qualcomm Atheros cfg80211 support"
 	depends on RTCONFIG_QCA
@@ -998,7 +1025,7 @@ config RTCONFIG_CFG80211
 
 config RTCONFIG_GLOBAL_INI
 	bool "Qualcomm globa.ini support. (SPF9 or above)"
-	depends on RTCONFIG_QCA && (RTCONFIG_SPF10_QSDK || RTCONFIG_SPF11_QSDK || RTCONFIG_SPF11_1_QSDK || RTCONFIG_SPF11_3_QSDK || RTCONFIG_SPF11_4_QSDK || RTCONFIG_QSDK10CS || RTCONFIG_SOC_IPQ60XX)
+	depends on RTCONFIG_QCA && (RTCONFIG_SPF10_QSDK || RTCONFIG_SPF11_QSDK || RTCONFIG_SPF11_1_QSDK || RTCONFIG_SPF11_3_QSDK || RTCONFIG_SPF11_4_QSDK || RTCONFIG_SPF11_5_QSDK || RTCONFIG_QSDK10CS || RTCONFIG_SOC_IPQ60XX)
 	default n
 
 config RTCONFIG_SINGLE_HOSTAPD
@@ -1091,6 +1118,10 @@ config RTCONFIG_AIR_TIME_FAIRNESS
 
 config RTCONFIG_POWER_SAVE
 	bool "Power Save"
+	default n
+
+config RTCONFIG_PAGECACHE_RATIO
+	bool "Control maximum page cache ratio"
 	default n
 
 config RTCONFIG_QCA8033
@@ -1340,6 +1371,10 @@ config RTCONFIG_DUAL_TRX2
 	depends on RTCONFIG_DUAL_TRX
 	default n
 
+config RTCONFIG_TEST_FLIPBITS
+	bool "Test NAND Flash bit-flip"
+	default n
+
 config RTCONFIG_UBI
 	bool "Unsorted Block Images"
 	default n
@@ -1515,6 +1550,10 @@ config RTCONFIG_DMALLOC
 	bool "Link with dmalloc that is used to detect memory leak."
 	default n
 
+config RTCONFIG_VALGRIND
+	bool "Compiled valgrind"
+	default n
+
 config RTCONFIG_HAS_5G
 	bool "has 5G band"
 	default y
@@ -1594,6 +1633,10 @@ config RTCONFIG_ROG_UI
 	bool "ROG theme support"
 	default n
 
+config RTCONFIG_TUF_UI
+	bool "TUF theme support"
+	default n
+
 config RTCONFIG_GEOIP
 	bool "determine country by IP address"
 	default n
@@ -1628,6 +1671,10 @@ config RTCONFIG_EXT_BCM53134
 	bool "BCM53134 external switch"
 	default n
 
+config RTCONFIG_EXT_RTL8367S
+	bool "rtl8367s external switch"
+	default n
+
 config RTCONFIG_RTL8221VB
 	bool "RTL8221VB support"
 	default n
@@ -1653,6 +1700,10 @@ config RTCONFIG_TR181
 
 config RTCONFIG_ISP_OPTUS
 	bool "Support ISP OPTUS Customize"
+	default n
+
+config RTCONFIG_ACS_SUBNET
+	bool "Support ACS SUBNET Customize"
 	default n
 
 config RTCONFIG_ISP_XLNPROVU
@@ -1714,6 +1765,10 @@ config RTCONFIG_RECVFILE
 config RTCONFIG_WTFAST
 	bool "WTFast support"
 	default n
+
+config RTCONFIG_WTFAST_V2
+    bool "WTFast V2 support"
+    default n
 
 config RTCONFIG_ALEXA
 	bool "ALEXA support"
@@ -1835,6 +1890,11 @@ config RTCONFIG_SOFTWIRE46
 
 config RTCONFIG_OCNVC
 	bool "IPoE - OCN Virtual Connect support"
+	depends on RTCONFIG_SOFTWIRE46
+	default n
+
+config RTCONFIG_DSLITE
+	bool "IPoE - DS-Lite support"
 	depends on RTCONFIG_SOFTWIRE46
 	default n
 
@@ -1967,6 +2027,9 @@ config RTCONFIG_DNSSEC_NETTLE
 	depends on RTCONFIG_DNSSEC
 
 endchoice
+config RTCONFIG_OPENSSL11
+	bool "OpenSSL 1.1.x"
+	default n
 
 config RTCONFIG_DNSFILTER
 	bool "DNS-based filtering Support"
@@ -2309,6 +2372,10 @@ config RTCONFIG_DNSQUERY_INTERCEPT
 	bool "Intercept DNS Query Result"
 	default n
 
+config RTCONFIG_ROUTERBOOST
+	bool "OPPO Router Boost"
+	default n
+
 config RTCONFIG_ASUSCTRL
 	bool "asusctrl support"
 	default n
@@ -2584,16 +2651,6 @@ config RTCONFIG_TIME_QUOTA
 	bool "Parental Control Time Quota"
 	default n
 
-config RTCONFIG_SPF11_3_QSDK
-	bool "SPF11.3 QSDK"
-	depends on RTCONFIG_QCA
-	default n
-
-config RTCONFIG_SPF11_4_QSDK
-	bool "SPF11.4 QSDK"
-	depends on RTCONFIG_QCA
-	default n
-
 config RTCONFIG_QSDK_LM256
 	bool "LM256 for RAM 256MB hardware design"
 	default n
@@ -2618,6 +2675,14 @@ config RTCONFIG_OWE_TRANS
 
 config RTCONFIG_TPVPN
 	bool "3rd party VPN support"
+	default n
+
+config RTCONFIG_HMA
+	bool "3rd party VPN HMA support"
+	default n
+
+config RTCONFIG_NORDVPN
+	bool "3rd party VPN NordVPN support"
 	default n
 
 config RTCONFIG_SPECIFIC_PPPOE
@@ -2773,6 +2838,14 @@ config RTCONFIG_SW_SPDLED
 
 config RTCONFIG_BCM4906_504
 	bool "962118G in 504"
+	default n
+
+config RTCONFIG_AUTO_WANPORT
+	bool "Automatically detect where the WAN port is"
+	default n
+
+config RTCONFIG_RTL_UMGMT
+	bool "un-management-mode rtl switch's ops "
 	default n
 
 config RTCONFIG_SOFTCENTER

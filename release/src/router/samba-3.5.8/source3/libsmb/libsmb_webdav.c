@@ -3843,7 +3843,7 @@ uint32 smbc_cli_put(struct cli_state *cli, char *rname, int reput,
 }
 
 int nmb_terminated = 0;
-void smbc_cli_nmb_lookup( void *priv )
+void *smbc_cli_nmb_lookup( void *priv )
 {
 	SMBCFILE *smbf = (SMBCFILE *)priv;
 	SMBCCTX *context = statcont;

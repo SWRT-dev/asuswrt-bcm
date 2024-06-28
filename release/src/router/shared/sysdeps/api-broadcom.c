@@ -812,7 +812,7 @@ int bcm_cled_ctrl(int rgb, int cled_mode)
 #endif
 	}
 #endif
-#if defined(RTAX95Q) || defined(XT8PRO) || defined(BM68) || defined(XT8_V2) || defined(RTAXE95Q) || defined(ET8PRO) || defined(ET8_V2) || defined(RTAX56_XD4) || defined(XD4PRO) || defined(CTAX56_XD4) || defined(RTAX82_XD6) || defined(RTAX82_XD6S) || defined(RPAX56) || defined(RPAX58) || defined(ET12) || defined(XT12) || defined(GT10) || defined(XD6_V2)
+#if defined(RTAX95Q) || defined(XT8PRO) || defined(BM68) || defined(XT8_V2) || defined(RTAXE95Q) || defined(ET8PRO) || defined(ET8_V2) || defined(RTAX56_XD4) || defined(XD4PRO) || defined(CTAX56_XD4) || defined(RTAX82_XD6) || defined(RTAX82_XD6S) || defined(RPAX56) || defined(RPAX58) || defined(ET12) || defined(XT12) || defined(GT10) || defined(XD6_V2) || defined(XC5) || defined(EBA63)
 	state_changed = _bcm_cled_ctrl(rgb, cled_mode);
 	if(state_changed == 1){
 #if defined(RTAX82_XD6) || defined(XD6_V2)
@@ -1366,7 +1366,7 @@ int phy_ioctl(int fd, int write, int phy, int reg, uint32_t *value)
 	struct ifreq ifr;
 	int ret, vecarg[2];
 
-#if defined(RTAX95Q) || defined(XT8PRO) || defined(BM68) || defined(XT8_V2) || defined(RTAXE95Q) || defined(ET8PRO) || defined(ET8_V2) || defined(RTAX56U) || defined(RTAX56_XD4) || defined(XD4PRO) || defined(CTAX56_XD4) || defined(RTAX55) || defined(RTAX1800) || defined(RTAX58U_V2) || defined(RTAX3000N) || defined(BR63)
+#if defined(RTAX95Q) || defined(XT8PRO) || defined(BM68) || defined(XT8_V2) || defined(RTAXE95Q) || defined(ET8PRO) || defined(ET8_V2) || defined(RTAX56U) || defined(RTAX56_XD4) || defined(XD4PRO) || defined(CTAX56_XD4) || defined(RTAX55) || defined(RTAX1800) || defined(RTAX58U_V2) || defined(RTAX3000N) || defined(BR63) || defined(XC5) || defined(EBA63)
 	return 1;
 #endif
 	memset(&ifr, 0, sizeof(ifr));
@@ -1606,7 +1606,7 @@ uint32_t set_ex53134_ctrl(uint32_t portmask, int ctrl)
 	int i=0;
 	uint32_t value;
 
-#if defined(RTAX95Q) || defined(XT8PRO) || defined(BM68) || defined(XT8_V2) || defined(RTAXE95Q) || defined(ET8PRO) || defined(ET8_V2) || defined(RTAX56U) || defined(RTAX56_XD4) || defined(XD4PRO) || defined(CTAX56_XD4) || defined(TUFAX3000_V2) || defined(RTAXE7800)
+#if defined(RTAX95Q) || defined(XT8PRO) || defined(BM68) || defined(XT8_V2) || defined(RTAXE95Q) || defined(ET8PRO) || defined(ET8_V2) || defined(RTAX56U) || defined(RTAX56_XD4) || defined(XD4PRO) || defined(CTAX56_XD4) || defined(TUFAX3000_V2) || defined(RTAXE7800) || defined(XC5) || defined(EBA63)
 	return 1;
 #endif
 	for (i = 0; i < 4 && (portmask >> i); i++) {
@@ -1628,7 +1628,7 @@ uint32_t set_phy_ctrl(uint32_t portmask, int ctrl)
 	int fd, i, model;
 	uint32_t value;
 
-#if defined(RTAX95Q) || defined(XT8PRO) || defined(BM68) || defined(XT8_V2) || defined(RTAXE95Q) || defined(ET8PRO) || defined(ET8_V2) || defined(RTAX56U) || defined(RTAX56_XD4) || defined(XD4PRO) || defined(CTAX56_XD4) || defined(RTAX55) || defined(RTAX1800) || defined(RTAX58U_V2) || defined(RTAX3000N) || defined(BR63)
+#if defined(RTAX95Q) || defined(XT8PRO) || defined(BM68) || defined(XT8_V2) || defined(RTAXE95Q) || defined(ET8PRO) || defined(ET8_V2) || defined(RTAX56U) || defined(RTAX56_XD4) || defined(XD4PRO) || defined(CTAX56_XD4) || defined(RTAX55) || defined(RTAX1800) || defined(RTAX58U_V2) || defined(RTAX3000N) || defined(BR63) || defined(XC5) || defined(EBA63)
 	return 1;
 #endif
 	model = get_switch();
@@ -1882,6 +1882,10 @@ void set_radio(int on, int unit, int subunit)
 		if (on) eval("wl", "-i", nvram_safe_get(wl_nvname("ifname", unit, 0)), "bss", "-C", tmp, "up");
 		else eval("wl", "-i", nvram_safe_get(wl_nvname("ifname", unit, 0)), "bss", "-C", tmp, "down");
 
+		if (nvram_get_int("led_disable")==1) {
+			led_control(LED_2G, LED_OFF);
+			led_control(LED_5G, LED_OFF);
+		}
 		return;
 	}
 
@@ -1903,6 +1907,11 @@ void set_radio(int on, int unit, int subunit)
 		//led(LED_DIAG, 0);
 	}
 #endif
+
+	if (nvram_get_int("led_disable")==1) {
+		led_control(LED_2G, LED_OFF);
+		led_control(LED_5G, LED_OFF);
+	}
 }
 
 /* Return nvram variable name, e.g. et0macaddr, which is used to repented as LAN MAC.
@@ -2124,7 +2133,7 @@ int get_bonding_port_status(int port)
 #elif defined(EBG19)
 	int lan_ports=8;
 	char *ports[lan_ports+1];
-	ports[0]="eth0"; ports[1]="eth4"; ports[2]="eth3"; ports[3]="eth2"; ports[4]="eth1", ports[5]="ethsw_3", ports[6]="ethsw_2", ports[7]="ethsw_1", ports[8]="ethsw_0";
+	ports[0]="eth0"; ports[1]="eth4"; ports[2]="eth3"; ports[3]="eth2"; ports[4]="eth1", ports[5]="eth5", ports[6]="eth5", ports[7]="eth5", ports[8]="eth5";
 #elif defined(RTAX92U)
 	int lan_ports=4;
 	int ports[lan_ports+1];
@@ -2156,12 +2165,18 @@ int get_bonding_port_status(int port)
 		/* 7 W0 */
 		ports[0]=7;
 	}
-#elif defined(XD4PRO)
+#elif defined(XD4PRO) || defined(EBA63)
 	int lan_ports=1;
 
 	int ports[lan_ports+1];
 	/* 7 3	W0 L1 */
 	ports[0]=7; ports[1]=3;
+#elif defined(XC5)
+        int lan_ports=2;
+
+        int ports[lan_ports+1];
+        /* 0 1 5 W0 L1 L2 */
+        ports[0]=0; ports[1]=1; ports[2]=5;
 #elif defined(CTAX56_XD4)
 	int lan_ports=1;
 
@@ -2199,6 +2214,11 @@ int get_bonding_port_status(int port)
 	/* 1 0 2 3    W0 L1 L2 L3 */
 	ports[0]=1; ports[1]=0; ports[2]=2; ports[3]=3;
 	}
+#elif defined(RTAX9000)
+        int lan_ports=5;
+        int ports[lan_ports+1];
+        /* 0 5 1 2 3 4 W0 L1 L2 L3 L4 L5 */
+        ports[0]=0; ports[1]=1; ports[2]=2; ports[3]=3; ports[4]=4; ports[5]=5;
 #elif defined(RTAX82_XD6) || defined(XD6_V2)
 	int lan_ports=3;
 	int ports[lan_ports+1];
@@ -2379,6 +2399,50 @@ int wl_get_band(char* wlif)
     wl_ioctl(wlif, WLC_GET_BAND, &bandtype, sizeof(bandtype));
 
     return bandtype;
+}
+
+/* get unit by nv definition in case ioctl fail */
+int wl_get_ifname_unit(char *wlif)
+{
+        int unit = 0;
+        char nv_wlif[16], *wlx_ifname[16], word[64], *next;
+        char wl_ifnames[32] = { 0 };
+
+        strlcpy(wl_ifnames, nvram_safe_get("wl_ifnames"), sizeof(wl_ifnames));
+        foreach (word, wl_ifnames, next) {
+                snprintf(nv_wlif, sizeof(nv_wlif), "wl%d_ifname", unit);
+		strlcpy(wlx_ifname, nvram_safe_get(nv_wlif), sizeof(wlx_ifname));
+		if(strcmp(wlx_ifname, wlif) == 0)
+			return unit;
+
+		unit++;
+        }
+	return -1;
+}
+
+int wl_check_unii4_band(char *wlif)
+{
+	int unit, ret = 0;
+	char tmp[100], prefix[] = "wlXXXXXXXXXXXXXX";
+
+	unit = wl_get_ifname_unit(wlif);
+	snprintf(prefix, sizeof(prefix), "wl%d_", unit);
+	ret = nvram_get_hex(strcat_r(prefix, "band5grp", tmp)) & WL_5G_BAND_4;
+
+	return ret;
+}
+
+/* get band by nv definition in case ioctl fail */
+int wl_get_chlist_band(char* wlif)
+{
+	int unit, band = -1;
+	char tmp[100], prefix[] = "wlXXXXXXXXXXXXXX";
+
+	unit = wl_get_ifname_unit(wlif);
+	snprintf(prefix, sizeof(prefix), "wl%d_", unit);
+	band = nvram_get_int(strcat_r(prefix, "nband", tmp));
+
+	return band;
 }
 
 /* Check if interface is primary or not */
@@ -2743,3 +2807,4 @@ void gen_bcmbsd_def_policy(int sel)
 }
 
 #endif
+

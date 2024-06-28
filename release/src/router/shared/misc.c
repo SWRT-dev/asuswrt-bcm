@@ -47,6 +47,7 @@
 #include "shared.h"
 #include "wlif_utils.h"
 #include "iboxcom.h"
+#include <regex.h>
 
 #ifndef ETHER_ADDR_LEN
 #define	ETHER_ADDR_LEN		6
@@ -64,6 +65,11 @@
 #else
 #include <wlioctl.h>
 #endif
+
+#if defined(RTCONFIG_VPN_FUSION) || defined(RTCONFIG_TPVPN) ||defined(RTCONFIG_IG_SITE2SITE) || defined(RTCONFIG_WIREGUARD)
+#include "vpn_utils.h"
+#endif
+
 #if defined(RTCONFIG_COOVACHILLI)
 #define MAC_FMT "%.2X:%.2X:%.2X:%.2X:%.2X:%.2X"
 #define MAC_ARG(x) (x)[0],(x)[1],(x)[2],(x)[3],(x)[4],(x)[5]
@@ -299,6 +305,13 @@ int inet_intersect(const char *addr1, const char *mask1, const char *addr2, cons
 		(inet_network(addr2) & max_netmask));
 }
 
+int inet_overlap(const char *addr1, const char *mask1, const char *addr2, const char *mask2)
+{
+	in_addr_t max_netmask = inet_network(mask1) & inet_network(mask2);
+	return ((inet_network(addr1) & max_netmask) ==
+		(inet_network(addr2) & max_netmask));
+}
+
 int inet_deconflict(const char *addr1, const char *mask1, const char *addr2, const char *mask2, struct in_addr *result)
 {
 	const static struct class {
@@ -461,6 +474,266 @@ int illegal_ipv4_netmask(char *netmask)
 
 	return 0;
 }
+
+#if defined(RTCONFIG_HTTPS)
+void reset_last_cert_nvars(void)
+{
+	char **p, *nvars[] = { "last_cert_lan_ipaddr", "last_cert_ddns_hostname",
+		"last_cert_wan0_ipaddr", "last_cert_wan1_ipaddr",
+		"last_cert_ipv6_ipaddr", NULL
+	};
+
+	for (p = &nvars[0]; p && *p; ++p) {
+		nvram_unset(*p);
+	}
+}
+
+/* Extrace certificates in HTTPS_CA_JFFS to /etc.
+ * If https_intermediate_crt_save nvram variable is "1", extract intermediate_cert.pem too.
+ * @return:
+ *  0:		fail
+ *  otherwise:	success
+ */
+int restore_cert(void)
+{
+	int r, i, varlen = 0;
+	char *cert_tgz = HTTPS_CA_JFFS;
+	char **v, *argv[20] = { "tar", "-C", "/", "-xzf", cert_tgz, HTTPD_CERTS_KEYS_ARGS, NULL };
+#if defined(RTCONFIG_LETSENCRYPT)
+	char *le_cert = LE_HTTPD_CERT, *le_key = LE_HTTPD_KEY;
+	char *ul_cert = UL_HTTPD_CERT, *ul_key = UL_HTTPD_KEY;
+#endif
+
+#if defined(RTCONFIG_ECC256)
+	varlen++;
+#endif
+#if defined(RTCONFIG_LETSENCRYPT)
+	varlen += 2;
+#endif
+	for (i = 0, v = &argv[0]; i < ARRAY_SIZE(argv) && v && *v; ++v, ++i)
+		;
+	if (i >= (ARRAY_SIZE(argv) - varlen)) {
+		_dprintf("%s: argv too small!\n", __func__);
+		return 0;
+	}
+
+#if defined(RTCONFIG_ECC256)
+	if (!f_exists(HTTPS_CA_JFFS) && f_exists("/jffs/cert_ecdsa.tgz"))
+		cert_tgz = "/jffs/cert_ecdsa.tgz";
+#endif
+
+	if (nvram_match("https_intermediate_crt_save", "1"))
+		*v++ = "etc/intermediate_cert.pem";
+
+#if defined(RTCONFIG_LETSENCRYPT)
+	if (nvram_match("le_enable", "1")) {
+		*v++ = (*le_cert != '/')? le_cert : (le_cert + 1);
+		*v++ = (*le_key != '/')? le_key : (le_key + 1);
+	} else if (nvram_match("le_enable", "2")) {
+		*v++ = (*ul_cert != '/')? ul_cert : (ul_cert + 1);
+		*v++ = (*ul_key != '/')? ul_key : (ul_key + 1);
+	}
+#endif
+
+	*v++ = NULL;
+	r = _eval(argv, NULL, 0, NULL);
+	/* cert.crt is archived to /tmp/cert.tar and is used to export certificate. */
+	if (!f_exists("/etc/cert.crt"))
+		eval("ln", "-sf", HTTPD_ROOTCA_CERT, "/etc/cert.crt");
+	/* generate certificate for lighttpd (AiCloud) */
+	system("cat " HTTPD_KEY " " HTTPD_CERT " > " LIGHTTPD_CERTKEY);
+
+	return !r;
+}
+
+/* Used to backup cert. and key to /jffs, all possible cert. and key should be backuped.
+ */
+void save_cert(void)
+{
+	int i;
+	char **v, *argv[20] = { "tar", "-C", "/", "-czf", HTTPS_CA_JFFS, HTTPD_CERTS_KEYS_ARGS, NULL };
+
+	for (i = 0, v = &argv[0]; i < ARRAY_SIZE(argv) && v && *v; ++v, ++i)
+		;
+	if (i >= (ARRAY_SIZE(argv) - 2)) {
+		_dprintf("%s: argv too small!\n", __func__);
+		return;
+	}
+
+	if (nvram_match("https_intermediate_crt_save", "1") && f_exists("etc/intermediate_cert.pem"))
+		*v++ = "etc/intermediate_cert.pem";
+
+	*v++ = NULL;
+	_eval(argv, NULL, 0, NULL);
+}
+
+void erase_cert(void)
+{
+	char **p, fn[128], *cert_list[] = { HTTPD_CERTS_KEYS_ARGS, NULL };
+
+	for (p = cert_list; p && *p; ++p) {
+		snprintf(fn, sizeof(fn), "/%s", *p);
+		if (!f_exists(fn))
+			continue;
+		unlink(fn);
+	}
+	nvram_set("https_crt_gen", "0");
+}
+
+void remove_all_uploaded_cert_from_jffs(void)
+{
+	char **f, *fn[] = { UPLOAD_CERT, UPLOAD_KEY, UPLOAD_GEN_CERT, UPLOAD_GEN_KEY, UPLOAD_CACERT, UPLOAD_CAKEY, NULL };
+
+	for (f = &fn[0]; f && *f; ++f) {
+		if (f_exists(*f))
+			unlink(*f);
+	}
+}
+
+/* Validate cert and key.
+ * @cert_fn:
+ * @key_fn:
+ * @return:
+ * 	0:	@cert_fn and @key_fn are validate.
+ *  otherwise:	@cert_fn and @key_fn are not validate, or error happen.
+ */
+int illegal_cert_and_key(const char *cert_fn, const char *key_fn)
+{
+	int ret = 0;
+	unsigned long len;
+	char *cert = NULL, *key = NULL;
+	char cmd_cert_pkey[sizeof("openssl x509 -noout -pubkey -in XXXXXX|md5sum") + 64];
+	char cmd_key_pkey[sizeof("openssl pkey -pubout -in XXXXXX|md5sum") + 64];
+	char cert_pkey_md5[sizeof("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX  -XXX")] = "";
+	char key_pkey_md5[sizeof("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX  -XXX")] = "";
+
+	if (!cert_fn || !key_fn || !f_exists(cert_fn) || !f_exists(key_fn) || !f_size(cert_fn) || !f_size(key_fn))
+		return -1;
+
+	/* check content of certificate/key */
+	len = f_size(cert_fn);
+	if ((unsigned long) len != (unsigned long) -1)
+		f_read_alloc(cert_fn, &cert, len);
+	if (!cert || (!strstr(cert, "-----BEGIN CERTIFICATE-----")
+		   || !strstr(cert, "-----END CERTIFICATE-----")))
+	{
+		_dprintf("%s: %s is not a certificate file.\n", __func__, cert_fn);
+		ret = 1;
+	}
+
+	if (!ret) {
+		len = f_size(key_fn);
+		if ((unsigned long) len != (unsigned long) -1)
+			f_read_alloc(key_fn, &key, len);
+		if (!key || (!strstr(key, "-----BEGIN ")
+			  || !strstr(key, "-----END ")
+			  || !strstr(key, "PRIVATE KEY-----")))
+		{
+			_dprintf("%s: %s is not a key file.\n", __func__, key_fn, key);
+			ret = 1;
+		}
+	}
+
+	/* calculate public key and compare. */
+	if (!ret) {
+		snprintf(cmd_cert_pkey, sizeof(cmd_cert_pkey),
+			"openssl x509 -noout -pubkey -in %s|md5sum", cert_fn);
+		snprintf(cmd_key_pkey, sizeof(cmd_key_pkey),
+			"openssl pkey -pubout -in %s|md5sum", key_fn);
+		exec_and_return_string(cmd_cert_pkey, NULL, cert_pkey_md5, sizeof(cert_pkey_md5));
+		exec_and_return_string(cmd_key_pkey, NULL, key_pkey_md5, sizeof(key_pkey_md5));
+		if (*cert_pkey_md5 == '\0' || *key_pkey_md5 == '\0'
+		 || strncmp(cert_pkey_md5, key_pkey_md5, 32)) {
+			_dprintf("%s: public key of %s and %s mismatch.\n", __func__, cert_fn, key_fn);
+			ret = 1;
+		}
+	}
+
+	if (cert)
+		free(cert);
+	if (key)
+		free(key);
+
+	return ret;
+}
+
+void update_srv_cert_if_ddns_changed(void)
+{
+	char old_ddns_hostname[64];
+
+	strlcpy(old_ddns_hostname, nvram_safe_get("last_cert_ddns_hostname"), sizeof(old_ddns_hostname));
+	if (!strcmp(old_ddns_hostname, nvram_safe_get("ddns_hostname_x"))
+	 || *nvram_safe_get("ddns_hostname_x") == '\0')
+		return;
+
+	GENCERT_SH_AND_RELOAD();
+}
+
+/* Sign new end-entity certificate if new LAN IP address is different from
+ * last one that recorded in last_cert_lan_ipaddr and it's not default LAN
+ * IP address.
+ */
+void update_srv_cert_if_lan_ip_changed(void)
+{
+	char old_ip[sizeof("111.222.333.444X")], new_ip[sizeof("111.222.333.444X")];
+
+	strlcpy(old_ip, nvram_safe_get("last_cert_lan_ipaddr"), sizeof(old_ip));
+	strlcpy(new_ip, nvram_safe_get("lan_ipaddr"), sizeof(new_ip));
+	if (!strcmp(old_ip, new_ip) || !strcmp(new_ip, nvram_default_get("lan_ipaddr")) || illegal_ipv4_address(new_ip))
+		return;
+
+	GENCERT_SH_AND_RELOAD();
+}
+
+void update_srv_cert_if_wan_ip_changed(int wan_unit)
+{
+	char prefix[sizeof("wanXXX_")], nv[sizeof("last_cert_wanXXX_ipaddr")];
+	char old_ip[sizeof("111.222.333.444X")], new_ip[sizeof("111.222.333.444X")];
+
+	if (wan_unit < 0 || wan_unit >= WAN_UNIT_MAX) {
+		return;
+	}
+
+	snprintf(prefix, sizeof(prefix), "wan%d_", wan_unit);
+	snprintf(nv, sizeof(nv), "last_cert_wan%d_ipaddr", wan_unit);
+	strlcpy(old_ip, nvram_safe_get(nv), sizeof(old_ip));
+	strlcpy(new_ip, nvram_pf_safe_get(prefix, "ipaddr"), sizeof(new_ip));
+	if (!strcmp(old_ip, new_ip) || illegal_ipv4_address(new_ip))
+		return;
+
+	GENCERT_SH_AND_RELOAD();
+}
+
+#if defined(RTCONFIG_IPV6)
+void update_srv_cert_if_wan_ipv6_changed(int wan_unit)
+{
+	char *p;
+	char old_ipv6[sizeof("1111:2222:3333:4444:5555:6666:7777:8888X")];
+	char new_ipv6_1[sizeof("1111:2222:3333:4444:5555:6666:7777:8888X")];
+	char new_ipv6_2[sizeof("1111:2222:3333:4444:5555:6666:7777:8888X")];
+
+	if (wan_unit < 0 || wan_unit >= WAN_UNIT_MAX) {
+		return;
+	} else if (!ipv6_enabled())
+		return;
+
+	strlcpy(old_ipv6, nvram_safe_get("last_cert_ipv6_ipaddr"), sizeof(old_ipv6));
+	strlcpy(new_ipv6_1, nvram_safe_get("ipv6_wan_addr"), sizeof(new_ipv6_1));
+	p = strchr(new_ipv6_1, '/');
+	if (p != NULL)
+		*p = '\0';
+	strlcpy(new_ipv6_2, nvram_safe_get("ddns_ipv6_ipaddr"), sizeof(new_ipv6_2));
+	p = strchr(new_ipv6_2, '/');
+	if (p != NULL)
+		*p = '\0';
+	if ((*new_ipv6_1 == '\0' || !strcmp(old_ipv6, new_ipv6_1))
+	 && (*new_ipv6_2 == '\0' || !strcmp(old_ipv6, new_ipv6_2)))
+		return;
+
+	GENCERT_SH_AND_RELOAD();
+}
+#endif	/* RTCONFIG_IPV6 */
+#endif	/* RTCONFIG_HTTPS */
 
 #if defined(RTCONFIG_QCA) || defined(RTCONFIG_LANTIQ)
 void convert_mac_string(char *mac)
@@ -1414,6 +1687,102 @@ int test_and_get_free_char_network(int t_class, char *ip_cidr_str, uint32_t excl
 
 #endif /* RTCONFIG_COOVACHILLI || RTCONFIG_PORT_BASED_VLAN || RTCONFIG_TAGGED_BASED_VLAN */
 
+#if defined(RTCONFIG_SWITCH_QCA8075_QCA8337_PHY_AQR107_AR8035_QCA8033)
+/* Return minimal network, maximum CIDR value, for @ipaddr
+ * Start from 30 to 1 until we got non-zero host ID.
+ * @ipaddr:	IP address
+ * @return:
+ *  1 ~ 30:	CIDR for @ipaddr
+ * 	0:	Good CIDR is not available
+ */
+int min_cidr(char *ipaddr)
+{
+	in_addr_t ip, h_mask;
+	int i, d, cidr = 0;
+
+	if (!ipaddr || illegal_ipv4_address(ipaddr))
+		return 0;
+
+	/* Find maximum CIDR value that has non-zero host ID and
+	 * have network/broadcast address.
+	 */
+	ip = inet_network(ipaddr);
+	for (i = 30; !cidr && i > 0; --i) {
+		d = 32 - i;
+		h_mask = ((0xFFFFFFFF >> d) << d) ^ 0xFFFFFFFF;
+		if ((ip & h_mask) != 0 && ((ip + 1) & h_mask) != 0)
+			cidr = i;
+	}
+
+	return cidr;
+}
+
+/* Return minimal size of network mask for @ipaddr
+ * @ipaddr:	IP address
+ * @mask:	char array that big enough to save a network mask string.
+ * 		If it's NULL, internal buffer is used instead.
+ * @mask_len:	length of @mask
+ * @return:	Pointer to char pointer that contain network mask string or empty string.
+ */
+char *min_netmask(char *ipaddr, char *mask, size_t mask_len)
+{
+	static char mask_str[18];
+	char *buf = mask_str;
+	size_t buf_len = sizeof(mask_str);
+	int cidr, d;
+	in_addr_t m = 0xFFFFFFFF;
+
+	if (mask_len < 16)
+		mask = NULL;
+	if (mask) {
+		buf = mask;
+		buf_len = mask_len;
+	}
+	*buf = '\0';
+	cidr = min_cidr(ipaddr);
+	if (cidr <= 0 || cidr > 30)
+		return buf;
+
+	d = 32 - cidr;
+	m = htonl((0xFFFFFFFF >> d) << d);	/* to network byte order */
+	if (!inet_ntop(AF_INET, &m, buf, buf_len))
+		*buf = '\0';
+
+	return buf;
+}
+
+/* Return IP address that removed host IDs part.
+ * @ipaddr:	IP address
+ * @mask:	netmask
+ * @nwaddr:	char array that big enough to save IP address string.
+ * @nwaddr_len:	length of @nwaddr
+ * @return:	IP address that doesn't have host ID or empty string if invalid parameter.
+ */
+char *network_addr(char *ipaddr, char *mask, char *nwaddr, size_t nwaddr_len)
+{
+	static char nwaddr_str[18];
+	char *buf = nwaddr_str;
+	size_t buf_len = sizeof(nwaddr_str);
+	in_addr_t n_addr;
+
+	if (nwaddr_len < 16)
+		nwaddr = NULL;
+	if (nwaddr) {
+		buf = nwaddr;
+		buf_len = nwaddr_len;
+	}
+	*buf = '\0';
+	if (!ipaddr | !mask || illegal_ipv4_address(ipaddr) || illegal_ipv4_netmask(mask))
+		return buf;
+
+	n_addr = htonl(inet_network(ipaddr) & inet_network(mask));
+	if (!inet_ntop(AF_INET, &n_addr, buf, buf_len))
+		*buf = '\0';
+
+	return buf;
+}
+#endif
+
 /**
  * Return first/lowest configured and connected WAN unit.
  * @return:	WAN_UNIT_FIRST ~ WAN_UNIT_MAX
@@ -1454,6 +1823,39 @@ enum wan_unit_e get_first_connected_public_wan_unit(void)
 		return wan_unit;
 }
 
+enum wan_unit_e get_first_connected_dual_wan_unit(void)
+{
+	int i, wan_unit = WAN_UNIT_MAX;
+	char prefix[sizeof("wanXXXXXX_")], link[sizeof("link_wanXXXXXX")], tmp[100];
+
+	for (i = WAN_UNIT_FIRST; i < WAN_UNIT_MAX; ++i) {
+		if (get_dualwan_by_unit(i) == WANS_DUALWAN_IF_NONE || !is_wan_connect(i))
+			continue;
+
+		/* For LB mode, check link status. */
+		snprintf(prefix, sizeof(prefix), "wan%d_", i);
+		if (!i)
+			strlcpy(link, "link_wan", sizeof(link));
+		else
+			snprintf(link, sizeof(link), "link_wan%d", i);
+
+		if (!nvram_get_int(link))
+			continue;
+
+		if (( nvram_get_int(strlcat_r(prefix, "state_t", tmp, sizeof(tmp)))==2
+				&& nvram_get_int(strlcat_r(prefix, "sbstate_t", tmp, sizeof(tmp)))==0
+				&& nvram_get_int(strlcat_r(prefix, "auxstate_t", tmp, sizeof(tmp)))==0 ))
+		{
+				wan_unit = i;
+				break;
+		}
+	}
+	if(WAN_UNIT_MAX == i)
+		return WAN_UNIT_NONE;
+	else
+		return wan_unit;
+}
+
 int get_wan_proto(char *prefix)
 {
 	static const struct {
@@ -1471,6 +1873,7 @@ int get_wan_proto(char *prefix)
 		{ "map-e",	WAN_MAPE },
 		{ "v6plus",	WAN_V6PLUS },
 		{ "ocnvc",	WAN_OCNVC },
+		{ "dslite",	WAN_DSLITE },
 #endif
 		{ NULL }
 	};
@@ -1508,6 +1911,7 @@ int is_s46_service_by_unit(int unit)
 	case WAN_MAPE:
 	case WAN_V6PLUS:
 	case WAN_OCNVC:
+	case WAN_DSLITE:
 		ret = 1;
 		break;
 	}
@@ -3107,6 +3511,7 @@ int is_private_subnet(const char *ip)
 		{ __constant_htonl(0xac100000), __constant_htonl(0xfff00000) }, /* 172.16.0.0/12 */
 		{ __constant_htonl(0x0a000000), __constant_htonl(0xff000000) }, /* 10.0.0.0/8 */
 		{ __constant_htonl(0x64400000), __constant_htonl(0xffc00000) }, /* 100.64.0.0/10 */
+		{ __constant_htonl(0xc0000000), __constant_htonl(0xfffffff8) }, /* 192.0.0.0/29 */
 	};
 	struct in_addr sin;
 	int i;
@@ -4329,6 +4734,7 @@ int iwpriv_get_int(const char *iface, char *cmd, int *result)
  * @path:	path to a directory.
  * @keyword:	used to filter specific items to @handler.
  * @handler:	function pointer.
+ *              NOTE: To make sure both readdir_wrapper() and @handler see same struct dirent, @handler must check @de_size and stop if mismatch.
  * @arg:	parameter for @handler.
  * @return:
  * 	0:	success
@@ -4336,7 +4742,7 @@ int iwpriv_get_int(const char *iface, char *cmd, int *result)
  *     -2:	can't open @path
  *     -3:	error reported by @handler
  */
-int readdir_wrapper(const char *path, const char *keyword, int (*handler)(const char *path, const struct dirent *de, void *arg), void *arg)
+int readdir_wrapper(const char *path, const char *keyword, int (*handler)(const char *path, const struct dirent *de, size_t de_size, void *arg), void *arg)
 {
 	int ret = 0;
 	DIR *dir;
@@ -4352,7 +4758,7 @@ int readdir_wrapper(const char *path, const char *keyword, int (*handler)(const 
 		if (!strcmp(de->d_name, ".") || !strcmp(de->d_name, ".."))
 			continue;
 		if (!keyword || *keyword == '\0' || strstr(de->d_name, keyword) != NULL) {
-			if (handler(path, de, arg))
+			if (handler(path, de, sizeof(*de), arg))
 				ret = -3;
 		}
 	}
@@ -5732,6 +6138,47 @@ int is_valid_domainname(const char *name)
 	return p - name;
 }
 
+int is_valid_oauth_code(char *code)
+{
+	int len;
+
+	len = strlen(code);
+	if (len > 2048) return 0;
+
+	while(*code) {
+		if (isalnum(*code) != 0 || *code == '-' || *code == '.' || *code == '_' || *code == '~' || *code == '+' || *code == '/' || isspace(*code) != 0)
+			code++;
+		else
+			return 0;
+	}
+	return 1;
+}
+int is_valid_email_address(char *address)
+{
+	int status=1, ret=0, rc=0;
+	regex_t preg;
+	const char *reg_exp = "^\\w+([-+.]\\w+)*@\\w+([-.]\\w+)*.\\w+([-.]\\w+)*$";
+
+	rc = regcomp(&preg, reg_exp, REG_EXTENDED);
+
+	if (rc != 0)
+	{
+		dbg("%s: Failed to compile the regular expression:%d\n", __func__, rc);
+		return 4000;
+	}
+
+	status=regexec(&preg,address,0, NULL, 0);
+	if (status == REG_NOMATCH) {
+		dbg("No Match\n");
+	}
+	else if (status == 0) {
+		dbg("Match\n");
+		ret = 1;
+	}
+	regfree(&preg);
+	return ret;
+}
+
 int get_discovery_ssid(char *ssid_g, int size)
 {
 #if defined(RTCONFIG_WIRELESSREPEATER) || defined(RTCONFIG_PROXYSTA)
@@ -6070,7 +6517,7 @@ int is_passwd_default(){
 	char *http_passwd = nvram_safe_get("http_passwd");
 #ifdef RTCONFIG_NVRAM_ENCRYPT
 	char dec_passwd[NVRAM_ENC_LEN];
-	pw_dec(http_passwd, dec_passwd, sizeof(dec_passwd));
+	pw_dec(http_passwd, dec_passwd, sizeof(dec_passwd), 1);
 	http_passwd = dec_passwd;
 #endif
 	if(strcmp(nvram_default_get("http_passwd"), http_passwd) == 0)
@@ -6690,16 +7137,19 @@ void wl_vif_to_subnet(const char *ifname, char *net, int len)
  	int fd;
 	struct ifreq ifr;
 	
-
 	if (!ifname || strlen(ifname) <= 0)
 		return;
 
 	if (!net || len <= 0)
 		return;
 
+	memset(net, 0, len);
 	for (found=0, i=0; i<256; i++) {
 		memset(nv, 0, sizeof(nv));
-		snprintf(nv, sizeof(nv), "br%d_ifnames", i);
+		if (i==0)
+			snprintf(nv, sizeof(nv), "lan_ifnames");
+		else 
+			snprintf(nv, sizeof(nv), "lan%d_ifnames", i);
 		if ((br_ifnames = strdup(nvram_safe_get(nv)))) {
 			foreach (word, br_ifnames, next) {
 				if ((found = !strcmp(word, ifname)))
@@ -6715,7 +7165,10 @@ void wl_vif_to_subnet(const char *ifname, char *net, int len)
 
 	if (found) {
 		memset(nv, 0, sizeof(nv));
-		snprintf(nv, sizeof(nv), "br%d_ifname", i);
+		if (i==0)
+			snprintf(nv, sizeof(nv), "lan_ifname");
+		else
+			snprintf(nv, sizeof(nv), "lan%d_ifname", i);
 		memset(br_name, 0, sizeof(br_name));
 		strlcpy(br_name, nvram_safe_get(nv), sizeof(br_name));
 
@@ -6761,22 +7214,56 @@ get_string_in_62(char *in_list, int idx, char *out, int out_len)
 			find_idx++;
 		}
 	}
+	if(find_idx == idx) // Consider the field is at the end of in_list (no '>' occur anymore).
+		strlcpy(out, g, out_len);
 
 	free(buf);
 
 	return 0;
 }
 
-int vpnc_use_tunnel(void)
+#if defined(RTCONFIG_VPN_FUSION) || defined(RTCONFIG_TPVPN) || defined(RTCONFIG_IG_SITE2SITE)
+#if defined(RTCONFIG_WIREGUARD)
+int is_wgs_use_tunnel(const char *wgs_idx, const char *caller, const char *port) {
+	char wgs_prefix[16];
+	snprintf(wgs_prefix, sizeof(wgs_prefix), "%s_", wgs_idx);
+	if (nvram_pf_get_int(wgs_prefix, "enable") == 1) {
+		int c_unit;
+		char c_prefix[16] = {0};
+		int nv_enable = 0;
+		char nv_caller[16] = {0};
+		char nv_port[16] = {0};
+		if (port)
+			snprintf(nv_port, sizeof(nv_port), "%s", nvram_pf_safe_get(wgs_prefix, "port"));
+		for (c_unit = 1; c_unit <= WG_SERVER_CLIENT_MAX; c_unit++)
+		{
+			snprintf(c_prefix, sizeof(c_prefix), "%sc%d_", wgs_prefix, c_unit);
+			nv_enable = nvram_pf_get_int(c_prefix, "enable");
+			snprintf(nv_caller, sizeof(nv_caller), "%s", nvram_pf_safe_get(c_prefix, "caller"));
+
+			if (!strcmp(nv_caller, caller) && nv_enable == 1) {
+				if (port) {
+					if (!strcmp(nv_port, port)) {
+						return 1;
+					}
+				} else
+					return 1;
+			}
+		}
+	}
+	return 0;
+}
+#endif
+
+int vpns_use_tunnel(void)
 {
 	time_t now = time(NULL);
-	char s2s_oauth_linklist[4096] = {0}, vpnc_clientlist[8192] = {0}, active[8] = {0}, conn_type[8] = {0};
+	char s2s_oauth_linklist[4096] = {0};
 	char word[128] = {0}, *next = NULL;
 	char *link = NULL, *ts = NULL, *vpn = NULL, *conn = NULL;
 
+	// Check for share link server
 	strlcpy(s2s_oauth_linklist, nvram_safe_get("s2s_oauth_linklist"), sizeof(s2s_oauth_linklist));
-	strlcpy(vpnc_clientlist, nvram_safe_get("vpnc_clientlist"), sizeof(vpnc_clientlist));
-
 	foreach_60(word, s2s_oauth_linklist, next){
 		if((vstrsep(word, ">", &link, &ts, &vpn, &conn)) != 4){
 			continue;
@@ -6785,17 +7272,53 @@ int vpnc_use_tunnel(void)
 			return 1;
 		}
 	}
+#if defined(RTCONFIG_WIREGUARD)
+	if (is_wgs_use_tunnel("wgs1", "AMSAPP", NULL))
+		return 1;
+	if (is_wgs_use_tunnel("wgs2", "IG_S2S", NULL))
+		return 1;
+#endif
+	return 0;
+}
 
+int vpnc_use_tunnel(int vpnc_unit, const char* proto)
+{
+	char vpnc_clientlist[8192] = {0}, vpn_type[16] = {0}, vpnc_idx[8] = {0}, active[8] = {0}, tunnel[8] = {0};
+	char word[128] = {0}, *next = NULL;
+
+	// Check for share link client
+	strlcpy(vpnc_clientlist, nvram_safe_get("vpnc_clientlist"), sizeof(vpnc_clientlist));
 	foreach_60(word, vpnc_clientlist, next){
+		memset(vpn_type, 0, sizeof(vpn_type));
+		memset(vpnc_idx, 0, sizeof(vpnc_idx));
 		memset(active, 0, sizeof(active));
-		memset(conn_type, 0, sizeof(conn_type));
-		get_string_in_62(word, 9, active, sizeof(active));
-		get_string_in_62(word, 9, conn_type, sizeof(conn_type));
-		if(!strcmp(active, "1") && !strcmp(conn_type, "1"))
+		memset(tunnel, 0, sizeof(tunnel));
+		if (proto && !strcmp(proto, "WireGuard")) {
+			get_string_in_62(word, 1, vpn_type, sizeof(vpn_type));
+			//_dprintf("vpnc_unit=%d, vpn_type=%s\n", vpnc_unit, vpn_type);
+			if (strcmp(vpn_type, proto))
+				continue;
+			get_string_in_62(word, 2, vpnc_idx, sizeof(vpnc_idx));
+			//_dprintf("vpnc_idx=%s, vpnc_unit=%d\n", vpnc_idx, vpnc_unit);
+			//_dprintf("vpnc_unit=%d, vpnc_idx=%s\n", vpnc_unit + VPNC_UNIT_BASIC, vpnc_idx);
+			if (strtol(vpnc_idx, NULL, 10) != vpnc_unit)
+				continue;
+		} else {
+			get_string_in_62(word, 6, vpnc_idx, sizeof(vpnc_idx));
+			//_dprintf("vpnc_unit=%d, vpnc_idx=%s\n", vpnc_unit + VPNC_UNIT_BASIC, vpnc_idx);
+			if (strtol(vpnc_idx, NULL, 10) != (vpnc_unit + VPNC_UNIT_BASIC))
+				continue;
+		}
+		get_string_in_62(word, 5, active, sizeof(active));
+		//_dprintf("word=%s, active=%s, tunnel=%s\n", word, active, tunnel);
+		get_string_in_62(word, 9, tunnel, sizeof(tunnel));
+		//_dprintf("word=%s, active=%s, tunnel=%s\n", word, active, tunnel);
+		if(!strcmp(active, "1") && !strcmp(tunnel, "1"))
 			return 1;
 	}
 	return 0;
 }
+#endif
 
 #if defined(RTCONFIG_ACCOUNT_BINDING)
 int is_account_bound()
@@ -6809,3 +7332,176 @@ int is_account_bound()
 	return 0;
 }
 #endif
+
+char *make_salt(char *scheme_id, char *buf, size_t size)
+{
+	unsigned char tmp[12];
+	char *p = NULL;
+	int n = 0, tmp_len = 0;
+
+	if (buf == NULL)
+		return NULL;
+
+	if(!strcmp(scheme_id, "1")){
+		n = strlcpy(buf, "$1$", size);
+		tmp_len = 6;
+	}else if(!strcmp(scheme_id, "5")){
+		n = strlcpy(buf, "$5$", size);
+		tmp_len = 12;
+	}else
+		return buf;
+
+	n = (size - n - 1) / 4 * 3;
+	if (n > 0) {
+		if (n > tmp_len)
+			n = tmp_len;
+		f_read("/dev/urandom", tmp, n);
+		n = base64_encode(tmp, buf + 3, n);
+		buf[3 + n] = '\0';
+	}
+
+	for (p = buf; *p; p++) {
+		if (*p == '+')
+			*p = '.';
+	}
+
+	return buf;
+}
+
+int asus_openssl_crypt(char *key, char *salt, char *out, int out_len)
+{
+	dbg("asus_openssl_crypt: check toolchain crypt() support\n");
+	int scheme_id = 0, ret = 0;
+	FILE *p_fp = NULL;
+	char cmd_line[256] = {0}, crypt_buf[256] = {0};
+
+	if(salt && strlen(salt) > 4){
+		if(!strncmp(salt, "$1$", 3))
+			scheme_id = 1;
+		else if(!strncmp(salt, "$5$", 3))
+			scheme_id = 5;
+		else
+			return ret;
+	}else
+		return ret;
+
+	snprintf(cmd_line, sizeof(cmd_line), "openssl passwd -%d -salt %s %s", scheme_id, salt+3, key);
+
+	if((p_fp = popen(cmd_line, "r")) != NULL){
+		if(fgets(crypt_buf, sizeof(crypt_buf), p_fp)){
+			if (strlen(crypt_buf) > 0)
+				crypt_buf[strlen(crypt_buf)-1] = '\0';
+		}
+		pclose(p_fp);
+	}
+
+	if(crypt_buf[0] != '\0'){
+		if(!strncmp(crypt_buf, salt, strlen(salt))){
+			strlcpy(out, crypt_buf, out_len);
+			ret = 1;
+		}
+	}
+
+	return ret;
+}
+
+/**
+ * @return:
+ * 	0:		invalid parameter
+ * 	1:		safe
+ **/
+int validate_rc_service(const char *value)
+{
+	while(*value) {
+		if (isalnum(*value) != 0 || *value == ';' || *value == '_' || *value == '-' || *value == '.' || *value == '/' || isspace(*value) != 0)
+			value++;
+		else{
+			dbg("validate_rc_service: invalid(%c)\n", *value);
+			return 0;
+		}
+	}
+	return 1;
+}
+
+int adjust_62_nv_list(char *name)
+{
+	char nv[2048] = {0}, nv_tmp[2048] = {0};
+	char word[32]={0}, *next=NULL;
+
+	strlcpy(nv, nvram_safe_get(name), sizeof(nv));
+
+	foreach_60(word, nv, next){
+		if(isValidMacAddress(word)){
+			strlcat(nv_tmp, "<", sizeof(nv_tmp));
+			strlcat(nv_tmp, word, sizeof(nv_tmp));
+		}else
+			dbg("%s is invaild\n", word);
+	}
+
+	if(strcmp(nv, nv_tmp) != 0){
+		dbg("update %s to %s\n", nv, nv_tmp);
+		nvram_set(name, nv_tmp);
+		nvram_commit();
+		return 1;
+	}
+	return 0;
+}
+
+/* Backward compatible to old models that doesn't use LAN MAC address to register/update ASUS DDNS.
+ * Copy get_macaddr() in ez-ipupdate and then adjust last byte for IPQ806X/IPQ807X.
+ */
+char *get_ddns_macaddr(void)
+{
+	static char mac_buf[6], mac_buf_str[18];
+	int model = get_model();
+	char *mac = get_lan_hwaddr();
+
+	/* Some model use LAN MAC address to register ASUSDDNS account.
+	 * To keep consistency, don't use get_wan_hwaddr() to rewrite below code.
+	 */
+	switch (model) {
+	case MODEL_RTN56U:
+		mac = nvram_get("et1macaddr");
+		break;
+#if defined(RTCONFIG_QCA)
+	/* Below models has 380 firmwares which use et0macaddr to register ddns name.
+	 * To compatible with 380 firmware, we mustn't use get_lan_hwaddr() on those
+	 * QCA-based models due to it returns value of et1macaddr.
+	 * For newer QCA-based models, which already use get_lan_hwaddr(), e.g.,
+	 * RP-AC51, RT-ACRH17 (RT-AC82U), Lyra series, and VRZ-AC1300, don't append
+	 * model name to below list and just use return value of get_lan_hwaddr().
+	 */
+	case MODEL_RTAC55U:
+	case MODEL_RTAC55UHP:
+	case MODEL_RT4GAC55U:
+	case MODEL_PLN12:
+	case MODEL_PLAC56:
+	case MODEL_PLAC66U:
+	case MODEL_RPAC66:
+	case MODEL_RTAC58U:
+	case MODEL_BRTAC828:
+		mac = nvram_get("et0macaddr");
+		break;
+#endif
+	}
+
+#if defined(RTCONFIG_SOC_IPQ8064) || defined(RTCONFIG_SOC_IPQ8074)
+	/* Make sure last bytes of MAC address is aligned to 4. */
+	ether_atoe(mac, mac_buf);
+	mac_buf[5] &= 0xFC;
+	ether_etoa(mac_buf, mac_buf_str);
+	mac = mac_buf_str;
+#endif
+	if(is_swrt_mod())
+	{
+		ether_atoe(mac, mac_buf);
+		mac_buf[0] = 0x74;
+		mac_buf[1] = 0xD0;
+		mac_buf[2] = 0x2B;
+		ether_etoa(mac_buf, mac_buf_str);
+		mac = mac_buf_str;
+	}
+
+	return mac;
+}
+

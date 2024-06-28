@@ -98,7 +98,7 @@ int FAST_FUNC remove_file(const char *path, int flags)
 			return 0;
 	}
 
-#if defined(RTCONFIG_HND_ROUTER_AX_6756)
+#if defined(RTCONFIG_HND_ROUTER_AX_6756) || defined(RTCONFIG_HND_ROUTER_BE_4916)
 	if (strstr(path, "nvram.nvm")) {
 		bb_perror_msg("can't remove '%s', it is a system file.", path);
 		return -1;
@@ -116,3 +116,4 @@ int FAST_FUNC remove_file(const char *path, int flags)
 
 	return 0;
 }
+

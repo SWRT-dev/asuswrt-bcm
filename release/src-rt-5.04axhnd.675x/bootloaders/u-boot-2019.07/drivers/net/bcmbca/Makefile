@@ -81,6 +81,13 @@ ifeq ($(or $(RTAX58U_V2),$(RTAX3000N),$(BR63)),y)
 obj-y += rtk/
 endif
 
+ifdef EBG19
+ifndef EBG15
+obj-y += rtk/
+obj-y += phy/
+endif
+endif
+
 ifdef CONFIG_BCMBCA_PHY
 EXTRA_CFLAGS += -I$(srctree)/drivers/net/bcmbca/phy
 endif

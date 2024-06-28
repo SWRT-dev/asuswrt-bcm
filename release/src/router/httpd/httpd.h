@@ -48,9 +48,13 @@
 #define CAPTCHA_MAX_LOGIN_NUM   2
 #endif
 
+#define HTTPD_LOCK_VERSION 1
+
 #ifndef ARRAY_SIZE
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
 #endif
+
+#define IPV6_CLIENT_LIST        "/tmp/ipv6_client_list"
 
 /* Generic MIME type handler */
 struct mime_handler {
@@ -158,7 +162,7 @@ struct REPLACE_MODELNAME_S {
 #define MIME_EXCEPTION_NOPASS           1<<4
 #define CHECK_REFERER	1
 
-#define SERVER_NAME "httpd/2.0"
+#define SERVER_NAME "httpd/3.0"
 #define SERVER_PORT 80
 #define PROTOCOL "HTTP/1.0"
 #define RFC1123FMT "%a, %d %b %Y %H:%M:%S GMT"
@@ -189,6 +193,10 @@ struct REPLACE_MODELNAME_S {
 //Add Login Try
 #define NOLOGINTRY   0
 #define LOGINTRY   1
+
+#define HTTPD_AUTH_V1   0
+#define HTTPD_AUTH_V2   1
+
 
 #if defined(RTCONFIG_IFTTT) || defined(RTCONFIG_ALEXA) || defined(RTCONFIG_GOOGLE_ASST)
 #define IFTTTUSERAGENT  "asusrouter-Windows-IFTTT-1.0"
@@ -238,6 +246,11 @@ struct mime_referer {
 
 extern struct mime_referer mime_referers[];
 
+enum {
+    TOKEN_ACT_ADD,
+    TOKEN_ACT_DEL
+};
+
 typedef struct asus_token_table asus_token_t;
 struct asus_token_table{
 	char useragent[1024];
@@ -245,6 +258,7 @@ struct asus_token_table{
 	char ipaddr[16];
 	char login_timestampstr[32];
 	char host[64];
+	time_t last_login_timestamp;
 	asus_token_t *next;
 };
 
@@ -457,11 +471,15 @@ extern void logmessage(char *logheader, char *fmt, ...);
 extern int is_private_subnet(const char *ip);
 extern char* INET6_rresolve(struct sockaddr_in6 *sin6, int numeric);
 extern char *trim_r(char *str);
+extern void write_encoded_crt(char *name, char *value);
 extern int is_wlif_up(const char *ifname);
 extern void add_asus_token(char *token);
 extern int check_token_timeout_in_list(void);
 extern asus_token_t* search_timeout_in_list(asus_token_t **prev, int fromapp_flag);
 extern asus_token_t* create_list(char *token);
+extern void get_ipv6_client_info(void);
+extern void get_ipv6_client_list(void);
+extern int inet_raddr6_pton(const char *src, void *dst, void *buf);
 extern int delete_logout_from_list(char *cookies);
 extern void set_referer_host(void);
 extern int check_xss_blacklist(char* para, int check_www);
@@ -471,13 +489,23 @@ extern char* reverse_str( char *str );
 #ifdef RTCONFIG_AMAS
 extern int check_AiMesh_whitelist(char *page);
 #endif
+#ifdef RTCONFIG_DNSPRIVACY
+extern int ej_get_dnsprivacy_presets(int eid, webs_t wp, int argc, char_t **argv);
+#endif
 extern int check_cmd_injection_blacklist(char *para);
+extern void __validate_apply_set_wl_var(char *nv, char *val) __attribute__((weak));
+#ifdef RTCONFIG_BWDPI
+extern int check_bwdpi_status_app_name(char *name);
+#endif
+extern int validate_apply_input_value(char *name, char *value);
 
 /* web-*.c */
 extern int ej_wl_status(int eid, webs_t wp, int argc, char_t **argv, int unit);
 extern int ej_wl_status_2g(int eid, webs_t wp, int argc, char_t **argv);
 extern int ej_wps_info_2g(int eid, webs_t wp, int argc, char_t **argv);
 extern int ej_wps_info(int eid, webs_t wp, int argc, char_t **argv);
+extern int ej_wl_unit_status_array(int eid, webs_t wp, int argc, char_t **argv, int unit);
+extern int ej_wl_status_array(int eid, webs_t wp, int argc, char_t **argv);
 extern const char *syslog_msg_filter[];
 
 /* web.c/web-*.c */
@@ -613,11 +641,12 @@ extern void do_save_all_profile_cgi(char *url, FILE *stream);
 extern int get_jffs_cfgs(FILE *stream, int *len);
 #endif
 extern int delete_client_in_group_list(char *del_maclist, int del_idx, char *in_group_list, char *out_group_list, int out_len);
-extern int b64_decode(const char* str, unsigned char* space, int size);
 extern int redirect_service_page(char *next_page, webs_t wp);
 extern void store_file_var(char *login_url, char *file);
 extern int get_active_wan_unit(void);
 extern int last_time_lock_warning(void);
 extern int check_lock_status(time_t *dt);
 extern void check_lock_state();
+extern int gen_asus_token_cookie(char *asus_token, int asus_token_len, char *token_cookie, int cookie_len);
 #endif /* _httpd_h_ */
+
