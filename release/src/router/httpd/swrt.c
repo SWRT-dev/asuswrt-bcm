@@ -594,6 +594,17 @@ static int db_print2(dbclient* client,  json_object *result, char* prefix, char*
 	return 0;
 }
 
+static int dbapi_isid(int id, char *result)
+{
+	char str[20] = {0};
+	if(id > 0 && result){
+		snprintf(str, sizeof(str), "%d", id);
+		if(!strcmp(str, result))
+			return 1;
+	}
+	return 0;
+}
+
 static int dbapi_cgi(webs_t wp, char_t *urlPrefix, char_t *webDir, int arg, char_t *url, char_t *path, char_t *query)
 {
 	int i, id=0, count;
@@ -685,14 +696,17 @@ static int dbapi_cgi(webs_t wp, char_t *urlPrefix, char_t *webDir, int arg, char
 					if((fp = fopen(scPath, "r"))!= NULL){
 						while(fgets(buf, sizeof(buf),fp) != NULL){
 							buf[strlen(buf)-1]=0;
-							websWrite(wp,"{\"result\":\"%s\"}\n",buf);
+							if(dbapi_isid(id, buf))
+								websWrite(wp,"{\"result\":%d}\n", id);
+							else
+								websWrite(wp,"{\"result\":\"%s\"}\n", buf);
 							unlink(scPath);
 							return 0;
 						}
 					}
 				}
 			}
-			websWrite(wp,"{\"result\":%d}\n",id);
+			websWrite(wp,"{\"result\":%d}\n", id);
 		}
 	}
 	return 0;
@@ -775,7 +789,6 @@ void do_entware_cgi(char *url, FILE *stream){
 	char arg[128], buf[128];
 	struct dirent **dl;
 	FILE *fp;
-	char *pwrite;
 	int i, n, ent_act = 0;
 
 	do_json_decode(&root);
@@ -926,3 +939,77 @@ void get_traffic_hook(char *mode, char *name, char *dura, char *date, int *retva
 		websWrite(wp, "[]");
 }
 #endif
+
+#if defined(RTCONFIG_HND_ROUTER_AX)
+#include <signal.h>
+#include <common.h>
+void __attribute__((weak)) check_lock_state()
+{
+	int size;
+	FILE *fp = NULL;
+	struct tm curtm;
+	time_t cur_time = 0;
+	struct HTTPD_FILE_LOCK_TABLE *p_tab = NULL;
+	char cmd[256] = {0}, buf[1024] = {0}, time_str[128] = {0}, path[64] = {0};
+	char week[8] = {0}, month[8] = {0}, day[8] = {0}, time[16] = {0}, timezone[8] = {0}, year[8] = {0};
+	char owner[8] = {0}, filename[32] = {0};
+	char *pt = NULL;
+	struct HTTPD_FILE_LOCK_TABLE httpd_file_lock_t[] = {
+		{ "wlc_nt", "wlcnt_lock.lock", "restart_wlc_nt", 0 },
+		{ "AiProtectionMonitor", "AiProtectionMonitor.lock", NULL, 1 },
+		{ "WebHistory", "WebHistory.lock", NULL, 1 },
+		{ "TrafficAnalyzer", "TrafficAnalyzer.lock", NULL, 1 },
+		{ NULL, NULL, NULL, 0 }
+	};
+	snprintf(cmd, sizeof(cmd), "netstat -na | grep '%s' >> %s", nvram_safe_get("lan_ipaddr"), HTTPD_FB_DEBUG_FILE);
+	system(cmd);
+	if((fp = popen("date", "r")) != NULL){
+		memset(buf, 0, sizeof(buf));
+		if(fgets(buf, sizeof(buf), fp)){
+			if(sscanf(buf, "%8s %8s %8s %16s %8s %8s", week, month, day, time, timezone, year) == 6){
+				snprintf(time_str, sizeof(time_str), "%s-%s-%s %s", year, month, day, time);
+				if(strptime(time_str, "%Y-%b-%d %H:%M:%S", &curtm))
+					cur_time = mktime(&curtm);
+			}
+		}
+		pclose(fp);
+	}
+	for(p_tab = httpd_file_lock_t; p_tab->Process_name; p_tab++){
+		memset(cmd, 0, sizeof(cmd));
+		snprintf(cmd, sizeof(cmd), "ls -al /var/lock | grep %s >> %s", p_tab->lock_file, HTTPD_FB_DEBUG_FILE);
+		system(cmd);
+		memset(cmd, 0, sizeof(cmd));
+		snprintf(cmd, sizeof(cmd), "ls -al /var/lock | grep %s", p_tab->lock_file);
+		if((fp = popen(cmd, "r")) != NULL){
+			memset(buf, 0, sizeof(buf));
+			if(fgets(buf, sizeof(buf), fp)){
+				pt = strstr(buf, "root");
+				if(pt){
+					if(sscanf(pt, "%8s %d %8s %8s %8s %32s", owner, &size, month, day, time, filename) == 6){
+						if(size){
+							memset(time_str, 0, sizeof(time_str));
+							snprintf(time_str, sizeof(time_str), "%s-%s-%s %s:00", year, month, day, time);
+							if(strptime(time_str, "%Y-%b-%d %H:%M:%S", &curtm)){
+								if(cur_time - mktime(&curtm) > 600){
+									snprintf(path, sizeof(path), "/var/lock/%s", p_tab->lock_file);
+									unlink(path);
+									if(p_tab->rc_service){
+										HTTPD_FB_DEBUG("rc_service %s\n", p_tab->rc_service);
+										notify_rc(p_tab->rc_service);
+									}
+									if(p_tab->kill_process){
+										HTTPD_FB_DEBUG("kill_process %s\n", p_tab->Process_name);
+										killall(p_tab->Process_name, SIGTERM);
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+			pclose(fp);
+		}
+	}
+}
+#endif
+
