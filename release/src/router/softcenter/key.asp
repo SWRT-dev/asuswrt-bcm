@@ -11,6 +11,8 @@
 <title>收费激活</title>
 <link rel="stylesheet" type="text/css" href="index_style.css">
 <link rel="stylesheet" type="text/css" href="form_style.css">
+<script language="JavaScript" type="text/javascript" src="/js/jquery.js"></script>
+<script language="JavaScript" type="text/javascript" src="/js/httpApi.js"></script>
 <script language="JavaScript" type="text/javascript" src="/state.js"></script>
 <script language="JavaScript" type="text/javascript" src="/general.js"></script>
 <script language="JavaScript" type="text/javascript" src="/popup.js"></script>
@@ -18,9 +20,7 @@
 <script language="JavaScript" type="text/javascript" src="/tmhist.js"></script>
 <script language="JavaScript" type="text/javascript" src="/tmmenu.js"></script>
 <script language="JavaScript" type="text/javascript" src="/client_function.js"></script>
-<script language="JavaScript" type="text/javascript" src="/js/jquery.js"></script>
 <script type="text/javascript" src="/validator.js"></script>
-<script type="text/javascript" src="/js/httpApi.js"></script>
 <script>
 var modelname="<% nvram_get("modelname"); %>";
 function initial() {
@@ -41,11 +41,43 @@ function initial() {
 		document.getElementById("key_tr").value=httpApi.nvramGet(["ty6201key"]).ty6201key;
 		document.getElementById("key_tr").name="ty6201key";
 	}
+	else if(modelname=="TY6202"){
+		document.getElementById("key_tr").value=httpApi.nvramGet(["ty6202key"]).ty6202key;
+		document.getElementById("key_tr").name="ty6202key";
+	}
+	else if(modelname=="TYAX5400"){
+		document.getElementById("key_tr").value=httpApi.nvramGet(["tyax5400key"]).tyax5400key;
+		document.getElementById("key_tr").name="tyax5400key";
+	}
+	else if(modelname=="360V6"){
+		document.getElementById("key_tr").value=httpApi.nvramGet(["360v6key"])["360v6key"];
+		document.getElementById("key_tr").name="360v6key";
+	}
+	else if(modelname=="JDCAX1800"){
+		document.getElementById("key_tr").value=httpApi.nvramGet(["jdcax1800key"])["jdcax1800key"];
+		document.getElementById("key_tr").name="jdcax1800key";
+	}
+	else if(modelname=="SBRAC1900P" || modelname=="SBRAC3200P"){
+		document.getElementById("key_tr").value=httpApi.nvramGet(["SBRkey"]).SBRkey;
+		document.getElementById("key_tr").name="SBRkey";
+	}
+	else if(modelname=="RGMA2820A" || modelname=="RGMA2820B"){
+		document.getElementById("key_tr").value=httpApi.nvramGet(["rgkey"])["rgkey"];
+		document.getElementById("key_tr").name="rgkey";
+	}
+	else if(modelname=="TYAX5400"){
+		document.getElementById("key_tr").value=httpApi.nvramGet(["tyax5400key"])["tyax5400key"];
+		document.getElementById("key_tr").name="tyax5400key";
+	}
+	else {
+		document.getElementById("key_tr").value=httpApi.nvramGet(["swrtkey"])["swrtkey"];
+		document.getElementById("key_tr").name="swrtkey";
+	}
 	if(httpApi.nvramGet(["rcode_status"]).rcode_status=="1")
 		document.getElementById('status1_tr').style.display = "";
 	else
 		document.getElementById('status2_tr').style.display = "";
-	document.getElementById("log_content_text").value="rcode=" + httpApi.nvramGet(["rcode"]).rcode + "\nswrtid=" + httpApi.nvramGet(["swrtid"]).swrtid + "\n";
+	document.getElementById("log_content_text").value="model=" + modelname + "\nrcode=" + httpApi.nvramGet(["rcode"]).rcode + "\nswrtid=" + httpApi.nvramGet(["swrtid"]).swrtid + "\n";
 }
 
 function applyRule() {
@@ -65,7 +97,7 @@ function menu_hook(title, tab) {
 <form method="post" name="form" id="ruleForm" action="/start_apply.htm" target="hidden_frame">
 <input type="hidden" name="productid" value="<% nvram_get("productid"); %>">
 <input type="hidden" name="current_page" value="key.asp">
-<input type="hidden" name="next_page" value="">
+<input type="hidden" name="next_page" value="key.asp">
 <input type="hidden" name="modified" value="0">
 <input type="hidden" name="action_mode" value="toolscript">
 <input type="hidden" name="action_wait" value="">
@@ -96,13 +128,13 @@ function menu_hook(title, tab) {
 <tr>
 <td>
  设备码：  
-<input type="text" maxlength="10" readonly="readonly" class="input_32_table" name="rcode" value="<% nvram_get("rcode"); %>">
+<input type="text" maxlength="40" readonly="readonly" class="input_32_table" name="rcode" value="<% nvram_get("rcode"); %>">
 </td>
 </tr>
 <tr>
 <td>
 设备swrtid：
-<input type="text" maxlength="10" readonly="readonly" class="input_32_table" name="swrtid" value="<% nvram_get("swrtid"); %>">
+<input type="text" maxlength="40" readonly="readonly" class="input_32_table" name="swrtid" value="<% nvram_get("swrtid"); %>">
 </td>
 </tr>
 <thead><tr>
@@ -159,7 +191,7 @@ function menu_hook(title, tab) {
 <div class="apply_gen">
 <input class="button_gen" onclick="applyRule()" type="button" value="保存"/>
 <input type="button" onClick="location.href=location.href" value="刷新" class="button_gen">
-<input class="button_gen" type="button" onclick="javascript:window.open('https://blog.paldier.com/?x=entry:entry201120-110455','_blank')" value="购买链接">  
+<input class="button_gen" type="button" onclick="javascript:window.open('https://blog.paldier.com/payment/','_blank')" value="购买链接">  
 </div>
 </td>
 </tr>
@@ -177,3 +209,4 @@ function menu_hook(title, tab) {
 <div id="footer"></div>
 </body>
 </html>
+
