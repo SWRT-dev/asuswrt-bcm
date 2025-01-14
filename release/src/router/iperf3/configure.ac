@@ -42,6 +42,7 @@ AC_CANONICAL_HOST
 # Checks for tools: c compiler, ranlib (used for creating static libraries),
 # symlinks and libtool
 AC_PROG_CC
+AC_PROG_CPP
 AC_PROG_RANLIB
 AC_PROG_LN_S
 AC_PROG_LIBTOOL
