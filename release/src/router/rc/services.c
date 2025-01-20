@@ -4560,7 +4560,7 @@ start_ddns(char *caller)
 		service = "peanuthull", asus_ddns = 2;
 	} 
 	else if (strcmp(server, "WWW.3322.ORG")==0)
-		service = "qdns dynamic";
+		service = "dyndns@3322.org";
 	else {
 		logmessage("ddns", "Error ddns server name: %s\n", server);
 		return 0;
