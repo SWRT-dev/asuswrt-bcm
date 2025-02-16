@@ -488,7 +488,7 @@ shared_link:
 modbuild: shared_link
 	rm -rf $(HND_SRC)/targets/$(PROFILE)/modules
 	@echo "******************** Starting modbuild ********************";
-	CURRENT_ARCH=$(KERNEL_ARCH) TOOLCHAIN_TOP= $(MAKE) -C $(BUILD_DIR)/build -f Bcmkernel.mk modules && \
+	CURRENT_ARCH=$(KERNEL_ARCH) TOOLCHAIN_TOP= $(MAKE) $(PARALLEL_BUILD) -C $(BUILD_DIR)/build -f Bcmkernel.mk modules && \
 	    CURRENT_ARCH=$(KERNEL_ARCH) TOOLCHAIN_TOP= $(MAKE) -C $(BUILD_DIR)/build -f Bcmkernel.mk modules_install INSTALL_MOD_PATH=$(PROFILE_DIR)/modules
 	@echo "******************** DONE modbuild ********************";
 
