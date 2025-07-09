@@ -4405,6 +4405,12 @@ start_ddns(char *caller)
 			/* temporary for asus server */
 			if (asus_ddns == 1)
 				fprintf(fp, "secure-ssl = false\n");
+#ifdef RTCONFIG_IPV6
+			/* For DYNDNS ok, but not for NO-IP and ASUS.COM */
+			if(nvram_get_int("ddns_ipv6_update") && (strncmp(server, "WWW.DYNDNS.ORG", 14) == 0
+				|| strcmp(server, "WWW.CLOUDFLARE.COM") == 0))
+				fprintf(fp, "allow-ipv6 = true\n");
+#endif
 			fclose(fp);
 
 #ifdef RTCONFIG_ASUSDDNS_ACCOUNT_BASE
@@ -4663,12 +4669,6 @@ asusddns_reg_domain(int reg)
 			/* temporary for asus server */
 			if (1)
 				fprintf(fp, "secure-ssl = false\n");
-#ifdef RTCONFIG_IPV6
-			/* For DYNDNS ok, but not for NO-IP and ASUS.COM */
-			if(nvram_get_int("ddns_ipv6_update") && (strncmp(server, "WWW.DYNDNS.ORG", 14) == 0
-				|| strcmp(server, "WWW.CLOUDFLARE.COM") == 0))
-				fprintf(fp, "allow-ipv6 = true\n");
-#endif
 			fclose(fp);
 #ifdef RTCONFIG_ASUSDDNS_ACCOUNT_BASE
 			if(strlen(nvram_safe_get("oauth_dm_refresh_ticket")) > 0)
