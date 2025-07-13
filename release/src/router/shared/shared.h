@@ -66,6 +66,10 @@
 #include "sched_v2.h"
 #endif /* RTCONFIG_SCHED_V2 */
 
+#if defined(RTCONFIG_VPN_FUSION) || defined(RTCONFIG_TPVPN) || defined(RTCONFIG_IG_SITE2SITE) || defined(RTCONFIG_WIREGUARD)
+#include "vpn_utils.h"
+#endif
+
 #if defined(RTCONFIG_PTHSAFE_POPEN)
 #if defined(RTCONFIG_QCA)
 #define	popen	PS_popen
