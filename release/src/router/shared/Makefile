@@ -268,6 +268,11 @@ OBJS += event_utils.o
 endif
 endif
 
+ifeq ($(or $(RTCONFIG_VPN_FUSION),$(RTCONFIG_TPVPN),$(RTCONFIG_IG_SITE2SITE),$(RTCONFIG_WIREGUARD)),y)
+OBJS += vpn_utils.o
+CFLAGS += -I$(TOP)/libvpn/
+endif
+
 ifeq ($(RTCONFIG_USB),y)
 OBJS += usb.o
 
