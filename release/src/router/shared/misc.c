@@ -2967,6 +2967,30 @@ void nvram_commit_x(void)
 	if (!nvram_get_int("debug_nocommit")) nvram_commit();
 }
 
+/*
+ * Restore nvram start with @prefix_default to default value in router_defaults
+ * If @prefix_target is set, set the default value of the nvrams start with
+ * @prefix_default to those nvrams start with @prefix_target
+ * e.g. set the value of wl1_xxx with the default value of wl_xxx
+ */
+void nvram_pf_restore_default(const char *prefix_default, const char *prefix_target)
+{
+	struct nvram_tuple *t;
+
+	if (!prefix_default)
+		return;
+
+	for (t = router_defaults; t->name; t++) {
+		if ( strlen(t->name) > strlen(prefix_default)
+			&& !strncmp(t->name, prefix_default, strlen(prefix_default))
+			&& !strstr(t->name, "unit")
+		) {
+			cprintf("restore %s%s=%s\n", (prefix_target)?:prefix_default, t->name + strlen(prefix_default), t->value);
+			nvram_pf_set((prefix_target)?:prefix_default, t->name + strlen(prefix_default), t->value);
+		}
+	}
+}
+
 void chld_reap(int sig)
 {
 	while (waitpid(-1, NULL, WNOHANG) > 0) {}
