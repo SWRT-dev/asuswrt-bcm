@@ -66,7 +66,7 @@
 #define MAC_FMT "%.2X:%.2X:%.2X:%.2X:%.2X:%.2X"
 #define MAC_ARG(x) (x)[0],(x)[1],(x)[2],(x)[3],(x)[4],(x)[5]
 #endif
-
+extern struct nvram_tuple router_defaults[];
 
 char *server_table[][2] = {
 	{ "", "" },			/* 0: Unfiltered */
