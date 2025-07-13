@@ -2969,6 +2969,13 @@ extern int psr_exist(void);
 extern int psr_exist_except(int unit);
 #endif
 
+#if defined(RTCONFIG_VPN_FUSION) || defined(RTCONFIG_TPVPN) || defined(RTCONFIG_IG_SITE2SITE) || defined(RTCONFIG_WIREGUARD)
+#define VPNC_LOAD_CLIENT_LIST          0x01
+#define VPNC_LOAD_PPTP_OPT                     0x02
+extern int _get_new_vpnc_index(void);
+extern int vpnc_load_profile(VPNC_PROFILE *list, const int list_size, const int load_flag);
+#endif
+
 struct ifino_s {
 	char ifname[IFNAMSIZ];
 	ino_t inode;
