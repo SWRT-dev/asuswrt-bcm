@@ -12,18 +12,17 @@
 <link rel="stylesheet" type="text/css" href="form_style.css"/>
 <link rel="stylesheet" type="text/css" href="/res/softcenter.css"/>
 <link rel="stylesheet" type="text/css" href="/res/layer/theme/default/layer.css"/>
+<script language="JavaScript" type="text/javascript" src="/js/jquery.js"></script>
+<script language="JavaScript" type="text/javascript" src="/js/httpApi.js"></script>
 <script language="JavaScript" type="text/javascript" src="/state.js"></script>
 <script language="JavaScript" type="text/javascript" src="/help.js"></script>
 <script language="JavaScript" type="text/javascript" src="/general.js"></script>
 <script language="JavaScript" type="text/javascript" src="/popup.js"></script>
-<script language="JavaScript" type="text/javascript" src="/client_function.js"></script>
 <script language="JavaScript" type="text/javascript" src="/validator.js"></script>
-<script type="text/javascript" src="/js/jquery.js"></script>
-<script type="text/javascript" src="/general.js"></script>
-<script type="text/javascript" src="/switcherplugin/jquery.iphone-switch.js"></script>
-<script type="text/javascript" src="/form.js"></script>
-<script type="text/javascript" src="/res/softcenter.js"></script>
-<script type="text/javascript" src="/js/i18n.js"></script>
+<script language="JavaScript" type="text/javascript" src="/general.js"></script>
+<script language="JavaScript" type="text/javascript" src="/res/softcenter.js"></script>
+<script language="JavaScript" type="text/javascript" src="/form.js"></script>
+<script language="JavaScript" type="text/javascript" src="/js/i18n.js"></script>
 <style>
 .cloud_main_radius_left {
 	-webkit-border-radius: 10px 0 0 10px;
@@ -103,9 +102,7 @@ input[type=button]:focus {
 .install-status-0 .icon-desc .opt {
 	height: 100%;
 }
-.icon-desc .install-btn,
-.icon-desc .uninstall-btn,
-.icon-desc .update-btn{
+.icon-desc .install-btn, .icon-desc .uninstall-btn, .icon-desc .update-btn {
 	background: #fff;
 	color:#333;
 	cursor:pointer;
@@ -197,8 +194,7 @@ input[type=button]:focus {
 	margin-top:15px;
 	margin-bottom:15px;
 }
-.cloud_main_radius h3,
-.cloud_main_radius h4 {
+.cloud_main_radius h3, .cloud_main_radius h4 {
 	font-size:12px;
 	color:#FC0;
 	font-weight:normal;
@@ -276,13 +272,13 @@ input[type=button]:focus {
 <script>
 var db_softcenter_ = {};
 var scarch = "arm";
-var giturl;
 var odmpid = '<% nvram_get("odmpid");%>';
 var modelname = '<% nvram_get("modelname"); %>';
 var TIMEOUT_SECONDS = 18;
 var softInfo = null;
 var count_down;
 var refresh_flag;
+var stop_scroll = 0;
 var syncRemoteSuccess = 0; //判断是否进入页面后已经成功进行远端同步
 var currState = {
 	"installing": false,
@@ -369,7 +365,6 @@ function toggleAppPanel(showInstall) {
 function renderView(apps) {
 	// set apps to global variable of softInfo
 	softInfo = apps;
-	//console.log(softInfo);
 	//简单模板函数
 	function _format(source, opts) {
 			var source = source.valueOf(),
@@ -421,13 +416,91 @@ function renderView(apps) {
 	$('.show-install-btn').val(dict["Installed"] + '(' + installCount + ')');
 	$('.show-uninstall-btn').val(dict["Online"] + '(' + uninstallCount + ')');
 }
-function getRemoteData() {
-	var remoteURL = db_softcenter_["softcenter_home_url"] + '/' + scarch + '/softcenter/app.json.js';
-	return $.ajax({
+//把本地数据平面化转换成以app为对象
+function _formatLocalData(localData) {
+	var result = {};
+	$.map(db_softcenter_, function(item, key) {
+		key = key.split('_');
+		if ('module' === key[1]) {
+			var name = key[2];
+			var prop = key.slice(3).join("_");
+			if (!result[name]) {
+				result[name] = {};
+				result[name].name = name;
+			}
+			if (prop) {
+				result[name][prop] = item;
+			}
+		}
+	});
+	for (var field in result) {
+		if (!result[field].install){
+			delete(result[field]);
+		}
+	}
+	//console.log(result)
+	return result;
+}
+	//设置默认值
+function _setDefault(source, defaults) {
+	$.map(defaults, function(value, key) {
+		if (!source[key]) {
+			source[key] = value;
+		}
+	});
+}
+//将本地和远程进行一次对比合并
+function _mergeData(remoteData) {
+	var result = {};
+	var localData = _formatLocalData(db_softcenter_);
+	$.each(remoteData, function(i, app) {
+		var name = app.name;
+		var oldApp = localData[name] || {};
+		var install = (parseInt(oldApp.install, 10) === 1 && app.version !== oldApp.version) ? 2 : oldApp.install || "0";
+		result[name] = $.extend(oldApp, app);
+		result[name].install = install;
+	});
+	$.map(localData, function(app, name) {
+		if (!result[name]) {
+			result[name] = app;
+		}
+	});
+	//设置默认值和设置icon的路径
+	$.map(result, function(item, name) {
+		_setDefault(item, {
+			home_url: "Module_" + name + ".asp",
+			title: name.capitalizeFirstLetter(),
+			tar_url: "{0}/{0}.tar.gz".format(name),
+			install: "0",
+			description: dict["None"],
+			new_version: false
+		});
+		// icon 规则:
+		// 如果已安装的插件,那图标必定在 /jffs/softcenter/res 目录, 通过 /res/icon-{name}.png 请求路径得到图标
+		// 如果是未安装的插件,则必定在 https://sc.paldier.com/res/icon-{name}.png
+		item.icon = parseInt(item.install, 10) !== 0 ? ('/res/icon-' + item.name + '.png') : ('https://sc.paldier.com/res/icon-' + item.name + '.png');
+	});
+	return result;
+}
+function getRemoteData(cb) {
+	var remoteURL = db_softcenter_["softcenter_home_url"] + '/' + scarch + '/softcenter/app.json.js' + '?_=' + new Date().getTime();
+	$.ajax({
 		url: remoteURL,
-		method: 'GET',
-		dataType: 'jsonp',
-		timeout: 5000
+		type: 'GET',
+		dataType: 'json',
+		cache: false,
+		success: function(remoteData) {
+			//远端更新成功
+			syncRemoteSuccess = 1;
+			softceterInitData(remoteData);
+			remoteData = remoteData.apps || [];
+			renderView(_mergeData(remoteData));
+			cb();
+		},
+		error: function(XmlHttpRequest, textStatus, errorThrown){
+			//如果没有更新成功，比如没网络，就用空数据merge本地
+			$("#spnOnlineVersion").html("<i>" +dict["Failed to get online version! Please try to refresh this page, or check your network settings!"] +"</i>")
+		}
 	});
 }
 function softceterInitData(data) {
@@ -448,99 +521,21 @@ function softceterInitData(data) {
 	}
 }
 
-function init(cb) {
-		//设置默认值
-		function _setDefault(source, defaults) {
-				$.map(defaults, function(value, key) {
-					if (!source[key]) {
-						source[key] = value;
-					}
-				});
-			}
-		//把本地数据平面化转换成以app为对象
-		function _formatLocalData(localData) {
-				var result = {};
-				$.map(db_softcenter_, function(item, key) {
-					key = key.split('_');
-					if ('module' === key[1]) {
-						var name = key[2];
-						var prop = key.slice(3).join("_");
-						if (!result[name]) {
-							result[name] = {};
-							result[name].name = name;
-						}
-						if (prop) {
-							result[name][prop] = item;
-						}
-					}
-				});
-				for (var field in result) {
-					if (!result[field].install){
-						delete(result[field]);
-					}
-				}
-				//console.log(result)
-				return result;
-			}
-		//将本地和远程进行一次对比合并
-		function _mergeData(remoteData) {
-			var result = {};
-			var localData = _formatLocalData(db_softcenter_);
-			$.each(remoteData, function(i, app) {
-				var name = app.name;
-				var oldApp = localData[name] || {};
-				var install = (parseInt(oldApp.install, 10) === 1 && app.version !== oldApp.version) ? 2 : oldApp.install || "0";
-				result[name] = $.extend(oldApp, app);
-				result[name].install = install;
-			});
-			$.map(localData, function(app, name) {
-				if (!result[name]) {
-					result[name] = app;
-				}
-			});
-			//设置默认值和设置icon的路径
-			$.map(result, function(item, name) {
-				_setDefault(item, {
-					home_url: "Module_" + name + ".asp",
-					title: name.capitalizeFirstLetter(),
-					tar_url: "{0}/{0}.tar.gz".format(name),
-					install: "0",
-					description: dict["None"],
-					new_version: false
-				});
-				// icon 规则:
-				// 如果已安装的插件,那图标必定在 /jffs/softcenter/res 目录, 通过 /res/icon-{name}.png 请求路径得到图标
-				// 如果是未安装的插件,则必定在 https://sc.paldier.com/softcenter/softcenter/icon-{name}.png
-				item.icon = parseInt(item.install, 10) !== 0 ? ('/res/icon-' + item.name + '.png') : ('https://sc.paldier.com' + new Array(3).join('/softcenter') + '/res/icon-' + item.name + '.png');
-			});
-			return result;
-		};
-		if (syncRemoteSuccess) {
-			cb();
-			return;
-		} else {
-			renderView(_mergeData({}));
-			cb();
-			getRemoteData()
-				.done(function(remoteData) {
-					//远端更新成功
-					syncRemoteSuccess = 1;
-					softceterInitData(remoteData);
-					remoteData = remoteData.apps || [];
-					renderView(_mergeData(remoteData));
-					cb();
-				})
-				.fail(function() {
-					//如果没有更新成功，比如没网络，就用空数据merge本地
-					$("#spnOnlineVersion").html("<i>" +dict["Failed to get online version! Please try to refresh this page, or check your network settings!"] +"</i>")
-				});
-		}
-		notice_show();
+function initui(cb) {
+	if (syncRemoteSuccess) {
+		cb();
+		return;
+	} else {
+		renderView(_mergeData({}));
+		cb();
+		getRemoteData(cb)
 	}
-	//初始化整个界面展现，包括安装未安装的获取
-	//当初始化过程获取软件列表失败时候，用本地的模块进行渲染
-	//只要一次获取成功，以后不在重新获取，知道页面刷新重入
-$(function() {
+	notice_show();
+}
+//初始化整个界面展现，包括安装未安装的获取
+//当初始化过程获取软件列表失败时候，用本地的模块进行渲染
+//只要一次获取成功，以后不在重新获取，知道页面刷新重入
+function init() {
 	show_menu(menu_hook);
 	set_skin();
 	sc_load_lang("sc1");
@@ -552,56 +547,39 @@ $(function() {
 		cache: false,
 		success: function(response) {
 			db_softcenter_ = response.result[0];
-			if(db_softcenter_["softcenter_server_tcode"] == "CN") {
+			if(db_softcenter_["softcenter_server_tcode"] == "CN")
 				db_softcenter_["softcenter_home_url"] = "https://sc.softcenter.site";
-			}
+			else if (db_softcenter_["softcenter_server_tcode"] == "NO")
+				db_softcenter_["softcenter_home_url"] = "https://no.paldier.com";
 			else
 				db_softcenter_["softcenter_home_url"] = "https://sc.paldier.com";
-			if(db_softcenter_["softcenter_arch"] == "mips"){
-				scarch="mips";
-				giturl="softcenter";
-			} else if (db_softcenter_["softcenter_arch"] == "armv7l"){
-				scarch="arm";
-				giturl="softcenterarm";
-			} else if (db_softcenter_["softcenter_arch"] == "armng"){
-				scarch="armng";
-				giturl="softcenterarmng";
-			} else if (db_softcenter_["softcenter_arch"] == "aarch64"){
-				scarch="arm64";
-				giturl="softcenterarm64";
-			} else if (db_softcenter_["softcenter_arch"] == "mipsle"){
-				scarch="mipsle";
-				giturl="softcentermipsle";
-			} else {
-				scarch="arm";
-				giturl="softcenterarm";
-			}
+			scarch=db_softcenter_["softcenter_arch"];
 			if (!db_softcenter_["softcenter_version"]) {
 				db_softcenter_["softcenter_version"] = "0.0";
 			}
 			$("#spnCurrVersion").html("<em>" + db_softcenter_["softcenter_version"] + "</em>");
 			if(isEva)
-			$('#github').html('机体编号：<i><u>EVA01</u></i> </a><br/>技术支持： <a href="https://www.right.com.cn" target="_blank"> <i><u>right.com.cn</u></i> </a><br/>Project项目： <a href ="https://github.com/SWRT-dev/' + giturl +'" target="_blank"> <i><u>SWRT补完计划</u></i> </a><br/>Copyright： <a href="https://github.com/SWRT-dev" target="_blank"><i>SWRT补完委员会</i></a>')
+			$('#github').html('机体编号：<i><u>EVA01</u></i> </a><br/>技术支持： <a href="https://www.right.com.cn" target="_blank"> <i><u>right.com.cn</u></i> </a><br/>Project项目： <a href ="https://github.com/SWRT-dev/softcenter" target="_blank"> <i><u>SWRT补完计划</u></i> </a><br/>Copyright： <a href="https://github.com/SWRT-dev" target="_blank"><i>SWRT补完委员会</i></a>')
 			else
-			$('#github').html('论坛技术支持： <a href="https://www.right.com.cn" target="_blank"> <i><u>right.com.cn</u></i> </a><br/>Github项目： <a href ="https://github.com/SWRT-dev/' + giturl +'" target="_blank"> <i><u>https://github.com/SWRT-dev</u></i> </a><br/>Copyright： <a href="https://github.com/SWRT-dev" target="_blank"><i>SWRTdev</i></a>')
+			$('#github').html('论坛技术支持： <a href="https://www.right.com.cn" target="_blank"> <i><u>right.com.cn</u></i> </a><br/>Github项目： <a href ="https://github.com/SWRT-dev/softcenter" target="_blank"> <i><u>https://github.com/SWRT-dev</u></i> </a><br/>Copyright： <a href="https://github.com/SWRT-dev" target="_blank"><i>SWRTdev</i></a>')
 			var jff2_scripts="<% nvram_get("jffs2_scripts"); %>";
 			if(jff2_scripts != 1){
 				$('#software_center_message').html('<h1><font color="#FF9900">错误！</font></h1><h2>软件中心不可用！因为你没有开启Enable JFFS custom scripts and configs选项！</h2><h2>请前往【系统管理】-<a href="Advanced_System_Content.asp"><u><em>【系统设置】</em></u></a>开启此选项再使用软件中心！！</h2>')
 				return false;
 			}
 			initInstallStatus();
-				init(function() {
+				initui(function() {
 					toggleAppPanel(1);
 					//一刷新界面是否就正在插件在安装.
 				});
 				//挂接tab切换安装状态事件
 				$('.show-install-btn').click(function() {
-					init(function() {
+					initui(function() {
 						toggleAppPanel(1);
 					});
 				});
 				$('.show-uninstall-btn').click(function() {
-					init(function() {
+					initui(function() {
 						toggleAppPanel(0);
 					});
 				});
@@ -654,52 +632,93 @@ $(function() {
 				});
 		}
 	});
-});
+}
 function menu_hook(title, tab) {
 	tabtitle[tabtitle.length -1] = new Array("",dict["Software Center"], dict["Offline installation"]);
 	tablink[tablink.length -1] = new Array("", "Main_Soft_center.asp", "Main_Soft_setting.asp");
 }
 function notice_show(){
 	if(odmpid != ""){
-        if(modelname == productid)
-			document.getElementById("modelid").innerHTML ="Software Center " + modelname ;
+		if(modelname == productid)
+			document.getElementById("modelid").innerHTML =modelname ;
 		else
-			document.getElementById("modelid").innerHTML ="Software Center " + odmpid ;
+			document.getElementById("modelid").innerHTML =odmpid ;
 		if(odmpid != based_modelid)
 			document.getElementById("modelid").innerHTML += " (base model: " + based_modelid + ")";
 	}else
-		document.getElementById("modelid").innerHTML ="Software Center " + productid ;
-
-	var pushlog;
+		document.getElementById("modelid").innerHTML =productid ;
+	document.getElementById("modelid").innerHTML += " " + dict["Software Center"] + " - " + db_softcenter_["softcenter_arch"] + " platform";
+	var msg_file;
 	switch ("<% nvram_get("preferred_lang"); %>") {
-	case "EN":
-		pushlog="push_message_en.json.js";
+	case "CN":
+	case "TW":
+		msg_file="softcenter_message.json";
 		break
 	default:
-		pushlog="push_message.json.js";
+		msg_file="softcenter_message_en.json";
 	}
-	var pushurl = 'https://sc.paldier.com/' + scarch + '/softcenter/' + pushlog;
+	var msg_url = 'https://sc.paldier.com/' + scarch + '/' + msg_file + '?_=' + new Date().getTime();
 	$.ajax({
-		url: pushurl,
+		url: msg_url,
 		type: 'GET',
-		dataType: 'jsonp',
+		dataType: 'json',
+		cache: false,
 		success: function(res) {
-			$("#push_titile").html(res.title);
-			$("#push_content1").html(res.content1);
-			if (res.content2) {
-				document.getElementById("push_content2_li").style.display = "";
-				$("#push_content2").html(res.content2);
+			var rand_1 = parseInt(Math.random() * 100)
+			if (res["msg_1"] && res["switch_1"]){
+				if (rand_1 < res["switch_1"]){
+					$("#fixed_msg").append('<li id="msg_1" style="list-style: none;height:23px">' + res["msg_1"] + '</li>');
+				}
 			}
-			if (res.content3) {
-				document.getElementById("push_content3_li").style.display = "";
-				$("#push_content3").html(res.content3);
+			if (res["msg_2"] && res["switch_2"]){
+				if (rand_1 < res["switch_2"]){
+					$("#fixed_msg").append('<li id="msg_2" style="list-style: none;height:23px">' + res["msg_2"] + '</li>');
+				}
 			}
-			if (res.content4) {
-				document.getElementById("push_content4_li").style.display = "";
-				$("#push_content4").html(res.content4);
+			var ads_count = 0;
+			var rand_2 = parseInt(Math.random() * 100)
+			for(var i = 3; i < 10; i++){
+				if (res["msg_" + i] && res["switch_" + i]){
+					if (rand_2 < res["switch_" + i]){
+						$("#scroll_msg").append('<li id="msg_' + i + '" style="list-style: none;height:23px">' + res["msg_" + i] + '</li>');
+						ads_count++;
+					}
+				}
 			}
+			if (ads_count == 0) return;
+			if (ads_count <= 2){
+				$("#scroll_msg").css("height", (ads_count * 23) + "px");
+				return;
+			}
+			if (res["scroll_line"]){
+				$("#scroll_msg").css("height", (res["scroll_line"] * 23) + "px");
+			}else{
+				$("#scroll_msg").css("height", "23px");
+			}
+			$("#scroll_msg").on("mouseover", function() {
+				stop_scroll = 1;
+			});
+			$("#scroll_msg").on("mouseleave", function() {
+				stop_scroll = 0;
+			});
+			if (res["ads_time"]){
+				setInterval("scroll_msg();", res["ads_time"]);
+			}else{
+				setInterval("scroll_msg();", 5000);
+			}
+		},
+		error: function(XmlHttpRequest, textStatus, errorThrown){
+			$("#fixed_msg").append('<li id="msg_1" style="list-style: none;height:23px">如果你看到这个页面说明主服务器连接不上,如果获取不到在线版本说明节点服务器连接不上！</li>');
+			console.log(XmlHttpRequest.responseText);
 		}
 	});
+}
+function scroll_msg() {
+	if(stop_scroll == 0) {
+		$('#scroll_msg').stop().animate({scrollTop: 23}, 500, 'swing', function() {
+			$(this).find('li:last').after($('li:first', this));
+		});
+	}
 }
 function count_down_close() {
 	if (count_down == "0") {
@@ -832,10 +851,14 @@ function set_skin(){
 	if(isEva){
 		$("#scapp").attr("scskin", 'Eva');
 	}
+	var SKN = '<% nvram_get("sc_skin"); %>';
+	if(SKN){
+		$("#scapp").attr("skin", SKN);
+	}
 }
 </script>
 </head>
-<body id="scapp" scskin="swrt">
+<body onload="init();" id="scapp" scskin="swrt" skin="ASUSWRT">
 	<div id="TopBanner"></div>
 	<div id="Loading" class="popup_bg"></div>
 	<div id="softcenter_shade_pannel" class="popup_bar_bg_ks">
@@ -886,18 +909,10 @@ function set_skin(){
 																			<td>
 																				<ul style="padding-left:25px;">
 																					<h2 id="push_titile"><em>软件中心&nbsp;-&nbsp;by&nbsp;SWRTdev</em></h2>
-																					<li>
-																						<h4 id="push_content1" ><font color='#1E90FF'>交流反馈:&nbsp;&nbsp;</font><a href='https://github.com/SWRT-dev/softcenter' target='_blank'><em>1.软件中心GitHub项目</em></a>&nbsp;&nbsp;&nbsp;&nbsp;<a href='https://t.me/merlinchat' target='_blank'><em>2.加入telegram群</em></a>&nbsp;&nbsp;&nbsp;&nbsp;<a href='https://www.right.com.cn/forum/forum-173-1.html' target='_blank'><em>3.恩山论坛插件版块</em></a></h4>
-																					</li>
-																					<li id="push_content2_li">
-                                                                                    <h4 id="push_content2">如果你看到这个页面说明主服务器连接不上,如果获取不到在线版本说明节点服务器连接不上！</h4>
-																					</li>
-																					<li id="push_content3_li" style="display: none;">
-																						<h4 id="push_content3"></h4>
-																					</li>
-																					<li id="push_content4_li" style="display: none;">
-																						<h4 id="push_content4"></h4>
-																					</li>
+																					<ul id="fixed_msg" style="padding:0;margin:0;line-height:1.8;">
+																					</ul>
+																					<ul id="scroll_msg" style="padding:0;margin:0;line-height:1.8;overflow: hidden;">
+																					</ul>
 																					<li>
 																						<h5><font color='#1E90FF' sclang>Current version:</font><span id="spnCurrVersion"></span>&nbsp;&nbsp;<font color='#1E90FF' sclang>Latest version:</font><span id="spnOnlineVersion"></span>
 																						<input sclang type="button" id="updateBtn" value="Update" style="display:none" /></h5>
