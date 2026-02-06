@@ -17,11 +17,16 @@
 <script language="JavaScript" type="text/javascript" src="/popup.js"></script>
 <script language="JavaScript" type="text/javascript" src="/help.js"></script>
 <script language="JavaScript" type="text/javascript" src="/validator.js"></script>
+<script type="text/javascript" src="/form.js"></script>
 <script>
 var filter_lwlist_array = '<% nvram_get("filter_lwlist"); %>';
 
+var current_page = window.location.pathname.split("/").pop();
+var faq_index_tmp = get_faq_index(FAQ_List, current_page, 1);
+
 function initial(){
 	show_menu();
+	if(top.webWrapper){ $(".formfontdesc_1").css("max-width","95%"); }
 	showfilter_lwlist();
 	init_setting();
 	check_Timefield_checkbox();
@@ -495,11 +500,14 @@ function updateDateTime(){
 				<tbody>
 				<tr>
 					<td bgcolor="#4D595D" valign="top">
+					<div class="container">
 		  				<div>&nbsp;</div>
 		  				<div class="formfonttitle"><#menu5_5#> - <#menu5_5_4#></div>
+						<div class="formfonttitle_help"><i onclick="show_feature_desc(`<#HOWTOSETUP#>`)" class="icon_help"></i></div>
 		  				<div style="margin:10px 0 10px 5px;" class="splitLine"></div>
-		  				<div class="formfontdesc"><#FirewallConfig_display1_sectiondesc#></div>
-		  				<div class="formfontdesc"><#FirewallConfig_display3_sectiondesc#></div>
+						<div class="formfontdesc_1">
+							<#FirewallConfig_display1_sectiondesc#><br><#FirewallConfig_display3_sectiondesc#>
+						</div>
 		  				<div class="formfontdesc" style="color:#FFCC00;"><#FirewallConfig_display4_sectiondesc#></div>	
 		  				<div id="svc_hint_div" style="display:none;"><span onClick="location.href='Advanced_System_Content.asp?af=ntp_server0'" style="color:#FFCC00;text-decoration:underline;cursor:pointer;"><#General_x_SystemTime_syncNTP#></span></div>
 		  				<div id="timezone_hint_div" style="display:none;"><span id="timezone_hint" onclick="location.href='Advanced_System_Content.asp?af=time_zone_select'" style="color:#FFCC00;text-decoration:underline;cursor:pointer;"></span></div>
@@ -625,6 +633,9 @@ function updateDateTime(){
             				<div class="apply_gen">
             					<input name="button" type="button" class="button_gen" onclick="applyRule()" value="<#CTL_apply#>"/>
             				</div>
+
+					</div>  <!-- for .container  -->
+					<div class="popup_container popup_element_second"></div>
 
 						
 					</td>

@@ -18,6 +18,7 @@
 <script type="text/javascript" src="/popup.js"></script>
 <script type="text/javascript" src="/help.js"></script>
 <script type="text/javascript" src="/validator.js"></script>
+<script type="text/javascript" src="/form.js"></script>
 
 <script><% wanlink(); %>
 
@@ -39,6 +40,9 @@ if(tagged_based_vlan){
 	jsFile.setAttribute("src", "js/subnet_rule.js");
 	document.getElementsByTagName("head")[0].appendChild(jsFile);
 }
+
+var current_page = window.location.pathname.split("/").pop();
+var faq_index_tmp = get_faq_index(FAQ_List, current_page, 1);
 
 function initial(){
 	show_menu();
@@ -437,6 +441,8 @@ function check_vpn(){		//true: lAN ip & VPN client ip conflict
 	<tbody>
 	<tr>
 		  <td bgcolor="#4D595D" valign="top">
+		  <div class="container">
+		  <div class="formfonttitle_help"><i onclick="show_feature_desc(`<#HOWTOSETUP#>`)" class="icon_help"></i></div>
 		  <div>&nbsp;</div>
 		  <div class="formfonttitle"><#menu5_2#> - <#menu5_2_1#></div>
 		  <div style="margin:10px 0 10px 5px;" class="splitLine"></div>
@@ -540,7 +546,8 @@ function check_vpn(){		//true: lAN ip & VPN client ip conflict
 			<input class="button_gen" onclick="applyRule()" type="button" value="<#CTL_apply#>"/>
 		</div>
 
-	
+		</div>  <!-- for .container  -->
+		<div class="popup_container popup_element_second"></div>	
 		
 	  </td>
 	</tr>

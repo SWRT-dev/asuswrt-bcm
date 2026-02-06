@@ -1,8 +1,8 @@
 include ../common.mak
 
 #OOKLA_VER = 36521# updated in 2019.12.31
-#OOKLA_VER = 37112# updated in 2021.08.26
-OOKLA_VER = 371237# updated in 2021.10.19
+#OOKLA_VER = 371237# updated in 2021.10.19
+OOKLA_VER = 38000# updated in 2022.08.16
 OOKLA_PATH = OOKLA-$(OOKLA_VER)
 
 prebuild:
@@ -28,6 +28,11 @@ else
 	-cp -f $(OOKLA_PATH)/ookla-BCM7.x-6.x prebuild/ookla   # BCM6 / BCM7
 endif # RTCONFIG_HND_ROUTER
 endif # RTCONFIG_BCMARM
+
+# MTK
+ifeq ($(RTCONFIG_RALINK),y)
+	-cp -f $(OOKLA_PATH)/ookla-MTK7621A prebuild/ookla     # MTK7621A
+endif # RTCONFIG_RALINK
 
 all: prebuild
 

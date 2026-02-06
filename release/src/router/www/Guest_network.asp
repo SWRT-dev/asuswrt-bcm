@@ -23,6 +23,7 @@
 <script type="text/javascript" src="/md5.js"></script>
 <script type="text/javascript" src="/validator.js"></script>
 <script type="text/javascript" src="js/httpApi.js"></script>
+<script type="text/javascript" src="/form.js"></script>
 <style>
 </style>
 <script>
@@ -40,6 +41,11 @@ if(based_modelid === 'GT-AXE16000'){
 	var radio_5_2 = '<% nvram_get("wl1_radio"); %>';
 	var radio_6 = '<% nvram_get("wl2_radio"); %>';
 }
+else if(based_modelid === 'GT10' || based_modelid === 'RT-AX9000'){
+	radio_2 = '<% nvram_get("wl2_radio"); %>';
+	radio_5 = '<% nvram_get("wl0_radio"); %>';
+	var radio_5_2 = '<% nvram_get("wl1_radio"); %>';
+}
 <% wl_get_parameter(); %>
 
 wl_channel_list_2g = '<% channel_list_2g(); %>';
@@ -56,6 +62,10 @@ var captive_portal_used_wl_array = new Array();
 
 var manually_maclist_list_array = new Array();
 var all_gn_status = [];
+
+var current_page = window.location.pathname.split("/").pop();
+var faq_index_tmp = get_faq_index(FAQ_List, current_page, 1);
+
 function initial(){
 	show_menu();	
 
@@ -305,6 +315,10 @@ function gen_gntable_tr(unit, gn_array, slicesb){
 	if(based_modelid === 'GT-AXE16000'){
 		unit = (unit+3)%4;
 	}
+	else if(based_modelid === 'GT10' || based_modelid === 'RT-AX9000'){
+		unit = (unit+2)%3;
+	}
+
 	htmlcode += '<table align="left" style="margin-left:-10px;border-collapse:collapse;width:720px;';
 	if(slicesb > 0)
 		htmlcode += 'margin-top:20px;';	
@@ -527,6 +541,11 @@ function gen_gntable(){
 		gn_array_5g_tmp = gn_array_2g;
 		gn_array_5g_2_tmp = gn_array_5g;
 		var gn_array_6g_tmp = gn_array_5g_2;
+	}
+	else if(based_modelid === 'GT10' || based_modelid === 'RT-AX9000'){
+		gn_array_2g_tmp = gn_array_5g_2;
+		gn_array_5g_tmp = gn_array_2g;
+		gn_array_5g_2_tmp = gn_array_5g;
 	}
 	var band2sb = 0;
 	var band5sb = 0;
@@ -1625,9 +1644,11 @@ function apply_amazon_wss(){
 			<table width="760px" border="0" cellpadding="4" cellspacing="0" class="FormTitle" id="FormTitle">
 				<tbody>
 				<tr>
-					<td bgcolor="#4D595D" valign="top" id="table_height"  >
+					<td bgcolor="#4D595D" valign="top" id="table_height">
+					<div class="container">
 						<div>&nbsp;</div>
 						<div class="formfonttitle"><#Guest_Network#></div>
+						<div class="formfonttitle_help"><i onclick="show_feature_desc(`<#HOWTOSETUP#>`)" class="icon_help"></i></div>
 						<div style="margin:10px 0 10px 5px;" class="splitLine"></div>
 						<div>
 							<table width="650px" style="margin:25px;">
@@ -1951,7 +1972,11 @@ function apply_amazon_wss(){
 						<div class="apply_gen gn_set_table_bg" id="applyButton" style="display:none;margin-top:20px">
 							<input type="button" class="button_gen" value="<#CTL_Cancel#>" onclick="guest_divctrl(0);">
 							<input type="button" class="button_gen" value="<#CTL_apply#>" onclick="applyRule();">
-						</div>			  	
+						</div>
+
+						</div>  <!-- for .container  -->
+						<div class="popup_container popup_element_second"></div>
+
 					</td>
 				</tr>
 				</tbody>		

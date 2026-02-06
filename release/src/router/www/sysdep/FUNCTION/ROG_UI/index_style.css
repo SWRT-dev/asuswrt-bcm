@@ -1,4 +1,4 @@
-/* CSS Document */
+﻿/* CSS Document */
 body{
 /*	background-color: rgb(31, 31, 31) !important; */
 }
@@ -668,7 +668,7 @@ width:122px;
 	-moz-border-radius: 5px;
 	border-radius: 5px;
 	z-index: 300;
-	background-color:#444f53;
+	background-color:#232629;
 	/*margin-left: 920px;
 	margin-top: -310px;*/
 	width:425px;
@@ -685,7 +685,7 @@ width:122px;
 	-moz-border-radius: 5px;
 	border-radius: 5px;
 	z-index: 300;
-	background-color:#444f53;
+	background-color:#232629;
 	/*margin-left: 920px;
 	margin-top: -310px;*/
 	width:425px;
@@ -833,6 +833,8 @@ width:122px;
 	height:54px;
 }
 .menu_Desc{
+	word-break: keep-all;
+	font-weight: bold;
 }
 .menu_Split{
 	margin-top:10px;
@@ -947,10 +949,7 @@ width:122px;
 	background-image: url(images/New_ui/icon_menues.png);
 	background-position: -0px -144px;
 }
-.menu_Tools, .menu_Entware, .menu_Softcenter{
-	background-image: url(images/New_ui/icon_menues.png);
-	background-position: -0px -144px;
-}
+
 .menu_Dashboard{
 	background-image: url(images/New_ui/icon_Gamecenter.png);
 	background-position: -0px 0px;
@@ -1006,7 +1005,9 @@ width:122px;
 	text-decoration: none;
 	font-family: Verdana;
 	font-size: 12px;
-	border-radius: 5px;
+	border-radius: 5px 5px 0 0;
+	display: flex;
+	align-items: center;
 }
 .tabClicked{
 	cursor:pointer;
@@ -1022,12 +1023,13 @@ width:122px;
 	text-decoration: none;
 	font-family: Verdana;
 	font-size: 12px;
-	border-radius: 5px;
+	border-radius: 5px 5px 0 0;
+	display: flex;
+	align-items: center;
 }
 .submenuBlock{
 	width:735px;
-	margin-top:-140px;
-	margin-bottom: -10px;
+	margin-bottom: -3px;
 }
 /* used for QIS */
 .m_qis_r {
@@ -1091,4 +1093,3 @@ width:122px;
 .radio_hint{
     background-color: #FA9100;
 }
-

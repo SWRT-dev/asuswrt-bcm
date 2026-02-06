@@ -16,15 +16,6 @@
  */
 /*
  * Tiny Embedded JavaScript parser
- *
- * Copyright 2003, ASUSTeK Inc.
- * All Rights Reserved.		
- *				     
- * This is UNPUBLISHED PROPRIETARY SOURCE CODE of ASUSTeK Inc.;   
- * the contents of this file may not be disclosed to third parties, copied
- * or duplicated in any form, in whole or in part, without the prior      
- * written permission of ASUSTeK Inc..			    
- *
  */
 
 #include <stdio.h>
@@ -64,10 +55,24 @@ struct REPLACE_PRODUCTID_S replace_productid_t[] =
 	{"ZenWiFi_XP4", "灵耀AX XP4", "CN"},
 	{"ZenWiFi_CV4", "ZenWiFi Voice", "global"},
 	{"ZenWiFi_Pro_XT12", "灵耀Pro AX11000", "CN"},
-	{"ZenWiFi_XD5", "灵耀AX魔方 Pro", "CN"},
+	{"ZenWiFi_XD4_Pro", "灵耀AX魔方Pro", "CN"},
 	{"ZenWiFi_XT9", "灵耀AX7800", "CN"},
 	{"ZenWiFi_XD6", "灵耀AX5400", "CN"},
 	{"TUF-AX3000_V2", "TUF GAMING 小旋风", "CN"},
+	{"GT6", "ROG魔方 • 幻", "CN"},
+	{"TUF-AX4200Q", "TUF GAMING 小旋风 Pro", "CN"},
+	{"TUF-AX4200", 	"TUF GAMING AX4200", "global"},
+	{"TX-AX6000", "天选游戏路由", "CN"},
+	{"TUF-AX6000",  "TUF GAMING AX6000", "global"},
+	{"GT-BE96",  "ROG 八爪鱼7", "CN"},
+	{"TUF-BE3600", "TUF GAMING 小旋风", "CN"},
+	{"TUF-BE6500", "TUF GAMING 小旋风 Pro", "CN"},
+	{"TUF_3600", "TUF GAMING 小旋风", "CN"},
+	{"TUF_6500", "TUF GAMING 小旋风 Pro", "CN"},
+	{"ZenWiFi_BD4", "灵耀魔方 WiFi7 BE3600", "CN"},
+	{"ZenWiFi_BD4_Outdoor", "灵耀魔方 无界", "CN"},
+	{"ZenWiFi_BT8P", "灵耀魔方Pro WiFi7 BE9400", "CN"},
+	{"GS7", "ROG 魔盒", "CN"},
 	{NULL, NULL, NULL}
 };
 
@@ -88,6 +93,11 @@ struct REPLACE_MODELNAME_S replace_modelname_t[] = {
 	{ "R6300V2" },
 	{ "RGMA2820A" },
 	{ "RGMA2820B" },
+	{ "TY6201PRO" },
+	{ "RGMA3062" },
+	{ "RAX80" },
+	{ "RAX120" },
+	{ "JDCBE6500" },
 	{ NULL },
 };
 
@@ -236,6 +246,69 @@ extern int replace_modelname(char *GET_PID_STR, char *RP_PID_STR, int len){
 	return 0;
 }
 
+struct REPLACE_TAG_S replace_tag_string_t[] =
+{
+	{"BASIC_MODEL_NAME", ""}, //special tag for dynamic model replace
+	{"ZVDOMAIN_NAMEVZ", DUT_DOMAIN_NAME},
+	{NULL, NULL}
+};
+
+static char *replace_tag_string(char *desc, char *pattern, int pattern_len){
+
+	int pid_len = 0, get_pid_len = 0;
+	char target_string[256] = {0}, replace_string[256] = {0}, pattern_tmp[2048] = {0};
+	char *p_PID_STR = NULL;
+	struct REPLACE_TAG_S *p;
+
+	for(p = &replace_tag_string_t[0]; p->org_name; p++){
+
+		if(!strcmp("BASIC_MODEL_NAME", p->org_name)){
+			char PID_STR[32] = {0}, GET_PID_STR[32]={0}, RP_PID_STR[128] = {0};
+			char *modelname = nvram_safe_get("modelname");
+			strlcpy(PID_STR, nvram_safe_get("productid"), sizeof(PID_STR));
+			strlcpy(GET_PID_STR, get_productid(), sizeof(GET_PID_STR));
+			if(replace_modelname(modelname, RP_PID_STR, sizeof(RP_PID_STR)) != 1)
+				replace_productid(GET_PID_STR, RP_PID_STR, sizeof(RP_PID_STR));
+			if(strcmp(PID_STR, RP_PID_STR) != 0){
+				strlcpy(target_string, PID_STR, sizeof(target_string));
+				strlcpy(replace_string, RP_PID_STR, sizeof(replace_string));
+			}else
+				continue;
+		}else{
+			strlcpy(target_string, p->org_name, sizeof(target_string));
+			strlcpy(replace_string, p->replace_name, sizeof(replace_string));
+		}
+
+		pid_len = strlen(target_string);
+		get_pid_len = strlen(replace_string);
+		memset(pattern_tmp, 0, sizeof(pattern_tmp));
+
+		char *pSrc  = desc;
+		char *pDest = &pattern_tmp[0];
+
+		while((p_PID_STR = strstr(pSrc, target_string)))
+		{
+			if((p_PID_STR - pSrc) > 0){
+				memcpy(pDest, pSrc, p_PID_STR - pSrc);
+				pDest[p_PID_STR - pSrc] = '\0';
+			}
+			pDest += (p_PID_STR - pSrc);
+			pSrc   =  p_PID_STR + pid_len;
+
+			memcpy(pDest, replace_string, get_pid_len);
+			pDest[get_pid_len] = '\0';
+			pDest += get_pid_len;
+		}
+		if(pDest != pattern_tmp)
+		{
+			strlcpy(pDest, pSrc, sizeof(pattern_tmp));
+			strlcpy(pattern, pattern_tmp, pattern_len);
+			desc = pattern;
+		}
+	}
+	return desc;
+}
+
 // Call this function if and only if we can read whole <#....#> pattern.
 static char *
 translate_lang (char *s, char *e, FILE *f, kw_t *pkw)
@@ -255,43 +328,8 @@ translate_lang (char *s, char *e, FILE *f, kw_t *pkw)
 
 		desc = search_desc (pkw, name);
 		if (desc != NULL) {
-			static char pattern1[2048];
-			char RP_PID_STR[32];
-			char GET_PID_STR[32]={0};
-			char *p_PID_STR = NULL;
-			char *PID_STR = nvram_safe_get("productid");
-			char *modelname = nvram_safe_get("modelname");
-			char *pSrc, *pDest;
-			int pid_len, get_pid_len;
-
-			strlcpy(GET_PID_STR, get_productid(), sizeof(GET_PID_STR));
-			pid_len = strlen(PID_STR);
-			get_pid_len = strlen(GET_PID_STR);
-
-			memset(RP_PID_STR, 0, sizeof(RP_PID_STR));
-			if(replace_modelname(modelname, RP_PID_STR, sizeof(RP_PID_STR)) != 1)
-				replace_productid(GET_PID_STR, RP_PID_STR, sizeof(RP_PID_STR));
-			
-			if(strcmp(PID_STR, RP_PID_STR) != 0){
-				get_pid_len = strlen(RP_PID_STR);
-				pSrc  = desc;
-				pDest = pattern1;
-				while((p_PID_STR = strstr(pSrc, PID_STR)))
-				{
-					memcpy(pDest, pSrc, p_PID_STR - pSrc);
-					pDest += (p_PID_STR - pSrc);
-					pSrc   =  p_PID_STR + pid_len;
-
-					memcpy(pDest, RP_PID_STR, get_pid_len);
-					pDest += get_pid_len;
-				}
-				if(pDest != pattern1)
-				{
-					strlcpy(pDest, pSrc, sizeof(pattern1));
-					desc = pattern1;
-				}
-			}
-
+			static char pattern[2048] = {0};
+			desc = replace_tag_string(desc, pattern, sizeof(pattern));
 			fprintf (f, "%s", desc);
 		}
 
@@ -521,4 +559,5 @@ ejArgs(int argc, char **argv, char *fmt, ...)
 
 	return arg;
 }
+
 

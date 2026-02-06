@@ -17,8 +17,12 @@
 <script type="text/javascript" src="/popup.js"></script>
 <script type="text/javascript" src="/validator.js"></script>
 <script type="text/javascript" src="/js/jquery.js"></script>
+<script type="text/javascript" src="/form.js"></script>
 <script>
 <% wl_get_parameter(); %>
+
+var current_page = window.location.pathname.split("/").pop();
+var faq_index_tmp = get_faq_index(FAQ_List, current_page, 1);
 
 function initial(){
 	show_menu();
@@ -174,9 +178,11 @@ function checkWLReady(){
 <table width="760px" border="0" cellpadding="4" cellspacing="0" class="FormTitle" id="FormTitle">
 <tbody>
 		<tr>
-		  <td bgcolor="#4D595D" valign="top"  >
+		  <td bgcolor="#4D595D" valign="top">
+		  <div class="container">
 		  <div>&nbsp;</div>
 		  <div class="formfonttitle"><#menu5_1#> - <#menu5_1_5#></div>
+		  <div class="formfonttitle_help"><i onclick="show_feature_desc(`<#HOWTOSETUP#>`)" class="icon_help"></i></div>
 		  <div style="margin:10px 0 10px 5px;" class="splitLine"></div>
 		  <div class="formfontdesc"><#WLANAuthentication11a_display1_sectiondesc#></div>
 		  <div id="lantiq_ready" style="display:none;color:#FC0;margin-left:5px;font-size:13px;">Wireless is setting...</div>
@@ -228,7 +234,9 @@ function checkWLReady(){
 			<div id="submitBtn" class="apply_gen">
 				<input class="button_gen" onclick="applyRule()" type="button" value="<#CTL_apply#>"/>
 			</div>
-		
+	
+			</div>  <!-- for .container  -->
+			<div class="popup_container popup_element_second"></div>	
 		
 		</td>
 	</tr>

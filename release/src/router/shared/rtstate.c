@@ -291,6 +291,8 @@ int get_wan_unit(char *ifname)
 		case WAN_LW4O6:
 		case WAN_MAPE:
 		case WAN_V6PLUS:
+		case WAN_OCNVC:
+		case WAN_DSLITE:
 #endif
 			if (nvram_match(strlcat_r(prefix, "pppoe_ifname", tmp, sizeof(tmp)), ifname))
 				return unit;
@@ -343,7 +345,7 @@ char *get_wan_ifname(int unit)
 			nvram_safe_get(strlcat_r(prefix, "pppoe_ifname", tmp, sizeof(tmp)));
 	} else
 #endif
-#if defined(RTAX82_XD6) || defined(RTAX82_XD6S)
+#if defined(RTAX82_XD6) || defined(RTAX82_XD6S) || defined(XD6_V2)
 	if (!strncmp(nvram_safe_get("territory_code"), "CH", 2) &&
 		nvram_match(ipv6_nvname("ipv6_only"), "1"))
 		return nvram_safe_get(strlcat_r(prefix, "ifname", tmp, sizeof(tmp)));
@@ -361,7 +363,9 @@ char *get_wan_ifname(int unit)
 		break;
 #ifdef RTCONFIG_SOFTWIRE46
 	case WAN_V6PLUS:
-		if (nvram_get_int("s46_hgw_case") >= S46_CASE_MAP_HGW_OFF) {
+	case WAN_OCNVC:
+	case WAN_DSLITE:
+		if (nvram_pf_get_int(prefix, "s46_hgw_case") >= S46_CASE_MAP_HGW_OFF) {
 			wan_ifname = nvram_safe_get(strlcat_r(prefix, "pppoe_ifname", tmp, sizeof(tmp)));
 			break;
 		}
@@ -423,6 +427,19 @@ char *get_wan6_ifname(int unit)
 	}
 
 	return wan_ifname;
+}
+
+int get_wan6_unit(char* ifname)
+{
+	if (!ifname)
+		return 0;
+
+	if (!strncmp(ifname, "v6tun", 5)) {
+		return (strlen(ifname) > 5) ? atoi(ifname+5) : 0;
+	}
+	else {
+		return get_wan_unit(ifname);
+	}
 }
 #endif
 
@@ -1297,7 +1314,7 @@ char *get_default_ssid(int unit, int subunit)
 		strlcat(ssid, "_CD6", sizeof(ssid));
 #elif defined(PLAX56_XP4)
 		strlcat(ssid, "_XP4", sizeof(ssid));
-#elif defined(RTAX82_XD6)
+#elif defined(RTAX82_XD6) || defined(XD6_V2)
 		if (strstr(nvram_safe_get("odmpid"), "XD6E"))
 			strlcat(ssid, "_XD6E", sizeof(ssid));
 		else
@@ -1329,11 +1346,18 @@ char *get_default_ssid(int unit, int subunit)
 		strlcat(ssid, nvram_safe_get("model"), sizeof(ssid));
 #elif defined(XT8PRO)
 		strlcat(ssid, "_XT9", sizeof(ssid));
+#elif defined(BM68)
+		strlcat(ssid, "_EBM68", sizeof(ssid));
 #elif defined(XT8_V2)
 		strlcat(ssid, "_XT8", sizeof(ssid));
 #else
 		strlcat(ssid, "_", sizeof(ssid));
-		strlcat(ssid, get_productid(), sizeof(ssid));
+		char *pid = get_productid();
+		if (strstr(pid, "ExpertWiFi_"))
+			pid += strlen("ExpertWiFi_");
+		else if (strstr(pid, "ZenWiFi_"))
+			pid += strlen("ZenWiFi_");
+		strlcat(ssid, pid, sizeof(ssid));
 #endif
 
 #endif

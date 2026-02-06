@@ -300,7 +300,8 @@ var ctf_fa_mode = '<% nvram_get("ctf_fa_mode"); %>';
 var qos_bw_rulelist = "<% nvram_get("qos_bw_rulelist"); %>".replace(/&#62/g, ">").replace(/&#60/g, "<");
 var select_all_checked = 0;
 
-var faq_href = "https://nw-dlcdnet.asus.com/support/forward.html?model=&type=Faq&lang="+ui_lang+"&kw=&num=110";
+var current_page = window.location.pathname.split("/").pop();
+var faq_index_tmp = get_faq_index(FAQ_List, current_page, 1);
 
 if(geforceNow_support){
 	var orig_nvgfn_enable = httpApi.nvramGet(["nvgfn_enable"], true).nvgfn_enable;
@@ -400,7 +401,6 @@ if(pm_support) {
 
 function initial(){
 	show_menu();
-	document.getElementById("faq").href=faq_href;
 
 	if(downsize_4m_support || downsize_8m_support)
 		document.getElementById("guest_image").parentNode.style.display = "none";
@@ -1742,16 +1742,20 @@ function setGroup(name){
 			<table width="95%" border="0" align="left" cellpadding="0" cellspacing="0" class="FormTitle" id="FormTitle" style="height:820px;">
 				<tr>
 					<td bgcolor="#4D595D" valign="top">
+					<div class="container">
+
 						<table width="760px" border="0" cellpadding="4" cellspacing="0">
 							<tr>
 								<td bgcolor="#4D595D" valign="top">
 									<table width="100%">
 										<tr style="height:30px;">
-											<td  class="formfonttitle" align="left">
+											<td class="formfonttitle" align="left">
+												<div>&nbsp;</div>
 												<div id="content_title"></div>
+												<div class="formfonttitle_help"><i onclick="show_feature_desc(`<#HOWTOSETUP#>`)" class="icon_help"></i></div>
 											</td>
-											<td align="right" >
-												<div>
+											<td align="right">
+												<div style="margin-right:44px;margin-top:18px;">
 													<select id="settingSelection" onchange="switchPage(this.options[this.selectedIndex].value)" class="input_option">
 														<option value="1"><#Adaptive_QoS_Conf#></option>
 													</select>
@@ -1784,9 +1788,6 @@ function setGroup(name){
 															<li><#EzQoS_desc_Bandwidth_Limiter#></li>
 														</ul>
 														<#EzQoS_desc_note#>
-													</div>
-													<div class="formfontdesc">
-														<a id="faq" href="" target="_blank" style="text-decoration:underline;">QoS FAQ</a>
 													</div>
 												</td>
 											</tr>
@@ -1995,6 +1996,10 @@ function setGroup(name){
 								</td>
 							</tr>
 						</table>
+
+						</div>  <!-- for .container  -->
+						<div class="popup_container popup_element_second"></div>
+
 					</td>
 				</tr>
 			</table>

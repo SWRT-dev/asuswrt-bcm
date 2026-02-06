@@ -221,8 +221,16 @@ var is_SG_sku = (function(){
 var isIE8 = navigator.userAgent.search("MSIE 8") > -1; 
 var isIE9 = navigator.userAgent.search("MSIE 9") > -1; 
 
+var secure_default = (function(){
+	var rc_support = '<% nvram_get("rc_support"); %>';
+	return (rc_support.search("secure_default") == -1) ? false : true;
+})();
+
 function initial(){
-	if(is_KR_sku || is_SG_sku || is_AA_sku)
+	if(`<% nvram_get("force_chgpass"); %>` == 1)
+		document.getElementById("QIS_pass_desc1").innerHTML ="To enhance security, a new password policy has been implemented.";
+
+	if(is_KR_sku || is_SG_sku || is_AA_sku || secure_default)
 		document.getElementById("KRHint").style.display = "";
 
 	if(isIE8 || isIE9){
@@ -301,6 +309,8 @@ function check_common_string(pwd, flag){
 // ---------- Viz add common string check for password 2015.09 end--------
 
 function validForm(){
+	if($("#defpassCheckbox").prop('checked')) return true;
+
 	if(!validator.chkLoginId(document.form.http_username_x)){
 		return false;
 	}
@@ -321,7 +331,15 @@ function validForm(){
 			return false;                   
 	}
 
-	if(is_KR_sku || is_SG_sku || is_AA_sku){		/* MODELDEP by Territory Code */
+	if(document.form.http_passwd_x.value == document.form.http_username_x.value){
+			showError("<#JS_validLoginPWD_same#>");
+			document.form.http_passwd_x.value = "";
+			document.form.http_passwd_x.focus();
+			document.form.http_passwd_x.select();
+			return false;                   
+	}
+
+	if(is_KR_sku || is_SG_sku || is_AA_sku || secure_default){		/* MODELDEP by Territory Code */
 		if(!validator.chkLoginPw_KR(document.form.http_passwd_x)){
 			return false;
 		}
@@ -373,12 +391,11 @@ function submitForm(){
 		setTimeout(function(){
 			httpApi.chpass(postData);
 		}, 100);
-		var nextPage = decodeURIComponent('<% get_ascii_parameter("nextPage"); %>');
 		setTimeout(function(){
 			if('<% nvram_get("w_Setting"); %>' == '0' && sw_mode != 2)
 				location.href = '/QIS_wizard.htm?flag=wireless';
 			else
-				location.href = (nextPage != "") ? nextPage : "/";
+				location.href = "/";
 		}, 3000);
 	}
 	else
@@ -424,15 +441,15 @@ var validator = {
 		
 		if(obj.value.length > 0 && obj.value.length < 5){
 			showError("<#JS_short_password#> <#JS_password_length#>");
-			obj.value = "";
 			obj.focus();
 			obj.select();
 			return false;
 		}		
 
-		if(obj.value.length > 32){
-            showError("<#JS_max_password#>");
-            obj.value = "";
+		var str_valid_max_password = `<#JS_max_password_var#>`;
+		str_valid_max_password = str_valid_max_password.replace("%1$@", "5");
+		if(obj.value.length > 32){	
+            showError(str_valid_max_password);
             obj.focus();
             obj.select();
             return false;
@@ -440,7 +457,6 @@ var validator = {
 
 		if(obj.value.charAt(0) == '"'){
 			showError('<#JS_validstr1#> ["]');
-			obj.value = "";
 			obj.focus();
 			obj.select();
 			return false;
@@ -455,7 +471,6 @@ var validator = {
 
 			if(invalid_char != ""){
 				showError("<#JS_validstr2#> '"+invalid_char+"' !");
-				obj.value = "";
 				obj.focus();
 				obj.select();
 				return false;
@@ -474,15 +489,15 @@ var validator = {
 		){
 				
 				showError("<#JS_validLoginPWD#>");
-				obj.value = "";
 				obj.focus();
 				obj.select();
 				return false;	
 		}
 
+		var str_valid_max_password = `<#JS_max_password_var#>`;
+		str_valid_max_password = str_valid_max_password.replace("%1$@", "10");
 		if(obj.value.length > 32){
-			showError("<#JS_max_password#>");
-			obj.value = "";
+			showError(str_valid_max_password);
 			obj.focus();
 			obj.select();
 			return false;
@@ -497,7 +512,6 @@ var validator = {
 
 		if(invalid_char != ""){
 			showError("<#JS_validstr2#> '"+invalid_char+"' !");
-			obj.value = "";
 			obj.focus();
 			obj.select();
 			return false;
@@ -534,7 +548,7 @@ function showError(str){
 		</div>
 		<div class="login-title-desc">
 			<div class="desc"><#Web_Title2#> is currently not protected and uses an unsafe default username and password.</div>
-			<div class="desc"><#QIS_pass_desc1#></div>
+			<div class="desc" id="QIS_pass_desc1"><#QIS_pass_desc1#></div>
 			<div id="KRHint" class="desc" style="display: none;"><#JS_validLoginPWD#></div>
 		</div>
 		<div>
@@ -550,6 +564,48 @@ function showError(str){
 			<div class="input-container">
 				<input type="password" id="http_passwd_2_x" name="http_passwd_2_x" tabindex="3" class="form-input" maxlength="33" autocapitalize="off" autocomplete="off" placeholder="<#Confirmpassword#>">
 			</div>
+			<div style="font-size: 16pt; display:none">
+				<input id="defpassCheckbox" type="checkbox" style="height:30px;width:30px;vertical-align: middle;">Use the default settings
+			</div>
+			<script>
+				$("#defpassCheckbox").change(function(){
+					var status = $(this).is(':checked');
+					if(status){
+						$("[name='http_username_x']")
+							.val("")
+							.prop('disabled', true)
+							.css({opacity: "0.3"})
+
+						$("[name='http_passwd_x']")
+							.val("")
+							.prop('disabled', true)
+							.css({opacity: "0.3"})
+
+						$("[name='http_passwd_2_x']")
+							.val("")
+							.prop('disabled', true)
+							.css({opacity: "0.3"})
+					}
+					else{
+						$("[name='http_username_x']")
+							.prop('disabled', false)
+							.css({opacity: "1"})
+
+						$("[name='http_passwd_x']")
+							.prop('disabled', false)
+							.css({opacity: "1"})
+
+						$("[name='http_passwd_2_x']")
+							.prop('disabled', false)
+							.css({opacity: "1"})						
+					}
+				})
+
+				if(isSupport("defpass")){
+					$("#defpassCheckbox").parent().show();
+					$("#defpassCheckbox").prop('checked', true).change()
+				}
+			</script>
 			<div id="error_status_field" class="error-hint-bg" style="display: none;" ></div>
 			<div id="btn_modify" class="login-btn-bg" onclick="submitForm();"><#CTL_modify#></div>
 			<div id="loadingIcon" class="loading-icon" style="display:none;">

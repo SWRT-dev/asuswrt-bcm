@@ -62,7 +62,10 @@ var https_port = '<% nvram_get("webdav_https_port"); %>';
 if(tmo_support)
 	var theUrl = "cellspot.router"; 
 else
-	var theUrl = "router.asus.com";
+	var theUrl = "<#Web_DOMAIN_NAME#>";
+
+var current_page = window.location.pathname.split("/").pop();
+var faq_index_tmp = get_faq_index(FAQ_List, current_page, 1);
 
 function initial(){
 	show_menu();
@@ -120,13 +123,13 @@ function initial(){
 			   aicloud_url += ":" + https_port;
 			}
 
-			document.getElementById("accessMethod").innerHTML = "<#AiCloud_enter#> <a id=\"cloud_url\" style=\"font-weight: bolder;text-decoration: underline;\" href=\"" + aicloud_url + "\" target=\"_blank\">" + aicloud_url + "</a>";
+			document.getElementById("accessMethod").innerHTML = "<#AiCloud_enter#> " + aicloud_url;
 
 			/*
 			if(https_port == 443)
-				document.getElementById("accessMethod").innerHTML = "<#AiCloud_enter#> <a id=\"cloud_url\" style=\"font-weight: bolder;text-decoration: underline;\" href=\"https://router.asus.com\" target=\"_blank\">https://router.asus.com</a>";
+				document.getElementById("accessMethod").innerHTML = "<#AiCloud_enter#> <a id=\"cloud_url\" style=\"font-weight: bolder;text-decoration: underline;\" href=\"https://<#Web_DOMAIN_NAME#>\" target=\"_blank\">https://<#Web_DOMAIN_NAME#></a>";
 			else{
-				document.getElementById("accessMethod").innerHTML = "<#AiCloud_enter#> <a id=\"cloud_url\" style=\"font-weight: bolder;text-decoration: underline;\" href=\"https://router.asus.com\" target=\"_blank\">https://router.asus.com</a>";
+				document.getElementById("accessMethod").innerHTML = "<#AiCloud_enter#> <a id=\"cloud_url\" style=\"font-weight: bolder;text-decoration: underline;\" href=\"https://<#Web_DOMAIN_NAME#>\" target=\"_blank\">https://<#Web_DOMAIN_NAME#></a>";
 				document.getElementById('cloud_url').href = "https://"+ theUrl +":" + https_port;
 				document.getElementById('cloud_url').innerHTML = "https://"+ theUrl +":" + https_port;
 			}
@@ -136,17 +139,17 @@ function initial(){
 		case 1:
 			if('<% nvram_get("ddns_enable_x"); %>' == '1' && ddns_hostname != ''){
 				if(https_port == 443) // if the port number of https is 443, hide it
-					document.getElementById("accessMethod").innerHTML = "<#AiCloud_enter#> <a style=\"font-weight: bolder;text-decoration: underline;word-break:break-all;\" href=\"https://"+ ddns_hostname + ":"+ https_port +"\" target=\"_blank\">https://"+ ddns_hostname +"</a><br />";
+					document.getElementById("accessMethod").innerHTML = "<#AiCloud_enter#> https://"+ ddns_hostname +"<br />";
 				else
-					document.getElementById("accessMethod").innerHTML = "<#AiCloud_enter#> <a style=\"font-weight: bolder;text-decoration: underline;word-break:break-all;\" href=\"https://"+ ddns_hostname + ":"+ https_port +"\" target=\"_blank\">https://"+ ddns_hostname +":"+ https_port +"</a><br />";
+					document.getElementById("accessMethod").innerHTML = "<#AiCloud_enter#> https://"+ ddns_hostname +":"+ https_port +"<br />";
 				
 				document.getElementById("accessMethod").innerHTML += '<#aicloud_disk_case12#>';
 			}
 			else{
 				if(https_port == 443) // if the port number of https is 443, hide it
-					document.getElementById("accessMethod").innerHTML = "<#AiCloud_enter#> <a id=\"cloud_url\" style=\"font-weight: bolder;text-decoration: underline;\" href=\"https://router.asus.com\" target=\"_blank\">https://router.asus.com</a>";
+					document.getElementById("accessMethod").innerHTML = "<#AiCloud_enter#> https://<#Web_DOMAIN_NAME#>";
 				else{
-					document.getElementById("accessMethod").innerHTML = "<#AiCloud_enter#> <a id=\"cloud_url\" style=\"font-weight: bolder;text-decoration: underline;\" href=\"https://router.asus.com\" target=\"_blank\">https://router.asus.com</a>";
+					document.getElementById("accessMethod").innerHTML = "<#AiCloud_enter#> https://<#Web_DOMAIN_NAME#>";
                                 	document.getElementById('cloud_url').href = "https://"+ theUrl +":" + https_port;
 	                                document.getElementById('cloud_url').innerHTML = "https://"+ theUrl +":" + https_port;
 				}	
@@ -344,7 +347,7 @@ function divdisplayctrl(flag1, flag2, flag3, flag4){
 	else if(flag4 != "none"){ // Have AiCloud 2.0 installed
 		document.getElementById("return_btn").style.display = "none";
 		//calHeight(1);
-		getStyleSheet('index_style', '.tab').style.display = "";
+		getStyleSheet('index_style', '.tab').style.display = "flex";
 	}
 	else{
 		document.getElementById("return_btn").style.display = "none";		
@@ -682,8 +685,10 @@ function update_applist(e){
 							<tbody>
 							<tr>
 							  <td bgcolor="#4D595D" valign="top">
+							  <div class="container">
 									<div>&nbsp;</div>
-									<div class="formfonttitle">AiCloud 2.0</div>									
+									<div class="formfonttitle">AiCloud 2.0</div>
+									<div class="formfonttitle_help"><i onclick="show_feature_desc(`<#HOWTOSETUP#>`)" class="icon_help"></i></div>
 									<div><img id="return_btn" onclick="location.href='/cloud_main.asp'" align="right" style="cursor:pointer;position:absolute;margin-left:690px;margin-top:-45px;" title="Back to AiCloud 2.0" src="/images/backprev.png" onMouseOver="this.src='/images/backprevclick.png'" onMouseOut="this.src='/images/backprev.png'"></div>
 									<div style="margin:10px 0 10px 5px;" class="splitLine"></div>
 									<div id="cloud_uninstall" style="display:none;">
@@ -718,6 +723,9 @@ function update_applist(e){
 														<tr>
 															<td>
 																<ul style="margin: 0px;padding-left:15px;" >
+																	<li style="margin-top:-5px;">
+																	 <#HTTPS_Redirect_Desc2#>
+																	</li>
 																	<li style="margin-top:-5px;">
 																 	<div id="accessMethod"></div>
 																 	</li>
@@ -874,13 +882,16 @@ function update_applist(e){
 									  </tr>
 									  <tr>
 									  	<td colspan="5" id="btn_cloud_uninstall">
-												<div class="apply_gen" style="margin-top:20px;">
-													<input class="button_gen" onclick="apps_form('remove','aicloud','');" type="button" value="Uninstall"/>
-			            			</div>			            
-			            		</td>
-			            	</tr>		
+											<div class="apply_gen" style="margin-top:20px;">
+											<input class="button_gen" onclick="apps_form('remove','aicloud','');" type="button" value="Uninstall"/>
+											</div>
+										</td>
+									  </tr>
 									</table>
 									</div>
+
+									</div>  <!-- for .container  -->
+									<div class="popup_container popup_element_second"></div>
 
 							  </td>
 							</tr>				

@@ -24,7 +24,6 @@
 #include <stdlib.h>
 #include <bcmnvram.h>
 #include <shutils.h>
-#include <utils.h>
 #include <syslog.h>
 #include <errno.h>
 #include <sys/stat.h>
@@ -55,7 +54,7 @@ void write_chap_secret(char *file)
 				continue;
 #ifdef RTCONFIG_NVRAM_ENCRYPT
 			memset(dec_passwd, 0, sizeof(dec_passwd));
-			pw_dec(passwd, dec_passwd, sizeof(dec_passwd));
+			pw_dec(passwd, dec_passwd, sizeof(dec_passwd), 1);
 			passwd = dec_passwd;
 #endif
 			fprintf(fp, "'%s' * '%s' *\n",
@@ -270,9 +269,6 @@ void start_pptpd(void)
 		}
 		free(nv);
 	}
-	/* Keep ip-up script last */
-	if (nvram_invmatch("pptpd_ipup_script", ""))
-		fprintf(fp, "%s\n", nvram_safe_get("pptpd_ipup_script"));
 	fclose(fp);
 
 	fp = fopen("/tmp/pptpd/ip-down", "w");
@@ -288,9 +284,6 @@ void start_pptpd(void)
 #endif
 		fprintf(fp, "iptables -t mangle -D FORWARD -i $1 -m state --state NEW -j MARK --set-mark 0x01/0x7\n");
 #endif
-	/* Keep ip-down script last */
-	if (nvram_invmatch("pptpd_ipdown_script", ""))
-		fprintf(fp, "%s\n", nvram_safe_get("pptpd_ipdown_script"));
 	fclose(fp);
 
 	chmod("/tmp/pptpd/ip-up", 0744);

@@ -23,6 +23,7 @@
 <script language="JavaScript" type="text/javascript" src="/js/jquery.js"></script>
 <script language="JavaScript" type="text/javascript" src="/md5.js"></script>
 <script type="text/javascript" src="/js/httpApi.js"></script>
+<script type="text/javascript" src="/form.js"></script>
 <style>
 .cancel{
 	border: 2px solid #898989;
@@ -182,6 +183,10 @@ var max_pwd_length = isSupport("MaxLen_http_passwd");
 var faq_href1 = "https://nw-dlcdnet.asus.com/support/forward.html?model=&type=Faq&lang="+ui_lang+"&kw=&num=105";
 var faq_href2 = "https://nw-dlcdnet.asus.com/support/forward.html?model=&type=Faq&lang="+ui_lang+"&kw=&num=111";
 
+var current_page = window.location.pathname.split("/").pop();
+var faq_index_tmp = get_faq_index(FAQ_List, current_page, 1);
+var secure_default = isSupport("secure_default");
+
 function initial(){	
 	//parse nvram to array
 	var parseNvramToArray = function(oriNvram) {
@@ -300,7 +305,7 @@ function initial(){
 	}
 	else{
 
-		if(wan_proto=="v6plus" && s46_ports_check_flag && array_ipv6_s46_ports.length > 1){
+		if((wan_proto == "v6plus" || wan_proto == "ocnvc") && s46_ports_check_flag && array_ipv6_s46_ports.length > 1){
 			$(".setup_info_icon.https").show();
 			$(".setup_info_icon.https").click(
 				function() {
@@ -325,7 +330,7 @@ function initial(){
 	if(ssh_support){
 		check_sshd_enable('<% nvram_get("sshd_enable"); %>');
 
-		if(wan_proto=="v6plus" && s46_ports_check_flag && array_ipv6_s46_ports.length > 1){
+		if((wan_proto == "v6plus" || wan_proto == "ocnvc") && s46_ports_check_flag && array_ipv6_s46_ports.length > 1){
 			$(".setup_info_icon.ssh").show();
 			$(".setup_info_icon.ssh").click(
 				function() {
@@ -383,8 +388,16 @@ function initial(){
 	}
 	else{
 		document.getElementById("pwrsave_tr").style.display = "none";
-		document.form.pwrsave_mode[0].disabled = false;
-		document.form.pwrsave_mode[1].disabled = false;
+		document.form.pwrsave_mode[0].disabled = true;
+		document.form.pwrsave_mode[1].disabled = true;
+	}
+
+	if (pagecache_ratio_support) {
+		document.getElementById("pagecache_ratio_tr").style.display = "";
+		document.form.pagecache_ratio.disabled = false;
+	} else {
+		document.getElementById("pagecache_ratio_tr").style.display = "none";
+		document.form.pagecache_ratio.disabled = true;
 	}
 
 	if(hdspindown_support) {
@@ -394,7 +407,27 @@ function initial(){
 		$('input[name="usb_idle_timeout"]').prop("disabled", false);
 	}
 
-	$("#https_download_cert").css("display", (le_enable != "1" && orig_http_enable != "0")? "": "none");
+	$("#https_download_cert").css("display", (orig_http_enable != "0")? "": "none");
+	if(orig_http_enable != "0"){
+		if(le_enable == "1"){
+			$("#download_cert_btn").css("display", "");
+			$("#clear_cert_btn").css("display", "none");
+			$("#download_cacert_btn").css("display", "none");
+			$("#clear_cacert_btn").css("display", "none");
+			$("#download_cacert_desc").css("display", "none");
+		}else if(le_enable == "2"){
+			$("#download_cert_btn").css("display", "");
+			if(document.form.casignedcert.value != "1"){
+				$("#clear_cert_btn").css("display", "none");
+				$("#download_cacert_btn").css("display", "none");
+			}else{
+				$("#clear_cert_btn").css("display", "");
+				$("#download_cacert_btn").css("display", "");
+			}
+			$("#clear_cacert_btn").css("display", "none");
+			$("#download_cacert_desc").css("display", "");
+		}
+	}
 
 	$("#login_captcha_tr").css("display", captcha_support? "": "none");
 
@@ -421,7 +454,7 @@ function applyRule(){
 		var isFromWAN = (function(){
 			var lanIpAddr = '<% nvram_get("lan_ipaddr"); %>';
 			if(location.hostname == lanIpAddr) return false;
-			else if(location.hostname == "router.asus.com") return false;
+			else if(location.hostname == "<#Web_DOMAIN_NAME#>") return false;
 			else if(location.hostname == "repeater.asus.com") return false;
 			else if(location.hostname == "cellspot.asus.com") return false;
 			else return true;
@@ -596,7 +629,7 @@ function applyRule(){
 			
 			if (('<% nvram_get("enable_ftp"); %>' == "1")
 				&& ('<% nvram_get("ftp_tls"); %>' == "1")) {
-					action_script_tmp += ";restart_ftpd";
+					action_script_tmp += "restart_ftpd;";
 			}
 		}
 
@@ -613,6 +646,8 @@ function applyRule(){
 
 		if(pwrsave_support)
 			action_script_tmp += "pwrsave;";
+		if(pagecache_ratio_support)
+			action_script_tmp += "pagecache_ratio;";
 
 		if(needReboot){
 
@@ -667,9 +702,9 @@ function validForm(){
 			return false;
 		}
 
-		if(wan_proto=="v6plus" && s46_ports_check_flag && array_ipv6_s46_ports.length > 1 && document.form.sshd_enable.value == 1){
+		if((wan_proto == "v6plus" || wan_proto == "ocnvc") && s46_ports_check_flag && array_ipv6_s46_ports.length > 1 && document.form.sshd_enable.value == 1){
 			if (!validator.range_s46_ports(document.form.sshd_port, "none")){
-				if(!confirm("The following port related settings may not work properly since the port is not available in current v6plus usable port range. Do you want to continue?")){
+				if(!confirm(port_confirm)){
 					document.form.sshd_port.focus();
 					return false;
 				}
@@ -696,9 +731,9 @@ function validForm(){
 			if (!validator.range(document.form.misc_httpsport_x, 1024, 65535))
 				return false;
 
-			if (wan_proto=="v6plus" && s46_ports_check_flag && array_ipv6_s46_ports.length > 1){
+			if ((wan_proto == "v6plus" || wan_proto == "ocnvc") && s46_ports_check_flag && array_ipv6_s46_ports.length > 1){
 				if (!validator.range_s46_ports(document.form.misc_httpsport_x, "none")){
-					if(!confirm("The following port related settings may not work properly since the port is not available in current v6plus usable port range. Do you want to continue?")){
+					if(!confirm(port_confirm)){
 						document.form.misc_httpsport_x.focus();
 						return false;
 					}
@@ -752,6 +787,13 @@ function validForm(){
 	}
 	else if(!validator.rangeAllowZero(document.form.http_autologout, 10, 999, '<% nvram_get("http_autologout"); %>'))
 		return false;
+
+	if (pagecache_ratio_support) {
+		if (parseInt(document.form.pagecache_ratio.value) < 5)
+			document.form.pagecache_ratio.value = "5";
+		else if (parseInt(document.form.pagecache_ratio.value) > 90)
+			document.form.pagecache_ratio.value = "90";
+	}
 
 	if(reboot_schedule_support){
 		if(!document.form.reboot_date_x_Sun.checked && !document.form.reboot_date_x_Mon.checked &&
@@ -819,10 +861,10 @@ var timezones = [
 	["PST8DST",	"(GMT-08:00) <#TZ05#>"],
 	["MST7DST_1",	"(GMT-07:00) <#TZ06#>"],
 	["MST7_2",	"(GMT-07:00) <#TZ07#>"],
-	["MST7DST_3",	"(GMT-07:00) <#TZ08#>"],
+	["MST7_3",	"(GMT-07:00) <#TZ08#>"],	//MST7DST_3
 	["CST6_2",	"(GMT-06:00) <#TZ10#>"],
-	["CST6DST_3",	"(GMT-06:00) <#TZ11#>"],
-	["CST6DST_3_1",	"(GMT-06:00) <#TZ12#>"],
+	["CST6_3",	"(GMT-06:00) <#TZ11#>"],	//CST6DST_3
+	["CST6_3_1",	"(GMT-06:00) <#TZ12#>"],	//CST6DST_3_1
 	["UTC6DST",	"(GMT-06:00) <#TZ13#>"],
 	["EST5DST",	"(GMT-05:00) <#TZ14#>"],
 	["UTC5_1",	"(GMT-05:00) <#TZ15#>"],
@@ -831,12 +873,13 @@ var timezones = [
 	["UTC4_1",	"(GMT-04:00) <#TZ18#>"],
 	["UTC4_2",	"(GMT-04:00) <#TZ18_1#>"],
 	["UTC4DST_2",	"(GMT-04:00) <#TZ19#>"],
+	["UTC4DST_3",	"(GMT-04:00) <#TZ19_1#>"],
 	["NST3.30DST",	"(GMT-03:30) <#TZ20#>"],
 	["EBST3",	"(GMT-03:00) <#TZ21#>"],	//EBST3DST_1
 	["UTC3",	"(GMT-03:00) <#TZ22#>"],
-	["EBST3DST_2",	"(GMT-03:00) <#TZ23#>"],
+	["UTC3DST",     "(GMT-03:00) <#TZ87#>"],        //UTC2DST
+	["UTC2_1",	"(GMT-02:00) <#TZ23#>"],	//EBST3DST_2
 	["UTC2",	"(GMT-02:00) <#TZ24#>"],
-	["UTC2DST",	"(GMT-02:00) <#TZ87#>"],
 	["EUT1DST",	"(GMT-01:00) <#TZ25#>"],
 	["UTC1",	"(GMT-01:00) <#TZ26#>"],
 	["GMT0",	"(GMT) <#TZ27#>"],
@@ -868,7 +911,7 @@ var timezones = [
 	["UTC-3_5",     "(GMT+03:00) <#TZ45#>"],        //UTC-4_7
 	["IST-3",	"(GMT+03:00) <#TZ48#>"],
 	["UTC-3_6",	"(GMT+03:00) <#TZ48_1#>"],
-	["UTC-3.30DST",	"(GMT+03:30) <#TZ49#>"],	
+	["UTC-3.30",	"(GMT+03:30) <#TZ49#>"],	//UTC-3.30DST	
 	["UTC-4_1",	"(GMT+04:00) <#TZ50#>"],
 	["UTC-4_5",	"(GMT+04:00) <#TZ50_2#>"],
 	["UTC-4_4",	"(GMT+04:00) <#TZ50_1#>"],
@@ -908,7 +951,7 @@ var timezones = [
 	["UTC-11_3",	"(GMT+11:00) <#TZ86#>"],
 	["UTC-11_4",	"(GMT+11:00) <#TZ82_1#>"],
 	["UTC-12",      "(GMT+12:00) <#TZ82#>"],
-	["UTC-12DST",      "(GMT+12:00) <#TZ82_2#>"],
+	["UTC-12_3",      "(GMT+12:00) <#TZ82_2#>"],	//UTC-12DST
 	["UTC-12_2",      "(GMT+12:00) <#TZ85#>"],
 	["NZST-12DST",	"(GMT+12:00) <#TZ83#>"],
 	["UTC-13",	"(GMT+13:00) <#TZ84#>"]];
@@ -1021,21 +1064,39 @@ function hide_https_lanport(_value){
 		document.getElementById("https_access_page").style.display = 'none';
 	}
 
-
-	if(le_enable != "1" && _value != "0"){
+	if(_value != "0"){
 		$("#https_download_cert").css("display", "");
-		if(orig_http_enable == "0"){
-			$("#download_cert_btn").css("display", "none");
-			$("#download_cert_desc").css("display", "");
-		}
-		else{
+		if(le_enable == "1"){
 			$("#download_cert_btn").css("display", "");
-			$("#download_cert_desc").css("display", "none");
+			$("#clear_cert_btn").css("display", "none");
+			$("#download_cacert_btn").css("display", "none");
+			$("#clear_cacert_btn").css("display", "none");
+			$("#download_cacert_desc").css("display", "none");
+		}else if (le_enable == "2"){
+			$("#download_cert_btn").css("display", "");
+			if(document.form.casignedcert.value != "1"){
+				$("#clear_cert_btn").css("display", "none");
+				$("#download_cacert_btn").css("display", "none");
+			}else{
+				$("#clear_cert_btn").css("display", "");
+				$("#download_cacert_btn").css("display", "");
+			}
+			$("#clear_cacert_btn").css("display", "none");
+			$("#download_cacert_desc").css("display", "");
+		}else{
+			$("#download_cert_btn").css("display", "");
+			$("#clear_cert_btn").css("display", "");
+			$("#download_cacert_btn").css("display", "");
+			$("#clear_cacert_btn").css("display", "");
+			$("#download_cacert_desc").css("display", "");
 		}
-	}
-	else{
+		if(orig_http_enable == "0"){
+			$("#clear_cert_btn").css("display", "none");
+			$("#clear_cacert_btn").css("display", "none");
+		}
+	}else{
 		$("#https_download_cert").css("display", "none");
-	}
+ 	}
 }
 
 // show clientlist
@@ -1213,7 +1274,6 @@ function pullLANIPList(obj){
 function hideport(flag){
 	document.getElementById("accessfromwan_port").style.display = (flag == 1) ? "" : "none";
 	if(!HTTPS_support){
-		document.getElementById("NSlookup_help_for_WAN_access").style.display = (flag == 1) ? "" : "none";
 		var orig_str = document.getElementById("access_port_title").innerHTML;
 		document.getElementById("access_port_title").innerHTML = orig_str.replace(/HTTPS/, "HTTP");
 		document.getElementById("http_port").style.display = (flag == 1) ? "" : "none";
@@ -1584,8 +1644,50 @@ function reset_portconflict_hint(){
 	$("#port_conflict_httpslanport").hide();
 }
 
+function save_cacert_key(){
+	location.href = "cert.crt";
+}
+
 function save_cert_key(){
-	location.href = "cert.tar";
+	location.href = "cert_key.tar";
+}
+
+function clear_server_cert_key(){
+	$.ajax({url: "clear_file.cgi?clear_file_name=server_certs"})
+	showLoading();
+	setTimeout(function(){
+		setInterval(function(){
+			var http = new XMLHttpRequest
+			http.onreadystatechange=function(){
+				if(http.readyState==4 && http.status==200){
+					top.location.href="/Advanced_System_Content.asp"
+				}
+			},
+
+			http.open("GET","/httpd_check.xml",!0);
+			http.send(null);
+		}, 1000);
+	}, 1000)
+}
+
+function clear_cert_key(){
+	if(confirm(`<#DDNS_Install_Root_Cert_Desc#>`)){
+		$.ajax({url: "clear_file.cgi?clear_file_name=cert.tgz"})
+		showLoading();
+		setTimeout(function(){
+			setInterval(function(){
+				var http = new XMLHttpRequest
+				http.onreadystatechange=function(){
+					if(http.readyState==4 && http.status==200){
+						top.location.href="/Advanced_System_Content.asp"
+					}
+				},
+
+				http.open("GET","/httpd_check.xml",!0);
+				http.send(null);
+			}, 1000);
+		}, 1000)
+	}
 }
 
 var NTPListArray = [
@@ -1727,6 +1829,13 @@ function change_username(){
 
 		$("#http_username_new").val($("#http_username_new").val().trim());
 
+		if($("#http_username_new").val() == $("#http_passwd_cur").val()){
+			showtext(document.getElementById("alert_msg"),"* <#JS_validLoginPWD_same#>");
+			$("#http_username_new").focus();
+			$("#http_username_new").select();
+			return false;
+		}
+
 		if($("#http_username_new").val() == "root"
 				|| $("#http_username_new").val() == "guest"
 				|| $("#http_username_new").val() == "anonymous"
@@ -1791,8 +1900,15 @@ function change_passwd(){
 		return false;
 	}
 
+	var str_valid_max_password = `<#JS_max_password_var#>`;
+	if(is_KR_sku || is_SG_sku || is_AA_sku || secure_default){  /* MODELDEP by Territory Code */
+		str_valid_max_password = `* `+str_valid_max_password.replace("%1$@", "10");
+	}
+	else{
+		str_valid_max_password = `* `+str_valid_max_password.replace("%1$@", "5");
+	}
 	if($("#http_passwd_new").val().length > max_pwd_length){
-		showtext(document.getElementById("new_pwd_msg"),"* <#JS_max_password#>");
+		showtext(document.getElementById("new_pwd_msg"), str_valid_max_password);
 		$("#http_passwd_new").focus();
 		$("#http_passwd_new").select();
 		return false;
@@ -1810,7 +1926,14 @@ function change_passwd(){
 		return false;
 	}
 
-	if(is_KR_sku || is_SG_sku || is_AA_sku){	/* MODELDEP by Territory Code */
+	if($("#http_passwd_new").val() == httpApi.nvramGet(["http_username"]).http_username){
+        showtext(document.getElementById("alert_msg"),"* <#JS_validLoginPWD_same#>");
+        $("#http_passwd_new").focus();
+        $("#http_passwd_new").select();
+        return false;
+	}
+
+	if(is_KR_sku || is_SG_sku || is_AA_sku || secure_default){	/* MODELDEP by Territory Code */
 		if($("#http_passwd_new").val().length > 0){
 			if(!validator.string_KR(document.getElementById("http_passwd_new"))){
 				$("#http_passwd_new").focus();
@@ -1883,8 +2006,8 @@ function change_passwd(){
 
 function check_password_length(obj){
 
-	if(is_KR_sku || is_SG_sku || is_AA_sku){     /* MODELDEP by Territory Code */
-		showtext(document.getElementById("new_pwd_msg"),"");
+	if(is_KR_sku || is_SG_sku || is_AA_sku || secure_default){     /* MODELDEP by Territory Code */
+		showtext(document.getElementById("new_pwd_msg"),"<#JS_validLoginPWD#>");
 		return;
 	}
 	
@@ -2003,6 +2126,7 @@ function check_password_length(obj){
 <input type="hidden" name="reboot_schedule_enable" value="<% nvram_get("reboot_schedule_enable"); %>">
 <input type="hidden" name="shell_timeout" value="<% nvram_get("shell_timeout"); %>">
 <input type="hidden" name="http_lanport" value="<% nvram_get("http_lanport"); %>">
+<input type="hidden" name="casignedcert" value="<% nvram_get("casignedcert"); %>" disabled>
 <input type="hidden" name="sw_mode" value="<% nvram_get("sw_mode"); %>">
 <input type="hidden" name="ncb_enable" value="<% nvram_get("ncb_enable"); %>">
 <input type="hidden" name="dns_probe" value="<% nvram_get("dns_probe"); %>">
@@ -2027,6 +2151,7 @@ function check_password_length(obj){
 	<tbody>
 	<tr>
 		<td bgcolor="#4D595D" valign="top">
+		<div class="container">
 			<div>&nbsp;</div>
 			<div class="formfonttitle"><#menu5_6#> - <#menu5_6_2#></div>
 			<div style="margin:10px 0 10px 5px;" class="splitLine"></div>
@@ -2294,6 +2419,12 @@ function check_password_length(obj){
 						</select>
 					</td>
 				</tr>
+				<tr id="pagecache_ratio_tr" style="display:none;">
+					<th align="right"><a class="hintstyle" href="javascript:void(0);" onClick="overlib('Lower page cache ratio, poor NAS performance.');" onmouseout="nd();">Maximum page cache ratio</th>
+					<td>
+						<input type="text" class="input_3_table" maxlength="3" name="pagecache_ratio" value='<% nvram_get("pagecache_ratio"); %>' onblur="return validator.numberRange(this, 5, 90);" autocorrect="off" autocapitalize="off"> %
+					</td>
+				</tr>
 				<tr id="reboot_schedule_enable_tr">
 					<th><#Enable_reboot_scheduler#></th>
 					<td>
@@ -2347,7 +2478,12 @@ function check_password_length(obj){
 					</tr>
 				</thead>
 				<tr>
-					<th><#Enable_Telnet#></th>
+					<th width="40%">
+						<div>
+							<#Enable_Telnet#>
+							<i onclick="show_feature_desc(`<#HOWTOSETUP#>`)" class="icon_th_help"></i>
+						</div>
+					</th>
 					<td>
 						<input type="radio" name="telnetd_enable" value="1" onchange="telnet_enable(this.value);" <% nvram_match_x("LANHostConfig", "telnetd_enable", "1", "checked"); %>><#checkbox_Yes#>
 						<input type="radio" name="telnetd_enable" value="0" onchange="telnet_enable(this.value);" <% nvram_match_x("LANHostConfig", "telnetd_enable", "0", "checked"); %>><#checkbox_No#>
@@ -2438,8 +2574,15 @@ function check_password_length(obj){
 				<tr id="https_download_cert" style="display: none;">
 					<th><#Local_access_certificate_download#></th>
 					<td>
-						<input id="download_cert_btn" class="button_gen" onclick="save_cert_key();" type="button" value="<#btn_Export#>" />
-						<span id="download_cert_desc"><#Local_access_certificate_desc#></span><a id="creat_cert_link" href="" style="font-family:Lucida Console;text-decoration:underline;color:#FFCC00; margin-left: 5px;" target="_blank">FAQ</a>
+						<div style="display: flex;">
+							<input id="download_cert_btn" class="button_gen" onclick="save_cert_key();" type="button" value="<#btn_Export#> <#vpn_openvpn_KC_SA#>" />
+							<input id="clear_cert_btn" class="button_gen" style="margin-left:10px" onclick="clear_server_cert_key();" type="button" value="<#CTL_renew#> <#vpn_openvpn_KC_SA#>" /><!-- untranslated -->
+						</div>
+						<div style="display: flex;">
+							<input id="download_cacert_btn" class="button_gen" style="margin-top:10px" onclick="save_cacert_key();" type="button" value="<#btn_Export#> Root Certificate" />
+							<input id="clear_cacert_btn" class="button_gen" style="margin-left:10px;margin-top:10px" onclick="clear_cert_key();" type="button" value="<#CTL_renew#> Root Certificate" /><!-- untranslated -->
+ 						</div>
+						<span id="download_cacert_desc"><#Local_access_certificate_desc#></span><a id="creat_cert_link" href="" style="font-family:Lucida Console;text-decoration:underline;color:#FFCC00; margin-left: 5px;" target="_blank">FAQ</a>
 					</td>
 				</tr>
 			</table>
@@ -2458,7 +2601,6 @@ function check_password_length(obj){
 						<span class="formfontdesc" id="WAN_access_hint" style="color:#FFCC00; display:none;"><#FirewallConfig_x_WanWebEnable_HTTPS_only#> 
 							<a id="faq" href="" target="_blank" style="margin-left: 5px; color:#FFCC00; text-decoration: underline;">FAQ</a>
 						</span>
-						<div class="formfontdesc" id="NSlookup_help_for_WAN_access" style="color:#FFCC00; display:none;"><#NSlookup_help#></div>
 					</td>
 				</tr>
 				<tr id="accessfromwan_port">
@@ -2517,6 +2659,10 @@ function check_password_length(obj){
 			<div class="apply_gen">
 				<input name="button" type="button" class="button_gen" onclick="applyRule();" value="<#CTL_apply#>"/>
 			</div>
+
+			</div>  <!-- for .container  -->
+			<div class="popup_container popup_element_second"></div>
+
 		</td>
 	</tr>
 </tbody>

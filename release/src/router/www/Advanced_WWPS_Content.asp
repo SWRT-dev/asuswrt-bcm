@@ -17,6 +17,7 @@
 <script type="text/javascript" src="/popup.js"></script>
 <script type="text/javascript" src="/js/jquery.js"></script>
 <script type="text/javascript" src="/switcherplugin/jquery.iphone-switch.js"></script>
+<script type="text/javascript" src="/form.js"></script>
 <script><% wl_get_parameter(); %>
 $(function () {
 	if(amesh_support && (isSwMode("rt") || isSwMode("ap")) && ameshRouter_support) {
@@ -37,6 +38,9 @@ var curState = "<% nvram_get("wps_enable"); %>";
 var radio_2 = '<% nvram_get("wl0_radio"); %>';
 var radio_5 = '<% nvram_get("wl1_radio"); %>';
 var band_string = "";
+
+var current_page = window.location.pathname.split("/").pop();
+var faq_index_tmp = get_faq_index(FAQ_List, current_page, 1);
 
 function reject_wps(auth_mode, wep){
 	return (auth_mode == "open" && wep != "0") || auth_mode == "shared" || auth_mode == "psk" || auth_mode == "wpa" || auth_mode == "wpa2" || auth_mode == "wpawpa2" || auth_mode == "radius";
@@ -773,9 +777,11 @@ function checkWLReady(){
 
 	<tbody>
 	<tr>
-		  <td bgcolor="#4D595D" valign="top"  >
+		  <td bgcolor="#4D595D" valign="top">
+		  <div class="container">
 		  <div>&nbsp;</div>
 		  <div class="formfonttitle"><#menu5_1#> - <#menu5_1_2#></div>
+		  <div class="formfonttitle_help"><i onclick="show_feature_desc(`<#HOWTOSETUP#>`)" class="icon_help"></i></div>
 		  <div style="margin:10px 0 10px 5px;" class="splitLine"></div>
 		  <div class="formfontdesc"><#WLANConfig11b_display6_sectiondesc#></div>
 		  <div id="lantiq_ready" style="display:none;color:#FC0;margin-left:5px;font-size:13px;">Wireless is setting...</div>
@@ -958,6 +964,9 @@ function checkWLReady(){
 			</tr>
 
 		</table>
+
+		</div>  <!-- for .container  -->
+		<div class="popup_container popup_element_second"></div>
 
 	  </td>
 	</tr>

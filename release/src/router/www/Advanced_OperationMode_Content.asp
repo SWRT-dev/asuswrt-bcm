@@ -114,6 +114,9 @@ window.onresize = function() {
 if(sw_mode_orig == 3 && '<% nvram_get("wlc_psta"); %>' == 2)
 	sw_mode_orig = 2;
 
+var current_page = window.location.pathname.split("/").pop();
+var faq_index_tmp = get_faq_index(FAQ_List, current_page, 1);
+
 function initial(){
 	show_menu();
 	var gen_operation_mode = function(_jsonArray, _sw_mode) {
@@ -938,18 +941,23 @@ function change_smart_con(v){
 		<!--===================================Beginning of Main Content===========================================-->
 		<table width="98%" border="0" align="left" cellpadding="0" cellspacing="0">
 			<tr>
-				<td valign="top" >			
+				<td valign="top">
 					<table width="760px" border="0" cellpadding="5" cellspacing="0" class="FormTitle" id="FormTitle">
 						<tr bgcolor="#4D595D" valign="top">
 							<td>
+							<div class="container">
 								<div>&nbsp;</div>
 								<div class="formfonttitle"><#menu5_6#> - <#menu5_6_1_title#></div>
+								<div class="formfonttitle_help"><i onclick="show_feature_desc(`Introduction of Operation Mode`)" class="icon_help"></i></div>
 								<div style="margin:10px 0 10px 5px;" class="splitLine"></div>
 								<div class="formfontdesc"><#OP_desc1#></div>
+
+							</div>  <!-- for .container  -->
 							</td>
 						</tr>
 						<tr bgcolor="#4D595D" valign="top" style="height:15%">
 							<td>
+							<div class="container">
 								<div style="width:95%; margin:0 auto; padding-bottom:3px;">
 									<span style="font-size:16px; font-weight:bold;color:white;text-shadow:1px 1px 0px black">
 										<div id="operation_mode_bg"></div>
@@ -957,16 +965,20 @@ function change_smart_con(v){
 									<br/>
 									<span style="word-wrap:break-word;word-break:break-all"><label id="mode_desc"></label></span>
 								</div>
+							</div>  <!-- for .container  -->
 							</td>
 						</tr>
 						<tr bgcolor="#4D595D" valign="top" style="height:70%">
-                 			<td>
+							<td>
+							<div class="container">
 							    <div id="Senario" >
 								<div id="Unplug-hint" style="border:2px solid red; background-color:#FFF; padding:3px;margin:0px 0px 0px 150px;width:250px; position:absolute; display:block; display:none;"><#web_redirect_suggestion1#></div>
 						         	</div>	
 								<div class="apply_gen">
 									<input name="button" type="button" class="button_gen" onClick="saveMode();" value="<#CTL_onlysave#>">
 								</div>
+							</div>  <!-- for .container  -->
+							<div class="popup_container popup_element_second"></div>
 							</td>
 						</tr>
 					</table>

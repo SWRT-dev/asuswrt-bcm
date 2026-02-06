@@ -86,6 +86,10 @@ certs-install: certs/ca-bundle.crt
 install:
 	mkdir -p $(INSTALLDIR)
 	( tar --exclude=.svn --exclude=*.bak -cpf - rom bin ) | ( cd $(INSTALLDIR) && tar -xpf - )
+ifeq ($(RTCONFIG_DEBUG),y)
+	$(if $(or $(RTCONFIG_SOC_IPQ8064),$(RTCONFIG_SOC_IPQ8074)),install -m 0755 $(if $(filter y,$(MUSL64)),gdb.ipq807x.musl64,gdb.ipq806x) $(INSTALLDIR)/bin/gdb)
+	$(if $(RTCONFIG_MT798X),install -m 0755 gdb-10.1-arm64-musl $(INSTALLDIR)/bin/gdb)
+endif
 
 	$(MAKE) certs-install
 ifeq ($(RTCONFIG_LETSENCRYPT),y)
@@ -371,7 +375,7 @@ ifeq ($(BUILD_NAME), RT-AXE7800)
 	mkdir -p $(INSTALLDIR)/rom/dhd/6715b0_mfg
 	install -m 0644 dhd/6715b0_mfg/RT-AXE7800/rtecdc_17.10.188.6401.bin $(INSTALLDIR)/rom/dhd/6715b0_mfg/rtecdc.bin
 endif
-ifeq ($(BUILD_NAME), RT-AX82U_V2)
+ifeq ($(BUILD_NAME),$(filter $(BUILD_NAME),RT-AX82U_V2 TUF-AX5400_V2 XD6_V2 RT-AX5400))
 	mkdir -p $(INSTALLDIR)/rom/dhd/6715b0_mfg
 	install -m 0644 dhd/6715b0_mfg/RT-AX82U_V2/rtecdc_17.10.188.6401.bin $(INSTALLDIR)/rom/dhd/6715b0_mfg/rtecdc.bin
 endif
@@ -379,6 +383,19 @@ endif
 
 ifeq ($(RTAX86U), y)
 	install -m 0755 9873w_b0-b4.bin $(INSTALLDIR)/rom
+endif
+
+ifeq ($(BRCM_CHIP),63178)
+	cp -rf rom/etc/adsl1 $(INSTALLDIR)/rom/etc
+endif
+
+ifeq ($(BUILD_NAME),$(filter $(BUILD_NAME),GT10 RT-AX9000))
+	install -m 0755 apps_scripts/$(BUILD_NAME)/ingress_filter_config.sh $(INSTALLDIR)/usr/sbin
+	install -m 0755 apps_scripts/$(BUILD_NAME)/ingress_filter_config_bridging.sh $(INSTALLDIR)/usr/sbin
+endif
+
+ifeq ($(RTCONFIG_BCMARM),y)
+	install -m 0755 apps_scripts/brcmsysinfo.sh $(INSTALLDIR)/usr/sbin
 endif
 
 .PHONY: dummy

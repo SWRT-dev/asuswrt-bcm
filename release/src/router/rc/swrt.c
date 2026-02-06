@@ -14,9 +14,9 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
  * MA 02111-1307 USA
  *
- * Copyright 2018-2023, SWRT.
- * Copyright 2018-2023, paldier <paldier@hotmail.com>.
- * Copyright 2018-2023, lostlonger<lostlonger.g@gmail.com>.
+ * Copyright 2018-2025, SWRT.
+ * Copyright 2018-2025, paldier <paldier@hotmail.com>.
+ * Copyright 2018-2025, lostlonger<lostlonger.g@gmail.com>.
  * All Rights Reserved.
  *
  */
@@ -49,8 +49,8 @@ void fix_jffs_size(void);
 #if defined(RTCONFIG_SOFTCENTER)
 static void firmware_ver(void)
 {
-    char tmp[6] = {0};
-    strncpy(tmp, RT_FWVER, 5);//5.x.x[beta]
+	char tmp[6] = {0};
+	strncpy(tmp, RT_FWVER, 5);//5.x.x[beta]
 	doSystem("dbus set softcenter_firmware_version='%s'",tmp);
 }
 #endif
@@ -105,206 +105,21 @@ void swrt_init_pre()
 	if(swrt_init_model)
 		swrt_init_model();
 #if defined(RTCONFIG_ROG_UI)
-	nvram_set("swrt_rog", "1");
-#endif
-#if defined(RTCONFIG_TUF_UI)
-	nvram_set("swrt_tuf", "1");
+	nvram_set("swrt_skin", "rog");
+#elif defined(RTCONFIG_TUF_UI)
+	nvram_set("swrt_skin", "tuf");
+#elif defined(RTCONFIG_GS_UI)
+	nvram_set("swrt_skin", "gs");
+#elif defined(RTCONFIG_TS_UI)
+	nvram_set("swrt_skin", "ts");
 #endif
 	if(!nvram_get("modelname"))
-//non asus
-#if defined(SBRAC1900P)
-		nvram_set("modelname", "SBRAC1900P");
-#elif defined(EA6700)
-		nvram_set("modelname", "EA6700");
-#elif defined(DIR868L)
-		nvram_set("modelname", "DIR868L");
-#elif defined(R6300V2)
-		nvram_set("modelname", "R6300V2");
-#elif defined(F9K1118)
-		nvram_set("modelname", "F9K1118");
-#elif defined(SBRAC3200P)
-		nvram_set("modelname", "SBRAC3200P");
-#elif defined(K3)
-		nvram_set("modelname", "K3");
-#elif defined(XWR3100)
-		nvram_set("modelname", "XWR3100");
-#elif defined(R7000P)
-		nvram_set("modelname", "R7000P");
-#elif defined(R8500)
-		nvram_set("modelname", "R8500");
-#elif defined(RAC2V1S)
-		nvram_set("modelname", "RAC2V1S");
-#elif defined(R8000P)
-		nvram_set("modelname", "R8000P");
-#elif defined(RAX20)
-		nvram_set("modelname", "RAX20");
-#elif defined(RAX70)
-		nvram_set("modelname", "RAX70");
-#elif defined(RAX80)
-		nvram_set("modelname", "RAX80");
-#elif defined(RAX120)
-		nvram_set("modelname", "RAX120");
-#elif defined(RAX200)
-		nvram_set("modelname", "RAX200");
-#elif defined(TY6201_BCM)
-		nvram_set("modelname", "TY6201_BCM");
-#elif defined(TY6201_RTK)
-		nvram_set("modelname", "TY6201_RTK");
-#elif defined(TY6202)
-		nvram_set("modelname", "TY6202");
-#elif defined(RGMA2820A)
-		nvram_set("modelname", "RGMA2820A");
-#elif defined(RGMA2820B)
-		nvram_set("modelname", "RGMA2820B");
-#elif defined(TYAX5400)
-		nvram_set("modelname", "TYAX5400");
-#elif defined(K3C)
-		nvram_set("modelname", "K3C");
-#elif defined(MR60)
-		nvram_set("modelname", "MR60");
-#elif defined(MS60)
-		nvram_set("modelname", "MS60");
-#elif defined(SWRT360V6)
+#if defined(SWRT360V6)
 		nvram_set("modelname", "360V6");
-#elif defined(GLAX1800)
-		nvram_set("modelname", "GLAX1800");
-#elif defined(JDCAX1800)
-		nvram_set("modelname", "JDCAX1800");
-#elif defined(RMAX6000)
-		nvram_set("modelname", "RMAX6000");
-#elif defined(RMAC2100)
-		nvram_set("modelname", "RMAC2100");
-#elif defined(R6800)
-		nvram_set("modelname", "R6800");
-#elif defined(PGBM1)
-		nvram_set("modelname", "PGBM1");
-#elif defined(JCGQ10PRO)
-		nvram_set("modelname", "JCGQ10PRO");
-#elif defined(H3CTX1801)
-		nvram_set("modelname", "H3CTX1801");
-#elif defined(XMCR660X)
-		nvram_set("modelname", "XMCR660X");
-#elif defined(TY6201PRO)
-		nvram_set("modelname", "TY6201PRO");
-#elif defined(RGMA3062)
-		nvram_set("modelname", "RGMA3062");
-#elif defined(JCGQ20)
-		nvram_set("modelname", "JCGQ20");
-//asus
-#elif defined(RTAC68U)
-		nvram_set("modelname", "RTAC68U");
-#elif defined(RTAC3200)
-		nvram_set("modelname", "RTAC3200");
-#elif defined(RTAC3100)
-		nvram_set("modelname", "RTAC3100");
-#elif defined(RTAC88U)
-		nvram_set("modelname", "RTAC88U");
-#elif defined(RTAC5300)
-		nvram_set("modelname", "RTAC5300");
-#elif defined(RTAC86U)
-		nvram_set("modelname", "RTAC86U");
-#elif defined(GTAC2900)
-		nvram_set("modelname", "GTAC2900");
-#elif defined(GTAC5300)
-		nvram_set("modelname", "GTAC5300");
-#elif defined(RTAX53U)
-		nvram_set("modelname", "RTAX53U");
-#elif defined(RTAX54)
-		nvram_set("modelname", "RTAX54");
-#elif defined(RTAX55) || defined(RTAX1800)
-		nvram_set("modelname", "RTAX55");
-#elif defined(RTAX56U)
-		nvram_set("modelname", "RTAX56U");
-#elif defined(RTAX57)
-		nvram_set("modelname", "RTAX57");
-#elif defined(RTAX58U) || defined(RTAX3000)
-		nvram_set("modelname", "RTAX58U");
-#elif defined(RTAX58U_V2)
-		nvram_set("modelname", "RTAX58UV2");
-#elif defined(TUFAX3000)
-		nvram_set("modelname", "TUFAX3000");
-#elif defined(TUFAX3000_V2)
-		nvram_set("modelname", "TUFAX3000V2");
-#elif defined(TUFAX5400)
-		nvram_set("modelname", "TUFAX5400");
-#elif defined(TUFAX5400_V2)
-		nvram_set("modelname", "TUFAX5400V2");
-#elif defined(GSAX3000)
-		nvram_set("modelname", "GSAX3000");
-#elif defined(GSAX5400)
-		nvram_set("modelname", "GSAX5400");
-#elif defined(RTAX68U)
-		nvram_set("modelname", "RTAX68U");
-#elif defined(RTAX82U)
-		nvram_set("modelname", "RTAX82U");
-#elif defined(RTAX82U_V2)
-		nvram_set("modelname", "RTAX82UV2");
-#elif defined(RTAX86U)
-		nvram_set("modelname", "RTAX86U");
-#elif defined(RTAX86U_PRO)
-		nvram_set("modelname", "RTAX86UPRO");
-#elif defined(RTAX88U)
-		nvram_set("modelname", "RTAX88U");
-#elif defined(RTAX88U_PRO)
-		nvram_set("modelname", "RTAX88UPRO");
-#elif defined(RTAX92U)
-		nvram_set("modelname", "RTAX92U");
-#elif defined(GTAX6000)
-		nvram_set("modelname", "GTAX6000");
-#elif defined(GTAX11000)
-		nvram_set("modelname", "GTAX11000");
-#elif defined(GTAX11000_PRO)
-		nvram_set("modelname", "GTAX11000PRO");
-#elif defined(GTAXE11000)
-		nvram_set("modelname", "GTAXE11000");
-#elif defined(GTAXE16000)
-		nvram_set("modelname", "GTAXE16000");
-#elif defined(BLUECAVE)
-		nvram_set("modelname", "BLUECAVE");
-#elif defined(RTAC82U)
-		nvram_set("modelname", "RTACRH17");
-#elif defined(RTAX89U)
-		nvram_set("modelname", "RTAX89X");
-#elif defined(RTAC85P)
-		nvram_set("modelname", "RTAC85P");
-#elif defined(TUFAC1750)
-		nvram_set("modelname", "TUFAC1750");
-#elif defined(RTAC95U)
-		nvram_set("modelname", "ZENWIFICT8");
-#elif defined(RTAX56XD4)
-		nvram_set("modelname", "ZENWIFIXD4");
-#elif defined(RTAX82_XD6)
-		nvram_set("modelname", "ZENWIFIXD6");
-#elif defined(RTAX82_XD6S)
-		nvram_set("modelname", "ZENWIFIXD6S");
-#elif defined(XD6_V2)
-		nvram_set("modelname", "ZENWIFIXD6V2");
-#elif defined(RTAX95Q)
-		nvram_set("modelname", "ZENWIFIXT8");
-#elif defined(RTAXE95Q)
-		nvram_set("modelname", "ZENWIFIET8");
-#elif defined(XT12)
-		nvram_set("modelname", "ZENWIFIXT12");
-#elif defined(ET12)
-		nvram_set("modelname", "ZENWIFIET12");
-#elif defined(XD4PRO)
-		nvram_set("modelname", "ZENWIFIXD4PRO");
-#elif defined(XT8PRO)
-		nvram_set("modelname", "ZENWIFIXT9");
-#elif defined(XT8_V2)
-		nvram_set("modelname", "ZENWIFIXT8V2");
-#elif defined(ET8PRO)
-		nvram_set("modelname", "ZENWIFIET9");
-#elif defined(ET8_V2)
-		nvram_set("modelname", "ZENWIFIET8V2");
-#elif defined(PLAX56_XP4)
-		nvram_set("modelname", "ZENWIFIXP4");
-#elif defined(ETJ)
-		nvram_set("modelname", "ZENWIFIETJ");
-#elif defined(GT10)
-		nvram_set("modelname", "GT6");
-#elif defined(RTAXE7800)
-		nvram_set("modelname", "RTAXE7800");
+#elif defined(SWRT360T7)
+		nvram_set("modelname", "360T7");
+#else
+		nvram_set("modelname", RT_FWSWRTNAME);
 #endif
 	if(!nvram_get("swrt_beta"))
 		nvram_set("swrt_beta", "0");
@@ -809,7 +624,8 @@ void exec_uu_swrt()
 	if(sw_mode() == SW_MODE_ROUTER){
 		add_rc_support("uu_accel");
 		mkdir("/tmp/uu", 0755);
-		snprintf(buf, sizeof(buf), "wget -t 2 -T 30 --dns-timeout=120 --header=Accept:text/plain -q --no-check-certificate %s -O %s",
+		// --header=Accept:text/plain, add header: txt, otherwise: json
+		snprintf(buf, sizeof(buf), "wget -t 2 -T 30 --dns-timeout=120 -q --no-check-certificate %s -O %s",
 			"https://router.uu.163.com/api/script/monitor?type=asuswrt-merlin", "/tmp/uu/script_url");
 		if (!system(buf)){
 			_dprintf("download uuplugin script info successfully\n");
@@ -1020,7 +836,7 @@ void start_entware(void)
 					system("sed -i 's|http://bin.entware.net|http://mirrors.bfsu.edu.cn/entware|g' /opt/etc/opkg.conf");
 				system("/tmp/installentware.sh");
 				nvram_set("entware_installed", "1");
-#if defined(RTCONFIG_HND_ROUTER_AX_6756)
+#if defined(RTCONFIG_HND_ROUTER_AX_6756) || defined(RTCONFIG_HND_ROUTER_BE_4916)
 				eval("ln", "-sf", "/bin/rm", "/opt/bin/rm");//protect system files
 #endif
 			}else
@@ -1347,7 +1163,7 @@ int check_bwdpi_nvram_setting(){ return 0; }
 int check_wrs_switch(){ return 0; }
 #endif
 
-#if defined(RTCONFIG_BCMARM) && !defined(RTCONFIG_HND_ROUTER_AX)
+#if defined(RTCONFIG_BCMARM) && !defined(RTCONFIG_HND_ROUTER_AX) && !defined(RTCONFIG_HND_ROUTER_BE_4916)
 #define	HAPD_MAX_BUF			512
 void __attribute__((weak)) wl_apply_akm_by_auth_mode(int unit, int subunit, char *sp_prefix_auth)
 {
@@ -1944,7 +1760,7 @@ int  __attribute__((weak)) setNetLed(void)
 }
 #endif
 
-#if defined(RAX200)
+#if defined(RAX200) || defined(RAX80)
 void fan_watchdog(void)
 {
 	FILE *fp;
@@ -2007,12 +1823,31 @@ void get_nvramstr(int unit, char *buf, size_t len, int which)
 {
 	char *str = NULL;
 #if defined(GTAXE16000)
-const unsigned int devpath_idx[4] = {3, 4, 2, 1};    // 2.4G, 5G-1, 5G-2, 6G
+const unsigned int devpath_idx[4] = {4, 2, 1, 3};    // 5G-1, 5G-2, 6G, 2.4G
+#elif defined(GTBE98)
+const unsigned int devpath_idx[4] = {1, 4, 2, 3};    // 5G-1, 5G-2, 6G, 2.4G
+#elif defined(BT10)
+const unsigned int devpath_idx[3] = {ENVRAM_6G_DEVPATH, ENVRAM_5G_DEVPATH, ENVRAM_2G_DEVPATH};    // 6G, 5G, 2G (devpath, not wlx index)
+#elif defined(BQ16)
+const unsigned int devpath_idx[4] = {0, 2, 1, 3};    // 5G-1, 5G-2, 6G, 2.4G
+#elif defined(BQ16_PRO)
+const unsigned int devpath_idx[4] = {0, 1, 2, 3};    // 5G, 6G-1, 6G-2, 2.4G
+#elif defined(GTBE98_PRO)
+const unsigned int devpath_idx[4] = {4, 2, 1, 3};    // 5G, 6G-1, 6G-2, 2.4G
 #elif defined(GTAX11000_PRO)
 const unsigned int devpath_idx[4] = {3, 4, 1, 2};    // 2.4G, 5G-1, 5G-2
-#elif defined(GT10)
-const unsigned int devpath_idx[4] = {0, 1, 2};    // 2.4G, 5G-1, 5G-2
+#elif defined(GT10) || defined(RTAX9000)
+const unsigned int devpath_idx[4] = {1, 2, 0};    // 2.4G, 5G-1, 5G-2
+#elif defined(RTBE96U) || defined(GTBE19000) || defined(GTBE19000AI)
+const unsigned int devpath_idx[4] = {3, 4, 2, 1};    // 2.4G, 5G, 6G
+#elif defined(GTBE96)
+const unsigned int devpath_idx[4] = {3, 1, 4};	// 2.4G, 5G-1, 5G-2
+#elif defined(RTBE88U)
+const unsigned int devpath_idx[4] = {0, 1};	// 2.4G, 5G
+#elif defined(GTBE96_AI)
+const unsigned int devpath_idx[4] = {3, 2, 4};  // 2.4G, 5G-1, 5G-2
 #endif
+
 	if(which == SUFFIX_TXPWR){
 		if(unit == 0)
 			str = "maxp2ga0";
@@ -2066,6 +1901,10 @@ const unsigned int devpath_idx[4] = {0, 1, 2};    // 2.4G, 5G-1, 5G-2
 		case MODEL_RTAX68U:
 		case MODEL_RTAC68U_V4:
 		case MODEL_RTAX86U_PRO:
+		case MODEL_BT12:
+#if defined(RTCONFIG_HND_ROUTER_BE_4916)
+		case MODEL_RTBE86U:
+#endif
 #if defined(RTAC3200) || defined(SBRAC3200P)
 			if (unit < 2)
 				snprintf(buf, len, "%d:%s", 1 - unit, str);
@@ -2099,11 +1938,41 @@ const unsigned int devpath_idx[4] = {0, 1, 2};    // 2.4G, 5G-1, 5G-2
 #endif
 			snprintf(buf, len, "%d:%s", unit + 1, str);
 			break;
-#if defined(GTAXE16000) || defined(GTAX11000_PRO) || defined(GT10)
+#if defined(GTAXE16000) || defined(GTAX11000_PRO) || defined(GT10) || defined(RTAX9000) || defined(GTBE98) || defined(RTBE96U) || defined(GTBE98_PRO) || defined(GTBE96) || defined(RTBE88U) || defined(BQ16) || defined(BQ16_PRO) || defined(BT10) || defined(GTBE19000) || defined(GTBE19000AI) || defined(GTBE96_AI)
 		case MODEL_GTAX11000_PRO:
 		case MODEL_GTAXE16000:
 		case MODEL_GT10:
+		case MODEL_RTAX9000:
+#if defined(RTCONFIG_HND_ROUTER_BE_4916)
+		case MODEL_GTBE98:
+		case MODEL_GTBE98_PRO:
+		case MODEL_RTBE96U:
+		case MODEL_GTBE96:
+		case MODEL_RTBE88U:
+		case MODEL_BT10:
+		case MODEL_BQ16:
+		case MODEL_BQ16_PRO:
+		case MODEL_GTBE19000:
+		case MODEL_GTBE19000AI:
+		case MODEL_GTBE96_AI:
+#endif
 			snprintf(buf, len, "%d:%s", devpath_idx[unit], str);
+			break;
+#endif
+#if defined(RTCONFIG_HND_ROUTER_BE_4916)
+		case MODEL_RTBE58_GO:
+		case MODEL_RTBE58U:
+		case MODEL_RTBE58U_V2:
+		case MODEL_RTBE82U:
+		case MODEL_RTBE82M:
+		case MODEL_RTBE58U_PRO:
+			snprintf(buf, len, "sb/%d/%s", 1 - unit, str);
+			break;
+		case MODEL_RTBE92U:
+			if (unit)	/* 5G / 6G */
+				snprintf(buf, len, "sb/%d/%s", 2 - unit, str);
+			else		/* 2.4G */
+				snprintf(buf, len, "1:%s", str);
 			break;
 #endif
 		default:
@@ -2137,7 +2006,7 @@ int set_wltxpower_swrt(void)
 	memset(tmp1, 0, sizeof(tmp1));
 	get_nvramstr(1, tmp1, sizeof(tmp1), SUFFIX_TXPWR);
 	max5g = nvram_get_int(tmp1);
-#if defined(RTCONFIG_HAS_5G_2)
+#if defined(RTCONFIG_HAS_5G_2) || defined(RTCONFIG_WIFI6E) || defined(RTCONFIG_HAS_6G_2)
 	memset(tmp1, 0, sizeof(tmp1));
 	get_nvramstr(2, tmp1, sizeof(tmp1), SUFFIX_TXPWR);
 	max5g2 = nvram_get_int(tmp1);
@@ -2159,7 +2028,7 @@ int set_wltxpower_swrt(void)
 		unit |= 2;
 		nvram_set("wl1_txpower", "100");
 	}
-#if defined(RTCONFIG_HAS_5G_2)
+#if defined(RTCONFIG_HAS_5G_2) || defined(RTCONFIG_WIFI6E) || defined(RTCONFIG_HAS_6G_2)
 	if(nvram_get_int("wl2_cpenable") == 1){
 		unit |= 4;
 		nvram_set("wl2_txpower", "100");
@@ -2172,7 +2041,7 @@ int set_wltxpower_swrt(void)
 	}
 #endif
 	if((unit & 1) == 0 || (unit & 2) == 0
-#if defined(RTCONFIG_HAS_5G_2)
+#if defined(RTCONFIG_HAS_5G_2) || defined(RTCONFIG_WIFI6E) || defined(RTCONFIG_HAS_6G_2)
 	|| (unit & 4) == 0
 #endif
 #if defined(RTCONFIG_QUADBAND)
@@ -2211,7 +2080,7 @@ int set_wltxpower_swrt(void)
 #if defined(RTCONFIG_QUADBAND)
 	p4 = txpower4;
 #endif
-#if defined(RTCONFIG_HND_ROUTER_AX)
+#if defined(RTCONFIG_HND_ROUTER_AX) || defined(RTCONFIG_HND_ROUTER_BE_4916)
 	if(max2g < p1)
 		p1 = max2g;
 	if(max5g < p2)
@@ -2223,7 +2092,7 @@ int set_wltxpower_swrt(void)
 		p4 = max6g;
 #endif
 #endif
-#if defined(RTCONFIG_HND_ROUTER_AX)
+#if defined(RTCONFIG_HND_ROUTER_AX) || defined(RTCONFIG_HND_ROUTER_BE_4916)
 	if(unit & 1){
 		logmessage("SWRT", "[%s], unit: %d, txpower: %d, max: %d\n", __func__, 0, p1, max2g);
 		snprintf(tmp2, sizeof(tmp2), "%d", max2g - p1);
@@ -2234,7 +2103,7 @@ int set_wltxpower_swrt(void)
 		snprintf(tmp2, sizeof(tmp2), "%d", max5g - p2);
 		eval("wl", "-i", nvram_get("wl1_ifname"), "txpwr_degrade", tmp2);
 	}
-#if defined(RTCONFIG_HAS_5G_2)
+#if defined(RTCONFIG_HAS_5G_2) || defined(RTCONFIG_WIFI6E) || defined(RTCONFIG_HAS_6G_2)
 	if(unit & 4){
 		logmessage("SWRT", "[%s], unit: %d, txpower: %d, max: %d\n", __func__, 2, p3, max5g2);
 		snprintf(tmp2, sizeof(tmp2), "%d", max5g2 - p3);

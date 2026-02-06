@@ -112,7 +112,7 @@ struct user_pass {
     int verb;
 
     char username[128];
-    char password[128];
+    char password[256];
     char common_name[128];
     char response[128];
 

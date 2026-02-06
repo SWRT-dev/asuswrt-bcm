@@ -16,18 +16,11 @@ var oauthVariable = {
 		var header_info = [<% get_header_info(); %>][0];
 		return header_info.protocol + "://" + header_info.host + ":" + header_info.port;
 	})(),
-	"google" : {
-		"server" : "https://accounts.google.com/o/oauth2/auth?",
-		"response_type" : "code",
-		"client_id" : "103584452676-437qj6gd8o9tuncit9h8h7cendd2eg58.apps.googleusercontent.com",
-		"redirect_uri" : encodeURIComponent("" + oauthServer + "google_authorization_code.html"),
-		"scope" : "https://www.googleapis.com%2Fauth%2Fgmail.send+https://www.googleapis.com%2Fauth%2Fuserinfo.email"
-	},
 	"dropbox" : {
 		"server" : "https://www.dropbox.com/oauth2/authorize?",
-		"response_type" : "token",
-		"client_id" : "qah4ku73k3qmigj",
-		"redirect_uri" : encodeURIComponent("" + oauthServer + "dropbox.html")
+		"response_type" : "code",
+		"client_id" : "tv67373nwrd5gl2",
+		"redirect_uri" : encodeURIComponent("" + oauthServer + "dropbox3.html")
 	}
 };
 var base64Encode = function(input) {
@@ -110,17 +103,6 @@ var setListener = function(_callBackFunc) {
 };
 
 var oauth = {};
-oauth.google = function(_callBackFunc) {
-	var url = oauthVariable.google.server;
-	url += "response_type=" + oauthVariable.google.response_type;
-	url += "&redirect_uri=" + oauthVariable.google.redirect_uri;
-	url += "&client_id=" + oauthVariable.google.client_id;
-	url += "&scope=" + oauthVariable.google.scope;
-	url += "&state=base64_" + base64Encode(gen_callback_url(_callBackFunc.name));
-	url += "&approval_prompt=force&access_type=offline";
-	window.open(url,"mywindow","menubar=1,resizable=1,width=600,height=470,top=100,left=300");
-	setListener(_callBackFunc);
-};
 oauth.dropbox = function(_callBackFunc) {
 	var url = oauthVariable.dropbox.server;
 	url += "response_type=" + oauthVariable.dropbox.response_type;
@@ -128,6 +110,8 @@ oauth.dropbox = function(_callBackFunc) {
 	url += "&redirect_uri=" + oauthVariable.dropbox.redirect_uri;
 	url += "&state=base64_" + base64Encode(gen_callback_url(_callBackFunc.name));
 	url += "&force_reapprove=true&force_reauthentication=true";
+	url += "&token_access_type=offline";
+	url += "&action=set_dropbox_code";
 	window.open(url,"mywindow","menubar=1,resizable=1,width=630,height=550");
 	setListener(_callBackFunc);
 }

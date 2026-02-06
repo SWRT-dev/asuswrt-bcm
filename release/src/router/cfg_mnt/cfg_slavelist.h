@@ -7,6 +7,7 @@
 #define OFFLINE_THRESHOLD	(REPORT_TIME_INTERVAL * 3)
 
 #define CFG_FILE_LOCK		"cfg_mnt"
+#define CFG_APPLY_LOCK		"cfg_apply"
 #define KEY_SHM_CFG		2001
 #define MAC_LIST_JSON_FILE	"/tmp/maclist.json"
 #define ALIAS_LEN			33
@@ -89,7 +90,7 @@ typedef struct _CM_CLIENT_TABLE {
 } CM_CLIENT_TABLE, *P_CM_CLIENT_TABLE;
 
 extern int cm_checkReListExist(char *Mac);
-extern int cm_checkReListUpdate(char *newReMac, char *sta2gMac, char *sta5gMac, char *sta6gMac);
+extern int cm_checkReListUpdate(char *newReMac, char *sta2gMac, char *sta5gMac, char *sta6gMac, int action);
 extern void cm_updateReList(char *newReMac, char *sta2gMac, char *sta5gMac, char *sta6gMac, int action);
 extern void cm_handleReListUpdate(unsigned char *decodeMsg);
 extern int cm_isReWifiUpstreamMac(char *staMac);
@@ -120,6 +121,10 @@ extern void cm_reorganizeReList();
 #ifdef RTCONFIG_AMAS_CENTRAL_CONTROL
 extern void cm_updateReObList(char *reMac, int action, int commit);
 #endif
+extern int cm_checkReKeyListExist(char *mac);
+extern void cm_updateReKeyList(char *mac, int action);
+extern int cm_checkJoinData(unsigned char *msg, int role);
+extern int cm_checkKeyData(unsigned char *msg, char *key);
 
 #endif /* __CFG_SLAVELIST_H__ */
 /* End of cfg_slavelist.h */

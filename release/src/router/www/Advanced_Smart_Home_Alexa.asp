@@ -104,6 +104,9 @@ var flag = '<% get_parameter("flag"); %>';
 var realip_state = "";
 var oauth_auth_status = httpApi.nvramGet(["oauth_auth_status"],true).oauth_auth_status;
 
+var current_page = window.location.pathname.split("/").pop();
+var faq_index_tmp = get_faq_index(FAQ_List, current_page, 1);
+
 var StatusList = {
 	"NoInetrnet": "<#Alexa_Status_Disconnect#>",
 	"SvrFail": "<#Alexa_Server_Failed#>",
@@ -455,8 +458,10 @@ function show_account_state(){
 							<tbody>
 							<tr>
 								<td bgcolor="#4D595D" valign="top">
+								<div class="container">
 									<div>&nbsp;</div>
 									<div id="formfonttitle" class="formfonttitle">Alexa & IFTTT - <#Alexa_Title#></div>
+									<div class="formfonttitle_help"><i onclick="show_feature_desc(`<#HOWTOSETUP#>`)" class="icon_help"></i></div>
 									<div id="divSwitchMenu" style="margin-top:-40px;float:right;"><div style="width:150px;height:30px;float:left;border-top-left-radius:8px;border-bottom-left-radius:8px;" class="block_filter_pressed"><div class="tab_font_color" style="text-align:center;padding-top:5px;font-size:14px"><#Alexa_Title#></div></div><div style="width:110px;height:30px;float:left;border-top-right-radius:8px;border-bottom-right-radius:8px;" class="block_filter"><a href="Advanced_Smart_Home_IFTTT.asp"><div class="block_filter_name">IFTTT</div></a></div></div>
 									<div style="margin:10px 0 10px 5px;" class="splitLine"></div>
 									<div class="div_table">
@@ -576,6 +581,10 @@ function show_account_state(){
 												</div>
 											</div>
 									</div>
+
+									</div>  <!-- for .container  -->
+									<div class="popup_container popup_element_second"></div>
+
 								</td>
 							</tr>
 							</tbody>

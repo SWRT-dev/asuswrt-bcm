@@ -55,7 +55,7 @@ body {
 	text-shadow: 1px 1px 0px black;	
 	width:185px;
 	height:48px;
-	font-family: Verdana, MS UI Gothic, MS P Gothic, Microsoft Yahei UI, sans-serif;
+	font-family: Microsoft Yahei UI, Verdana, MS UI Gothic, MS P Gothic, sans-serif;
 	font-size:12px;
 	text-align:left;
 	position:relative;
@@ -69,7 +69,7 @@ body {
 	text-shadow: 1px 1px 0px black;	
 	width:185px;
 	height:48px;
-	font-family: Verdana, MS UI Gothic, MS P Gothic, Microsoft Yahei UI, sans-serif;
+	font-family: Microsoft Yahei UI, Verdana, MS UI Gothic, MS P Gothic, sans-serif;
 	font-size:12px;
 	text-align:left;
 	position:relative;
@@ -95,7 +95,7 @@ body {
 .menu_QIS_table {
 	width:185px;
 	height: 53px;
-	font-family: Verdana, MS UI Gothic, MS P Gothic, Microsoft Yahei UI, sans-serif;
+	font-family: Microsoft Yahei UI, Verdana, MS UI Gothic, MS P Gothic, sans-serif;
 	font-size: 12px;
 	color:#ffffff;
 	padding-left:0px;
@@ -136,7 +136,7 @@ body {
 	margin-top: -1px; 
 	width:185px;
 	height: 47px;
-	font-family: Verdana, MS UI Gothic, MS P Gothic, Microsoft Yahei UI, sans-serif;
+	font-family: Microsoft Yahei UI, Verdana, MS UI Gothic, MS P Gothic, sans-serif;
 	font-size : 12px;
 	color:#ffffff;
 	font-weight:bold;
@@ -184,7 +184,7 @@ body {
 	}	
 }
 
-.submenu {width:187px; font-family: Verdana, MS UI Gothic, MS P Gothic, Microsoft Yahei UI, sans-serif; font-size:11px; line-height:20px;}
+.submenu {width:187px; font-family: Microsoft Yahei UI, Verdana, MS UI Gothic, MS P Gothic, sans-serif; font-size:11px; line-height:20px;}
 .submenu a {height:26px; text-decoration:none; }
 .submenu a:link, .submenu a:visited {
 	color: #94ccf2;	display: block;
@@ -241,7 +241,7 @@ body {
 
 /*==========================Level 3 Tab Class=================================*/
 .Help thead{
-	font-family: Verdana, MS UI Gothic, MS P Gothic, Microsoft Yahei UI, sans-serif;
+	font-family: Microsoft Yahei UI, Verdana, MS UI Gothic, MS P Gothic, sans-serif;
 	font-size:12px;
 	line-height:19px;
 	font-weight:bold;
@@ -249,7 +249,7 @@ body {
 	background-image:url(images/title-bg-2.gif);
 	}
 .Help tbody{
-	font-family: Verdana, MS UI Gothic, MS P Gothic, Microsoft Yahei UI, sans-serif;
+	font-family: Microsoft Yahei UI, Verdana, MS UI Gothic, MS P Gothic, sans-serif;
 	font-size:12px;
 	background-color: #FFFFCC;
 	text-align:left;
@@ -257,7 +257,7 @@ body {
 }
 
 .AiHintTitle{
-	font-family : Verdana, MS UI Gothic, MS P Gothic, Microsoft Yahei UI, sans-serif;
+	font-family : Microsoft Yahei UI, Verdana, MS UI Gothic, MS P Gothic, sans-serif;
 	font-size:11px; 
 	font-weight:bold;
 	color:#000;
@@ -298,7 +298,7 @@ body {
 
 /**********AiHelp add by Lock*************/
 #helpicon{
-	font-family: Arial black, Arial, Helvetica, MS UI Gothic, MS P Gothic, Microsoft Yahei UI, sans-serif;
+	font-family: Arial black, Microsoft Yahei UI, Arial, Helvetica, MS UI Gothic, MS P Gothic, sans-serif;
 	font-size:12px;
 	color: #FF6600;
 	display:block;
@@ -364,7 +364,7 @@ body {
 /**************Add by kcol***************/
 
 .bottom-image {margin:0 auto; width:998px; background:url(images/New_ui/bottom_bg.png) no-repeat; height:30px; }
-.copyright {font-family: Verdana, MS UI Gothic, MS P Gothic, Microsoft Yahei UI, sans-serif;font-size : 11px;text-align:right;color:#FFFFFF;padding-right:10px; margin:0 auto; width:983px;}
+.copyright {font-family: Microsoft Yahei UI, Verdana, MS UI Gothic, MS P Gothic, sans-serif;font-size : 11px;text-align:right;color:#FFFFFF;padding-right:10px; margin:0 auto; width:983px;}
 
 .popup_bg{
 	position:absolute;	
@@ -433,7 +433,7 @@ body {
 	font-size:20px;
 	color:#FFFFFF;
 	background-color:#000000;
-	font-family: Arial, Helvetica, MS UI Gothic, MS P Gothic, Microsoft Yahei UI, sans-serif;
+	font-family: Microsoft Yahei UI, Arial, Helvetica, MS UI Gothic, MS P Gothic, sans-serif;
 	position:absolute;
 	margin:5px 35% 5px;
 }
@@ -446,7 +446,7 @@ body {
 	border: 0px;
 	width:450px;
 	font-size:12px;
-	font-family: Verdana, Arial, Helvetica, MS UI Gothic, MS P Gothic, Microsoft Yahei UI, sans-serif;
+	font-family: Verdana, Microsoft Yahei UI, Arial, Helvetica, MS UI Gothic, MS P Gothic, sans-serif;
 	color:#FFFFFF;
 	background-color:#000000;
 	position:absolute;
@@ -485,7 +485,7 @@ body {
 	margin-top:0px;
 	margin-left:-148px;
 	background-color:#FFFFFF;
-	font-family: Verdana, Arial, Helvetica, MS UI Gothic, MS P Gothic, Microsoft Yahei UI, sans-serif;
+	font-family: Verdana, Microsoft Yahei UI, Arial, Helvetica, MS UI Gothic, MS P Gothic, sans-serif;
 	font-size:11px;
 	width:120px;
 	border:1px solid #999;
@@ -729,7 +729,7 @@ width:122px;
 	background-position: -0px -0px; width: 19px; height: 19px;
 }
 #bottom_help_title{
-	font-family: Arial, Helvetica, MS UI Gothic, MS P Gothic, Microsoft Yahei UI, sans-serif;
+	font-family: Microsoft Yahei UI, Arial, Helvetica, MS UI Gothic, MS P Gothic, sans-serif;
 	font-weight:bolder;
 	color: #569AC7;
 }
@@ -844,7 +844,7 @@ width:122px;
 	margin-top: 10px;
 	border: 1px solid #6B7071;
 	text-align: center;
-	font-family: Verdana, MS UI Gothic, MS P Gothic, Microsoft Yahei UI, sans-serif;
+	font-family: Microsoft Yahei UI, Verdana, MS UI Gothic, MS P Gothic, sans-serif;
 	border-radius: 5px 5px 0px 0px;
 }
 .menu_Index{
@@ -938,10 +938,6 @@ width:122px;
 	background: url(images/New_ui/icon_menues.png);
 	background-position: 0px -288px;
 }
-.menu_Tools, .menu_Entware, .menu_Softcenter{
-	background: url(images/New_ui/icon_menues.png);
-	background-position: 0px -288px;
-}
 .menu_Alexa_IFTTT{
 	background: url(images/New_ui/icon_menues.png);
 	background-position: 0px -324px;
@@ -993,9 +989,11 @@ width:122px;
 	margin-right: 2px;
 	text-align:center;
 	text-decoration: none;
-	font-family: Verdana, MS UI Gothic, MS P Gothic, Microsoft Yahei UI, sans-serif;
+	font-family: Microsoft Yahei UI, Verdana, MS UI Gothic, MS P Gothic, sans-serif;
 	font-size: 12px;
-	border-radius: 5px;
+	border-radius: 5px 5px 0 0;
+	display: flex;
+	align-items: center;
 }
 .tabClicked{
 	cursor:pointer;
@@ -1009,9 +1007,11 @@ width:122px;
 	margin-right: 2px;
 	text-align:center;
 	text-decoration: none;
-	font-family: Verdana, MS UI Gothic, MS P Gothic, Microsoft Yahei UI, sans-serif;
+	font-family: Microsoft Yahei UI, Verdana, MS UI Gothic, MS P Gothic, sans-serif;
 	font-size: 12px;
-	border-radius: 5px;
+	border-radius: 5px 5px 0 0;
+	display: flex;
+	align-items: center;
 }
 .submenuBlock{
 	margin-bottom: -10px;
@@ -1021,7 +1021,7 @@ width:122px;
 .m_qis_r {
 	width:185px;
 	height: 53px;
-	font-family: Verdana, MS UI Gothic, MS P Gothic, Microsoft Yahei UI, sans-serif;
+	font-family: Microsoft Yahei UI, Verdana, MS UI Gothic, MS P Gothic, sans-serif;
 	font-size: 12px;
 	color:#ffffff;
 	padding-left:0px;
@@ -1062,7 +1062,7 @@ width:122px;
 .m_qis_r_blocked {
 	width:185px;
 	height: 53px;
-	font-family: Verdana, MS UI Gothic, MS P Gothic, Microsoft Yahei UI, sans-serif;
+	font-family: Microsoft Yahei UI, Verdana, MS UI Gothic, MS P Gothic, sans-serif;
 	font-size: 12px;
 	color:#ffffff;
 	padding-left:0px;
@@ -1091,4 +1091,7 @@ width:122px;
 .radio_hint{
     background-color: #FA9100;
 }
-
+.menu_Tools, .menu_Entware, .menu_Softcenter{
+	background: url(images/New_ui/icon_menues.png);
+	background-position: 0px -288px;
+}

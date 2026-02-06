@@ -3,11 +3,15 @@ include ../common.mak
 ifeq ($(wildcard $(TOP)/bwdpi_source/prebuild/$(BUILD_NAME)/*),)
 
 ifeq ($(RTCONFIG_LIBASUSLOG),y)
-CFLAGS += -I$(TOP)/libasuslog
+CFLAGS += -I$(TOP)/libasuslog -I$(TOP)/rc
 LIBS += -L$(TOP)/libasuslog -lasuslog
 endif
 
-CFLAGS += -I$(TOP)/json-c
+ifeq ($(RTCONFIG_VPN_FUSION),y)
+CFLAGS += -I$(TOP)/rc
+endif
+
+CFLAGS += $(if $(RTCONFIG_DEBUG),-g -Wall) -I$(TOP)/json-c
 
 # BCM6750 : seperate bin / header / modules from bcm675x
 ifeq ($(BUILD_NAME),$(filter $(BUILD_NAME),RT-AX58U TUF-AX3000 TUF-AX5400 RT-AX82U RT-AX82_XD6 RT_AX82_XD6S GS-AX3000 GS-AX5400 DSL-AX82U))
@@ -15,8 +19,10 @@ export BWDPI_BCM6750 := y
 endif
 
 # BCM4912 : seperate bin / header / modules from bcm6756
-ifeq ($(BUILD_NAME),$(filter $(BUILD_NAME),ET12 XT12 GT-AX6000 GT-AX11000_PRO GT-AXE16000))
+#ifeq ($(BUILD_NAME),$(filter $(BUILD_NAME),ET12 XT12 GT-AX6000 GT-AX11000_PRO GT-AXE16000))
+ifeq ($(BRCM_CHIP),4912)
 export BWDPI_BCM4912 := y
+CFLAGS += -DBRCM_CHIP4912
 endif
 
 # BCM6753 : seperate bin / header / modules from bcm6756
@@ -30,16 +36,12 @@ export BWDPI_MTK7621_NEW := y
 endif
 
 # signature version
-ifeq ($(BUILD_NAME),$(filter $(BUILD_NAME),RT-AX56_XD4 CT-AX56_XD4 RT-AX55 XD4PRO))
+ifeq ($(BUILD_NAME),$(filter $(BUILD_NAME),RT-AX56_XD4 CT-AX56_XD4 RT-AX55 XD4PRO RT-AX3000N XC5 XD4S))
 export LITE_VERSION := y
 else ifeq ($(or $(RTCONFIG_QCA956X),$(RTCONFIG_QCN550X)),y)
 export LITE_VERSION := y
 else ifeq ($(or $(BWDPI_MTK7621_NEW)),y)
-ifeq ($(BUILD_NAME),$(filter $(BUILD_NAME),TUF-AX4200 TX-AX4200))
-export FULL_VERSION := y
-else
 export LITE_VERSION := y
-endif
 else ifeq ($(BUILD_NAME),$(filter $(BUILD_NAME),RT-AC85U RT-AC65U RT-AC56S RT-N18U))
 export PART_VERSION := y
 else
@@ -78,6 +80,10 @@ ifeq ($(RTCONFIG_RALINK_MT7622),y)
 	@cp include/tdts/sysdeps/mtk7622-tmcfg.h include/tdts/tmcfg.h -f                     # mtk7622
 	@cp include/udb/sysdeps/mtk7622-tmcfg_udb.h include/udb/tmcfg_udb.h -f               # mtk7622
 	@cp bin/mtk7622/* bin/ -rf                                                           # mtk7622
+else ifeq ($(RTCONFIG_MT798X),y)
+	@cp include/tdts/sysdeps/mtk798X-tmcfg.h include/tdts/tmcfg.h -f                     # mtk798X
+	@cp include/udb/sysdeps/mtk798X-tmcfg_udb.h include/udb/tmcfg_udb.h -f               # mtk798X
+	@cp bin/mtk798X/* bin/ -rf                                                           # mtk798X
 else
 ifeq ($(BWDPI_MTK7621_NEW),y)
 	@cp include/tdts/sysdeps/mtk7621-tmcfg.h include/tdts/tmcfg.h -f                     # mtk7621 new
@@ -180,6 +186,9 @@ else ifeq ($(RTCONFIG_RALINK),y)
 ifeq ($(RTCONFIG_RALINK_MT7622),y)
 	@cp include/tdts/sysdeps/mtk7622-tmcfg.h include/tdts/tmcfg.h -f                     # mtk7622
 	@cp include/udb/sysdeps/mtk7622-tmcfg_udb.h include/udb/tmcfg_udb.h -f               # mtk7622
+else ifeq ($(RTCONFIG_MT798X),y)
+	@cp include/tdts/sysdeps/mtk798X-tmcfg.h include/tdts/tmcfg.h -f                     # mtk798X
+	@cp include/udb/sysdeps/mtk798X-tmcfg_udb.h include/udb/tmcfg_udb.h -f               # mtk798X
 else
 ifeq ($(BWDPI_MTK7621_NEW),y)
 	@cp include/tdts/sysdeps/mtk7621-tmcfg.h include/tdts/tmcfg.h -f                     # mtk7621 new
@@ -273,10 +282,7 @@ install: all
 ifeq ($(RTCONFIG_SOC_IPQ8064),y)
 	@cp -f modules/ipq806x/* RC_INDEP/
 else ifeq ($(RTCONFIG_SOC_IPQ8074),y)
-	@$(if $(RTCONFIG_SPF8_QSDK),cp -f modules/ipq807x/* RC_INDEP/)				# SPF8
-	@$(if $(RTCONFIG_SPF11_QSDK),cp -f modules/ipq807x_spf11/* RC_INDEP/)			# SPF11.0
-	@$(if $(RTCONFIG_SPF11_1_QSDK),cp -f modules/ipq807x_spf11.1/* RC_INDEP/)		# SPF11.1
-	@$(if $(RTCONFIG_SPF11_4_QSDK),cp -f modules/ipq807x_spf11.4/* RC_INDEP/)		# SPF11.4
+	@$(if $(RTCONFIG_SPF11_5_QSDK),cp -f modules/ipq807x_spf11.5/* RC_INDEP/)		# SPF11.5
 else ifeq ($(RTCONFIG_SOC_IPQ40XX),y)
 	@cp -f modules/dakota/* RC_INDEP/
 else ifeq ($(or $(RTCONFIG_QCA956X),$(RTCONFIG_QCN550X)),y)
@@ -290,6 +296,8 @@ endif
 else ifeq ($(RTCONFIG_RALINK),y)
 ifeq ($(RTCONFIG_RALINK_MT7622),y)
 	@cp -f modules/mtk7622/* RC_INDEP/
+else ifeq ($(RTCONFIG_MT798X),y)
+	@cp -f modules/mtk798X/* RC_INDEP/
 else
 ifeq ($(BWDPI_MTK7621_NEW),y)
 	@cp -f modules/mtk7621/* RC_INDEP/

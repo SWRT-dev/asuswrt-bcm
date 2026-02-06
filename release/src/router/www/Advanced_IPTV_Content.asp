@@ -20,6 +20,7 @@
 <script type="text/javaScript" src="/js/jquery.js"></script>
 <script type="text/javascript" src="switcherplugin/jquery.iphone-switch.js"></script>
 <script type="text/javascript" src="/js/httpApi.js"></script>
+<script type="text/javascript" src="/form.js"></script>
 
 <style>
 .contentM_connection{
@@ -61,7 +62,17 @@ var orig_ttl_inc_enable = '<% nvram_get("ttl_inc_enable"); %>';
 var iptv_profiles = [<% get_iptvSettings();%>][0];
 var isp_profiles = iptv_profiles.isp_profiles;
 var stbPortMappings = [<% get_stbPortMappings();%>][0];
-var orig_wnaports_bond = '<% nvram_get("wanports_bond"); %>';
+var orig_wanports_bond = '<% nvram_get("wanports_bond"); %>';
+if(lacp_support){
+	if(based_modelid == "GT-AC5300")
+		var bonding_port_settings = [{"val": "4", "text": "LAN5"}, {"val": "3", "text": "LAN6"}];
+	else if(based_modelid == "RT-AC86U" || based_modelid == "GT-AC2900")
+		var bonding_port_settings = [{"val": "4", "text": "LAN1"}, {"val": "3", "text": "LAN2"}];
+	else if(based_modelid == "XT8PRO" || based_modelid == "BM68")
+		var bonding_port_settings = [{"val": "2", "text": "LAN2"}, {"val": "3", "text": "LAN3"}];
+	else
+		var bonding_port_settings = [{"val": "1", "text": "LAN1"}, {"val": "2", "text": "LAN2"}];
+}
 
 if(wan_bonding_support)
 	var orig_bond_wan = httpApi.nvramGet(["bond_wan"], true).bond_wan;
@@ -76,6 +87,9 @@ for(var i = 1; i < MSWAN_List_Pri.length; i++){
 		with_multiservice++;
 	}
 }
+
+var current_page = window.location.pathname.split("/").pop();
+var faq_index_tmp = get_faq_index(FAQ_List, current_page, 1);
 
 function initial(){
 	show_menu();
@@ -426,52 +440,6 @@ function validForm(){
 		document.form.switch_stb_x.value = document.form.switch_stb_x0.value;
 	}
 
-	if(dualWAN_support){	// dualwan LAN port should not be equal to IPTV port
-		var tmp_pri_if = wans_dualwan_orig.split(" ")[0].toUpperCase();
-		var tmp_sec_if = wans_dualwan_orig.split(" ")[1].toUpperCase();
-		if (tmp_pri_if == 'LAN' || tmp_sec_if == 'LAN'){
-			var port_conflict = false;
-			var iptv_port = document.form.switch_stb_x.value;
-			var iptv_port_settings = document.form.iptv_port_settings.value;
-
-			if(based_modelid == "GT-AC5300"){
-				/* Dual WAN: "LAN Port 1" (wans_lanport: 2), "LAN Port 2" (wans_lanport:1), "LAN Port 5" (wans_lanport:4), "LAN Port 6" (wans_lanport:3) */
-				if(iptv_port_settings == "56"){// LAN Port 5 (switch_stb_x: 3)  LAN Port 6 (switch_stb_x: 4)
-					if((wans_lanport == "4" && iptv_port == "3") || (wans_lanport == "3" && iptv_port == "4"))
-						port_conflict = true;
-					else if((iptv_port == "6" || iptv_port == "8") && (wans_lanport == '4' || wans_lanport == "3"))
-						port_conflict = true;
-				}
-				else{// LAN Port 1 (switch_stb_x: 3)  LAN Port 2 (switch_stb_x: 4)
-					if((wans_lanport == "2" && iptv_port == "3") || (wans_lanport == "1" && iptv_port == "4")) //LAN 1, LAN2
-						port_conflict = true;
-					else if((iptv_port == "6" || iptv_port == "8") && (wans_lanport == "2" || wans_lanport == "1"))
-						port_conflict = true;
-				}
-			}
-			else{
-				if(iptv_port == wans_lanport)
-					port_conflict = true;
-					else{
-						for(var i = 0; i < stbPortMappings.length; i++){
-							if(iptv_port == stbPortMappings[i].value && stbPortMappings[i].comboport_value_list.length != 0){
-								var value_list = stbPortMappings[i].comboport_value_list.split(" ");
-								for(var j = 0; j < value_list.length; j++){
-									if(wans_lanport == value_list[j])
-										port_conflict = true;
-								}
-							}
-						}
-					}
-			}
-
-			if (port_conflict) {
-				alert("<#RouterConfig_IPTV_conflict#>");
-				return false;
-			}
-		}
-	}
-
 	if(document.form.udpxy_enable_x.value != 0 && document.form.udpxy_enable_x.value != ""){	//validate UDP Proxy
 		if(!validator.range(document.form.udpxy_enable_x, 1024, 65535)){
 			document.form.udpxy_enable_x.focus();
@@ -484,22 +452,27 @@ function validForm(){
 }
 
 function turn_off_lacp_if_conflicts(){
+	var turn_off_lacp = false;
+
 	if (!lacp_enabled)
 		return;
 
-	if((based_modelid == "RT-AX89U" || based_modelid == "GT-AXY16000")){
+	if(bonding_port_settings[0].val == "1"  && bonding_port_settings[1].val == "2"){
 		// LAN1 and/or LAN2.
 		if(document.form.switch_wantag.value == "none" && (document.form.switch_stb_x0.value == "1" || document.form.switch_stb_x0.value == "2" || document.form.switch_stb_x0.value == "5")){
-			document.form.lacp_enabled.disabled = false;
-			document.form.lacp_enabled.value = "0";
+			turn_off_lacp = true;
 		}
 	}
-	else if(based_modelid == "XT8PRO"){
+	else if(bonding_port_settings[0].val == "2"  && bonding_port_settings[1].val == "3"){
 		//LAN 2 and/or LAN3
-		if((document.form.switch_wantag.value == "none" && (document.form.switch_stb_x0.value == "2" || document.form.switch_stb_x0.value == "3" || document.form.switch_stb_x0.value == "5" || document.form.switch_stb_x0.value == "6"))){
-			document.form.lacp_enabled.disabled = false;
-			document.form.lacp_enabled.value = "0";
+		if(document.form.switch_wantag.value == "none" && (document.form.switch_stb_x0.value == "2" || document.form.switch_stb_x0.value == "3" || document.form.switch_stb_x0.value == "5" || document.form.switch_stb_x0.value == "6" || document.form.switch_stb_x0.value == "8")){
+			turn_off_lacp = true;
 		}
+	}
+
+	if(turn_off_lacp){
+		document.form.lacp_enabled.disabled = false;
+		document.form.lacp_enabled.value = "0";
 	}
 }
 
@@ -579,6 +552,20 @@ function applyRule(){
 		}
 
 		turn_off_lacp_if_conflicts();
+
+		/* DualWAN/IPTV Conflict Check */
+		if(wans_dualwan_orig.indexOf("none") == -1 && (document.form.switch_stb_x.value != "0" || document.form.switch_wantag.value != "none")){
+			var hint_str = `<#conflict_function_hint#>`;
+			var msg = hint_str.replace("%1$@", `IPTV`).replace("%2$@", "<#dualwan#>");
+
+			if(confirm(msg)){
+				document.form.wans_dualwan.disabled = false;
+				document.form.wans_dualwan.value = "wan none";
+			}
+			else
+				return false;
+		}
+
 
 		if(reboot_confirm==1){
         	
@@ -1542,9 +1529,11 @@ function change_switch_stb(switch_stb_x){
   <table width="760px" border="0" cellpadding="5" cellspacing="0" class="FormTitle" id="FormTitle">
 	<tbody>
 	<tr>
-		<td bgcolor="#4D595D" valign="top"  >
+		<td bgcolor="#4D595D" valign="top">
+		<div class="container">
 			<div>&nbsp;</div>
 			<div class="formfonttitle"><#menu5_2#> - IPTV</div>
+			<div class="formfonttitle_help"><i onclick="show_feature_desc(`<#HOWTOSETUP#>`)" class="icon_help"></i></div>
 			<div style="margin:10px 0 10px 5px;" class="splitLine"></div>
 			<div id="IPTV_desc" class="formfontdesc" style="display:none;"><#LANHostConfig_displayIPTV_sectiondesc#></div>
 			<div id="IPTV_desc_DualWAN" class="formfontdesc" style="display:none;"><#LANHostConfig_displayIPTV_sectiondesc2#></div>
@@ -1716,6 +1705,9 @@ function change_switch_stb(switch_stb_x){
 		<div class="apply_gen">
 			<input class="button_gen" onclick="applyRule()" type="button" value="<#CTL_apply#>"/>
 		</div>
+
+		</div>  <!-- for .container  -->
+		<div class="popup_container popup_element_second"></div>
 		
 	  </td>
 	</tr>

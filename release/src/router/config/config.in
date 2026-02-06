@@ -29,6 +29,10 @@ config RTCONFIG_MUSL_LIBC
 	bool "MUSL libc"
 	default n
 
+config RTCONFIG_MUSL_LIBC_1116_WAR
+	bool "Workaround for MUSL libc prior v1.1.19"
+	default n
+
 config RTCONFIG_L2TP
 	bool "L2TP"
 	default y
@@ -79,6 +83,11 @@ config RTCONFIG_HND_ROUTER
 
 config RTCONFIG_BCM_MFG
 	bool "BCM MFG mode"
+	depends on RTCONFIG_BCMARM && RTCONFIG_BCMWL6
+	default n
+
+config RTCONFIG_WLTEST
+	bool "wltest mode"
 	depends on RTCONFIG_BCMARM && RTCONFIG_BCMWL6
 	default n
 
@@ -155,7 +164,7 @@ config RTCONFIG_DHDAP
 
 config RTCONFIG_BW160M
 	bool "Bandwidth 160MHz support"
-	depends on RTCONFIG_DHDAP || RTCONFIG_QCA
+	depends on RTCONFIG_DHDAP || RTCONFIG_HND_ROUTER_AX_6756 || RTCONFIG_QCA
 	default n
 
 config RTCONFIG_WLEXE
@@ -246,10 +255,6 @@ config RTCONFIG_INADYN
 	depends on RTCONFIG_DDNS
 	default n
 
-config RTCONFIG_ASUSDDNS_ACCOUNT_BASE
-	bool "ASUS DDNS for Account base"
-	default n
-
 config RTCONFIG_L7
 	bool "Layer 7 Netfilter"
 	default y
@@ -295,6 +300,11 @@ config RTCONFIG_IPSEC_CLIENT
 # !!TB
 config RTCONFIG_IPV6
 	bool "IPv6 Support"
+	default n
+
+config RTCONFIG_IPV6_PRIVACY
+	bool "IPv6 Privacy Extensions support for WAN"
+	depends on RTCONFIG_IPV6
 	default n
 
 config RTCONFIG_IMPROXY
@@ -630,6 +640,10 @@ config RTCONFIG_SAMBA3
 	depends on RTCONFIG_SAMBASRV
 	default n
 
+config RTCONFIG_AWSIOT
+	bool "Compile with aws-iot"
+	default n
+
 config RTCONFIG_SAMBA36X
 	bool "Compile with Samba 3.6.x"
 	depends on RTCONFIG_SAMBASRV
@@ -914,6 +928,12 @@ config RTCONFIG_SPF11_4_QSDK
 	depends on RTCONFIG_QCA
 	default n
 
+config RTCONFIG_SPF11_5_QSDK
+	bool "SPF11.5 QSDK"
+	depends on RTCONFIG_QCA
+	depends on RTCONFIG_MUSL_LIBC
+	default n
+
 config RTCONFIG_QCA_BIGRATE_WIFI
 	bool "New QSDK wifi driver - need to adjust iwconfig bitrate"
 	default n
@@ -981,6 +1001,11 @@ config RTCONFIG_WIFI_QCA9994_QCA9994
 	depends on RTCONFIG_QCA
 	default n
 
+config RTCONFIG_NO_RELOAD_WIFI_DRV_IF_POSSIBLE
+	bool "Don't reload WiFi driver if possible"
+	depends on RTCONFIG_QCA
+	default n
+
 config RTCONFIG_CFG80211
 	bool "Qualcomm Atheros cfg80211 support"
 	depends on RTCONFIG_QCA
@@ -988,7 +1013,7 @@ config RTCONFIG_CFG80211
 
 config RTCONFIG_GLOBAL_INI
 	bool "Qualcomm globa.ini support. (SPF9 or above)"
-	depends on RTCONFIG_QCA && (RTCONFIG_SPF10_QSDK || RTCONFIG_SPF11_QSDK || RTCONFIG_SPF11_1_QSDK || RTCONFIG_SPF11_3_QSDK || RTCONFIG_SPF11_4_QSDK || RTCONFIG_QSDK10CS || RTCONFIG_SOC_IPQ60XX)
+	depends on RTCONFIG_QCA && (RTCONFIG_SPF10_QSDK || RTCONFIG_SPF11_QSDK || RTCONFIG_SPF11_1_QSDK || RTCONFIG_SPF11_3_QSDK || RTCONFIG_SPF11_4_QSDK || RTCONFIG_SPF11_5_QSDK || RTCONFIG_QSDK10CS || RTCONFIG_SOC_IPQ60XX)
 	default n
 
 config RTCONFIG_SINGLE_HOSTAPD
@@ -1081,6 +1106,10 @@ config RTCONFIG_AIR_TIME_FAIRNESS
 
 config RTCONFIG_POWER_SAVE
 	bool "Power Save"
+	default n
+
+config RTCONFIG_PAGECACHE_RATIO
+	bool "Control maximum page cache ratio"
 	default n
 
 config RTCONFIG_QCA8033
@@ -1330,6 +1359,10 @@ config RTCONFIG_DUAL_TRX2
 	depends on RTCONFIG_DUAL_TRX
 	default n
 
+config RTCONFIG_TEST_FLIPBITS
+	bool "Test NAND Flash bit-flip"
+	default n
+
 config RTCONFIG_UBI
 	bool "Unsorted Block Images"
 	default n
@@ -1499,6 +1532,14 @@ config RTCONFIG_CFE_NVRAM_CHK
 
 config RTCONFIG_DEBUG
 	bool "debug mode"
+	default n
+
+config RTCONFIG_DMALLOC
+	bool "Link with dmalloc that is used to detect memory leak."
+	default n
+
+config RTCONFIG_VALGRIND
+	bool "Compiled valgrind"
 	default n
 
 config RTCONFIG_HAS_5G
@@ -1815,6 +1856,16 @@ config RTCONFIG_SOFTWIRE46
 	depends on RTCONFIG_IPV6
 	default n
 
+config RTCONFIG_OCNVC
+	bool "IPoE - OCN Virtual Connect support"
+	depends on RTCONFIG_SOFTWIRE46
+	default n
+
+config RTCONFIG_DSLITE
+	bool "IPoE - DS-Lite support"
+	depends on RTCONFIG_SOFTWIRE46
+	default n
+
 config RTCONFIG_PORT_BASED_VLAN
 	bool "Port based vlan support"
 	default n
@@ -1919,6 +1970,24 @@ config RTCONFIG_CONNTRACK
 config RTCONFIG_PERMISSION_MANAGEMENT
 	bool "Permission management support"
 	default n
+
+config RTCONFIG_DNSSEC
+	bool "dnsmasq: Enable DNSSEC support"
+	default n
+
+choice
+	prompt "dnsmasq: DNSSEC crypto library"
+	default RTCONFIG_DNSSEC_NETTLE
+
+config RTCONFIG_DNSSEC_OPENSSL
+	bool "OpenSSL"
+	depends on RTCONFIG_DNSSEC
+
+config RTCONFIG_DNSSEC_NETTLE
+	bool "Nettle"
+	depends on RTCONFIG_DNSSEC
+
+endchoice
 
 config RTCONFIG_DNSFILTER
 	bool "DNS-based filtering Support"
@@ -2584,12 +2653,44 @@ config RTCONFIG_BANDINDEX_NEW
         default n
 
 config RTCONFIG_SECUREBOOT
-        bool " SecureBoot fw"
+        bool "SecureBoot fw"
+        default n
+
+config RTCONFIG_FSCRYPTCTL
+        bool "fscryptctl tool"
         default n
 
 config RTCONFIG_BSC_SR
         bool " sync bsscolor and enable spatial-reuse"
         default n
+
+config RTCONFIG_AMAS_SS2
+	bool "AiMesh Site Survey strategy-2"
+	default n
+
+config RTCONFIG_NOWL
+	bool "no wl"
+	default n
+
+config RTCONFIG_INTEL_EVO
+	bool "configuration for Intel EVO program certificate"
+	default n
+
+config RTCONFIG_SW_SPDLED
+	bool "sw speed led"
+	default n
+
+config RTCONFIG_BCM4906_504
+	bool "962118G in 504"
+	default n
+
+config RTCONFIG_RTL_UMGMT
+	bool "un-management-mode rtl switch's ops "
+	default n
+
+config RTCONFIG_SECURE_BY_DEFAULT
+	bool "secure setting in default"
+	default y
 
 config RTCONFIG_SOFTCENTER
 	bool "softcenter"
@@ -2636,3 +2737,4 @@ config RTCONFIG_SWRT_LED_RGB
 config RTCONFIG_ENTWARE
 	bool "install entware"
 	default n
+

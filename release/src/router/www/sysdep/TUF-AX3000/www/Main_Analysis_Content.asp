@@ -56,6 +56,7 @@
 <script language="JavaScript" type="text/javascript" src="/validator.js"></script>
 <script language="JavaScript" type="text/javascript" src="/js/jquery.js"></script>
 <script type="text/javascript" language="JavaScript" src="/js/table/table.js"></script>
+<script type="text/javascript" src="/form.js"></script>
 <script>
 	//set table Struct
 	var tableStruct = {
@@ -109,6 +110,10 @@
 			]
 		}
 	};
+
+var current_page = window.location.pathname.split("/").pop();
+var faq_index_tmp = get_faq_index(FAQ_List, current_page, 1);
+
 function initial(){
 	show_menu();
 	showLANIPList();
@@ -429,8 +434,10 @@ validator.targetDomainName = function($o){
 						<table width="760px" border="0" cellpadding="5" cellspacing="0" bordercolor="#6b8fa3"  class="FormTitle" id="FormTitle">		
 							<tr>
 								<td bgcolor="#4D595D" colspan="3" valign="top">
+								<div class="container">
 									<div>&nbsp;</div>
 									<div class="formfonttitle"><#Network_Tools#> - <#Network_Analysis#></div>
+									<div class="formfonttitle_help"><i onclick="show_feature_desc(`How to use Network Analysis(Ping, Traceroute, Nsloopup) in ASUS Router?`)" class="icon_help"></i></div>
 									<div style="margin: 10px 0 10px 5px;" class="splitLine"></div>
 									<div class="formfontdesc" id="cmdDesc"><#NetworkTools_Ping#></div>
 									<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">
@@ -531,6 +538,9 @@ validator.targetDomainName = function($o){
 										<!--<![endif]-->
 										</script>
 									</div>
+									
+									</div>  <!-- for .container  -->
+									<div class="popup_container popup_element_second"></div>
 
 								</td>
 							</tr>

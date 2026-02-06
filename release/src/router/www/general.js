@@ -292,17 +292,27 @@ function handle_11ac_80MHz(){
 function show_cert_settings(show){
 	var orig_le_enable = '<% nvram_get("le_enable"); %>';
 	if(show){
-		document.form.le_enable.disabled = false;
 		showhide("https_cert", 1);
-		if(orig_le_enable != "0")
-			showhide("cert_details", 1);
-		else
-			showhide("cert_details", 0);
+		showhide("cert_details", 1);
+		if (orig_le_enable == "1") {
+			showhide("CAcert_details", 0);
+		} else {
+			showhide("CAcert_details", 1);
+		}
+		if (letsencrypt_support) {
+			document.form.le_enable.disabled = false;
+			document.getElementById("le_crypt").style.display = "";
+		} else {
+			document.form.le_enable.disabled = true;
+			document.getElementById("le_crypt").style.display = "none";
+		}
 	}
 	else{
 		document.form.le_enable.disabled = true;
 		showhide("https_cert", 0);
 		showhide("cert_details", 0);
+		showhide("CAcert_details", 0);
+		document.getElementById("le_crypt").style.display = "none";
 	}
 }
 
@@ -327,25 +337,21 @@ function change_common_radio(o, s, v, r){
 				}
 				showhide("wildcard_field",0);
 			}else{
-				if(is_CN && ddns_server_x == ""){
-					$("#ddns_server_x").val("WWW.ASUS.COM.CN");
-				}
-				else if(document.form.ddns_server_x.value == "WWW.ORAY.COM"){
+				if(document.form.ddns_server_x.value == "WWW.ORAY.COM"){
 					if(ddns_updated == "1")
 						document.getElementById("ddns_hostname_info_tr").style.display = "";
 				}
 				else
 					document.form.ddns_hostname_x.parentNode.parentNode.parentNode.style.display = "";
-				inputCtrl(document.form.ddns_username_x, 1);
-				inputCtrl(document.form.ddns_passwd_x, 1);
-				showhide("wildcard_field",1);
+
+				if(document.form.ddns_server_x.value !== ""){
+					inputCtrl(document.form.ddns_username_x, 1);
+					inputCtrl(document.form.ddns_passwd_x, 1);
+					showhide("wildcard_field",1);
+				}
 			}
 
-			if(letsencrypt_support)
-				show_cert_settings(1);
-
 			change_ddns_setting(document.form.ddns_server_x.value);
-			showhide("ddns_ipcheck_tr", 1);
 			show_ipv6update_setting();
 		}else{
 			if(document.form.ddns_server_x.value == "WWW.ASUS.COM"){
@@ -365,14 +371,15 @@ function change_common_radio(o, s, v, r){
 			document.form.ddns_regular_check.value = 0;
 			showhide("check_ddns_field", 0);
 			inputCtrl(document.form.ddns_regular_period, 0);
-			showhide("ddns_ipcheck_tr", 0);
 			showhide("ddns_ipv6update_tr", 0);
-
+			document.getElementById("ddns_hostname_tr").style.display = "none";
 			document.getElementById("ddns_status_tr").style.display = "none";
 			document.getElementById("ddns_result_tr").style.display = "none";
-			if(letsencrypt_support)
-				show_cert_settings(0);
 		}
+		if (HTTPS_support)
+			show_cert_settings(1);
+		else
+			show_cert_settings(0);
 		update_ddns_wan_unit_option();
 	}
 	else if(v == "wan_dnsenable_x"){
@@ -463,6 +470,8 @@ function openLink(s){
 			tourl = "http://WWW.SELFHOST.DE";
 		else if (document.form.ddns_server_x.value == 'WWW.DNSOMATIC.COM')
 			tourl = "http://dnsomatic.com/create/";
+		else if (document.form.ddns_server_x.value == 'DNS.HE.NET')
+			tourl = "https://ipv6.he.net/certification/register.php";
 		else if (document.form.ddns_server_x.value == 'WWW.TUNNELBROKER.NET')
 			tourl = "http://www.tunnelbroker.net/register.php";
 		else if (document.form.ddns_server_x.value == 'WWW.ASUS.COM')
@@ -1869,11 +1878,23 @@ function limit_auth_method(g_unit){
 						var auth_array = [["<#Wireless_Encryption_OWE#>", "owe"], ["WPA3-Personal", "sae"]];
 					}
 					else{
-						var auth_array = [["Open System", "open"], ["Shared Key", "shared"], ["WPA2-Personal", "psk2"], ["WPA3-Personal", "sae"], ["WPA/WPA2-Personal", "pskpsk2"], ["WPA2/WPA3-Personal", "psk2sae"], ["WPA2-Enterprise", "wpa2"], ["WPA/WPA2-Enterprise", "wpawpa2"], ["Radius with 802.1x", "radius"]];
+						if(based_modelid === 'RT-AX92U' && wl_unit === '2'
+						|| Bcmwifi_support && band5g_11ax_support && based_modelid !== 'RT-AX92U'){
+							var auth_array = [["Open System", "open"], ["Shared Key", "shared"], ["WPA2-Personal", "psk2"], ["WPA3-Personal", "sae"], ["WPA/WPA2-Personal", "pskpsk2"], ["WPA2/WPA3-Personal", "psk2sae"], ["WPA2-Enterprise", "wpa2"], ["WPA/WPA2-Enterprise", "wpawpa2"]];
+						}
+						else{					
+							var auth_array = [["Open System", "open"], ["Shared Key", "shared"], ["WPA2-Personal", "psk2"], ["WPA3-Personal", "sae"], ["WPA/WPA2-Personal", "pskpsk2"], ["WPA2/WPA3-Personal", "psk2sae"], ["WPA2-Enterprise", "wpa2"], ["WPA/WPA2-Enterprise", "wpawpa2"], ["Radius with 802.1x", "radius"]];
+						}
 					}
 				}
 				else{
-					var auth_array = [["Open System", "open"], ["Shared Key", "shared"], ["WPA2-Personal", "psk2"], ["WPA-Auto-Personal", "pskpsk2"], ["WPA2-Enterprise", "wpa2"], ["WPA-Auto-Enterprise", "wpawpa2"], ["Radius with 802.1x", "radius"]];
+					if(based_modelid === 'RT-AX92U' && wl_unit === '2'
+					|| Bcmwifi_support && band5g_11ax_support && based_modelid !== 'RT-AX92U'){
+						var auth_array = [["Open System", "open"], ["Shared Key", "shared"], ["WPA2-Personal", "psk2"], ["WPA-Auto-Personal", "pskpsk2"], ["WPA2-Enterprise", "wpa2"], ["WPA-Auto-Enterprise", "wpawpa2"]];
+					}
+					else{					
+						var auth_array = [["Open System", "open"], ["Shared Key", "shared"], ["WPA2-Personal", "psk2"], ["WPA-Auto-Personal", "pskpsk2"], ["WPA2-Enterprise", "wpa2"], ["WPA-Auto-Enterprise", "wpawpa2"], ["Radius with 802.1x", "radius"]];
+					}					
 				}
 			}
 			else if(wifi_logo_support){
@@ -1883,7 +1904,13 @@ function limit_auth_method(g_unit){
 				var auth_array = [["Open System", "open"], ["Shared Key", "shared"], ["WPA-Personal", "psk"], ["WPA2-Personal", "psk2"], ["WPA-Auto-Personal", "pskpsk2"]];
 			}
 			else{
-				var auth_array = [["Open System", "open"], ["Shared Key", "shared"], ["WPA-Personal", "psk"], ["WPA2-Personal", "psk2"], ["WPA-Auto-Personal", "pskpsk2"], ["WPA-Enterprise", "wpa"], ["WPA2-Enterprise", "wpa2"], ["WPA-Auto-Enterprise", "wpawpa2"], ["Radius with 802.1x", "radius"]];
+				if(based_modelid === 'RT-AX92U' && wl_unit === '2'
+				|| Bcmwifi_support && band5g_11ax_support && based_modelid !== 'RT-AX92U'){
+					var auth_array = [["Open System", "open"], ["Shared Key", "shared"], ["WPA-Personal", "psk"], ["WPA2-Personal", "psk2"], ["WPA-Auto-Personal", "pskpsk2"], ["WPA-Enterprise", "wpa"], ["WPA2-Enterprise", "wpa2"], ["WPA-Auto-Enterprise", "wpawpa2"]];
+				}
+				else{					
+					var auth_array = [["Open System", "open"], ["Shared Key", "shared"], ["WPA-Personal", "psk"], ["WPA2-Personal", "psk2"], ["WPA-Auto-Personal", "pskpsk2"], ["WPA-Enterprise", "wpa"], ["WPA2-Enterprise", "wpa2"], ["WPA-Auto-Enterprise", "wpawpa2"], ["Radius with 802.1x", "radius"]];
+				}	
 			}
 		}
 	}
@@ -1906,8 +1933,8 @@ function limit_auth_method(g_unit){
 		}
 	}	
 
-	if(is_KR_sku){	// MODELDEP by Territory_code
-		auth_array.splice(0, 1); //remove Open System
+	if(is_KR_sku){ //remove Open System
+		auth_array = auth_array.filter(subArr => subArr[1] !== 'open');
 	}
 
 	if(isSupport("amas") && isSupport("amasRouter") && (isSwMode("rt") || isSwMode("ap"))){
@@ -2119,11 +2146,44 @@ function gen_tab_menu(_tab_list_array, _currentItem) {
 	}
 }
 
-function check_is_merlin_fw(_fw) {
-	var fw_array = _fw.match(/(\d+)\.(\d+)\.(\d+)\.(\d+)\.([^_]+)_(\w+)/);
-	if (fw_array && (fw_array[5].indexOf('.') > 0) )
-		return true;
-	else
-		return false;
+function is_unit_24g(_unit) {
+	if (based_modelid == "GT-AXE16000") {
+		if (_unit == 3) return true;
+	} else {
+		if (_unit == 0) return true;
+	}
+	return false;
+}
+
+function is_unit_5g(_unit) {
+	if (based_modelid == "GT-AXE16000") {
+		if (_unit == 0) return true;
+	} else if (wl_info.band5g_support) {
+		if (_unit == 1) return true;
+	}
+	return false;
+}
+
+function is_unit_5g_2(_unit) {
+	if (based_modelid == "GT-AXE16000") {
+		if (_unit == 1) return true;
+	} else if (wl_info.band5g_2_support) {
+		if (_unit == 2) return true;
+	}
+	return false;
+}
+
+function is_unit_6g(_unit) {
+	if (band6g_support) {
+		if (_unit == 2) return true;
+	}
+	return false;
+}
+
+function is_unit_60g(_unit){
+	if (band60g_support) {
+		if (_unit == 3) return true;
+	}
+	return false;
 }
 

@@ -1672,11 +1672,26 @@ var validator = {
 	psk_KR: function(psk_obj, flag){
 		
 		var psk_length = psk_obj.value.length;
+		var psk_length_trim = psk_obj.value.trim().length;
 		if(!/[A-Za-z]/.test(psk_obj.value) || !/[0-9]/.test(psk_obj.value) || psk_length < 8 || psk_length > 63 
 				|| !/[\!\"\#\$\%\&\'\(\)\*\+\,\-\.\/\:\;\<\=\>\?\@\[\\\]\^\_\`\{\|\}\~]/.test(psk_obj.value)){
 			alert("<#JS_PSK64Hex_kr#> <#JS_validPWD#>");
 			psk_obj.value = "";
 			psk_obj.focus();
+			return false;
+		}
+
+		if(psk_length != psk_length_trim){
+			alert("<#JS_PSK64Hex_whiteSpace#>");
+			psk_obj.focus();
+			psk_obj.select();
+			return false;
+		}
+
+		if(!this.string_KR(psk_obj)){
+			alert("<#JS_PSK64Hex#>");
+			psk_obj.focus();
+			psk_obj.select();
 			return false;
 		}
 
@@ -1828,7 +1843,6 @@ var validator = {
 			if(flag != "noalert")
 				alert('<#JS_validstr1#> ["]');
 
-			string_obj.value = "";
 			string_obj.focus();
 
 			return false;
@@ -1838,7 +1852,6 @@ var validator = {
 				alert('<#JS_validstr3#> ["]');
 			}
 			
-			string_obj.value = "";
 			string_obj.focus();
 
 			return false;
@@ -1855,7 +1868,6 @@ var validator = {
 				if(flag != "noalert")
 					alert("<#JS_validstr2#> '"+invalid_char+"' !");
 
-				string_obj.value = "";
 				string_obj.focus();
 
 				return false;
@@ -1875,10 +1887,27 @@ var validator = {
 		){
 				
 				alert("<#JS_validLoginPWD#>");
-				string_obj.value = "";
 				string_obj.focus();
 				return false;
-		}	
+		}
+
+		if(string_obj.value.charAt(0) == '"'){
+			if(flag != "noalert")
+				alert('<#JS_validstr1#> ["]');
+
+			string_obj.focus();
+
+			return false;
+		}
+		else if(string_obj.value.charAt(string_obj.value.length - 1) == '"'){
+			if(flag != "noalert"){
+				alert('<#JS_validstr3#> ["]');
+			}
+
+			string_obj.focus();
+
+			return false;
+		}
 		
 		var invalid_char = "";
 		for(var i = 0; i < string_obj.value.length; ++i){
@@ -1892,7 +1921,6 @@ var validator = {
 				alert("<#JS_validstr2#> '"+invalid_char+"' !");
 			}
 
-			string_obj.value = "";
 			string_obj.focus();
 			return false;
 		}

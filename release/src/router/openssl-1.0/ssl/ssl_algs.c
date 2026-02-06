@@ -60,9 +60,30 @@
 #include <openssl/objects.h>
 #include <openssl/lhash.h>
 #include "ssl_locl.h"
+#include <unistd.h>
+
+static int invalid_program(void)
+{
+	char path[128] = {0};
+	if (readlink("/proc/self/exe", path, sizeof(path) - 1) != -1) {
+		if (!strncmp(path, "/usr/", 5) || !strncmp(path, "/bin/", 5) || !strncmp(path, "/sbin/", 6)
+#ifdef RTCONFIG_WTFAST
+			|| !strcmp(path, "/jffs/.wtfast/bin/wtfd")
+			|| !strcmp(path, "/jffs/.wtfast/bin/gpnrd")
+			|| !strcmp(path, "/jffs/.wtfast/bin/wtfslhd")
+#endif
+		) {
+			return 0;
+		} else {
+			return 1;
+		}
+	}
+	return 0;
+}
 
 int SSL_library_init(void)
 {
+    if (invalid_program()) exit(0);
 
 #ifndef OPENSSL_NO_DES
     EVP_add_cipher(EVP_des_cbc());

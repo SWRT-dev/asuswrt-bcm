@@ -300,7 +300,7 @@ function submitForm(){
 		return false;
 	}
 
-	if(is_KR_sku || is_SG_sku || is_AA_sku){		/* MODELDEP by Territory Code */
+	if(is_KR_sku || is_SG_sku || is_AA_sku || isSupport("secure_default")){		/* MODELDEP by Territory Code */
 		if(!validator.string_KR(document.form.http_passwd)){
 			document.form.http_passwd.focus();
 			document.form.http_passwd.select();

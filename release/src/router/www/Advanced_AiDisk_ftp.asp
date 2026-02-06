@@ -21,6 +21,7 @@
 <script type="text/javascript" src="/js/jquery.js"></script>
 <script type="text/javascript" src="/switcherplugin/jquery.iphone-switch.js"></script>
 <script type="text/javascript" src="/js/httpApi.js"></script>
+<script type="text/javascript" src="/form.js"></script>
 <script type="text/javascript">
 <% get_AiDisk_status(); %>
 <% get_permissions_of_account(); %>
@@ -51,6 +52,10 @@ var folderlist = new Array();
 
 var ddns_enable = '<% nvram_get("ddns_enable_x"); %>';
 var usb_port_conflict_faq = "https://nw-dlcdnet.asus.com/support/forward.html?model=&type=Faq&lang="+ui_lang+"&kw=&num=134";
+
+var current_page = window.location.pathname.split("/").pop();
+var faq_index_tmp = get_faq_index(FAQ_List, current_page, 1);
+
 function initial(){
 	if(re_mode == "1"){
 		$("#apply_btn").addClass("perNode_apply_gen");
@@ -127,6 +132,13 @@ function initial(){
 	if($("#ftpPortConflict").find("#ftp_port_conflict_faq").length){
 		$("#ftpPortConflict").find("#ftp_port_conflict_faq").attr("href", usb_port_conflict_faq);
 	}
+
+	if(top.webWrapper){
+		$(".icon_help").css({"top":"54px", "right":"22px"});
+	}
+	else{
+		$(".icon_help").css({"top":"30px", "right":"72px"});
+	}
 }
 
 function get_disk_tree(){
@@ -152,11 +164,6 @@ function switchAccount(protocol){
 	
 	switch(get_manage_type(protocol)){
 		case 1:
-			if(ftp_tls_orig=="1"){
-				alert("Allow anonymous login is in conflict with TLS settings.");       /* Untranslated */
-				refreshpage();
-				break;
-			}
 			if(confirm("<#Aidisk_FTP_hint_3#>")){
 				document.aidiskForm.action = "/aidisk/switch_share_mode.asp";
 				document.aidiskForm.protocol.value = protocol;
@@ -758,13 +765,15 @@ function switchUserType(flag){
 }
 
 function secure_check(flag){
-	
-	if(flag==1 && !get_manage_type(PROTOCOL)){
-		alert("<#usb_tls_conflict#>");
-		document.form.ftp_tls[1].checked = true;
-		return;
+
+	if(ftp_ssl_support){	
+		document.getElementById("TLS_disabled").innerHTML = (flag==1)? "":"<#usb_tls_disabled_hint#>";
+		if(flag==1 && !get_manage_type(PROTOCOL)){
+			alert("<#usb_tls_conflict#>");
+			document.form.ftp_tls[1].checked = true;
+			return;
+		}
 	}
-	document.getElementById("TLS_disabled").innerHTML = (flag==1)? "":"<#usb_tls_disabled_hint#>";
 }
 </script>
 </head>
@@ -812,7 +821,9 @@ function secure_check(flag){
 	  <div id="tabMenu" class="submenuBlock"></div>
 	  <!--=====Beginning of Main Content=====-->
 <div id="FormTitle" align="left" border="0" cellpadding="0" cellspacing="0" style="width: 760px; display: none;">
-<table border="0" cellpadding="5" cellspacing="0">
+
+<div class="container">
+<table border="0" cellpadding="5" cellspacing="0" style="width: 100%;">
 	<tbody>
 		<tr>
 		  <td>
@@ -821,6 +832,7 @@ function secure_check(flag){
 				<span id="returnBtn" class="returnBtn">
 					<img onclick="go_setting('/APP_Installation.asp')" align="right" title="<#Menu_usb_application#>" src="/images/backprev.png" onMouseOver="this.src='/images/backprevclick.png'" onMouseOut="this.src='/images/backprev.png'">
 				</span>
+				<div class="formfonttitle_help"><i onclick="show_feature_desc(`<#HOWTOSETUP#>`)" class="icon_help"></i></div>
 			</div>
 			<div id="splitLine" class="splitLine"></div>
 			<div class="formfontdesc" style="margin-top: 10px;"><#FTP_desc#></div>
@@ -878,12 +890,12 @@ function secure_check(flag){
 							<script type="text/javascript">
 								$('#radio_anonymous_enable').iphoneSwitch(!get_manage_type(PROTOCOL), 
 									function() {
-										if(ftp_tls_orig=="0"){
-											switchAccount(PROTOCOL);
+										if(ftp_ssl_support && ftp_tls_orig=="1"){
+											alert("<#usb_tls_conflict#>");
+											refreshpage();
 										}
 										else{
-											alert("Allow anonymous login is in conflict with TLS settings.");       /* Untranslated */
-											refreshpage();
+											switchAccount(PROTOCOL);
 										}
 
 									},
@@ -1011,6 +1023,10 @@ function secure_check(flag){
 		</tr>
 	</tbody>
 </table>
+
+</div> <!-- for .container  -->
+<div class="popup_container popup_element_second"></div>
+
 </div>
 
 			</td>

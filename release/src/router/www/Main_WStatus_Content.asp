@@ -26,7 +26,7 @@ var classObj= {
 	UnHexCode:function(str){
 		return str.replace(/(?:\\x[\da-fA-F]{2})+/g, m =>
 decodeURIComponent(m.replace(/\\x/g, '%'))).replace(/\\n/g,
-'<br>').replace(/\\/g, '');
+'<br>');
 	}
 }
 
@@ -48,7 +48,7 @@ function GenContent(){
 		},
 
 		success: function(resp){
-			content = decodeURI(resp);
+			content = decodeURIComponent(resp);
 			content = classObj.UnHexCode(content);
 			content = htmlEnDeCode.htmlEncode(content);
 			if(content.length > 10){

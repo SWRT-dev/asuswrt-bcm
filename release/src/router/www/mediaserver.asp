@@ -25,7 +25,7 @@
 	width:750px;
 	padding:5px; 
 	padding-top:20px; 
-	margin-top:-17px; 
+	margin-top:-15px; 
 	position:relative;
 	-webkit-border-radius: 0 0 3px 3px;
 	-moz-border-radius: 0 0 3px 3px;
@@ -110,6 +110,9 @@ window.onresize = function() {
 var dms_dir_x_array = '<% nvram_get("dms_dir_x"); %>';
 var dms_dir_type_x_array = '<% nvram_get("dms_dir_type_x"); %>';
 
+var current_page = window.location.pathname.split("/").pop();
+var faq_index_tmp = get_faq_index(FAQ_List, current_page, 1);
+
 function dlna_path_display(){
 	if("<% nvram_get("dms_enable"); %>" == 1){
 		document.form.dms_friendly_name.parentNode.parentNode.parentNode.style.display = "";
@@ -162,7 +165,13 @@ function initial(){
 	if(noiTunes_support){		
 		document.getElementById("iTunes_div").style.display = "none";		
 	}
-		
+	
+	if(top.webWrapper){
+		$(".icon_help").css({"top":"40px", "right":"42px"});
+	}
+	else{
+		$(".icon_help").css({"top":"30px", "right":"72px"});
+	}	
 }
 
 function check_dms_status(){
@@ -828,17 +837,20 @@ function set_dms_dir(obj){
 
 <!--=====Beginning of Main Content=====-->
 <div id="FormTitle" align="left" border="0" cellpadding="0" cellspacing="0" style="display: none;">
+
+<div class="container">
 <table width="98%" border="0" align="left" cellpadding="0" cellspacing="0">
   <tr>
   	<td>
-		<div style="width: 99%; margin-top: 30px; margin-bottom: 5px;">
-			<span class="formfonttitle"><#UPnPMediaServer#></span>
+		<div style="width: 99%; margin-top: 20px; margin-bottom: 8px;">
+			<span class="formfonttitle" style="margin-left: 8px;"><#UPnPMediaServer#></span>
 			<span id="returnBtn">
 				<img id="returnBtn" onclick="go_setting('/APP_Installation.asp')" align="right" title="<#Menu_usb_application#>" src="/images/backprev.png" onMouseOver="this.src='/images/backprevclick.png'" onMouseOut="this.src='/images/backprev.png'">
 			</span>
 		</div>
+		<div class="formfonttitle_help"><i onclick="show_feature_desc(`<#HOWTOSETUP#>`)" class="icon_help"></i></div>
 		<div id="splitLine" class="splitLine"></div>
-		<div id="upnp_desc_id" class="formfontdesc" style="margin-top: 10px;"><#upnp_Desc#></div>
+		<div id="upnp_desc_id" class="formfontdesc" style="margin-top: 10px; margin-left: 8px;"><#upnp_Desc#></div>
 	</td>
   </tr>
 
@@ -971,7 +983,12 @@ function set_dms_dir(obj){
   	</td>
   </tr>
 </table>
+
+	</div>  <!-- for .container  -->
+	<div class="popup_container popup_element_second"></div>
+
 </div>
+
 <!--=====End of Main Content=====-->
 		</td>
 

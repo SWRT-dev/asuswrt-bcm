@@ -71,6 +71,7 @@ start_nas(void)
 #ifdef RTCONFIG_BRCM_HOSTAPD
 		if (!nvram_match("hapd_enable", "0")) {
 			start_hapd_wpasupp(0);
+			start_wps_pbcd();
 			return 0;
 		} else
 #endif
@@ -86,6 +87,7 @@ stop_nas(void)
 #ifdef RTCONFIG_BRCM_HOSTAPD
         if (!nvram_match("hapd_enable", "0")) {
 		stop_hapd_wpasupp();
+		stop_wps_pbcd();
         } else
 #endif
 	killall_tk("nas");
@@ -202,6 +204,9 @@ int wlcscan_main(void)
 	file_unlock(lock);
 
 	nvram_set_int("wlc_scan_state", WLCSCAN_STATE_INITIALIZING);
+#ifdef CONFIG_BCMWL5
+	nvram_set_int("wlcscan", 1);
+#endif
 
 	/* Starting scanning */
 	i = 0;
@@ -248,6 +253,9 @@ int wlcscan_main(void)
 #endif
 
 	nvram_set_int("wlc_scan_state", WLCSCAN_STATE_FINISHED);
+#ifdef CONFIG_BCMWL5
+	nvram_set_int("wlcscan", 0);
+#endif
 
 	return 1;
 }

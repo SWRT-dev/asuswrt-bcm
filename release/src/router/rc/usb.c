@@ -318,7 +318,7 @@ void add_usb_host_modules(void)
 #elif defined(RTCONFIG_ALPINE)
 	modprobe(USB30_MOD);
 #else
-#if !defined(BCM4912) && !defined(BCM6756) && !defined(BCM6855)
+#if !defined(BCM4912) && !defined(BCM6756) && !defined(BCM6855) && !defined(BCM4906_504)
 	if (nvram_get_int("usb_usb3") == 1) {
 #endif
 #ifdef RTCONFIG_HND_ROUTER
@@ -330,7 +330,7 @@ void add_usb_host_modules(void)
 #else
 		modprobe(USB30_MOD);
 #endif
-#if !defined(BCM4912) && !defined(BCM6756) && !defined(BCM6855)
+#if !defined(BCM4912) && !defined(BCM6756) && !defined(BCM6855) && !defined(BCM4906_504)
 	}
 #endif
 #endif
@@ -446,6 +446,7 @@ void add_usb_modem_modules(void)
 	if(nvram_get_int("usb_qmi"))
 		modprobe("qmi_wwan");
 	modprobe("cdc_mbim");
+	modprobe("ipheth");
 #endif
 }
 
@@ -459,6 +460,7 @@ void remove_usb_modem_modules(void)
 	modprobe_r("gobi");
 #endif
 #if !defined(RTCONFIG_INTERNAL_GOBI) || defined(RTCONFIG_USB_MULTIMODEM)
+	modprobe_r("ipheth");
 	modprobe_r("cdc_mbim");
 	modprobe_r("qmi_wwan");
 	modprobe_r("cdc_wdm");
@@ -860,7 +862,8 @@ void start_usb(int mode)
 		}
 #endif
 #if defined(RTCONFIG_BT_CONN_USB)
-#if defined(BCM4912)
+#if defined(BCM4912) || defined(BCM4906_504)
+//#if defined(BCM4912)
 		modprobe("btintel");
 		modprobe("btrtl");
 #endif
@@ -1008,7 +1011,8 @@ void remove_usb_host_module(void)
 #if defined(RTCONFIG_BT_CONN_USB)
 	modprobe_r("ath3k");
 	modprobe_r("btusb");
-#if defined(BCM4912)
+#if defined(BCM4912) || defined(BCM4906_504)
+//#if defined(BCM4912)
 	modprobe_r("btintel");
 	modprobe_r("btrtl");
 #endif
@@ -1198,7 +1202,8 @@ void stop_usb(int f_force)
 #if defined(RTCONFIG_BT_CONN_USB)
 		modprobe_r("ath3k");
 		modprobe_r("btusb");
-#if defined(BCM4912)
+#if defined(BCM4912) || defined(BCM4906_504)
+//#if defined(BCM4912)
 		modprobe_r("btintel");
 		modprobe_r("btrtl");
 #endif
@@ -1328,10 +1333,11 @@ int mount_r(char *mnt_dev, char *mnt_dir, char *_type)
 			sprintf(options + strlen(options), ",allow_utime=0022" + (options[0] ? 0 : 1));
 #endif
 
-			if (nvram_invmatch("smbd_cset", ""))
-				sprintf(options + strlen(options), ",iocharset=%s%s",
-						isdigit(nvram_get("smbd_cset")[0]) ? "cp" : "",
-						nvram_get("smbd_cset"));
+			if(nvram_match("smbd_cset", "utf8"))
+				sprintf(options + strlen(options), ",utf8" + (options[0] ? 0 : 1));
+			else
+			if(nvram_invmatch("smbd_cset", ""))
+				sprintf(options + strlen(options), ",iocharset=%s%s", isdigit(nvram_get("smbd_cset")[0]) ? "cp" : "", nvram_get("smbd_cset"));
 
 			if (nvram_invmatch("smbd_cpage", "")) {
 				char cp[16];
@@ -1392,29 +1398,33 @@ int mount_r(char *mnt_dev, char *mnt_dir, char *_type)
 		else if (strncmp(type, "ntfs", 4) == 0) {
 			sprintf(options, "umask=0000,nodev");
 
-			if (nvram_invmatch("smbd_cset", ""))
-				sprintf(options + strlen(options), "%snls=%s%s", options[0] ? "," : "",
-						isdigit(nvram_get("smbd_cset")[0]) ? "cp" : "",
-						nvram_get("smbd_cset"));
+			if(nvram_match("smbd_cset", "utf8"))
+				sprintf(options + strlen(options), ",utf8" + (options[0] ? 0 : 1));
+			else{
+				if(nvram_invmatch("smbd_cset", ""))
+						sprintf(options + strlen(options), "%snls=%s%s", options[0] ? "," : "", isdigit(nvram_get("smbd_cset")[0]) ? "cp" : "", nvram_get("smbd_cset"));
+
 #if defined(RTCONFIG_REALTEK) && defined(RTCONFIG_TUXERA_NTFS)
 			/* TUXERA module not support codepage options. */
-#else			
-			if (nvram_invmatch("smbd_cpage", "")) {
-				char cp[16];
+#else
+				if (nvram_invmatch("smbd_cpage", "")) {
+					char cp[16];
 
-				snprintf(cp, sizeof(cp), "%s", nvram_safe_get("smbd_cpage"));
-				sprintf(options + strlen(options), ",codepage=%s" + (options[0] ? 0 : 1), cp);
-				snprintf(flagfn, sizeof(flagfn), "nls_cp%s", cp);
-				TRACE_PT("USB %s(%s) is setting the code page to %s!\n", mnt_dev, type, flagfn);
+					snprintf(cp, sizeof(cp), "%s", nvram_safe_get("smbd_cpage"));
+					sprintf(options + strlen(options), ",codepage=%s" + (options[0] ? 0 : 1), cp);
+					snprintf(flagfn, sizeof(flagfn), "nls_cp%s", cp);
+					TRACE_PT("USB %s(%s) is setting the code page to %s!\n", mnt_dev, type, flagfn);
 
-				snprintf(cp, sizeof(cp), "%s", nvram_safe_get("smbd_nlsmod"));
-				if(strlen(cp) > 0 && (strcmp(cp, flagfn) != 0))
-					modprobe_r(cp);
+					snprintf(cp, sizeof(cp), "%s", nvram_safe_get("smbd_nlsmod"));
+					if(strlen(cp) > 0 && (strcmp(cp, flagfn) != 0))
+						modprobe_r(cp);
 
-				modprobe(flagfn);
-				nvram_set("smbd_nlsmod", flagfn);
-			}
+					modprobe(flagfn);
+					nvram_set("smbd_nlsmod", flagfn);
+				}
 #endif
+			}
+
 #ifndef RTCONFIG_BCMARM
 			sprintf(options + strlen(options), ",noatime" + (options[0] ? 0 : 1));
 #endif
@@ -1504,7 +1514,10 @@ int mount_r(char *mnt_dev, char *mnt_dir, char *_type)
 #ifdef RTCONFIG_OPENPLUS_TFAT
 				else
 #endif
+				{
 					ret = eval("mount", "-t", "tfat", "-o", options, mnt_dev, mnt_dir);
+					_dprintf("%s: fat options: %s, ret: %d.\n", __func__, options, ret);
+				}
 #endif
 
 				if(ret != 0){
@@ -1528,8 +1541,9 @@ int mount_r(char *mnt_dev, char *mnt_dir, char *_type)
 					else
 #endif
 					{
-						//ret = eval("mount", "-t", "tntfs", "-o", options, mnt_dev, mnt_dir);
-						ret = eval("mount", "-t", "tntfs", "-o", "nodev", mnt_dev, mnt_dir);
+						ret = eval("mount", "-t", "tntfs", "-o", options, mnt_dev, mnt_dir);
+						//ret = eval("mount", "-t", "tntfs", "-o", "nodev", mnt_dev, mnt_dir);
+						_dprintf("%s: ntfs options: %s, ret: %d.\n", __func__, options, ret);
 					}
 #endif
 #if defined(RTCONFIG_PARAGON_NTFS)
@@ -2066,7 +2080,7 @@ int mount_partition(char *dev_name, int host_num, char *dsc_name, char *pt_name,
 		type = "unknown";
 	run_custom_script("pre-mount", 120, dev_name, type);
 
-#if !defined(RTCONFIG_HND_ROUTER_AX_6710) && !defined(RTCONFIG_BCM_502L07P2) && !defined(BCM4912)
+#if !defined(RTCONFIG_HND_ROUTER_AX_6710) && !defined(RTCONFIG_BCM_502L07P2) && !defined(BCM4912) && !defined(BCM4906_504)
 	char *end;
 	static char *swp_argv[] = { "swapon", "-a", NULL };
 	struct mntent *mnt;
@@ -2268,7 +2282,7 @@ _dprintf("usb_path: 4. don't set %s.\n", tmp);
 		nvram_set("sc_mount_sig", "1");
 #endif
 
-#if defined(RTCONFIG_APP_PREINSTALLED) && defined(RTCONFIG_CLOUDSYNC)
+#if defined(RTCONFIG_CLOUDSYNC)
 		char word[PATH_MAX], *next_word;
 		char cloud_setting[2048], *b, *nvp, *nv;
 		int type = 0, rule = 0, enable = 0;
@@ -2610,7 +2624,7 @@ void hotplug_usb(void)
 		subsystem ? : "USB", interface, action, usbport, scsi_host, device);
 
 	if (!nvram_get_int("usb_enable")) return;
-#ifdef LINUX26
+#if defined(LINUX26) && !defined(BCM4906_504)
 	if (!action || ((!interface || !product) && !is_block))
 #else
 	if (!interface || !action || !product)	/* Hubs bail out here. */
@@ -2856,49 +2870,19 @@ void write_ftpd_conf()
 #if defined(RTCONFIG_HTTPS) && defined(RTCONFIG_FTP_SSL)
 	if(nvram_get_int("ftp_tls")){
 		fprintf(fp, "ssl_enable=YES\n");
+		if (!f_exists(HTTPD_CERT) || !f_exists(HTTPD_KEY))
+			restore_cert();
+
+		prepare_cert_in_etc();
+
 		fprintf(fp, "rsa_cert_file=%s\n", HTTPD_CERT);
 		fprintf(fp, "rsa_private_key_file=%s\n", HTTPD_KEY);
 
-		if(!f_exists(HTTPD_CERT) || !f_exists(HTTPD_KEY)
-#ifdef RTCONFIG_LETSENCRYPT
-			|| !cert_key_match(HTTPD_CERT, HTTPD_KEY)
-#endif
-			) {
-#ifdef RTCONFIG_LETSENCRYPT
-			if(nvram_match("le_enable", "1")) {
-				cp_le_cert(LE_FULLCHAIN, HTTPD_CERT);
-				cp_le_cert(LE_KEY, HTTPD_KEY);
-			}
-			else if(nvram_match("le_enable", "2")) {
-				unlink(HTTPD_CERT);
-				unlink(HTTPD_KEY);
-				if(f_exists(UPLOAD_CERT) && f_exists(UPLOAD_KEY)) {
-					eval("cp", UPLOAD_CERT, HTTPD_CERT);
-					eval("cp", UPLOAD_KEY, HTTPD_KEY);
-				}
-			}
-#else
-			if(f_exists(UPLOAD_CERT) && f_exists(UPLOAD_KEY)){
-				eval("cp", UPLOAD_CERT, HTTPD_CERT);
-				eval("cp", UPLOAD_KEY, HTTPD_KEY);
-			}
-#endif
-		}
-
 		// Is it valid now?  Otherwise, restore saved cert, or generate one.
-		if(!f_exists(HTTPD_CERT) || !f_exists(HTTPD_KEY)
-#ifdef RTCONFIG_LETSENCRYPT
-                        || !cert_key_match(HTTPD_CERT, HTTPD_KEY)
-#endif
-		) {
-			if (eval("tar", "-xzf", "/jffs/cert.tgz", "-C", "/", "etc/cert.pem", "etc/key.pem") == 0){
-				system("cat /etc/key.pem /etc/cert.pem > /etc/server.pem");
-				system("cp /etc/cert.pem /etc/cert.crt");
-			} else {
-				f_read("/dev/urandom", &sn, sizeof(sn));
-				sprintf(t, "%llu", sn & 0x7FFFFFFFFFFFFFFFULL);
-				eval("gencert.sh", t);
-			}
+		if (!f_exists(HTTPD_CERT) || !f_exists(HTTPD_KEY)) {
+			f_read("/dev/urandom", &sn, sizeof(sn));
+			sprintf(t, "%llu", sn & 0x7FFFFFFFFFFFFFFFULL);
+			GENCERT_SH(t);
 		}
 	} else {
 		fprintf(fp, "ssl_enable=NO\n");
@@ -3349,7 +3333,7 @@ start_samba(void)
 	char smbd_cmd[32];
 
 	if (getpid() != 1) {
-		notify_rc_after_wait("start_samba");
+		notify_rc_and_wait_2min("start_samba");
 		return;
 	}
 
@@ -3466,7 +3450,7 @@ start_samba(void)
 #ifdef RTCONFIG_NVRAM_ENCRYPT
 			char dec_passwd[64];
 			memset(dec_passwd, 0, sizeof(dec_passwd));
-			pw_dec(tmp_ascii_passwd, dec_passwd, sizeof(dec_passwd));
+			pw_dec(tmp_ascii_passwd, dec_passwd, sizeof(dec_passwd), 1);
 			tmp_ascii_passwd = dec_passwd;
 #endif
 			memset(char_passwd, 0, 64);
@@ -3553,7 +3537,7 @@ start_samba(void)
 void stop_samba(int force)
 {
 	if(!force && getpid() != 1){
-		notify_rc_after_wait("stop_samba");
+		notify_rc_and_wait_2min("stop_samba");
 		return;
 	}
 
@@ -3764,6 +3748,7 @@ void start_dms(void)
 				"port=%d\n"
 				"friendly_name=%s\n"
 				"db_dir=%s\n"
+				"log_dir=%s\n"
 				"enable_tivo=%s\n"
 				"strict_dlna=%s\n"
 				"inotify=yes\n"
@@ -3772,6 +3757,7 @@ void start_dms(void)
 				nvram_safe_get("lan_ifname"),
 				(port < 0) || (port >= 0xffff) ? 0 : port,
 				friendly_name,
+				dbdir,
 				dbdir,
 				nvram_get_int("dms_tivo") ? "yes" : "no",
 				nvram_get_int("dms_stdlna") ? "yes" : "no");
@@ -3835,9 +3821,8 @@ void start_dms(void)
 			fprintf(f,
 				"serial=%s\n"
 				"uuid=%s\n"
-				"model_number=%s.%s\n",
-				serial, uuid,
-				rt_version, rt_serialno);
+				"model_number=%s\n",
+				serial, uuid, get_productid());
 
 			nv = nvram_safe_get("dms_sort");
 			if (!*nv || isdigit(*nv))
@@ -3927,7 +3912,7 @@ write_mt_daapd_conf(char *servername)
 	dec_passwd = malloc(declen);
 	if(dec_passwd){
 		memset(dec_passwd, 0, declen);
-		pw_dec(http_passwd, dec_passwd, declen);
+		pw_dec(http_passwd, dec_passwd, declen, 1);
 		strlcpy(http_passwd, dec_passwd, sizeof(http_passwd));
 	}
 #endif
@@ -4109,7 +4094,7 @@ void write_webdav_permissions()
 			int declen = strlen(tmp_ascii_passwd);
 			char dec_passwd[declen];
 			memset(dec_passwd, 0, sizeof(dec_passwd));
-			pw_dec(tmp_ascii_passwd, dec_passwd, sizeof(dec_passwd));
+			pw_dec(tmp_ascii_passwd, dec_passwd, sizeof(dec_passwd), 1);
 			tmp_ascii_passwd = dec_passwd;
 #endif
 			ascii_to_char_safe(char_passwd, tmp_ascii_passwd, 64);

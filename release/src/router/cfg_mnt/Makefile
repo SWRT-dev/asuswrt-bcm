@@ -1,6 +1,7 @@
 include ../common.mak
 
-CFLAGS += -Wall -Os $(EXTRACFLAGS) -ffunction-sections -fdata-sections
+CFLAGS += $(if $(KPATH_37_OR_ABOVE),$(if $(and $(RTCONFIG_QCA),$(RTCONFIG_MUSL_LIBC)),,-I$(KDIR)/include),-I$(LINUX_INC_DIR)/include)
+CFLAGS += -Wall $(if $(RTCONFIG_DEBUG),-g,-Os) -Wno-unused-but-set-variable $(EXTRACFLAGS) -ffunction-sections -fdata-sections
 CFLAGS += -I. -I$(TOP)/shared -I$(SRCBASE) -I$(SRCBASE)/include -I./include -I$(TOP)/networkmap
 CFLAGS += -I./sysdeps
 CFLAGS += -I$(TOP)/openssl/include
@@ -15,6 +16,11 @@ LDFLAGS += -L$(TOP)/openssl -lcrypto -lssl
 LDFLAGS += -lpthread
 LDFLAGS += -L$(TOP)/json-c/.libs -ljson-c
 LDFLAGS += -lm
+
+ifeq ($(RTCONFIG_DMALLOC),y)
+CFLAGS += -DDMALLOC -DDMALLOC_FUNC_CHECK -I$(STAGEDIR)/usr/include
+LDFLAGS += -L$(STAGEDIR)/usr/lib -ldmalloc
+endif
 
 ifeq ($(RTCONFIG_AMAS),y)
 ifeq ($(RTCONFIG_LLDPD_1_0_11),y)
@@ -168,7 +174,7 @@ endif
 
 ifeq ($(RTCONFIG_HAS_5G_2), y)
 CFLAGS += -DSUPPORT_TRI_BAND
-else ifdef $(filter $(BUILD_NAME), RT-AC5300 GT-AC5300 RT-AC92U RT-AX92U GT-AX11000 RT-AX95Q XT8PRO XT8_V2 RT-AXE95Q ET8PRO RP-AC92 GT-AXE11000 GT-AX11000PRO)
+else ifdef $(filter $(BUILD_NAME), RT-AC5300 GT-AC5300 RT-AC92U RT-AX92U GT-AX11000 RT-AX95Q XT8PRO BM68 XT8_V2 RT-AXE95Q ET8PRO ET8_V2 RP-AC92 GT-AXE11000 GT-AX11000PRO)
 CFLAGS += -DSUPPORT_TRI_BAND
 endif
 
@@ -247,10 +253,10 @@ install: all
 	@install -D cfg_reportstatus $(INSTALLDIR)/usr/sbin/cfg_reportstatus
 	@install -D libcfgmnt.so $(INSTALLDIR)/usr/lib/libcfgmnt.so
 	@install -D gencfgcert.sh $(INSTALLDIR)/usr/sbin/gencfgcert.sh
-	@$(STRIP) $(INSTALLDIR)/usr/sbin/cfg_server
-	@$(STRIP) $(INSTALLDIR)/usr/sbin/cfg_client
-	@$(STRIP) $(INSTALLDIR)/usr/sbin/cfg_reportstatus
-	@$(STRIP) $(INSTALLDIR)/usr/lib/libcfgmnt.so
+	$(if $(RTCONFIG_DEBUG),,@$(STRIP) $(INSTALLDIR)/usr/sbin/cfg_server)
+	$(if $(RTCONFIG_DEBUG),,@$(STRIP) $(INSTALLDIR)/usr/sbin/cfg_client)
+	$(if $(RTCONFIG_DEBUG),,@$(STRIP) $(INSTALLDIR)/usr/sbin/cfg_reportstatus)
+	$(if $(RTCONFIG_DEBUG),,@$(STRIP) $(INSTALLDIR)/usr/lib/libcfgmnt.so)
 	@chmod 0755 $(INSTALLDIR)/usr/sbin/cfg_server
 	@chmod 0755 $(INSTALLDIR)/usr/sbin/cfg_client
 	@chmod 0755 $(INSTALLDIR)/usr/sbin/cfg_reportstatus
@@ -258,4 +264,3 @@ install: all
 
 clean:
 	rm -f cfg_server cfg_client cfg_reportstatus *.so *.o .*.depend
-

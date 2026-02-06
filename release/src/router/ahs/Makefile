@@ -1,6 +1,6 @@
 include ${TOP}/common.mak
 
-CFLAGS += -Wall -O
+CFLAGS += -Wall -O $(if $(RTCONFIG_DEBUG),-g)
 
 ifeq ($(RTCONFIG_BCMARM),y)
 CFLAGS += $(EXTRA_FLAG)
@@ -20,8 +20,8 @@ LDFLAGS += -L$(TOP)/curl/lib/.libs -lcurl
 CFLAGS += -I$(TOP)/openssl/include
 LDFLAGS += -L$(TOP)/openssl -lcrypto -lssl $(if $(RTCONFIG_OPENSSL11),-lpthread,)
 ifeq ($(RTCONFIG_TR069),y)
-CFLAGS += -I$(TOP)/libssh2-1.9.0/include -I$(TOP)/zlib/include
-LDFLAGS += -L$(TOP)/libssh2-1.9.0/src/.libs -lssh2 -L$(TOP)/zlib -lz
+CFLAGS += -I$(TOP)/libssh2-1.10.0/include -I$(TOP)/zlib/include
+LDFLAGS += -L$(TOP)/libssh2-1.10.0/src/.libs -lssh2 -L$(TOP)/zlib -lz
 endif
 endif
 
@@ -44,7 +44,7 @@ ahs: $(OBJS)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
 
 install: all
-	$(STRIP) ahs
+	$(if $(RTCONFIG_DEBUG),,$(STRIP) ahs)
 	$(INSTALL) -d $(INSTALLDIR)/ahs/usr/sbin
 	$(INSTALL) ahs $(INSTALLDIR)/ahs/usr/sbin
 

@@ -376,6 +376,7 @@ enum {
 	SUBFT_TWT_BAND3,
 	SUBFT_TWT_BAND4,
 
+	SUBFT_GENCERT,
 	SUBFT_MAX
 };
 
@@ -462,6 +463,7 @@ static struct subfeature_mapping_s subfeature_mapping_list[] __attribute__ ((unu
 	{ "log_server",		SUBFT_LOG_SERVER,	FT_LOGGER },
 	{ "location",		SUBFT_LOCATION,	FT_MISC },
 	{ "misc",		SUBFT_MISCELLANEOUS,	FT_MISC },
+	{ "rootcerts",	 	SUBFT_GENCERT,		FT_MISC },		/* fake nvram variable, use it to ask CAP to send root cert/key */
 	/* feedback and diagnostic */
 	{ "feedback",		SUBFT_FEEDBACK,		FT_FEEDBACK },
 	{ "diagnostic",		SUBFT_DIAGNOSTIC,	FT_DIAGNOSTIC},
@@ -662,6 +664,10 @@ static struct param_mapping_s param_mapping_list[] __attribute__ ((unused)) = {
 	{ "wl0_radius_key",	FT_WIRELESS,		SUBFT_RADIUS_BAND1,		""},
 	{ "wl0_radius_port",	FT_WIRELESS,		SUBFT_RADIUS_BAND1,		"1812"},
 	{ "wl0_radio",	FT_WIRELESS,		SUBFT_RADIO_BAND1,		"1"},
+#if defined(RTCONFIG_WIFI_QCN5024_QCN5054) || defined(RTCONFIG_QCA_AXCHIP) \
+ || defined(RTCONFIG_MT798X)
+	{ "wl0_mbo_enable",	FT_WIRELESS,		SUBFT_BASIC_BAND1,		"1"},
+#endif
 	{ "wl1_ssid", 		FT_WIRELESS,		SUBFT_BASIC_BAND2,		"ASUS"},
 	{ "wl1_closed", 	FT_WIRELESS, 		SUBFT_BASIC_BAND2,		"0"},
 	{ "wl1_wpa_psk",	FT_WIRELESS,		SUBFT_BASIC_BAND2,		""},
@@ -692,6 +698,10 @@ static struct param_mapping_s param_mapping_list[] __attribute__ ((unused)) = {
 	{ "wl1_radius_key",	FT_WIRELESS,		SUBFT_RADIUS_BAND2,		""},
 	{ "wl1_radius_port",	FT_WIRELESS,		SUBFT_RADIUS_BAND2,		"1812"},
 	{ "wl1_radio",		FT_WIRELESS,		SUBFT_RADIO_BAND2,		"1"},
+#if defined(RTCONFIG_WIFI_QCN5024_QCN5054) || defined(RTCONFIG_QCA_AXCHIP) \
+ || defined(RTCONFIG_MT798X)
+	{ "wl1_mbo_enable",	FT_WIRELESS,		SUBFT_BASIC_BAND2,		"1"},
+#endif
 	{ "wl2_ssid",		FT_WIRELESS,		SUBFT_BASIC_BAND3,		"ASUS"},
 	{ "wl2_closed",	 	FT_WIRELESS, 		SUBFT_BASIC_BAND3,		"0"},
 	{ "wl2_wpa_psk",	FT_WIRELESS,		SUBFT_BASIC_BAND3,		""},
@@ -722,6 +732,10 @@ static struct param_mapping_s param_mapping_list[] __attribute__ ((unused)) = {
 	{ "wl2_radius_key",	FT_WIRELESS,		SUBFT_RADIUS_BAND3,		""},
 	{ "wl2_radius_port",	FT_WIRELESS,		SUBFT_RADIUS_BAND3,		"1812"},
 	{ "wl2_radio",	FT_WIRELESS,		SUBFT_RADIO_BAND3,		"1"},
+#if defined(RTCONFIG_WIFI_QCN5024_QCN5054) || defined(RTCONFIG_QCA_AXCHIP) \
+ || defined(RTCONFIG_MT798X)
+	{ "wl2_mbo_enable",	FT_WIRELESS,		SUBFT_BASIC_BAND3,		"1"},
+#endif
 
 	{ "wl3_ssid",		FT_WIRELESS,		SUBFT_BASIC_BAND4,		"ASUS"},
 	{ "wl3_closed",	 	FT_WIRELESS, 		SUBFT_BASIC_BAND4,		"0"},
@@ -753,6 +767,10 @@ static struct param_mapping_s param_mapping_list[] __attribute__ ((unused)) = {
 	{ "wl3_radius_key",	FT_WIRELESS,		SUBFT_RADIUS_BAND4,		""},
 	{ "wl3_radius_port",	FT_WIRELESS,		SUBFT_RADIUS_BAND4,		"1812"},
 	{ "wl3_radio",	FT_WIRELESS,		SUBFT_RADIO_BAND4,		"1"},
+#if defined(RTCONFIG_WIFI_QCN5024_QCN5054) || defined(RTCONFIG_QCA_AXCHIP) \
+ || defined(RTCONFIG_MT798X)
+	{ "wl3_mbo_enable",	FT_WIRELESS,		SUBFT_BASIC_BAND4,		"1"},
+#endif
 	/* guest network */
 	{ "wl0.1_closed", 	FT_WIRELESS, 		SUBFT_BASIC_BAND1_G1,		"0"},
 	{ "wl0.1_ssid", 	FT_WIRELESS, 		SUBFT_BASIC_BAND1_G1,		"ASUS"},
@@ -921,7 +939,10 @@ static struct param_mapping_s param_mapping_list[] __attribute__ ((unused)) = {
 	{ "wl2_user_rssi", 		FT_WIRELESS, 		SUBFT_ADVANCED_BAND3,		"-70"},
 	{ "wl3_user_rssi", 		FT_WIRELESS, 		SUBFT_ADVANCED_BAND4,		"-70"},
 #if defined(RTCONFIG_WIFI_QCN5024_QCN5054)
+	/* Extended NSS */
 	{ "wl1_ext_nss", 		FT_WIRELESS, 		SUBFT_ADVANCED_BAND2,		"1"},
+	/* Agile DFS (preCACen) */
+	{ "wl1_precacen",		FT_WIRELESS,		SUBFT_ADVANCED_BAND2,		"1"},
 #endif
 	/* http login */
 	{ "http_username", 	FT_LOGIN,		SUBFT_ROUTER_LOGIN,		"admin"},
@@ -950,6 +971,7 @@ static struct param_mapping_s param_mapping_list[] __attribute__ ((unused)) = {
 	{ "cfg_alias", 	FT_MISC,		SUBFT_LOCATION,		""},
 	{ "apps_sq", 	FT_MISC,		SUBFT_MISCELLANEOUS,		""},
 	{ "preferred_lang",	FT_MISC,	SUBFT_MISCELLANEOUS,		"EN"},
+	{ "rootcerts",		FT_MISC,		SUBFT_GENCERT,		"" },
 	/* feedback */
 	{ "fb_transid",		FT_FEEDBACK,		SUBFT_FEEDBACK,		"123456789ABCDEF0"},
 	{ "fb_email_dbg", 	FT_FEEDBACK,		SUBFT_FEEDBACK,		""},
@@ -969,8 +991,6 @@ static struct param_mapping_s param_mapping_list[] __attribute__ ((unused)) = {
 	{ "fb_Subscribed_Info", 	FT_FEEDBACK,		SUBFT_FEEDBACK,		""},
 	{ "fb_attach_iptables", 		FT_FEEDBACK,		SUBFT_FEEDBACK,		""},
 #endif
-	{ "oauth_google_refresh_token", FT_FEEDBACK, SUBFT_FEEDBACK,		""},
-	{ "oauth_google_user_email", FT_FEEDBACK, SUBFT_FEEDBACK,		""},
 	{ "fb_email_provider", FT_FEEDBACK, SUBFT_FEEDBACK,		""},
 	/* diagnostic */
 	{ "dblog_enable", 		FT_FEEDBACK,		SUBFT_FEEDBACK,		"0"},
@@ -1226,8 +1246,31 @@ static struct wlcsuffix_mapping_s wlcsuffix_mapping_list[] __attribute__ ((unuse
 	{ "radius_ipaddr", NULL },
 	{ "radius_key", NULL },
 	{ "radius_port", NULL },
+	{ "ap_isolate", NULL},
 	{ NULL, 		NULL }
 };
 
+struct smart_connect_nvsuffix_t {
+	char *name;
+	char *converted_name;
+};
+
+static struct smart_connect_nvsuffix_t smart_connect_nvsuffix_list[] = {
+	{ "ssid\0", NULL },
+	{ "wpa_psk\0", NULL },
+	{ "crypto\0", NULL },
+	{ "auth_mode_x\0", "auth_mode\0" },
+	{ "wep_x\0", "wep\0" },
+	{ "key\0", NULL },
+	{ "key1\0", NULL },
+	{ "key2\0", NULL },
+	{ "key3\0", NULL },
+	{ "key4\0", NULL },
+	{ "closed\0", NULL },
+	{ "radius_ipaddr\0", NULL },
+	{ "radius_key\0", NULL },
+	{ "radius_port\0", NULL },
+	{ NULL }
+};
 #endif /* __CFG_PARAM_H__ */
 /* End of cfg_param.h */

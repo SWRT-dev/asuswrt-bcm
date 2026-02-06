@@ -113,6 +113,9 @@ Downloadlink = get_Downloadlink();
 var faq_href1 = "https://nw-dlcdnet.asus.com/support/forward.html?model=&type=Faq&lang="+ui_lang+"&kw=&num=131";
 var faq_href2 = "https://nw-dlcdnet.asus.com/support/forward.html?model=&type=Faq&lang="+ui_lang+"&kw=&num=107";
 
+var current_page = window.location.pathname.split("/").pop();
+var faq_index_tmp = get_faq_index(FAQ_List, current_page, 1);
+
 var dpi_engine_status = <%bwdpi_engine_status();%>;
 var sig_ver = '<% nvram_get("bwdpi_sig_ver"); %>';
 var sig_ver_ori = '<% nvram_get("bwdpi_sig_ver"); %>';
@@ -128,10 +131,10 @@ if(pipefw_support || urlfw_support){
 var webs_update_enable_orig = httpApi.nvramGet(["webs_update_enable"],1).webs_update_enable;
 var webs_update_time_orig = httpApi.nvramGet(["webs_update_time"],1).webs_update_time;
 
-var update_time_hour_orig = webs_update_time_orig.split(":")[0].replace(/^0+/, '');
+var update_time_hour_orig = webs_update_time_orig.split(":")[0].replace(/^0/, '');
 update_time_hour_orig = (update_time_hour_orig=="")? "2":update_time_hour_orig;
 
-var update_time_min_orig = (webs_update_time_orig.split(":").length==2)? webs_update_time_orig.split(":")[1].replace(/^0+/, ''):"";
+var update_time_min_orig = (webs_update_time_orig.split(":").length==2)? webs_update_time_orig.split(":")[1].replace(/^0/, ''):"";
 update_time_min_orig = (update_time_min_orig=="")? "0":update_time_min_orig;
 
 var amesh_offline_flag = false;
@@ -1257,18 +1260,7 @@ function gen_AiMesh_fw_status(_manual_status, _node_info) {
 	return html;
 }
 function check_AiMesh_fw_version(_fw) {
-	var support_manual_fw_id = 382;
-	var support_manual_fw_num = 18000;
-	var manual_status = false;
-	var fw_array = _fw.match(/(\d+)\.(\d+)\.(\d+)\.(\d+)\.([^_]+)_([^-]+)/);
-	if(fw_array){
-		var fw_id = parseInt(fw_array[5]) || 0;
-		var fw_num = parseInt(fw_array[6]) || 0;
-		if(fw_id > support_manual_fw_id ||
-				(fw_id == support_manual_fw_id && fw_num >= support_manual_fw_num)){
-			manual_status = true;
-		}
-	}
+	var manual_status = true;
 	if(support_site_modelid == "GT-AC2900_SH"){
 		manual_status = false;
 	}
@@ -1339,8 +1331,10 @@ function check_AiMesh_fw_version(_fw) {
 		<tbody>
 		<tr>
 		  <td bgcolor="#4D595D" valign="top">
+		  <div class="container">
 		  <div>&nbsp;</div>
 		  <div class="formfonttitle"><#menu5_6#> - <#menu5_6_3#></div>
+		  <div class="formfonttitle_help"><i onclick="show_feature_desc(`<#HOWTOSETUP#>`)" class="icon_help"></i></div>
 		  <div style="margin:10px 0 10px 5px;" class="splitLine"></div>
 		  <div class="formfontdesc"><strong><#FW_note#></strong>
 				<ol>
@@ -1470,7 +1464,13 @@ function check_AiMesh_fw_version(_fw) {
 <input type="hidden" name="action_wait" value="1">
 <input type="hidden" name="webs_update_enable" value="<% nvram_get("webs_update_enable"); %>">
 <input type="hidden" name="webs_update_time" value="<% nvram_get("webs_update_time"); %>">
-</form>		
+<input type="hidden" name="webs_update_beta" value="<% nvram_get("webs_update_beta"); %>">
+<input type="hidden" name="webs_update_ts" value="<% nvram_get("webs_update_ts"); %>">
+</form>
+
+	</div>  <!-- for .container  -->
+	<div class="popup_container popup_element_second"></div>
+
 			  </td>
               </tr>
             </tbody>
