@@ -3428,8 +3428,6 @@ define RouterOptions
 	if [ "$(VPN_FUSION)" = "y" ]; then \
 		sed -i "/RTCONFIG_VPN_FUSION/d" $(1); \
 		echo "RTCONFIG_VPN_FUSION=y" >>$(1); \
-		sed -i "/RTCONFIG_TPVPN/d" $(1); \
-		echo "RTCONFIG_TPVPN=y" >>$(1); \
 	fi;
 	if [ "$(TPVPN)" = "y" ]; then \
 		sed -i "/RTCONFIG_TPVPN/d" $(1); \
