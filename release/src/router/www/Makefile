@@ -853,8 +853,6 @@ endif
 
 ifneq ($(RTCONFIG_ROG_UI),y)
 ifneq ($(BUILD_NAME), $(filter $(BUILD_NAME), TUF-AX3000 TUF-AX3000_V2 TUF-AX4200 TUF-AX5400 TUF-AX6000))
-	rm -rf $(INSTALLDIR)/www/fonts/ROG_Fonts-Regular.otf
-	rm -rf $(INSTALLDIR)/www/fonts/ROG_Fonts-Regular.woff
 	rm -rf $(INSTALLDIR)/www/fonts/xolonium.regular.otf
 	rm -rf $(INSTALLDIR)/www/fonts/xolonium.regular.woff
 endif

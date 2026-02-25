@@ -15,7 +15,6 @@
 #include <wlutils.h>
 #include <linux_gpio.h>
 #include <etioctl.h>
-#include "utils.h"
 #include "shutils.h"
 #include "shared.h"
 #include <trxhdr.h>

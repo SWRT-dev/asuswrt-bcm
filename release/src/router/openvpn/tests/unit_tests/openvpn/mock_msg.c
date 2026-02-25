@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2016-2018 Fox Crypto B.V. <openvpn@fox-it.com>
+ *  Copyright (C) 2016-2021 Fox Crypto B.V. <openvpn@foxcrypto.com>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -23,8 +23,6 @@
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
-#elif defined(_MSC_VER)
-#include "config-msvc.h"
 #endif
 
 #include <stdarg.h>
@@ -32,8 +30,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <setjmp.h>
+#include <stdint.h>
+#ifndef NO_CMOCKA
 #include <cmocka.h>
-
+#endif
 
 #include "errlevel.h"
 #include "error.h"
@@ -69,6 +69,8 @@ x_msg(const unsigned int flags, const char *format, ...)
     va_end(arglist);
 }
 
+/* Allow to use mock_msg.c outside of UT */
+#ifndef NO_CMOCKA
 void
 assert_failed(const char *filename, int line, const char *condition)
 {
@@ -76,6 +78,15 @@ assert_failed(const char *filename, int line, const char *condition)
     /* Keep compiler happy.  Should not happen, mock_assert() does not return */
     exit(1);
 }
+#else  /* ifndef NO_CMOCKA */
+void
+assert_failed(const char *filename, int line, const char *condition)
+{
+    msg(M_FATAL, "Assertion failed at %s:%d (%s)", filename, line, condition ? condition : "");
+    _exit(1);
+}
+#endif
+
 
 /*
  * Fail memory allocation.  Don't use msg() because it tries

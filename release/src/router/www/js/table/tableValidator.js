@@ -309,7 +309,7 @@ var tableValidator = {
 				}
 			}
 
-			if((wan_proto == "v6plus" || wan_proto == "ocnvc") && s46_ports_check_flag && array_ipv6_s46_ports.length > 1 && hintMsg == HINTPASS){
+			if((wan_proto == "v6plus" || wan_proto == "ocnvc" || wan_proto == "v6opt") && s46_ports_check_flag && array_ipv6_s46_ports.length > 1 && hintMsg == HINTPASS){
 				var PortSplit = PortRange.split(/,|:/);
 				var res=false;
 				var res_result=0;

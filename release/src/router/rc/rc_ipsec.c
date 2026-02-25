@@ -2,7 +2,6 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <utils.h>
 #include <bcmnvram.h>
 #include <shutils.h>
 #include <syslog.h>
@@ -13,6 +12,7 @@
 
 /* for struct utsname */
 #include <sys/utsname.h>
+#include <webapi.h>
 
 #ifdef IPSEC_DEBUG
 #define DBG(args) _dprintf args
@@ -639,6 +639,8 @@ void rc_strongswan_conf_set()
 
 	fprintf(fp, "}\n");
 	fclose(fp);
+
+	run_postconf("strongswan","/etc/strongswan.conf");
 }
 
 void rc_ipsec_ca2ipsecd_cp(FILE *fp, uint32_t idx)
@@ -1059,9 +1061,9 @@ void rc_ipsec_gen_cert(int skip_checking)
 
     if(strlen(ddns_name) == 0 )
     {
-        snprintf(prefix, sizeof(prefix), "wan%d_", get_active_wan_unit());
-        snprintf(remote_id, sizeof(remote_id), "%s", nvram_pf_safe_get(prefix, "ipaddr"));
-        if(strlen(remote_id) == 0){
+        snprintf(prefix, sizeof(prefix), "wan%d_ipaddr", get_active_wan_unit());
+        snprintf(remote_id, sizeof(remote_id), "%s", nvram_safe_get(prefix));
+        if(strlen(remote_id) == 0 || !validate_apply_input_value(remote_id, prefix)){
             DBG(("[Error]wan ip is not set yet, no any CAs will be created.\n"));
             return;
         }
@@ -1211,7 +1213,7 @@ void rc_ipsec_secrets_set()
 					else{
 						strcpy(prof[prof_count][i].local_pub_ip,nvram_safe_get("lan_ipaddr"));
 					}
-					fprintf(fp,"\n %s : %s %s\n\n"
+					fprintf(fp,"\n %s : %s \"%s\"\n\n"
 						/*fprintf(fp,"\n %s %s : %s %s\n\n"
 						, ((0 == strcmp(prof[prof_count][i].local_id, "null") ||
 						('\0' == prof[prof_count][i].local_id[0])) ?
@@ -1229,11 +1231,11 @@ void rc_ipsec_secrets_set()
 				/*second-factor auth*/
 				if((IKE_TYPE_V1 == prof[prof_count][i].ike) &&
 				(IPSEC_AUTH2_TYP_CLI == prof[prof_count][i].xauth)){
-					fprintf(fp, "#cli[%d]\n %s : XAUTH %s\n", i, prof[prof_count][i].xauth_account
+					fprintf(fp, "#cli[%d]\n %s : XAUTH \"%s\"\n", i, prof[prof_count][i].xauth_account
 							, prof[prof_count][i].xauth_password);
 				}else if((IKE_TYPE_V2 == prof[prof_count][i].ike) &&
 						(IPSEC_AUTH2_TYP_CLI == prof[prof_count][i].xauth)){
-					fprintf(fp, "#cli[%d]\n %s : EAP %s\n", i, prof[prof_count][i].xauth_account
+					fprintf(fp, "#cli[%d]\n %s : EAP \"%s\"\n", i, prof[prof_count][i].xauth_account
 							, prof[prof_count][i].xauth_password);
 				}
 
@@ -1260,7 +1262,7 @@ void rc_ipsec_secrets_set()
 					if((VPN_TYPE_HOST_NET == prof[prof_count][i].vpn_type) &&
 						(prof[prof_count][i].ike == IKE_TYPE_V2) &&
 						(prof[prof_count][i].auth_method == 0)){
-						snprintf(s_tmp, sizeof(s_tmp), ": RSA %s\n", prof[prof_count][i].leftkey);
+						snprintf(s_tmp, sizeof(s_tmp), ": RSA \"%s\"\n", prof[prof_count][i].leftkey);
 					}
 
 					if(nvram_get_int("ipsec_server_enable") == 1){
@@ -1269,7 +1271,7 @@ void rc_ipsec_secrets_set()
 							if((vstrsep(word, ">", &name, &passwd)) != 2)
 								continue;
 
-							snprintf(ipsec_client_list_buf, sizeof(ipsec_client_list_buf), "\n%s : %s %s"
+							snprintf(ipsec_client_list_buf, sizeof(ipsec_client_list_buf), "\n%s : %s \"%s\""
 									, name, (IKE_TYPE_V2 == prof[prof_count][i].ike) ? "EAP" : "XAUTH", passwd);
 							strlcat(s_tmp, ipsec_client_list_buf, sizeof(s_tmp));
 						}
@@ -1283,7 +1285,7 @@ void rc_ipsec_secrets_set()
 							if((vstrsep(word, ">", &name, &passwd, &desc, &ts, &active)) != 5)
 								continue;
 							if(active != NULL && !strcmp(active, "1")){
-								snprintf(ig_client_buf, sizeof(ig_client_buf), "\n%s : %s %s"
+								snprintf(ig_client_buf, sizeof(ig_client_buf), "\n%s : %s \"%s\""
 										, name, (IKE_TYPE_V2 == prof[prof_count][i].ike) ? "EAP" : "XAUTH", passwd);
 								strlcat(ig_client_list_tmp, ig_client_buf, sizeof(ig_client_list_tmp));
 							}
@@ -1293,7 +1295,7 @@ void rc_ipsec_secrets_set()
                             if((vstrsep(word, ">", &name, &passwd, &desc, &ts, &active, &lan_access)) != 6)
                                 continue;
                             if(active != NULL && !strcmp(active, "1")){
-                                snprintf(ig_client_buf, sizeof(ig_client_buf), "\n%s : %s %s"
+                                snprintf(ig_client_buf, sizeof(ig_client_buf), "\n%s : %s \"%s\""
                                         , name, (IKE_TYPE_V2 == prof[prof_count][i].ike) ? "EAP" : "XAUTH", passwd);
                                 strlcat(ig_client_list_tmp, ig_client_buf, sizeof(ig_client_list_tmp));
                             }
@@ -1601,7 +1603,7 @@ void rc_ipsec_topology_set()
 
     memset(p_tmp, 0, sizeof(char) * SZ_MIN);
     fp = fopen("/tmp/etc/ipsec.conf", "w");
-    fprintf(fp,"conn %%default\n  keyexchange=ikev1\n  authby=secret\n\n");
+    fprintf(fp,"conn %%default\n  keyexchange=ikev1\n  authby=secret\n  ike=aes256-sha1-modp1024\n");
 
 	for(prof_count = PROF_CLI; prof_count < PROF_ALL; prof_count++){
 	    for(i = 0; i < MAX_PROF_NUM; i++){
@@ -1721,6 +1723,7 @@ void rc_ipsec_topology_set()
 
     if(NULL != fp){
         fclose(fp);
+        run_postconf("ipsec","/etc/ipsec.conf");
     }
     return;
 }
@@ -3157,4 +3160,3 @@ void rc_ipsec_ctrl(int prof_type, int prof_idx, int enable)
 		}
 	}
 }
-

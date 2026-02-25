@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2024 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -52,10 +52,13 @@ struct http_proxy_options {
 
     const char *auth_method_string;
     const char *auth_file;
+    const char *auth_file_up; /* specified with --http-proxy-user-pass */
     const char *http_version;
     const char *user_agent;
     struct http_custom_header custom_headers[MAX_CUSTOM_HTTP_HEADER];
-    bool inline_creds;
+    bool inline_creds; /* auth_file_up is inline credentials */
+    bool first_time; /* indicates if we need to wipe user creds at the first iteration of the main loop */
+    bool nocache;
 };
 
 struct http_proxy_options_simple {
@@ -86,7 +89,7 @@ bool establish_http_proxy_passthru(struct http_proxy_info *p,
                                    const char *port,          /* openvpn server port */
                                    struct event_timeout *server_poll_timeout,
                                    struct buffer *lookahead,
-                                   volatile int *signal_received);
+                                   struct signal_info *sig_info);
 
 uint8_t *make_base64_string2(const uint8_t *str, int str_len, struct gc_arena *gc);
 

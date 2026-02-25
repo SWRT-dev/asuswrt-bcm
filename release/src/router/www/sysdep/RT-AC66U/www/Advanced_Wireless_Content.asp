@@ -1305,7 +1305,7 @@ function validForm(){
 			ssid_array.push(httpApi.nvramGet(["wl2_ssid"]).wl2_ssid);
 		jsonPara["current_ssid"] = ssid_array;
 		if(!validator.dwb_check_wl_setting(jsonPara)) {
-			alert("The fronthaul SSID is the same as the backhaul SSID.");/* untranslated */
+			alert(`<#wireless_JS_dup_SSID#>`);
 			return false;
 		}
 	}
@@ -1948,7 +1948,13 @@ function he_frame_mode(obj) {
 	}
 }
 
-var band1_enable_bw_160 = '<% nvram_get("wl1_bw_160"); %>';
+var band1_enable_bw_160 = (function(){
+	if(based_modelid == 'ET8_V2'){
+		return '0';
+	}
+	return '<% nvram_get("wl1_bw_160"); %>';
+})();
+
 var band2_enable_bw_160 = '<% nvram_get("wl2_bw_160"); %>';
 function separateGenBWTable(unit){
 	var bws = new Array();
@@ -2018,8 +2024,15 @@ function separateGenBWTable(unit){
 	separateGenChannel(unit, curChannel, curBandwidth);
 }
 function separateEnable_160MHz(obj){
-	if(obj.id == 'band1_160'){
-		band1_enable_bw_160 = obj.checked ? 1 : 0;
+	if(obj.id == 'band1_160'){ 
+		band1_enable_bw_160 = (function(){
+			if(based_modelid == 'ET8_V2'){
+				return '0'
+			}
+
+			return obj.checked ? 1 : 0;		
+		})()
+
 		separateGenBWTable('1');
 	}
 	else if(obj.id == 'band2_160'){
@@ -2482,7 +2495,7 @@ function separateGenChannel(unit, channel, bandwidth){
 		if (document.form.band2_channel.value == '0') {
 			if(channel_5g_2.indexOf('100') != -1){
 				$('#band2_acsDFS').show();
-				if(document.form.band2_bw.value == '5'){
+				if(document.form.band2_bw.value == '5' || channel_5g_2.indexOf('149') == -1){
 					document.form.band2_acsDFS_checkbox.checked = true;
 					document.form.band2_acsDFS_checkbox.disabled = true;
 				}
@@ -2615,7 +2628,7 @@ function separateChannelHandler(unit, channel){
 		if (curCtrlChannel == '0') {
 			if(channel_5g_2.indexOf('100') != -1){
 				$('#band2_acsDFS').show();
-				if(document.form.band2_bw.value == '5'){
+				if(document.form.band2_bw.value == '5' || channel_5g_2.indexOf('149') == -1){
 					document.form.band2_acsDFS_checkbox.checked = true;
 					document.form.band2_acsDFS_checkbox.disabled = true;
 				}
@@ -3246,8 +3259,8 @@ function gen_fronthaul_ap(_value){
 								<option value="1" <% nvram_match("wl_mfp", "1", "selected"); %>><#WLANConfig11b_x_mfp_opt1#></option>
 								<option value="2" <% nvram_match("wl_mfp", "2", "selected"); %>><#WLANConfig11b_x_mfp_opt2#></option>
 						  </select>
-						  <span id="mbo_notice_wpa3" style="display:none">*If the Authentication Method is WPA3-Personal, the Protected Management Frames will be Required.</span>
-						  <span id="mbo_notice_combo" style="display:none">*If the Authentication Method is WPA2/WPA3-Personal, the Protected Management Frames will be Capable.</span>
+						  <span id="mbo_notice_wpa3" style="display:none"><#WLANConfig11b_AgileMultiband_note_wpa3#></span>
+						  <span id="mbo_notice_combo" style="display:none"><#WLANConfig11b_AgileMultiband_note_combo#></span>
 						  <span id="mbo_notice_combo_legacy" style="display:none">*If the Authentication Method is WPA/WPA2-Personal, the Protected Management Frames will be Capable.</span>
 						  <span id="mbo_notice" style="display:none"><#WLANConfig11b_AgileMultiband_note#></span>
 					</td>

@@ -2590,6 +2590,48 @@ int num_of_wan_if()
 	return count;
 }
 
+int num_of_6g_if()
+{
+#if defined(RTCONFIG_NOWL)
+	char prefix[sizeof("wlXXXXX_")];
+	int band, count = 0;
+
+	for (band = 0; band < MAX_NR_WL_BAND; band++) {
+		snprintf(prefix, sizeof(prefix), "wl%d_", band);
+		if (nvram_pf_match(prefix, "nband", "4"))
+			count++;
+
+		if (nvram_pf_get_int(prefix, "nband") == 0)
+			break;
+	}
+#else
+#if !defined(CONFIG_BCMWL5)
+	char prefix[] = "wlXXXXXXXXXXXX_";
+	int band, count = 0;
+
+	for (band = WL_2G_BAND; band < MAX_NR_WL_IF; band++) {
+		SKIP_ABSENT_BAND(band);
+		snprintf(prefix, sizeof(prefix), "wl%d_", band);
+		if (nvram_pf_match(prefix, "nband", "4"))
+			count++;
+	}
+#else
+	char word[256], *next;
+	char wl_ifnames[32] = { 0 };
+	char prefix[] = "wlXXXXXXXXXXXX_", tmp[128];
+	int idx = 0, count = 0;
+
+	strlcpy(wl_ifnames, nvram_safe_get("wl_ifnames"), sizeof(wl_ifnames));
+	foreach (word, wl_ifnames, next) {
+		snprintf(prefix, sizeof(prefix), "wl%d_", idx++);
+		if (nvram_match(strcat_r(prefix, "nband", tmp), "4"))
+			count++;
+	}
+#endif
+#endif	/* RTCONFIG_NOWL */
+	return count;
+}
+
 /* hex2str()
  * Convert the hex array to string.
  * @param hex pointer to hex to be converted
@@ -2752,7 +2794,7 @@ found_next:
 }
 
 #ifdef CONFIG_BCMWL5
-void retrieve_static_maclist_from_nvram(int idx,struct maclist *maclist,int maclist_buf_size)
+void retrieve_static_maclist_from_nvram(int idx,int vidx,struct maclist *maclist,int maclist_buf_size)
 {
 	char prefix[16]={0};
 	struct ether_addr *ea;
@@ -2770,12 +2812,17 @@ void retrieve_static_maclist_from_nvram(int idx,struct maclist *maclist,int macl
 
 	if(!maclist) return;
 
+	if (vidx>0) {
+		snprintf(prefix, sizeof(prefix), "wl%d.%d_", idx, vidx);
+	}
+	else {
 #ifdef RTCONFIG_AMAS
-	if (nvram_get_int("re_mode") == 1)
-		snprintf(prefix, sizeof(prefix), "wl%d.1_", idx);
-	else
+		if (nvram_get_int("re_mode") == 1)
+			snprintf(prefix, sizeof(prefix), "wl%d.1_", idx);
+		else
 #endif
-	snprintf(prefix,16,"wl%d_",idx);
+		snprintf(prefix, sizeof(prefix), "wl%d_", idx);
+	}
 
 #ifdef RTCONFIG_AMAS
 	if (is_cfg_relist_exist())

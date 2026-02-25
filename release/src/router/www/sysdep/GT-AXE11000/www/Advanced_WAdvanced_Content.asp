@@ -916,7 +916,7 @@ function changeRSSI(_switch){
 
 function applyRule(){
 	if(lantiq_support && wave_ready != 1){
-		alert("Please wait a minute for wireless ready");
+		alert(`<#Wireless_ready#>`);
 		return false;
 	}
 	
@@ -1092,7 +1092,7 @@ power_table_desc = ["<#WLANConfig11b_TxPower1#>", "<#WLANConfig11b_TxPower2#>", 
 //power_table_desc = ["省電", "弱", "平衡", "強", "效能"];
 function register_event(){
 	
-	$(function() {
+
 		$( "#slider" ).slider({
 			orientation: "horizontal",
 			range: "min",
@@ -1106,7 +1106,7 @@ function register_event(){
 				set_power(ui.value);	  
 			}
 		}); 
-	});
+
 }
 
 function set_power(power_value){	

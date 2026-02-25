@@ -639,7 +639,7 @@ void vpnc_ovpn_set_dns(int ovpn_unit)
 
 		trim_r(addr);
 
-		old = nvram_get(nvname);
+		old = nvram_safe_get(nvname);
 		if (*old)
 		{
 			size = strlen(old) + strlen(addr) + 2;
@@ -1992,6 +1992,10 @@ int set_default_routing_table(const VPNC_ROUTE_CMD cmd, const int table_id)
 		while(fgets(tmp, sizeof(tmp), fp))
 		{
 			eval("ip", "rule", "del", "priority", VPNC_RULE_PRIORITY_DEFAULT);
+#ifdef RTCONFIG_IPV6
+			if(ipv6_enabled())
+				eval("ip", "-6", "rule", "del", "priority", VPNC_RULE_PRIORITY_DEFAULT);
+#endif
 		}
 	}
 	unlink(iprule_tmp);
@@ -2409,4 +2413,3 @@ static int _set_network_routing_rule(const VPNC_ROUTE_CMD cmd, const int vpnc_id
 	}
 	return 0;
 }
-

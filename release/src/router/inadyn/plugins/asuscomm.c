@@ -25,6 +25,7 @@
 #include "md5.h"
 #include "base64.h"
 #include "plugin.h"
+#include <openssl/md5.h>
 
 #include <ctype.h>
 #include <stdio.h>
@@ -38,7 +39,6 @@
 #endif
 
 #define ASUSDDNS_IP_SERVER	"ns1.asuscomm.com"
-#define ASUSDDNS_IP_SERVER_CN	"ns1.asuscomm.cn"
 //#define ASUSDDNS_IP_SERVER	"52.250.15.7"
 #define ASUSDDNS_CHECKIP_URL	"/myip.php"
 
@@ -132,7 +132,7 @@ static void
 hmac_md5( const unsigned char *input, size_t ilen, const unsigned char *key, size_t klen, unsigned char output[MD5_DIGEST_BYTES] )
 {
 	int i;
-	md5_context ctx;
+	MD5_CTX ctx;
 	unsigned char k_ipad[64], k_opad[64], tk[MD5_DIGEST_BYTES];
 
 	/* if key is longer than 64 bytes reset it to key=MD5(key) */
@@ -155,18 +155,18 @@ hmac_md5( const unsigned char *input, size_t ilen, const unsigned char *key, siz
 	}
 
 	/* inner MD5 */
-	md5_starts( &ctx );
-	md5_update( &ctx, k_ipad, 64 );
-	md5_update( &ctx, input, ilen );
-	md5_finish( &ctx, output );
+	MD5_Init( &ctx );
+	MD5_Update( &ctx, k_ipad, 64 );
+	MD5_Update( &ctx, input, ilen );
+	MD5_Final( output, &ctx);
 
 	/* outter MD5 */
-	md5_starts( &ctx );
-	md5_update( &ctx, k_opad, 64 );
-	md5_update( &ctx, output, MD5_DIGEST_BYTES );
-	md5_finish( &ctx, output );
+	MD5_Init( &ctx );
+	MD5_Update( &ctx, k_opad, 64 );
+	MD5_Update( &ctx, output, MD5_DIGEST_BYTES );
+	MD5_Final( output, &ctx);
 
-	memset( &ctx, 0, sizeof( md5_context ) );
+	memset( &ctx, 0, sizeof( MD5_CTX ) );
 }
 
 #ifdef ASUSWRT
@@ -518,14 +518,6 @@ static int response_register(http_trans_t *trans, ddns_info_t *info, ddns_alias_
 
 PLUGIN_INIT(plugin_init)
 {
-	if (nvram_match("ddns_server_x", "WWW.ASUS.COM.CN")) {
-		asus_update.checkip_name = ASUSDDNS_IP_SERVER_CN;
-		asus_update.server_name = ASUSDDNS_IP_SERVER_CN;
-		asus_register.checkip_name = ASUSDDNS_IP_SERVER_CN;
-		asus_register.server_name = ASUSDDNS_IP_SERVER_CN;
-		asus_unregister.checkip_name = ASUSDDNS_IP_SERVER_CN;
-		asus_unregister.server_name = ASUSDDNS_IP_SERVER_CN;
-	}
 	plugin_register(&asus_update);
 	plugin_register(&asus_register);
 	plugin_register(&asus_unregister);
@@ -533,14 +525,6 @@ PLUGIN_INIT(plugin_init)
 
 PLUGIN_EXIT(plugin_exit)
 {
-	if (nvram_match("ddns_server_x", "WWW.ASUS.COM.CN")) {
-		asus_update.checkip_name = ASUSDDNS_IP_SERVER_CN;
-		asus_update.server_name = ASUSDDNS_IP_SERVER_CN;
-		asus_register.checkip_name = ASUSDDNS_IP_SERVER_CN;
-		asus_register.server_name = ASUSDDNS_IP_SERVER_CN;
-		asus_unregister.checkip_name = ASUSDDNS_IP_SERVER_CN;
-		asus_unregister.server_name = ASUSDDNS_IP_SERVER_CN;
-	}
 	plugin_unregister(&asus_update);
 	plugin_unregister(&asus_register);
 	plugin_unregister(&asus_unregister);

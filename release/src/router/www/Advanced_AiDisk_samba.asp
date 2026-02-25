@@ -12,12 +12,13 @@
 <link rel="stylesheet" type="text/css" href="/index_style.css">
 <link rel="stylesheet" type="text/css" href="/form_style.css">
 <link rel="stylesheet" type="text/css" href="/aidisk/AiDisk_style.css">
+<script type="text/javascript" src="/js/jquery.js"></script>
 <script type="text/javascript" src="/state.js"></script>
+<script type="text/javascript" src="/general.js"></script>
 <script type="text/javascript" src="/help.js"></script>
 <script type="text/javascript" src="/popup.js"></script>
 <script type="text/javascript" src="/validator.js"></script>
 <script type="text/javascript" src="/disk_functions.js"></script>
-<script type="text/javascript" src="/js/jquery.js"></script>
 <script type="text/javascript" src="/js/httpApi.js"></script>
 <script type="text/javascript" src="/switcherplugin/jquery.iphone-switch.js"></script>
 <style>
@@ -530,7 +531,7 @@ function onEvent(){
 		document.getElementById("createAccountBtn").onclick = function(){};
 		document.getElementById("createAccountBtn").onmouseover = function(){};
 		document.getElementById("createAccountBtn").onmouseout = function(){};
-		document.getElementById("createAccountBtn").title = (accounts.length < 6)?"<#AddAccountTitle#>":"<#account_overflow#>";
+		document.getElementById("createAccountBtn").title = (accounts.length < 11)?"<#AddAccountTitle#>":"<#account_overflow#>";
 	}
 	
 	if(this.accounts.length > 0 && this.selectedAccount != null && this.selectedAccount.length > 0 && this.accounts[0] != this.selectedAccount){
@@ -702,7 +703,7 @@ function applyRule(){
 			reboot_confirm=1;
 		}
 	}
-        
+
         if(reboot_confirm==1){
         	
 		if(confirm("<#AiMesh_Node_Reboot#>")){
@@ -722,7 +723,7 @@ function applyRule(){
 function validForm(){
 	
 	if(document.form.computer_name.value.length > 0){
-		var alert_str = validator.samba_name(document.form.computer_name);
+		var alert_str = validator.samba_name(document.form.computer_name, "computer_name");
 		if(alert_str != ""){
 			showtext(document.getElementById("alert_msg1"), alert_str);
 			document.getElementById("alert_msg1").style.display = "";
@@ -802,7 +803,7 @@ function switchUserType(flag){
 <input type="hidden" name="preferred_lang" id="preferred_lang" value="<% nvram_get("preferred_lang"); %>">
 <input type="hidden" name="firmver" value="<% nvram_get("firmver"); %>">
 <input type="hidden" name="action_mode" value="apply">
-<input type="hidden" name="action_script" value="restart_ftpsamba">
+<input type="hidden" name="action_script" value="restart_ftpsamba;restart_dnsmasq">
 <input type="hidden" name="action_wait" value="5">
 <input type="hidden" name="modified" value="0">
 <input type="hidden" name="current_page" value="Advanced_AiDisk_samba.asp">
@@ -878,7 +879,7 @@ function switchUserType(flag){
 				</tr>
 				<tr>
 					<th>
-						<a class="hintstyle" href="javascript:void(0);" onClick="openHint(17,2);"><#ShareNode_DeviceName_itemname#></a>
+						<a class="hintstyle" href="javascript:void(0);" onClick="openHint(17,10);"><#ShareNode_DeviceName_itemname#></a>
 					</th>
 					<td>
 						<div><input type="text" name="computer_name" id="computer_name" class="input_20_table charToUpperCase" maxlength="15" value="<% nvram_get("computer_name"); %>" autocorrect="off" autocapitalize="on"><br/>
@@ -891,6 +892,37 @@ function switchUserType(flag){
 					</th>
 					<td>
 						<input type="text" name="st_samba_workgroup" id="st_samba_workgroup" class="input_20_table charToUpperCase" maxlength="15" value="<% nvram_get("st_samba_workgroup"); %>" autocorrect="off" autocapitalize="on">
+					</td>
+				</tr>
+				<tr>
+					<th>Samba protocol version</th>
+					<td>
+						<select name="smbd_protocol" class="input_option">
+							<option class="content_input_fd" value="0" <% nvram_match("smbd_protocol", "0","selected"); %>>SMBv1</option>
+							<option class="content_input_fd" value="1" <% nvram_match("smbd_protocol", "1","selected"); %>>SMBv2</option>
+							<option class="content_input_fd" value="2" <% nvram_match("smbd_protocol", "2","selected"); %>>SMBv1 + SMBv2</option>
+						</select>
+					</td>
+                                </tr>
+				<tr>
+					<th>Simpler share naming<br><i>(without the disk name)</i></th>
+					<td>
+						<input type="radio" name="smbd_simpler_naming" class="input" value="1" <% nvram_match_x("", "smbd_simpler_naming", "1", "checked"); %>><#checkbox_Yes#>
+						<input type="radio" name="smbd_simpler_naming" class="input" value="0" <% nvram_match_x("", "smbd_simpler_naming", "0", "checked"); %>><#checkbox_No#>
+					</td>
+				</tr>
+
+				<tr>
+					<th>Force as Master Browser</th>
+					<td>
+						<input type="radio" name="smbd_master" class="input" value="1" <% nvram_match_x("", "smbd_master", "1", "checked"); %>><#checkbox_Yes#>
+						<input type="radio" name="smbd_master" class="input" value="0" <% nvram_match_x("", "smbd_master", "0", "checked"); %>><#checkbox_No#>
+					</td>
+				</tr>
+					<th>Set as WINS server</th>
+					<td>
+						<input type="radio" name="smbd_wins" class="input" value="1" <% nvram_match_x("", "smbd_wins", "1", "checked"); %>><#checkbox_Yes#>
+						<input type="radio" name="smbd_wins" class="input" value="0" <% nvram_match_x("", "smbd_wins", "0", "checked"); %>><#checkbox_No#>
 					</td>
 				</tr>
 				<tr>

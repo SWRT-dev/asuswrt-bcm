@@ -120,4 +120,3 @@ int update_default_routing_rule();
 
 #define VPNC_RULE_PRIORITY_DEFAULT		"10000"
 #endif
-

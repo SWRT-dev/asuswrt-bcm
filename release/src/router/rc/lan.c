@@ -1348,6 +1348,8 @@ void start_lan(void)
 		nvram_set("btn_ez_radiotoggle", "0"); // reset to default
 	}
 
+	set_hostname();
+
 	convert_routes();
 
 #if defined(RTCONFIG_RALINK) || defined(RTCONFIG_QCA) || defined(RTCONFIG_REALTEK) || defined(RTCONFIG_QSR10G)
@@ -1457,6 +1459,22 @@ void start_lan(void)
 #ifdef RTAX86U_PRO
 	// configure 6715 GPIO direction
 	eval("wl", "-i", "eth7", "gpioout", "0x2002", "0x2002");
+	eval("wl", "-i", "eth7", "ledbh", "13", "7");
+#endif
+
+#ifdef RTAX88U_PRO
+	// configure 6715 GPIO direction
+	if(nvram_match("wl0_radio", "0"))
+		eval("wl", "-i", "eth6", "gpioout", "0x2002", "0x0002");
+	else
+		eval("wl", "-i", "eth6", "gpioout", "0x2002", "0x2002");
+
+	if(nvram_match("wl1_radio", "0"))
+		eval("wl", "-i", "eth7", "gpioout", "0x2002", "0x0002");
+	else
+		eval("wl", "-i", "eth7", "gpioout", "0x2002", "0x2002");
+
+	eval("wl", "-i", "eth6", "ledbh", "13", "7");
 	eval("wl", "-i", "eth7", "ledbh", "13", "7");
 #endif
 
@@ -1611,11 +1629,13 @@ void start_lan(void)
 #ifdef RTAC87U
 		eval("brctl", "stp", lan_ifname, nvram_safe_get("lan_stp"));
 #else
-#if !defined(HND_ROUTER) || defined(RTAX55) || defined(RTAX1800) || defined(RTAX58U_V2) || defined(RTAX3000N) || defined(BR63)
-		if (is_routing_enabled())
+		if (is_routing_enabled()
+#if defined(HND_ROUTER) && defined(RTCONFIG_NEW_PHYMAP)
+			&& ext_switch_exist()
+#endif
+		)
 			eval("brctl", "stp", lan_ifname, nvram_safe_get("lan_stp"));
 		else
-#endif
 			eval("brctl", "stp", lan_ifname, "0");
 #endif
 
@@ -1659,10 +1679,10 @@ void start_lan(void)
 				if (strncmp(ifname, "wl", 2) == 0) {
 					if (get_ifname_unit(ifname, &unit, &subunit) < 0)
 						continue;
-					if (!wl_vif_enabled(ifname, tmp)) {
+					if (!wl_vif_enabled(ifname, tmp))
 						continue; /* Ignore disabled WL VIF */
-					}
-					wl_vif_hwaddr_set(ifname);
+					if (subunit != -1)
+						wl_vif_hwaddr_set(ifname);
 				}
 #endif
 #ifdef RTCONFIG_CONCURRENTREPEATER
@@ -1902,9 +1922,7 @@ void start_lan(void)
 						system("ethswctl -c pause -p 1 -v 2");
 #endif
 				}
-#if defined(RTAXE7800) && !defined(RTCONFIG_BCM_MFG)
-				if (!nvram_get_int("x_Setting") && !strcmp(ifname, "eth1")) continue;
-#endif
+
 				/* Set the logical bridge address to that of the first interface */
 				strlcpy(ifr.ifr_name, ifname, IFNAMSIZ);
 				if (ioctl(sfd, SIOCGIFHWADDR, &ifr) == 0) {
@@ -2407,11 +2425,11 @@ gmac3_no_swbr:
 #endif
 			&& !(rp_mode() && nvram_get_int("re_mode") == 0)
 	) {
-		// only none routing mode need lan_proto=dhcp
 		char *dhcp_argv[] = { "udhcpc",
 					"-i", "br0",
 					"-p", "/var/run/udhcpc_lan.pid",
 					"-s", "/tmp/udhcpc_lan",
+					"-H", get_lan_hostname(),
 					NULL };
 		pid_t pid;
 
@@ -2572,6 +2590,11 @@ _dprintf("nat_rule: stop_nat_rules 1.\n");
 
 #ifdef RTCONFIG_CFGSYNC
 	//update_macfilter_relist();start lan??
+#endif
+#if defined(RTCONFIG_AMAS) && (defined(BCM4912) || defined(BCM6855))
+	//tmp workaround for wifi backhaul issue
+	if (nvram_get_int("re_mode") == 1)
+		eval("ebtables", "-A", "FORWARD", "-p", "PPP_SES", "-j", "SKIPLOG");
 #endif
 
 	post_start_lan();
@@ -4407,7 +4430,7 @@ lan_up(char *lan_ifname)
 
 #if defined(RTCONFIG_MEDIA_SERVER) && defined(RTCONFIG_SAMBASRV) && defined(RTCONFIG_AMAS)
 	if(aimesh_re_node() && get_invoke_later()&INVOKELATER_DMS)
-		notify_rc("restart_samba");
+		notify_rc_and_wait_2min("restart_samba");
 #endif
 
 #ifdef RTCONFIG_REDIRECT_DNAME
@@ -4548,6 +4571,13 @@ wait_lan_port_to_forward_state(void)
 		}
 
 		if (nvram_match(lan_stp, "0"))
+			continue;
+
+		if (!is_routing_enabled()
+#ifdef RTCONFIG_NEW_PHYMAP
+			|| !ext_switch_exist()
+#endif
+		)
 			continue;
 
 		timeout = 5;
@@ -4961,10 +4991,10 @@ void start_lan_wl(void)
 				if (strncmp(ifname, "wl", 2) == 0) {
 					if (get_ifname_unit(ifname, &unit, &subunit) < 0)
 						continue;
-					if (!wl_vif_enabled(ifname, tmp)) {
+					if (!wl_vif_enabled(ifname, tmp))
 						continue; /* Ignore disabled WL VIF */
-					}
-					wl_vif_hwaddr_set(ifname);
+					if (subunit != -1)
+						wl_vif_hwaddr_set(ifname);
 				}
 				else if (wl_ioctl(ifname, WLC_GET_INSTANCE, &unit, sizeof(unit))) {
 					continue;
@@ -5497,6 +5527,12 @@ gmac3_no_swbr:
 	enable_jumbo_frame();
 #endif
 
+#if defined(RTCONFIG_AMAS) && (defined(BCM4912) || defined(BCM6855))
+	//tmp workaround for wifi backhaul issue
+	if (nvram_get_int("re_mode") == 1)
+		eval("ebtables", "-A", "FORWARD", "-p", "PPP_SES", "-j", "SKIPLOG");
+#endif
+
 	free(lan_ifname);
 
 	post_start_lan_wl();
@@ -6014,6 +6050,10 @@ void restart_wireless(void)
 	char domain_mapping[64];
 #endif
 	int lock = file_lock("wireless");
+#if defined(RTCONFIG_AMAS)
+	char amas_wlc_last_pap[] = "amas_wlcXXX_last_pap", amas_wlc_pap[] = "amas_wlcXXX_pap", amas_wlc_try_target_bssid[] = "amas_wlcXXX_try_target_bssid";
+	int len_of_target_bssid = 0, k = 0;
+#endif
 #ifdef RTCONFIG_WIFI_SON
 	if ((sw_mode()!=SW_MODE_REPEATER && (nvram_get_int("sw_mode")==SW_MODE_ROUTER || nvram_match("cfg_master", "1")) && nvram_get_int("x_Setting") && start_cap(1)==0) && nvram_match("wifison_ready", "1")) {
 		file_unlock(lock);
@@ -6027,6 +6067,16 @@ void restart_wireless(void)
 	nvram_set_int("wlready", 0);
 #ifdef RTCONFIG_AMAS
 	if (nvram_get_int("re_mode") == 1) {
+		len_of_target_bssid = strlen(nvram_safe_get("amas_wlc_target_bssid"));
+		for(k=0; k<num_of_wl_if(); k++)
+		{
+			snprintf(amas_wlc_last_pap, sizeof(amas_wlc_last_pap), "amas_wlc%d_last_pap", k);
+			snprintf(amas_wlc_pap, sizeof(amas_wlc_pap), "amas_wlc%d_pap", k);
+			snprintf(amas_wlc_try_target_bssid, sizeof(amas_wlc_try_target_bssid), "amas_wlc%d_try_target_bssid", k);
+			nvram_set(amas_wlc_last_pap, nvram_safe_get(amas_wlc_pap));
+			if(len_of_target_bssid > 0) // has prefer AP
+				nvram_set_int(amas_wlc_try_target_bssid, 1);
+		}
 		stop_amas_wlcconnect();
 		stop_amas_bhctrl();
 #ifdef RTCONFIG_BHCOST_OPT
@@ -6034,8 +6084,10 @@ void restart_wireless(void)
 #endif
 	}
 #ifdef CONFIG_BCMWL5
-	else
+	else {
 		nvram_set_int("obd_allow_scan", 0);
+		nvram_set_int("wlcscan", 0);
+	}
 #endif
 #endif
 #ifdef RTCONFIG_LANTIQ
@@ -6379,6 +6431,7 @@ void restart_wireless(void)
 	send_event_to_cfgmnt(EID_RC_RESTART_WIRELESS);
 #endif
 	restore_wan_ebtables_rules();
+	restart_qos_if_bwlim_enabled();
 }
 
 #ifdef RTCONFIG_BCM_7114
@@ -6822,7 +6875,7 @@ void set_onboarding_vif_status()
 		snprintf(prefix, sizeof(prefix), "wl%d_", unit);
 	}
 
-	if (nvram_match(strcat_r(prefix, "auth_mode_x", tmp), "sae")) {
+	if (nvram_match(strcat_r(prefix, "auth_mode_x", tmp), "sae") || nvram_match(strcat_r(prefix, "closed", tmp), "1")) {
 		snprintf(wl_radio, sizeof(wl_radio), "wl%d_radio", unit);
 		if (nvram_get_int(wl_radio)) //radio on
 			nvram_set_int("obvif_bss", 1);

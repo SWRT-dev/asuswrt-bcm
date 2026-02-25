@@ -587,7 +587,7 @@ function initial(){
 }
 
 function register_event(){
-	$(function() {
+
 		$( "#slider" ).slider({
 			orientation: "horizontal",
 			range: "min",
@@ -604,7 +604,7 @@ function register_event(){
 				set_led(ui.value);	  
 			}
 		}); 
-	});
+
 }
 
 function set_led(value){
@@ -919,7 +919,7 @@ function detect_qtn_ready(){
 
 function submitForm(){
 	if(parent.lantiq_support && wave_ready != 1){
-		alert("Please wait a minute for wireless ready");
+		alert(`<#Wireless_ready#>`);
 		return false;
 	}
 

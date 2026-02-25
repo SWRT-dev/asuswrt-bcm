@@ -905,9 +905,9 @@ IPTC_LIBS := -lip4tc $(if $(RTCONFIG_IPV6),-lip6tc,) -liptc
 obj-y += iptables-1.4.x
 ifeq ($(HND_ROUTER),y)
 ifeq ($(or $(HND_ROUTER_AX_6756),$(HND_ROUTER_BE_4916)),y)
-obj-y += iproute2-5.7.0
+obj-y += iproute2-5.11.0
 else
-obj-y += iproute2-4.3
+obj-y += iproute2-5.11.0
 endif
 else ifeq ($(or $(RTAX53U),$(RTAX54),$(RT4GAX56),$(RTCONFIG_MT798X),$(if $(filter $(BUILD_NAME),XD4S),y,)),y)
 obj-y += iproute2-5.18.0
@@ -985,7 +985,13 @@ obj-$(RTCONFIG_AHS) += curl
 obj-$(RTCONFIG_AHS) += json-c
 obj-$(RTCONFIG_AHS) += ahs
 
-obj-$(RTCONFIG_ASD) += asd
+ifeq ($(RTCONFIG_ASD_2_1),y)
+obj-y += asd2.1
+obj-y += onig-6.9.9
+obj-y += jq-1.7.1
+else ifeq ($(RTCONFIG_ASD),y)
+obj-y += asd
+endif
 
 obj-$(RTCONFIG_OPENVPN) += openssl
 obj-$(RTCONFIG_OPENVPN) += libvpn
@@ -1393,8 +1399,8 @@ endif
 
 #For timemachine
 obj-$(RTCONFIG_TIMEMACHINE) += openssl
-obj-$(RTCONFIG_TIMEMACHINE) += libgpg-error-1.10
-obj-$(RTCONFIG_TIMEMACHINE) += libgcrypt-1.5.1
+obj-$(RTCONFIG_TIMEMACHINE) += libgpg-error-1.47
+obj-$(RTCONFIG_TIMEMACHINE) += libgcrypt-1.10.2
 obj-$(RTCONFIG_TIMEMACHINE) += db-4.8.30
 obj-$(RTCONFIG_TIMEMACHINE) += libevent-2.0.21
 obj-$(RTCONFIG_TIMEMACHINE) += netatalk-3.0.5
@@ -1402,6 +1408,7 @@ ifeq ($(or $(RTCONFIG_TIMEMACHINE),$(RTCONFIG_MDNS)),y)
 obj-y += libdaemon
 obj-y += expat-2.0.1
 obj-y += avahi
+obj-y += libnss-mdns
 else
 ifeq ($(or $(RTCONFIG_MEDIA_SERVER),$(RTCONFIG_BWDPI)),y)
 obj-y += mDNSResponder
@@ -1457,6 +1464,7 @@ LZO_VER :=
 endif
 obj-$(RTCONFIG_LZO) += lzo$(LZO_VER)
 obj-$(RTCONFIG_OPENVPN) += lz4
+obj-$(RTCONFIG_OPENVPN) += libcap-ng
 obj-$(RTCONFIG_OPENVPN) += openpam
 obj-$(RTCONFIG_OPENVPN) += easy-rsa
 obj-$(RTCONFIG_OPENVPN) += openssl openvpn
@@ -1594,6 +1602,7 @@ endif
 
 obj-$(RTCONFIG_TCPDUMP) += libpcap
 obj-$(RTCONFIG_TCPDUMP) += tcpdump-4.4.0
+obj-$(RTCONFIG_TCPREPLAY) += libpcap-1.9.1 tcpreplay
 obj-$(RTCONFIG_DUMP4000) += libpcap
 obj-$(RTCONFIG_DUMP4000) += tcpdump-4.4.0
 obj-$(RTCONFIG_TRACEROUTE) += traceroute-2.1.0
@@ -3193,10 +3202,11 @@ openssl-1.1/Makefile:
 	$(if $(filter y,$(RTCONFIG_SFP) $(RTCONFIG_4M_SFP) $(RTCONFIG_8M_SFP)),-Os,-O2) \
 	$(if $(RTCONFIG_DEBUG),-g) \
 	-ffunction-sections -fdata-sections -Wl,--gc-sections \
-	shared $(OPENSSL_CIPHERS) no-async --api=1.0.0 \
+	shared $(OPENSSL_CIPHERS) no-err no-async --api=1.0.0 \
 	    no-aria no-sm2 no-sm3 no-sm4 no-tests \
+	    --with-rand-seed=devrandom \
 	    $(if $(filter y,$(RTCONFIG_WTFAST)),-DRTCONFIG_WTFAST,) \
-	    $(if $(filter y,$(HND_ROUTER)),,-DOPENSSL_PREFER_CHACHA_OVER_GCM)
+	    $(PRIORITY_CHACHA)
 	@$(MAKE) -C openssl-1.1 depend
 	@$(MAKE) -C openssl-1.1 clean
 	@touch $@
@@ -3336,7 +3346,7 @@ wb: json-c openssl libxml2 curl
 wb-install:
 	$(MAKE) -C wb INSTALLDIR=$(INSTALLDIR)/wb install
 
-rc: shared libev-4.33 $(if $(BCM_502L07P2),ethctl_lib) nvram$(BCMEX)$(EX7) libdisk $(if $(RTCONFIG_LIB_CODB),libcodb) $(if $(RTCONFIG_FBWIFI),fb_wifi) $(if $(RTCONFIG_QTN),libqcsapi_client) $(if $(CONFIG_LIBBCM),libbcm) $(if $(RTCONFIG_BWDPI),bwdpi_source) $(if $(RTCONFIG_USB_SMS_MODEM),smspdu) $(if $(RTCONFIG_HND_ROUTER),bcm_flashutil bcm_util bcm_boardctl) $(if $(RTCONFIG_OPENVPN),libovpn) $(if $(RTCONFIG_LANTIQ),libfapi-0.1) $(if $(RTCONFIG_CFGSYNC), $(CFGSYNC_PKG) $(if $(RTCONFIG_AMAS), amas-utils) $(if $(RTCONFIG_LANTIQ),hostapd-2.6)) json-c $(if $(or $(RTCONFIG_FRS_LIVE_UPDATE),$(RTCONFIG_FRS_FEEDBACK),$(RTCONFIG_URLFW),$(RTCONFIG_SOFTWIRE46)), curl) $(if $(and $(RTCONFIG_HND_ROUTER_AX_675X),$(RTCONFIG_BRCM_HOSTAPD)),sys_util gen_util) $(if $(and $(RTCONFIG_HND_ROUTER_AX_6756),$(RTCONFIG_BRCM_HOSTAPD)),sys_util gen_util) $(if $(and $(RTCONFIG_HND_ROUTER_AX_6710),$(RTCONFIG_BRCM_HOSTAPD)),sys_util gen_util) $(if $(and $(RTCONFIG_BCM_502L07P2),$(RTCONFIG_BRCM_HOSTAPD)),sys_util gen_util) $(if $(RTCONFIG_BRCM_HOSTAPD),wpa_supplicant-2.7) $(if $(RTCONFIG_MXL371X),mxl371x_sdk)
+rc: shared libev-4.33 $(if $(BCM_502L07P2),ethctl_lib) nvram$(BCMEX)$(EX7) libdisk $(if $(RTCONFIG_LIB_CODB),libcodb) $(if $(RTCONFIG_FBWIFI),fb_wifi) $(if $(RTCONFIG_QTN),libqcsapi_client) $(if $(CONFIG_LIBBCM),libbcm) $(if $(RTCONFIG_BWDPI),bwdpi_source) $(if $(RTCONFIG_USB_SMS_MODEM),smspdu) $(if $(RTCONFIG_HND_ROUTER),bcm_flashutil bcm_util bcm_boardctl) $(if $(RTCONFIG_OPENVPN),libovpn) $(if $(RTCONFIG_LANTIQ),libfapi-0.1) $(if $(RTCONFIG_CFGSYNC), $(CFGSYNC_PKG) $(if $(RTCONFIG_AMAS), amas-utils) $(if $(RTCONFIG_LANTIQ),hostapd-2.6)) json-c $(if $(or $(RTCONFIG_FRS_LIVE_UPDATE),$(RTCONFIG_FRS_FEEDBACK),$(RTCONFIG_URLFW),$(RTCONFIG_SOFTWIRE46)), curl) $(if $(and $(RTCONFIG_HND_ROUTER_AX_675X),$(RTCONFIG_BRCM_HOSTAPD)),sys_util gen_util) $(if $(and $(RTCONFIG_HND_ROUTER_AX_6756),$(RTCONFIG_BRCM_HOSTAPD)),sys_util gen_util) $(if $(and $(RTCONFIG_HND_ROUTER_AX_6710),$(RTCONFIG_BRCM_HOSTAPD)),sys_util gen_util) $(if $(and $(RTCONFIG_BCM_502L07P2),$(RTCONFIG_BRCM_HOSTAPD)),sys_util gen_util) $(if $(RTCONFIG_BRCM_HOSTAPD),wpa_supplicant-2.7) $(if $(RTCONFIG_MXL371X),mxl371x_sdk) libwebapi
 	@$(SEP)
 # Dig into our collection of prebuilt objects based on model
 	@-rm -f rc/prebuild/*.o || true
@@ -3531,7 +3541,7 @@ ifeq ($(or $(RTCONFIG_DHDAP),$(HND_ROUTER_AX)),y)
 endif
 endif
 
-dnsmasq:  $(if $(RTCONFIG_DNSSEC_OPENSSL),openssl,) $(if $(RTCONFIG_DNSSEC_NETTLE),nettle,)
+dnsmasq:  $(if $(RTCONFIG_DNSSEC_OPENSSL),openssl,) $(if $(RTCONFIG_DNSSEC_NETTLE),nettle,) $(if $(filter $(BUILD_NAME),RT-AX82_XD6 XD6_V2 ET12),shared nvram wlcsm,)
 	@$(SEP)
 	$(MAKE) -C dnsmasq \
 	COPTS="-DHAVE_BROKEN_RTC -DHAVE_LEASEFILE_EXPIRE \
@@ -3541,8 +3551,10 @@ dnsmasq:  $(if $(RTCONFIG_DNSSEC_OPENSSL),openssl,) $(if $(RTCONFIG_DNSSEC_NETTL
 		$(if $(RTCONFIG_USB_EXTRAS),,-DNO_TFTP) \
 		$(if $(RTCONFIG_DNSSEC_OPENSSL),-I$(TOP)/openssl/include -DHAVE_DNSSEC,) \
 		$(if $(RTCONFIG_DNSSEC_NETTLE),-I$(TOP)/nettle/include -I$(TOP)/gmp -DHAVE_DNSSEC -DHAVE_DNSSEC_STATIC -DNO_GOST,)" \
-	CFLAGS="-Os -ffunction-sections -fdata-sections $(EXTRACFLAGS) -std=gnu99" \
+	CFLAGS="-Os -ffunction-sections -fdata-sections $(EXTRACFLAGS) -std=gnu99 \
+		$(if $(filter $(BUILD_NAME),RT-AX82_XD6 XD6_V2 ET12),-I$(TOP)/shared -I$(SRCBASE)/include -D$(MODEL),)" \
 	LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections $(EXTRALDFLAGS) \
+		$(if $(filter $(BUILD_NAME),RT-AX82_XD6 XD6_V2 ET12),-L$(TOP)/shared -lshared -L$(TOP_PLATFORM)/nvram$(BCMEX)$(EX7) -lnvram -L$(TOP_PLATFORM)/wlcsm -lwlcsm,) \
 		$(if $(RTCONFIG_DNSSEC_OPENSSL),-pthread -L$(TOP)/openssl,) \
 		$(if $(RTCONFIG_DNSSEC_NETTLE),-L$(TOP)/nettle/lib -L$(TOP)/gmp/.libs,)" \
 	$(if $(RTCONFIG_DNSSEC_OPENSSL),PKG_CONFIG_PATH="$(TOP)/openssl" CRYPTO=openssl,) \
@@ -3587,20 +3599,20 @@ getdns/build/Makefile:
 		-DBUILD_STUBBY=TRUE -DENABLE_STUB_ONLY=TRUE \
 		-DBUILD_LIBEV=FALSE -DBUILD_LIBEVENT2=FALSE -DBUILD_LIBUV=FALSE \
 		-DBUILD_TESTING=FALSE \
-		-DOPENSSL_ROOT_DIR=$(TOP)/openssl \
-		-DOPENSSL_INCLUDE_DIR=$(TOP)/openssl/include \
-		-DOPENSSL_CRYPTO_LIBRARY=$(TOP)/openssl/libcrypto.so \
-		-DOPENSSL_SSL_LIBRARY=$(TOP)/openssl/libssl.so \
-		-DLIBYAML_DIR=$(TOP)/libyaml \
-		-DLIBYAML_INCLUDE_DIR=$(TOP)/libyaml/include \
-		-DLIBYAML_LIBRARY=$(TOP)/libyaml/src/.libs/libyaml.a \
+		-DOPENSSL_ROOT_DIR=$(STAGEDIR)/usr \
+		-DOPENSSL_INCLUDE_DIR=$(STAGEDIR)/usr/include \
+		-DOPENSSL_CRYPTO_LIBRARY=$(STAGEDIR)/usr/lib/libcrypto.so \
+		-DOPENSSL_SSL_LIBRARY=$(STAGEDIR)/usr/lib/libssl.so \
+		-DLIBYAML_DIR=$(STAGEDIR)/usr \
+		-DLIBYAML_INCLUDE_DIR=$(STAGEDIR)/usr/include \
+		-DLIBYAML_LIBRARY=$(STAGEDIR)/usr/lib/libyaml.a \
 		-DCMAKE_DISABLE_FIND_PACKAGE_Libsystemd=TRUE \
 		-DUSE_LIBIDN2=FALSE \
 		-DSTRPTIME_WORKS_EXITCODE=0 \
 		-DSTRPTIME_WORKS_EXITCODE__TRYRUN_OUTPUT=0 \
 		..
 
-getdns: openssl libyaml getdns/build/Makefile
+getdns: $(OPENSSLDIR) libyaml getdns/build/Makefile
 	$(MAKE) -C getdns/build
 
 getdns-install:
@@ -4041,13 +4053,18 @@ ftp_dep=
 endif
 vsftpd: nvram$(BCMEX)$(EX7) shared $(if $(BCM_502L07P2),ethctl_lib) libdisk $(ftp_dep)
 	@$(SEP)
+ifeq ($(RTCONFIG_FTP_SSL),y)
+	-cp vsftpd/builddefs-ssl.h vsftpd/builddefs.h
+else
+	-cp vsftpd/builddefs-nossl.h vsftpd/builddefs.h
+endif
 	$(MAKE) -C vsftpd
 
 vsftpd-install:
 	install -D vsftpd/vsftpd $(INSTALLDIR)/vsftpd/usr/sbin/vsftpd
 	$(STRIP) -s $(INSTALLDIR)/vsftpd/usr/sbin/vsftpd
 
-vsftpd-3.x: $(ftp_dep)
+vsftpd-3.x: nvram$(BCMEX)$(EX7) shared libdisk $(ftp_dep)
 	@$(SEP)
 ifeq ($(RTCONFIG_FTP_SSL),y)
 	-cp vsftpd-3.x/builddefs-ssl.h vsftpd-3.x/builddefs.h
@@ -4359,9 +4376,9 @@ ndisc6-clean:
 
 ndisc6-install: ndisc6
 	install -D ndisc6/src/rdisc6 $(INSTALLDIR)/ndisc6/usr/sbin/rdisc6
-	install -D ndisc6/src/rdisc6 $(INSTALLDIR)/ndisc6/usr/sbin/ndisc6
+#	install -D ndisc6/src/ndisc6 $(INSTALLDIR)/ndisc6/usr/sbin/ndisc6
 	$(STRIP) $(INSTALLDIR)/ndisc6/usr/sbin/rdisc6
-	$(STRIP) $(INSTALLDIR)/ndisc6/usr/sbin/ndisc6
+#	$(STRIP) $(INSTALLDIR)/ndisc6/usr/sbin/ndisc6
 ifneq ($(RTCONFIG_BCMWL6),y)
 ifneq ($(or $(MUSL32),$(MUSL64)),y)
 	$(if $(wildcard $(shell dirname $(shell which $(CXX)))/../lib/librt.so.0),install -D $(shell dirname $(shell which $(CXX)))/../lib/librt.so.0 $(TARGETDIR)/lib/librt.so.0)
@@ -5033,7 +5050,7 @@ pstree-clean:
 libcodb/stamp-h1:
 	touch $@
 
-libcodb: libcodb/stamp-h1 sqlite3
+libcodb: libcodb/stamp-h1 sqlite sqlite3
 	@$(SEP)
 	@$(MAKE) -C libcodb CC=$(CC) && $(MAKE) -C libcodb stage
 
@@ -5389,7 +5406,7 @@ dropbear/config.h: dropbear/config.h.in
 		CPPFLAGS="-Os -Wall $(EXTRACFLAGS) -DARGTYPE=3 -ffunction-sections -fdata-sections -I$(STAGEDIR)/usr/include \
 			$(if $(RTCONFIG_PROTECTION_SERVER),-DSECURITY_NOTIFY,)" \
 		LDFLAGS="-Wl,--gc-sections -L$(STAGEDIR)/usr/lib" \
-		LIBS="$(if $(RTCONFIG_PROTECTION_SERVER),-lptcsrv)" \
+		LIBS="$(if $(RTCONFIG_PROTECTION_SERVER),-lptcsrv) -L$(TOP_PLATFORM)/nvram${BCMEX}$(EX7) -lnvram -L$(TOP)/shared -lshared $(EXTRA_NV_LDFLAGS)" \
 		$(CONFIGURE) --disable-harden --disable-zlib --disable-pam \
 		--enable-openpty --enable-syslog --enable-shadow --enable-bundled-libtom \
 		--disable-lastlog \
@@ -6515,7 +6532,7 @@ lzo$(LZO_VER)-install: lzo$(LZO_VER)
 .PHONY: lzo$(LZO_VER)
 
 lz4:
-	$(MAKE) -C $@ $(PARALLEL_BUILD) && $(MAKE) $@-stage
+	$(MAKE) -C $@ && $(MAKE) $@-stage
 
 lz4-stage:
 	$(MAKE) -C lz4 install DESTDIR=$(STAGEDIR) PREFIX=/usr LIBDIR=/usr/lib
@@ -6525,6 +6542,35 @@ lz4-install:
 	$(STRIP) $(INSTALLDIR)/lz4/usr/lib/liblz4.so.1.8.3
 	cd $(INSTALLDIR)/lz4/usr/lib && ln -sf liblz4.so.1.8.3 liblz4.so.1
 	cd $(INSTALLDIR)/lz4/usr/lib && ln -sf liblz4.so.1.8.3 liblz4.so
+
+libcap-ng/configure:
+	cd libcap-ng && autoreconf -i -f ; \
+	CFLAGS="-O3 -Wall $(EXTRACFLAGS)" $(CONFIGURE) --enable-shared \
+		--prefix=/usr \
+		--bindir=/usr/sbin \
+		--libdir=/usr/lib \
+		ac_cv_prog_swig_found=no --without-python --without-python3
+	touch $@
+
+libcap-ng: libcap-ng/configure
+	@$(SEP)
+	$(MAKE) -C $@
+
+libcap-ng-clean:
+	$(MAKE) -C libcap-ng clean
+	@rm -f libcap-ng/configure
+
+libcap-ng-install: libcap-ng
+	install -D libcap-ng/src/.libs/libcap-ng.so.0.0.0 $(INSTALLDIR)/libcap-ng/usr/lib/libcap-ng.so.0.0.0
+	$(STRIP) $(INSTALLDIR)/libcap-ng/usr/lib/libcap-ng.so.0.0.0
+	cd $(INSTALLDIR)/libcap-ng/usr/lib && ln -sf libcap-ng.so.0.0.0 libcap-ng.so.0 && \
+		ln -sf libcap-ng.so.0.0.0 libcap-ng.so
+ifneq ($(wildcard libcap-ng/src/.libs/libdrop_ambient.so.0.0.0),)
+	install -D libcap-ng/src/.libs/libdrop_ambient.so.0.0.0 $(INSTALLDIR)/libcap-ng/usr/lib/libdrop_ambient.so.0.0.0
+	$(STRIP) $(INSTALLDIR)/libcap-ng/usr/lib/libdrop_ambient.so.0.0.0
+	cd $(INSTALLDIR)/libcap-ng/usr/lib && ln -sf libdrop_ambient.so.0.0.0 libdrop_ambient.so.0 && \
+		ln -sf libdrop_ambient.so.0.0.0 libdrop_ambient.so
+endif
 
 openpam: openpam/Makefile
 	$(MAKE) -C $@ $(PARALLEL_BUILD) && $(MAKE) $@-stage
@@ -6560,24 +6606,23 @@ easy-rsa-install:
 	mkdir -p $(TARGETDIR)/rom/$(EX_ROM)/easy-rsa
 	install easy-rsa/2.0/* $(TARGETDIR)/rom/$(EX_ROM)/easy-rsa
 
-openvpn/dh2048.pem:
-	openssl dhparam -dsaparam -out $@ 2048
-
-openvpn: shared $(if $(BCM_502L07P2),ethctl_lib) openssl lzo$(LZO_VER) openpam zlib openvpn/dh2048.pem openvpn/Makefile
-	$(MAKE) $(PARALLEL_BUILD) -C $@
+openvpn: shared $(if $(BCM_502L07P2),ethctl_lib) openssl lzo$(LZO_VER) libcap-ng openpam zlib openvpn/Makefile
+	$(MAKE) -C $@ $(PARALLEL_BUILD)
 
 openvpn/Makefile:
 	( cd openvpn ; ./autogen.sh ; \
 		OPENSSL_CFLAGS="-I$(TOP)/openssl/include" \
-		OPENSSL_LIBS="-L$(TOP)/openssl/ -lssl -lcrypto" \
+		OPENSSL_LIBS="-L$(TOP)/openssl/ -lcrypto -lssl" \
 		LIBPAM_CFLAGS="-I$(TOP)/openpam/include" \
 		LIBPAM_LIBS="-L$(TOP)/openpam/lib/libpam/.libs -lpam" \
 		LZO_CFLAGS="-I$(TOP)/lzo$(LZO_VER)/include" \
 		LZO_LIBS="-L$(TOP)/lzo$(LZO_VER)/src/.libs -llzo2" \
 		LZ4_CFLAGS="-I$(TOP)/lz4/lib" \
 		LZ4_LIBS="-L$(TOP)/lz4/lib -llz4" \
-		CFLAGS="-Os -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections -std=gnu99 \
-			-DASUSWRT" \
+		LIBCAPNG_CFLAGS="-I$(TOP)/libcap-ng/src" \
+		LIBCAPNG_LIBS="-L$(TOP)/libcap-ng/src/.libs -lcap-ng" \
+		CFLAGS="-O3 -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections -std=gnu99 \
+			-DASUSWRT -I$(TOP)/libcap-ng/src" \
 		LDFLAGS="$(EXTRALDFLAGS) -ffunction-sections -fdata-sections \
 			-Wl,--gc-sections \
 			-lpthread -ldl \
@@ -6585,10 +6630,11 @@ openvpn/Makefile:
 		IPROUTE="/usr/sbin/ip" IFCONFIG="/sbin/ifconfig" ROUTE="/sbin/route" \
 		$(CONFIGURE) --prefix=/usr --bindir=/usr/sbin --libdir=/usr/lib \
 			--disable-debug --enable-management --disable-small \
-			--disable-selinux --disable-socks --enable-password-save \
+			--disable-selinux --disable-dco \
 			--enable-plugin-auth-pam \
 			ac_cv_lib_resolv_gethostbyname=no \
-	)
+			--enable-iproute2 \
+        )
 
 openvpn-clean:
 	[ ! -f openvpn/Makefile ] || $(MAKE) -C openvpn clean
@@ -6601,7 +6647,7 @@ openvpn-install:
 		chmod 0500 $(INSTALLDIR)/openvpn/usr/sbin/openvpn ; \
 		install -D openvpn/src/plugins/auth-pam/.libs/openvpn-plugin-auth-pam.so $(INSTALLDIR)/openvpn/usr/lib/openvpn-plugin-auth-pam.so ; \
 		$(STRIP) -s $(INSTALLDIR)/openvpn/usr/lib/openvpn-plugin-auth-pam.so ; \
-		install -D openvpn/dh2048.pem $(INSTALLDIR)/openvpn/rom/dh2048.pem ; \
+#		install -D openvpn/dh2048.pem $(INSTALLDIR)/openvpn/rom/dh2048.pem ; \
 	fi
 
 sdparm-1.02: sdparm-1.02/Makefile
@@ -7087,13 +7133,13 @@ libssh2-1.10.0/Makefile:
 	cd libssh2-1.10.0 && autoreconf -fi && $(CONFIGURE) --prefix=/usr CC=$(CC) CXX=$(CXX) AR=$(AR) RANLIB=$(RANLIB) --enable-shared --enable-static \
 	$(if $(RTCONFIG_OPENSSL11)$(RTCONFIG_OPENSSL10),--with-libssl-prefix=$(STAGEDIR)/usr,--without-openssl) \
 	--with-libz-prefix=$(STAGEDIR)/usr \
-	--with-libgcrypt-prefix=$(TOP)/libgcrypt-1.5.1 \
+	--with-libgcrypt-prefix=$(TOP)/libgcrypt-1.10.2 \
 	--disable-examples-build \
-	CFLAGS="-O2 -Wall -ffunction-sections -fdata-sections -fPIC -I$(STAGEDIR)/usr/include -I$(TOP)/libgcrypt-1.5.1/src -I$(SRCBASE)/router/openssl/include" \
-	LDFLAGS="-ldl -Wl,-rpath=$(STAGEDIR)/usr/lib,--gc-sections $(LDFLAGS) -L$(STAGEDIR)/usr/lib -lz -L$(SRCBASE)/router/openssl -lcrypto -L$(TOP)/libgcrypt-1.5.1/src/.libs" && \
+	CFLAGS="-O2 -Wall -ffunction-sections -fdata-sections -fPIC -I$(STAGEDIR)/usr/include -I$(TOP)/libgcrypt-1.10.2/src -I$(SRCBASE)/router/openssl/include" \
+	LDFLAGS="-ldl -Wl,-rpath=$(STAGEDIR)/usr/lib,--gc-sections $(LDFLAGS) -L$(STAGEDIR)/usr/lib -lz -L$(SRCBASE)/router/openssl -lcrypto -L$(TOP)/libgcrypt-1.10.2/src/.libs" && \
 	LIBS="-lcrypto (if $(RTCONFIG_OPENSSL11),-lpthread,) -fPIC" 
 
-libssh2: libgcrypt-1.5.1 zlib libssh2-1.10.0/Makefile
+libssh2: libgcrypt-1.10.2 zlib libssh2-1.10.0/Makefile
 	@$(SEP)
 	$(MAKE) -j 8 -C libssh2-1.10.0 && $(MAKE) $@-stage
 
@@ -7134,7 +7180,7 @@ curl/Makefile: curl/configure
 		CFLAGS="$(if $(RTCONFIG_DEBUG),-g,-Os) -Wall -ffunction-sections -fdata-sections" \
 		CPPFLAGS="-I$(STAGEDIR)/usr/include" \
 		LDFLAGS="-Wl$(if $(RTCONFIG_TR069),$(comma)-rpath=$(STAGEDIR)/usr/lib,),--gc-sections $(LDFLAGS) -L$(STAGEDIR)/usr/lib" \
-		LIBS="-ldl $(if $(RTCONFIG_OPENSSL11),-lpthread,) \
+		LIBS="-ldl $(if $(RTCONFIG_OPENSSL11),-lssl -lcrypto -lpthread,) $(if $(RTCONFIG_TR069),-lssh2 -lz) \
 			   $(if $(RTCONFIG_MBEDTLS),-lmbedcrypto -lmbedx509 -lmbedtls,) \
 			   $(if $(RTCONFIG_WOLFSSL),-lwolfssl,)"
 
@@ -7256,44 +7302,45 @@ rtl_bin:
 rtl_bin-install:
 	@$(SEP)
 
-#libgpg-error-1.10
-libgpg-error-1.10/stamp-h1:
-	cd $(TOP)/libgpg-error-1.10 && \
+#libgpg-error-1.47
+libgpg-error-1.47/stamp-h1:
+	cd $(TOP)/libgpg-error-1.47 && \
 	$(CONFIGURE) --prefix=/usr
 	touch $@
 
-libgpg-error-1.10: libgpg-error-1.10/stamp-h1
+libgpg-error-1.47: libgpg-error-1.47/stamp-h1
 	@$(SEP)
-	$(MAKE) -C libgpg-error-1.10
+	$(MAKE) -C libgpg-error-1.47
 
-libgpg-error-1.10-install:
-	install -D libgpg-error-1.10/src/.libs/libgpg-error.so.0.8.0 $(INSTALLDIR)/libgpg-error-1.10/usr/lib/libgpg-error.so.0.8.0
-	$(STRIP) $(INSTALLDIR)/libgpg-error-1.10/usr/lib/libgpg-error.so.0.8.0
-	cd $(INSTALLDIR)/libgpg-error-1.10/usr/lib && ln -sf libgpg-error.so.0.8.0 libgpg-error.so.0
+libgpg-error-1.47-install: libgpg-error-1.47
+	install -D libgpg-error-1.47/src/.libs/libgpg-error.so.0.34.0 $(INSTALLDIR)/libgpg-error-1.47/usr/lib/libgpg-error.so.0.34.0
+	$(STRIP) $(INSTALLDIR)/libgpg-error-1.47/usr/lib/libgpg-error.so.0.34.0
+	cd $(INSTALLDIR)/libgpg-error-1.47/usr/lib && ln -sf libgpg-error.so.0.34.0 libgpg-error.so.0
 
-libgpg-error-1.10-clean:
-	-@$(MAKE) -C libgpg-error-1.10 clean
-	@rm -f libgpg-error-1.10/stamp-h1
+libgpg-error-1.47-clean:
+	-@$(MAKE) -C libgpg-error-1.47 clean
+	@rm -f libgpg-error-1.47/stamp-h1
 
-#libgcrypt-1.5.1
-libgcrypt-1.5.1/stamp-h1: libgpg-error-1.10
-	cd $(TOP)/libgcrypt-1.5.1 && \
-	$(CONFIGURE) --prefix=/usr --with-gpg-error-prefix=$(TOP)/libgpg-error-1.10/src \
-	LDFLAGS="-L$(TOP)/libgpg-error-1.10/src/.libs"
+#libgcrypt-1.10.2
+libgcrypt-1.10.2/stamp-h1: libgpg-error-1.47
+	cd $(TOP)/libgcrypt-1.10.2 && \
+	$(CONFIGURE) --prefix=/usr --with-gpg-error-prefix=$(TOP)/libgpg-error-1.47/src \
+	LDFLAGS="-L$(TOP)/libgpg-error-1.47/src/.libs -lgpg-error $(if $(QCA),$(EXTRALDFLAGS))" \
+	CFLAGS="-O0 -Wall -I$(TOP)/libgpg-error-1.47/src $(if $(QCA),$(EXTRACFLAGS))"
 	touch $@
 
-libgcrypt-1.5.1: libgcrypt-1.5.1/stamp-h1
+libgcrypt-1.10.2: libgcrypt-1.10.2/stamp-h1
 	@$(SEP)
-	@$(MAKE) -C libgcrypt-1.5.1
+	@$(MAKE) -C libgcrypt-1.10.2
 
-libgcrypt-1.5.1-install:
-	install -D libgcrypt-1.5.1/src/.libs/libgcrypt.so.11.8.0 $(INSTALLDIR)/libgcrypt-1.5.1/usr/lib/libgcrypt.so.11.8.0
-	$(STRIP) $(INSTALLDIR)/libgcrypt-1.5.1/usr/lib/libgcrypt.so.11.8.0
-	cd $(INSTALLDIR)/libgcrypt-1.5.1/usr/lib && ln -sf libgcrypt.so.11.8.0 libgcrypt.so.11
+libgcrypt-1.10.2-install: libgcrypt-1.10.2
+	install -D libgcrypt-1.10.2/src/.libs/libgcrypt.so.20.4.2 $(INSTALLDIR)/libgcrypt-1.10.2/usr/lib/libgcrypt.so.20.4.2
+	$(STRIP) $(INSTALLDIR)/libgcrypt-1.10.2/usr/lib/libgcrypt.so.20.4.2
+	cd $(INSTALLDIR)/libgcrypt-1.10.2/usr/lib && ln -sf libgcrypt.so.20.4.2 libgcrypt.so.20
 
-libgcrypt-1.5.1-clean:
-	-@$(MAKE) -C libgcrypt-1.5.1 clean
-	@rm -f libgcrypt-1.5.1/stamp-h1
+libgcrypt-1.10.2-clean:
+	-@$(MAKE) -C libgcrypt-1.10.2 clean
+	@rm -f libgcrypt-1.10.2/stamp-h1
 
 #db-4.8.30
 db-4.8.30/build_unix/stamp-h1:
@@ -7349,16 +7396,16 @@ netaconfig netatalk-3.0.5/stamp-h1:
 		$(MAKE) netatalk-3.0.5-dep ; \
 		touch $(TOP)/netatalk-3.0.5/* ; \
 		cd $(TOP)/netatalk-3.0.5 && \
-		CC=$(CC) CFLAGS="-Os -Wall -ffunction-sections -fdata-sections -I$(TOP)/db-4.8.30/build_unix -I$(TOP)/libgcrypt-1.5.1/src" \
-		LDFLAGS="-L$(TOP)/db-4.8.30/build_unix/.libs -L$(TOP)/libgcrypt-1.5.1/src/.libs -L$(TOP)/libgpg-error-1.10/src/.libs -L$(TOP)/libevent-2.0.21/.libs -lgpg-error -lgcrypt -lcrypt" \
+		CC=$(CC) CFLAGS="-Os -Wall -ffunction-sections -fdata-sections -I$(TOP)/db-4.8.30/build_unix -I$(TOP)/libgcrypt-1.10.2/src -I$(TOP)/libgpg-error-1.47/src $(if $(HND_ROUTER_BE_4916),-fcommon)"  \
+		LDFLAGS="-L$(TOP)/db-4.8.30/build_unix/.libs -L$(TOP)/libgcrypt-1.10.2/src/.libs -L$(TOP)/libgpg-error-1.47/src/.libs -L$(TOP)/libevent-2.0.21/.libs -lgpg-error -lgcrypt -lcrypt" \
 		$(CONFIGURE) \
-		ac_cv_path_LIBGCRYPT_CONFIG=$(TOP)/libgcrypt-1.5.1/src/libgcrypt-config \
+		ac_cv_path_LIBGCRYPT_CONFIG=$(TOP)/libgcrypt-1.10.2/src/libgcrypt-config \
 		--without-kerberos \
 		--with-bdb=$(TOP)/db-4.8.30/build_unix \
 		--prefix=/usr \
 		--with-dtrace=no \
 		--with-ssl-dir=$(TOP)/openssl \
-		--with-libgcrypt-dir=$(TOP)/libgcrypt-1.5.1 \
+		--with-libgcrypt-dir=$(TOP)/libgcrypt-1.10.2 \
 		$(if $(RTCONFIG_HND_ROUTER),,--with-ld-library-path=$(SRCBASE)/toolchains/hndtools-arm-linux-2.6.36-uclibc-4.5.3/lib) \
 		--with-libevent=no \
 		--with-libevent-header=$(TOP)/libevent-2.0.21/include ;\
@@ -8360,6 +8407,25 @@ iproute2-5.11.0-clean:
 	-@$(MAKE) -C iproute2-5.11.0 clean
 	-rm -f iproute2-5.11.0/iproute2-5.11.0/Config
 
+libnss-mdns/configure:
+	cd libnss-mdns &&  autoreconf --force --install
+
+libnss-mdns/Makefile: libnss-mdns/configure
+	cd libnss-mdns && $(CONFIGURE) LDFLAGS="$(LDFLAGS) -L$(STAGEDIR)/usr/lib -ldl -lpthread $(EXTRA_LDFLAGS)" \
+		CFLAGS="$(CFLAGS) -I$(STAGEDIR)/usr/include -I$(TOP)/shared -I$(SRCBASE)/include" \
+		--prefix=/usr --sysconfdir=/tmp localstatedir=/var --with-distro=none \
+		--disable-tests --disable-static --enable-shared
+
+libnss-mdns: libnss-mdns/Makefile
+	@$(SEP)
+	@$(MAKE) -C libnss-mdns
+
+libnss-mdns-install: libnss-mdns
+	install -D libnss-mdns/.libs/libnss_mdns4_minimal.so.2 $(INSTALLDIR)/libnss-mdns/usr/lib/libnss_mdns4_minimal.so.2
+	install -D libnss-mdns/.libs/libnss_mdns4.so.2 $(INSTALLDIR)/libnss-mdns/usr/lib/libnss_mdns4.so.2
+	$(STRIP) $(INSTALLDIR)/libnss-mdns/usr/lib/libnss_mdns4_minimal.so.2
+	$(STRIP) $(INSTALLDIR)/libnss-mdns/usr/lib/libnss_mdns4.so.2
+
 # End merlin components
 
 readline-6.2/Makefile: readline-6.2/configure
@@ -8497,7 +8563,54 @@ asd-install:
 asd-clean:
 	$(MAKE) -C asd clean
 
+asd2.1: shared $(if $(BCM_502L07P2),ethctl_lib) nvram$(BCMEX)$(EX7) curl openssl libasc
+	$(MAKE) -C $@
 
+asd2.1-install:
+	install -D asd2.1/asd $(INSTALLDIR)/asd2.1/usr/bin/asd
+	install -D asd2.1/libasd.so $(INSTALLDIR)/asd2.1/usr/lib/libasd.so
+	$(if $(RTCONFIG_DEBUG),,$(STRIP) $(INSTALLDIR)/asd2.1/usr/bin/asd)
+	$(if $(RTCONFIG_DEBUG),,$(STRIP) $(INSTALLDIR)/asd2.1/usr/lib/libasd.so)
+
+asd2.1-clean:
+	$(MAKE) -C asd2.1 clean
+
+onig-6.9.9:
+	cd onig-6.9.9 && \
+	autoreconf -i -f && \
+	./configure  --host=arm-linux LD=$(CROSS_COMPILE)ld --prefix=/usr --exec-prefix=/usr --bindir=/usr/bin --sbindir=/usr/sbin --libexecdir=/usr/lib && \
+	make
+
+onig-6.9.9-install:
+	install -D onig-6.9.9/src/.libs/libonig.so.5.4.0 $(INSTALLDIR)/usr/lib/libonig.so.5.4.0
+	$(STRIP) $(INSTALLDIR)/usr/lib/libonig.so.5.4.0
+	cd $(INSTALLDIR)/usr/lib && \
+		ln -sf libonig.so.5.4.0 libonig.so.5 && \
+		ln -sf libonig.so.5.4.0 libonig.so.4 && \
+		ln -sf libonig.so.5.4.0 libonig.so
+
+onig-6.9.9-clean:
+	cd onig-6.9.9 && \
+	make distclean
+
+jq-1.7.1:
+	cd jq-1.7.1 && \
+	autoreconf -i &&\
+	./configure --host=arm-linux --with-oniguruma=$(SRCBASE)/router/onig-6.9.9/src LD=$(CROSS_COMPILE)ld --prefix=/usr && \
+	make
+
+jq-1.7.1-install:
+	install -D  jq-1.7.1/.libs/libjq.so.1.0.4 $(INSTALLDIR)/jq-1.7.1/usr/lib/libjq.so.1.0.4
+	install -D  jq-1.7.1/jq $(INSTALLDIR)/jq-1.7.1/usr/bin/jq
+	$(STRIP) $(INSTALLDIR)/jq-1.7.1/usr/lib/libjq.so.1.0.4
+	$(STRIP) $(INSTALLDIR)/jq-1.7.1/usr/bin/jq
+	cd $(INSTALLDIR)/jq-1.7.1/usr/lib/ && \
+		ln -sf libjq.so.1.0.4 libjq.so.1 && \
+		ln -sf libjq.so.1.0.4 libjq.so
+
+jq-1.7.1-clean:
+	cd jq-1.7.1 && \
+	make distclean
 #
 # tunnel related
 #
@@ -8937,7 +9050,7 @@ wlan: wlcsm libxml2 json-c sqlite
 
 .PHONY : wlan
 
-websockets: openssl
+websockets: openssl openssl-install
 	@$(eval TOPX_DIR:=$(firstword $(wildcard $(TOP_PLATFORM)/$@) $(wildcard $@)))
 	$(MAKE) -C $(TOPX_DIR)
 
@@ -8983,6 +9096,9 @@ rastatus: cms_msg cms_util bcm_flashutil cms_boardctl tmctl vlanctl bridgeutil p
 
 fdt: libyaml
 	@$(eval TOPX_DIR:=$(firstword $(wildcard $(TOP_PLATFORM)/$@) $(wildcard $@)))
+ifeq ($(HND_ROUTER_BE_4916),y)
+	$(MAKE) -C $(TOPX_DIR) -f Bcmbuild.mk
+endif
 	$(MAKE) -C $(TOPX_DIR)/dtc-1.5.1 EXTRA_CFLAGS="-I$(TOP)/libyaml/include" LDFLAGS="-L$(TOP)/libyaml/src/.libs"
 
 fdt-install: fdt

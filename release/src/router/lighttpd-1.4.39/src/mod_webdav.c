@@ -32,7 +32,9 @@
 
 #if EMBEDDED_EANBLE
 #ifndef APP_IPKG
+#ifdef RTCONFIG_USB
 #include "disk_share.h"
+#endif
 #endif
 #endif
 
@@ -68,7 +70,7 @@ extern const char *get_filename_ext(const char *filename);
 extern void md5String(const char* input1, const char* input2, char** out);
 extern int smbc_parse_mnt_path(const char* physical_path, const char* mnt_path, int mnt_path_len, char** usbdisk_path, char** usbdisk_share_folder);
 extern int smbc_get_usbdisk_permission(const char* user_name, const char* usbdisk_rel_sub_path, const char* usbdisk_sub_share_folder);
-extern char *replace_str(char *st, char *orig, char *repl, char* buff);
+extern char *replace_str(char *st, char *orig, char *repl, char* buff, size_t buff_size);
 extern int check_skip_folder_name(char* foldername);
 extern int createDirectory(const char * path);
 extern int in_the_same_folder(buffer *src, buffer *dst);
@@ -859,6 +861,9 @@ static int get_thumb_image(char* path, plugin_data *p, char **out){
 			int len = fread( buffer_x, fileLen, sizeof(unsigned char), fp );
 
 			if(len>0){
+
+				buffer_x[len] = '\0';
+
 				char* tmp = (char *)ldb_base64_encode(buffer_x, fileLen);			
 				uint32 olen = strlen(tmp) + 1;
 				*out = (char*)malloc(olen);
@@ -897,11 +902,11 @@ static int get_album_cover_image(sqlite3 *sql_minidlna, sqlite_int64 plAlbumArt,
 		//Cdbg(DBE, "get_album_cover_image, album cover path=%s", result2[1]);
 
 		char* album_cover_file = result2[1];
-
-		if(!string_starts_with(album_cover_file, "/mnt") ){
-			sqlite3_free_table(result2);
-			return 0;
-		}
+		
+		if(!string_starts_with(album_cover_file, "/mnt") || strstr(album_cover_file, "../")){
+                        sqlite3_free_table(result2);
+                        return 0;
+                }
 
 		FILE* fp = fopen(album_cover_file, "rb");
 		
@@ -926,6 +931,9 @@ static int get_album_cover_image(sqlite3 *sql_minidlna, sqlite_int64 plAlbumArt,
 			len = fread( buffer_x, fileLen, sizeof(unsigned char), fp );
 
 			if(len>0){
+
+				buffer_x[len] = '\0';
+				
 				char* tmp = (char *)ldb_base64_encode(buffer_x, fileLen);			
 				uint32 olen = strlen(tmp) + 1;
 				*out = (char*)malloc(olen);
@@ -1967,7 +1975,7 @@ static int webdav_has_lock(server *srv, connection *con, plugin_data *p, buffer 
 }
 
 //- 20111209 Sungmin add
-static const char* change_webdav_file_path(server *srv, connection *con, const char* source, const char* out)
+static const char* change_webdav_file_path(server *srv, connection *con, const char* source, const char* out, size_t out_size)
 {
 	UNUSED(con);
 	
@@ -1989,7 +1997,7 @@ static const char* change_webdav_file_path(server *srv, connection *con, const c
 
 			data_string *ds = (data_string *)alias->data[j];			
 			if( strncmp(source, ds->key->ptr, ds->key->used-1) == 0 ){
-				char* buff = (char *)replace_str(source, ds->key->ptr, ds->value->ptr, out);
+				char* buff = (char *)replace_str(source, ds->key->ptr, ds->value->ptr, out, out_size);
 				array_free(alias);
 				return buff;
 			}
@@ -2037,9 +2045,13 @@ URIHANDLER_FUNC(mod_webdav_subrequest_handler) {
 	
 	UNUSED(srv);
 
-	if (!p->conf.enabled) return HANDLER_GO_ON;
 	/* physical path is setup */
 	if (buffer_is_empty(con->physical.path)) return HANDLER_GO_ON;
+
+	if (!p->conf.enabled) {
+		Cdbg(DBE, "webdav disable, path=%s", con->physical.path->ptr);
+		return HANDLER_GO_ON;
+	}
 
 	/* PROPFIND need them */
 	if (NULL != (ds = (data_string *)array_get_element(con->request.headers, "Depth"))) {
@@ -2056,12 +2068,11 @@ URIHANDLER_FUNC(mod_webdav_subrequest_handler) {
 		}
 	}
 
-	if(string_starts_with(con->url.path->ptr, "/smb/") && con->request.http_method!=HTTP_METHOD_GET){
+	if(string_starts_with(con->url.path->ptr, "/smb") && con->request.http_method!=HTTP_METHOD_GET){
 		con->http_status = 403;
 		return HANDLER_FINISHED;
 	}
 #endif
-
 
 	data_string *ds_referrer = (data_string *)array_get_element(con->request.headers, "Referer");
 	if (NULL != (ds = (data_string *)array_get_element(con->request.headers, "Referer"))) {
@@ -2086,7 +2097,6 @@ URIHANDLER_FUNC(mod_webdav_subrequest_handler) {
 		req_props = NULL;
 
 		/* is there a content-body ? */
-
 		switch (stat_cache_get_entry(srv, con, con->physical.path, &sce)) {
 		case HANDLER_ERROR:
 			if (errno == ENOENT) {
@@ -2463,9 +2473,10 @@ URIHANDLER_FUNC(mod_webdav_subrequest_handler) {
 					if(con->share_link_shortpath->used){
 						char buff[4096];
 						replace_str(&d.rel_path->ptr[0], 
-							                    (char*)con->share_link_realpath->ptr, 
-							                    (char*)con->share_link_shortpath->ptr, 
-							        buff);
+							        (char*)con->share_link_realpath->ptr, 
+							        (char*)con->share_link_shortpath->ptr, 
+							        buff,
+									4096);
 						
 						buffer_append_string(b, "/");
 						buffer_append_string_encoded(b, buff, strlen(buff), ENCODING_REL_URI);
@@ -2934,6 +2945,14 @@ URIHANDLER_FUNC(mod_webdav_subrequest_handler) {
 
 		start = destination->ptr;
 
+		//- To avoid Directory Traversal Attack
+		if (NULL != (sep = strstr(start, ".."))) {
+			if ((sep == start || *(sep - 1) == '/') && (*(sep + 2) == '/' || *(sep + 2) == '\0')) {
+				con->http_status = 400; // Bad Request
+				return HANDLER_FINISHED;
+			}
+		}
+
 		if (NULL == (sep = strstr(start, "://"))) {
 			con->http_status = 400;
 			return HANDLER_FINISHED;
@@ -2966,7 +2985,7 @@ URIHANDLER_FUNC(mod_webdav_subrequest_handler) {
 			con->http_status = 502;
 			return HANDLER_FINISHED;
 		}
-
+		
 		buffer_copy_buffer(p->tmp_buf, p->uri.path_raw);
 		buffer_urldecode_path(p->tmp_buf);
 		buffer_path_simplify(p->uri.path, p->tmp_buf);
@@ -2977,7 +2996,7 @@ URIHANDLER_FUNC(mod_webdav_subrequest_handler) {
 			char* a;
 			if (NULL != ( a = strstr(p->uri.path->ptr, con->share_link_shortpath->ptr))){
 				char buff[4096];
-				replace_str(a, con->share_link_shortpath->ptr, con->share_link_realpath->ptr, buff);
+				replace_str(a, con->share_link_shortpath->ptr, con->share_link_realpath->ptr, buff, 4096);
 				buffer_copy_string( p->uri.path, buff );
 			}
 			else{
@@ -2989,7 +3008,7 @@ URIHANDLER_FUNC(mod_webdav_subrequest_handler) {
 		//- 20111209 Sungmin add
 		char buff[4096];
 		memset(buff, 0, sizeof(buff));
-		buffer_copy_string(p->uri.path, change_webdav_file_path(srv, con, p->uri.path->ptr, buff));
+		buffer_copy_string(p->uri.path, change_webdav_file_path(srv, con, p->uri.path->ptr, buff, 4096));
 		
 		/* we now have a URI which is clean. transform it into a physical path */
 		buffer_copy_buffer(p->physical.doc_root, con->physical.doc_root);
@@ -2998,23 +3017,38 @@ URIHANDLER_FUNC(mod_webdav_subrequest_handler) {
 		if (con->conf.force_lowercase_filenames) {
 			buffer_to_lower(p->physical.rel_path);
 		}
-
+		
 		buffer_copy_buffer(p->physical.path, p->physical.doc_root);
 		buffer_append_slash(p->physical.path);
 		buffer_copy_buffer(p->physical.basedir, p->physical.path);
-
+		
 		/* don't add a second / */
 		if (p->physical.rel_path->ptr[0] == '/') {
 			buffer_append_string_len(p->physical.path, p->physical.rel_path->ptr + 1, buffer_string_length(p->physical.rel_path) - 1);
 		} else {
 			buffer_append_string_buffer(p->physical.path, p->physical.rel_path);
 		}
+		
+		if (string_starts_with(p->physical.path->ptr, "/mnt/")) {
+			const char *path = p->physical.path->ptr + 5;
+			int slash_count = 0;
 
-		if(!string_starts_with(p->physical.path->ptr, "/mnt") ){
+			for (const char *c = path; *c != '\0'; ++c) {
+				if (*c == '/') {
+					++slash_count;
+				}
+			}
+
+			if (slash_count < 2) {
+				Cdbg(DBE, "Your destination path is not allowed, slash_count is %d", slash_count);
+				con->http_status = 403;
+				return HANDLER_FINISHED;
+			}
+		} else {
 			con->http_status = 403;
 			return HANDLER_FINISHED;
 		}
-		
+
 		/* let's see if the source is a directory
 		 * if yes, we fail with 501 */
 
@@ -3675,6 +3709,8 @@ propmatch_cleanup:
 		if (NULL != (ds = (data_string *)array_get_element(con->request.headers, "URL"))) {
 			buffer_url = ds->value;
 
+			buffer_urldecode_path(buffer_url);
+
 			if (buffer_url->used> 2048) {
 				con->http_status = 400;
 				return HANDLER_FINISHED;
@@ -3687,6 +3723,8 @@ propmatch_cleanup:
 		
 		if (NULL != (ds = (data_string *)array_get_element(con->request.headers, "FILENAME"))) {
 			buffer_filename = ds->value;
+
+			buffer_urldecode_path(buffer_filename);
 
 			if (buffer_filename->used> 512) {
 				con->http_status = 400;
@@ -3708,7 +3746,7 @@ propmatch_cleanup:
 		if (NULL != (ds = (data_string *)array_get_element(con->request.headers, "TOSHARE"))) {
 			toShare = atoi(ds->value->ptr);
 		}
-
+		
 		int sharelink_save_count = get_sharelink_save_count();
 		int file_count = 0;
 		
@@ -3738,7 +3776,11 @@ propmatch_cleanup:
 		}
 
 		char* base64_auth = (char *)ldb_base64_encode(auth, strlen(auth));
-
+		if (NULL == base64_auth) {
+			con->http_status = 400;
+			return HANDLER_FINISHED;
+		}
+		
 		if( generate_sharelink(srv, 
 			                   con, 
 			                   buffer_filename->ptr, 
@@ -4578,8 +4620,8 @@ propmatch_cleanup:
 			
 			if(strstr(keyword->ptr, "*")||strstr(keyword->ptr, "?")){
 				char buff[200];
-				replace_str(keyword->ptr, "*", "%", buff);
-				replace_str(buff, "?", "_", buff);
+				replace_str(keyword->ptr, "*", "%", buff, 200);
+				replace_str(buff, "?", "_", buff, 200);
 				sprintf(sql_query, "%s and ( PATH LIKE '%s' or TITLE LIKE '%s' )", sql_query, buff, buff);
 			}
 			else
@@ -4806,9 +4848,9 @@ propmatch_cleanup:
 			
 			char buff[4096];
 			#if EMBEDDED_EANBLE
-			replace_str(&plpath[0], "tmp/mnt", usbdisk_name, buff);
+			replace_str(&plpath[0], "tmp/mnt", usbdisk_name, buff, 4096);
 			#else
-			replace_str(&plpath[0], "mnt", usbdisk_name, buff);
+			replace_str(&plpath[0], "mnt", usbdisk_name, buff, 4096);
 			#endif
 
 			//Cdbg(DBE, "tmp=%s, con->url.path=%s", tmp, con->url.path->ptr);
@@ -5311,12 +5353,12 @@ propmatch_cleanup:
 					#ifdef APP_IPKG
 					free(a);
 					#endif
-					replace_str(&filepath[0], "tmp/mnt", usbdisk_name, buff);
+					replace_str(&filepath[0], "tmp/mnt", usbdisk_name, buff, 4096);
 					#else
 					usbdisk_name = (char*)malloc(8);
 					memset(usbdisk_name,'\0', 8);
 					strcpy(usbdisk_name, "usbdisk");
-					replace_str(&filepath[0], "mnt", usbdisk_name, buff);
+					replace_str(&filepath[0], "mnt", usbdisk_name, buff, 4096);
 					#endif
 
 					buffer* buffer_filepath = buffer_init();
@@ -5660,6 +5702,7 @@ propmatch_cleanup:
 		return HANDLER_FINISHED;
 	}
 
+#if ENABLE_METHOD_UPLOAD
 	case HTTP_METHOD_UPLOADTOFACEBOOK:{
 		Cdbg(1, "do HTTP_METHOD_UPLOADTOFACEBOOK");
 
@@ -6598,7 +6641,8 @@ propmatch_cleanup:
 		con->file_finished = 1;
 		return HANDLER_FINISHED;
 	}
-	
+#endif /* end ENABLE_METHOD_UPLOAD */
+
 	default:
 		break;
 	}

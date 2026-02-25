@@ -26,7 +26,6 @@
 #include <bcmnvram.h>
 #include <ethernet.h>
 
-#include <utils.h>
 #include <shutils.h>
 #include <shared.h>
 
@@ -131,6 +130,8 @@ int rtkswitch_ioctl(int val, int val2)
 	case 5:		/* power up LAN ports */
 	case 6:		/* power down LAN ports */
 	case 8:		/* reset per port MIB counter */
+	case 17:	/* disable jumbo frame */
+	case 18:	/* enable jumbo frame */
 	case 4020:      /* Get Led operation mode */
 	case 4030:      /* Get LED blinking rate */
 	case 4040:      /* Get Led group congiuration mode */

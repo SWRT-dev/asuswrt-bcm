@@ -84,7 +84,9 @@ LDFLAGS = -L$(TOP_PLATFORM)/nvram${BCMEX}${EX7} -lnvram -L$(TOP)/shared -lshared
 endif
 
 ifeq ($(HND_ROUTER),y)
-ifeq ($(HND_ROUTER_AX_675X),y)
+ifeq ($(R8000P),y)
+CFLAGS += -I$(HND_SRC)/shared/opensource/include/bcm963xx -I$(TOP)/bcm_flashutil
+else ifeq ($(HND_ROUTER_AX_675X),y)
 CFLAGS += -I$(HND_SRC)/shared/opensource/include/bcm963xx -I$(TOP_PLATFORM)/bcm_flashutil -I$(TOP_PLATFORM)/gen_util
 endif
 CFLAGS += -I$(HND_SRC)/userspace/public/include -I$(HND_SRC)/userspace/public/include/linux -I$(HND_SRC)/userspace/private/include
@@ -140,6 +142,9 @@ CFLAGS += -I$(SRCBASE)/shared/bcmwifi/include -DTYPEDEF_FLOAT_T
 CFLAGS += -I$(SRCBASE)/common/include
 ifneq ($(findstring CONFIG_DUMP_PREV_OOPS_MSG=, $(shell cat $(LINUXDIR)/.config)),)
 CFLAGS += -DDUMP_PREV_OOPS_MSG
+endif
+ifneq ($(findstring CONFIG_DEBUG_KMEMLEAK=, $(shell cat $(LINUXDIR)/.config)),)
+CFLAGS += -DDEBUG_KMEMLEAK
 endif
 LDFLAGS += -L$(TOP)/libbcm -lbcm
 LDFLAGS += -lgcc_s
@@ -242,6 +247,9 @@ endif
 ifeq ($(RTCONFIG_BT_CONN),y)
 CFLAGS  += -I$(TOP)/bluez-5.56/lib
 endif
+
+CFLAGS += -I$(TOP)/libwebapi
+LDFLAGS += -L$(TOP)/libwebapi -lwebapi
 
 #CFLAGS += -DRC_BUILDTIME=$(shell date -d "now" +"%s")
 
@@ -965,7 +973,10 @@ endif
 ifeq ($(BUILD_NAME),$(filter $(BUILD_NAME),RT-AX82U RT-AX82U_V2 GS-AX3000 GS-AX5400 TUF-AX5400 TUF-AX5400_V2 GT-AX11000_PRO GT-AXE16000 GT-AX6000 GT10))
 LDFLAGS += -lm
 OBJS += ledg.o
+ifeq ($(BUILD_NAME),$(filter $(BUILD_NAME),RT-AX82U RT-AX82U_V2 GS-AX3000 GS-AX5400 TUF-AX5400 TUF-AX5400_V2 GT-AX6000 GT10))
 OBJS += ledbtn.o
+CFLAGS += -DSW_LEDBTN
+endif
 endif
 ifeq ($(DSL_AX82U),y)
 OBJS += ledg.o
@@ -1384,6 +1395,7 @@ ifeq ($(RTCONFIG_HTTPS),y)
 	@cd $(INSTALLDIR)/sbin && ln -sf rc rsarootca_check
 ifeq ($(RTCONFIG_FRS_FEEDBACK),y)
 	@cd $(INSTALLDIR)/sbin && ln -sf rc firmware_check_update
+	@cd $(INSTALLDIR)/sbin && ln -sf rc sendfeedback
 endif
 endif
 	@cd $(INSTALLDIR)/sbin && ln -sf rc test_endian
@@ -1468,6 +1480,7 @@ ifeq ($(RTCONFIG_CONNDIAG),y)
 	@cd $(INSTALLDIR)/sbin && ln -sf rc amas_portstatus
 endif
 ifeq ($(RTCONFIG_CFGSYNC),y)
+	@cd $(INSTALLDIR)/sbin && ln -sf rc firmware_webs_update
 ifeq ($(HND_ROUTER_AX),y)
 	@cd $(INSTALLDIR)/sbin && ln -sf rc rmd
 endif
@@ -1513,7 +1526,9 @@ endif
 
 ifeq ($(BUILD_NAME),$(filter $(BUILD_NAME),RT-AX82U RT-AX82U_V2 GS-AX3000 GS-AX5400 TUF-AX5400 TUF-AX5400_V2 GT-AX11000_PRO GT-AXE16000 GT-AX6000 GT10))
 	@cd $(INSTALLDIR)/sbin && ln -sf rc ledg
+ifeq ($(BUILD_NAME),$(filter $(BUILD_NAME),RT-AX82U RT-AX82U_V2 GS-AX3000 GS-AX5400 TUF-AX5400 TUF-AX5400_V2 GT-AX6000 GT10))
 	@cd $(INSTALLDIR)/sbin && ln -sf rc ledbtn
+endif
 endif
 ifeq ($(DSL_AX82U),y)
 	@cd $(INSTALLDIR)/sbin && ln -sf rc ledg
@@ -1553,6 +1568,13 @@ endif
 ifeq ($(RTCONFIG_NORDVPN),y)
 	@cd $(INSTALLDIR)/sbin && ln -sf rc nordvpn
 endif
+ifeq ($(RTCONFIG_SURFSHARK),y)
+	@cd $(INSTALLDIR)/sbin && ln -sf rc surfshark
+endif
+endif
+
+ifeq ($(RTCONFIG_WIREGUARD),y)
+	@cd $(INSTALLDIR)/sbin && ln -sf rc check_wgc_ep
 endif
 
 ifeq ($(RTCONFIG_ISP_CUSTOMIZE_TOOL),y)

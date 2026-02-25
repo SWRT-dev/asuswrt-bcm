@@ -1066,6 +1066,59 @@ void _wg_server_route_update(char* ifname, const char* c_prefix)
 	}
 }
 
+void _wg_server_ip_rule_add(const char* c_prefix)
+{
+	char aips[4096] = {0};
+	char buf[128] = {0};
+	char *p = NULL;
+	char pref_str[16] = {0};
+
+	snprintf(pref_str, sizeof(pref_str), "%d", IP_RULE_PREF_VPNS);
+
+	memset(aips, 0, sizeof(aips));
+	strlcpy(aips, nvram_pf_safe_get(c_prefix, "aips"), sizeof(aips));
+	foreach_44(buf, aips, p)
+	{
+		_dprintf("%s: add [%s]\n", __FUNCTION__, buf);
+		if (strchr(buf, '/') == NULL)
+			continue;
+		if (!strcmp(buf, "0.0.0.0/0"))
+			continue;
+		else if (!strcmp(buf, "::/0"))
+			continue;
+		else
+		{
+			eval("ip", "rule", "add", "to", buf, "lookup", "main", "pref", pref_str);
+		}
+	}
+}
+
+void _wg_server_ip_rule_del(const char* c_prefix)
+{
+	char path[128] = {0};
+	char aips[4096] = {0};
+	char buf[128] = {0};
+	char *p = NULL;
+	char pref_str[16] = {0};
+
+	snprintf(pref_str, sizeof(pref_str), "%d", IP_RULE_PREF_VPNS);
+	snprintf(path, sizeof(path), "%s/%sroute", WG_DIR_CONF, c_prefix);
+
+	f_read_string(path, aips, sizeof(aips));
+	foreach_44(buf, aips, p)
+	{
+		_dprintf("%s: del [%s]\n", __FUNCTION__, buf);
+		if (strchr(buf, '/') == NULL)
+			continue;
+		if (!strcmp(buf, "0.0.0.0/0"))
+			continue;
+		else if (!strcmp(buf, "::/0"))
+			continue;
+		else
+			eval("ip", "rule", "del", "to", buf, "lookup", "main", "pref", pref_str);
+	}
+}
+
 static int _wait_time_sync(int max)
 {
 	while (!nvram_match("ntp_ready", "1") && max--)
@@ -1225,6 +1278,8 @@ void start_wgs(int unit)
 		if (nvram_pf_get_int(c_prefix, "enable") == 0)
 			continue;
 		_wg_config_route(c_prefix, ifname, 0);
+		/// add priority rule
+		_wg_server_ip_rule_add(c_prefix);
 	}
 
 	/// related services
@@ -1235,6 +1290,8 @@ void stop_wgs(int unit)
 {
 	char ifname[8] = {0};
 	char prefix[16] = {0};
+	char c_prefix[16] = {0};
+	int c_unit;
 	int wg_enable = is_wg_enabled();
 
 	snprintf(ifname, sizeof(ifname), "%s%d", WG_SERVER_IF_PREFIX, unit);
@@ -1242,6 +1299,15 @@ void stop_wgs(int unit)
 
 	/// netfilter
 	_wg_x_nf_del(ifname);
+
+	/// delete priority rule
+	for (c_unit = 1; c_unit <= WG_SERVER_CLIENT_MAX; c_unit++)
+	{
+		snprintf(c_prefix, sizeof(c_prefix), "%sc%d_", prefix, c_unit);
+		if (nvram_pf_get_int(c_prefix, "enable") == 0)
+			continue;
+		_wg_server_ip_rule_del(c_prefix);
+	}
 
 	/// delete tunnel
 	_wg_tunnel_delete(ifname);
@@ -1539,6 +1605,27 @@ void update_wgs_client_ep()
 	}
 }
 
+void reload_wgs_ip_rule()
+{
+	int s_unit;
+	char s_prefix[16] = {0};
+	int c_unit;
+	char c_prefix[16] = {0};
+
+	for (s_unit = 1; s_unit <= WG_SERVER_MAX; s_unit++)
+	{
+		snprintf(s_prefix, sizeof(s_prefix), "%s%d_", WG_SERVER_NVRAM_PREFIX, s_unit);
+		for (c_unit = 1; c_unit <= WG_SERVER_CLIENT_MAX; c_unit++)
+		{
+			snprintf(c_prefix, sizeof(c_prefix), "%sc%d_", s_prefix, c_unit);
+			if (nvram_pf_get_int(c_prefix, "enable") == 0)
+				continue;
+			_wg_server_ip_rule_del(c_prefix);
+			_wg_server_ip_rule_add(c_prefix);
+		}
+	}
+}
+
 int is_wg_enabled()
 {
 	int wg_enable = 0;
@@ -1623,4 +1710,3 @@ void check_wgc_endpoint()
 		}
 	}
 }
-

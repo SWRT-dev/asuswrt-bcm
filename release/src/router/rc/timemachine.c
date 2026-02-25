@@ -27,7 +27,6 @@
 #include <stdlib.h>
 #include <bcmnvram.h>
 #include <shutils.h>
-#include <utils.h>
 
 #include <dirent.h>
 #include <sys/types.h>
@@ -597,6 +596,5 @@ void stop_timemachine(int force)
 	stop_afpd(force);
 	stop_cnid_metad(force);
 	restart_mdns();
-	logmessage("Timemachine", "daemon is stoped");
+	logmessage("Timemachine", "daemon is stopped");
 }
-

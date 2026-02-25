@@ -95,8 +95,8 @@ LIBS = -lcurl -lssl -lcrypto -lxml2 -ljson-c -ldl -pthread -lrt $(ROUTER_LIBS) -
 LDFLAGS = -L$(OPENSSL_DIR) -L$(CURL_DIR)/lib/.libs -L$(XML2_DIR)/.libs -L$(JSON_C_DIR)/.libs -L. $(ROUTER_LDFLAGS) -L$(WS_SRC) -L$(WB_DIR) -L$(WB_DIR)/output
 
 ifeq ($(RTCONFIG_TR069),y)
-CFLAGS += -I$(TOP)/libssh2-1.10.0/include -I$(TOP)/zlib/include
-LDFLAGS += -L$(TOP)/libssh2-1.10.0/src/.libs -lssh2 -L$(TOP)/zlib -lz
+CFLAGS += -I$(TOP)/libssh2/include -I$(TOP)/zlib/include
+LDFLAGS += -L$(TOP)/libssh2/src/.libs -lssh2 -L$(TOP)/zlib -lz
 endif
 
 ifeq ($(RTCONFIG_QCA),y)
@@ -114,6 +114,11 @@ endif
 
 ifeq ($(RTCONFIG_SW_HW_AUTH),y)
 CFLAGS += -I$(SW_HW_AUTH_DIR) -DSW_HW_AUTH
+endif
+
+ifeq ($(RTCONFIG_LIBASUSLOG),y)
+CFLAGS += -I$(TOP)/libasuslog
+LDFLAGS += -L$(TOP)/libasuslog -lasuslog
 endif
 
 ifeq ($(wildcard $(TOP)/aaews/*.c),)
@@ -148,7 +153,7 @@ $(WSLIB):
 	make libws.so
 
 
-$(TARGET):  main.o  $(WSLIB_OBJS) $(OBJS_MAIN) 
+$(TARGET):  $(WSLIB_OBJS) $(OBJS_MAIN) 
 	$(CXX) -fPIC $(CFLAGS) $(LDFLAGS) $(LIBS) -o $@ $^ 
 
 %.o: %.c

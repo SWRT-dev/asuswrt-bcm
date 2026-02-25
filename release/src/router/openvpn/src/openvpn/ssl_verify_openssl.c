@@ -5,8 +5,8 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
- *  Copyright (C) 2010-2018 Fox Crypto B.V. <openvpn@fox-it.com>
+ *  Copyright (C) 2002-2024 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2010-2021 Fox Crypto B.V. <openvpn@foxcrypto.com>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -28,13 +28,11 @@
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
-#elif defined(_MSC_VER)
-#include "config-msvc.h"
 #endif
 
 #include "syshead.h"
 
-#if defined(ENABLE_CRYPTO) && defined(ENABLE_CRYPTO_OPENSSL)
+#if defined(ENABLE_CRYPTO_OPENSSL)
 
 #include "ssl_verify_openssl.h"
 
@@ -44,8 +42,9 @@
 #include "ssl_verify_backend.h"
 #include "openssl_compat.h"
 
-#include <openssl/x509v3.h>
+#include <openssl/bn.h>
 #include <openssl/err.h>
+#include <openssl/x509v3.h>
 
 int
 verify_callback(int preverify_ok, X509_STORE_CTX *ctx)
@@ -66,7 +65,7 @@ verify_callback(int preverify_ok, X509_STORE_CTX *ctx)
     cert_hash_remember(session, X509_STORE_CTX_get_error_depth(ctx), &cert_hash);
 
     /* did peer present cert which was signed by our root cert? */
-    if (!preverify_ok)
+    if (!preverify_ok && !session->opt->verify_hash_no_ca)
     {
         /* get the X509 name */
         char *subject = x509_get_subject(current_cert, &gc);
@@ -114,7 +113,8 @@ cleanup:
 }
 
 #ifdef ENABLE_X509ALTUSERNAME
-bool x509_username_field_ext_supported(const char *fieldname)
+bool
+x509_username_field_ext_supported(const char *fieldname)
 {
     int nid = OBJ_txt2nid(fieldname);
     return nid == NID_subject_alt_name || nid == NID_issuer_alt_name;
@@ -260,15 +260,30 @@ backend_x509_get_username(char *common_name, int cn_len,
                           char *x509_username_field, X509 *peer_cert)
 {
 #ifdef ENABLE_X509ALTUSERNAME
-    if (strncmp("ext:",x509_username_field,4) == 0)
+    if (strncmp("ext:", x509_username_field, 4) == 0)
     {
         if (!extract_x509_extension(peer_cert, x509_username_field+4, common_name, cn_len))
         {
             return FAILURE;
         }
     }
+    else if (strcmp(LN_serialNumber, x509_username_field) == 0)
+    {
+        ASN1_INTEGER *asn1_i = X509_get_serialNumber(peer_cert);
+        struct gc_arena gc = gc_new();
+        char *serial = format_hex_ex(asn1_i->data, asn1_i->length,
+                                     0, 1 | FHE_CAPS, NULL, &gc);
+
+        if (!serial || cn_len <= strlen(serial)+2)
+        {
+            gc_free(&gc);
+            return FAILURE;
+        }
+        openvpn_snprintf(common_name, cn_len, "0x%s", serial);
+        gc_free(&gc);
+    }
     else
-#endif
+#endif /* ifdef ENABLE_X509ALTUSERNAME */
     if (FAILURE == extract_x509_field_ssl(X509_get_subject_name(peer_cert),
                                           x509_username_field, common_name, cn_len))
     {
@@ -305,6 +320,29 @@ backend_x509_get_serial_hex(openvpn_x509_cert_t *cert, struct gc_arena *gc)
     return format_hex_ex(asn1_i->data, asn1_i->length, 0, 1, ":", gc);
 }
 
+result_t
+backend_x509_write_pem(openvpn_x509_cert_t *cert, const char *filename)
+{
+    BIO *out = BIO_new_file(filename, "w");
+    if (!out)
+    {
+        goto err;
+    }
+
+    if (!PEM_write_bio_X509(out, cert))
+    {
+        goto err;
+    }
+    BIO_free(out);
+
+    return SUCCESS;
+err:
+    BIO_free(out);
+    crypto_msg(D_TLS_DEBUG_LOW, "Error writing X509 certificate to file %s",
+               filename);
+    return FAILURE;
+}
+
 struct buffer
 x509_get_sha1_fingerprint(X509 *cert, struct gc_arena *gc)
 {
@@ -332,18 +370,6 @@ x509_get_subject(X509 *cert, struct gc_arena *gc)
     BUF_MEM *subject_mem;
     char *subject = NULL;
 
-    /*
-     * Generate the subject string in OpenSSL proprietary format,
-     * when in --compat-names mode
-     */
-    if (compat_flag(COMPAT_FLAG_QUERY | COMPAT_NAMES))
-    {
-        subject = gc_malloc(256, false, gc);
-        X509_NAME_oneline(X509_get_subject_name(cert), subject, 256);
-        subject[255] = '\0';
-        return subject;
-    }
-
     subject_bio = BIO_new(BIO_s_mem());
     if (subject_bio == NULL)
     {
@@ -367,11 +393,7 @@ x509_get_subject(X509 *cert, struct gc_arena *gc)
     subject[subject_mem->length] = '\0';
 
 err:
-    if (subject_bio)
-    {
-        BIO_free(subject_bio);
-    }
-
+    BIO_free(subject_bio);
     return subject;
 }
 
@@ -480,8 +502,7 @@ x509_setenv_track(const struct x509_track *xt, struct env_set *es, const int dep
                         if (ent)
                         {
                             ASN1_STRING *val = X509_NAME_ENTRY_get_data(ent);
-                            unsigned char *buf;
-                            buf = (unsigned char *)1; /* bug in OpenSSL 0.9.6b ASN1_STRING_to_UTF8 requires this workaround */
+                            unsigned char *buf = NULL;
                             if (ASN1_STRING_to_UTF8(&buf, val) >= 0)
                             {
                                 do_setenv_x509(es, xt->name, (char *)buf, depth);
@@ -536,7 +557,7 @@ x509_setenv(struct env_set *es, int cert_depth, openvpn_x509_cert_t *peer_cert)
     ASN1_STRING *val;
     X509_NAME_ENTRY *ent;
     const char *objbuf;
-    unsigned char *buf;
+    unsigned char *buf = NULL;
     char *name_expand;
     size_t name_expand_size;
     X509_NAME *x509 = X509_get_subject_name(peer_cert);
@@ -569,7 +590,6 @@ x509_setenv(struct env_set *es, int cert_depth, openvpn_x509_cert_t *peer_cert)
         {
             continue;
         }
-        buf = (unsigned char *)1; /* bug in OpenSSL 0.9.6b ASN1_STRING_to_UTF8 requires this workaround */
         if (ASN1_STRING_to_UTF8(&buf, val) < 0)
         {
             continue;
@@ -601,7 +621,7 @@ x509_verify_ns_cert_type(openvpn_x509_cert_t *peer_cert, const int usage)
          * prevent it to take a const argument
          */
         result_t result = X509_check_purpose(peer_cert, X509_PURPOSE_SSL_CLIENT, 0) ?
-	       SUCCESS : FAILURE;
+                          SUCCESS : FAILURE;
 
         /*
          * old versions of OpenSSL allow us to make the less strict check we used to
@@ -629,7 +649,7 @@ x509_verify_ns_cert_type(openvpn_x509_cert_t *peer_cert, const int usage)
          * prevent it to take a const argument
          */
         result_t result = X509_check_purpose(peer_cert, X509_PURPOSE_SSL_SERVER, 0) ?
-	       SUCCESS : FAILURE;
+                          SUCCESS : FAILURE;
 
         /*
          * old versions of OpenSSL allow us to make the less strict check we used to
@@ -765,17 +785,6 @@ x509_verify_cert_eku(X509 *x509, const char *const expected_oid)
     return fFound;
 }
 
-result_t
-x509_write_pem(FILE *peercert_file, X509 *peercert)
-{
-    if (PEM_write_X509(peercert_file, peercert) < 0)
-    {
-        msg(M_ERR, "Failed to write peer certificate in PEM format");
-        return FAILURE;
-    }
-    return SUCCESS;
-}
-
 bool
 tls_verify_crl_missing(const struct tls_options *opt)
 {
@@ -803,4 +812,4 @@ tls_verify_crl_missing(const struct tls_options *opt)
     return true;
 }
 
-#endif /* defined(ENABLE_CRYPTO) && defined(ENABLE_CRYPTO_OPENSSL) */
+#endif /* defined(ENABLE_CRYPTO_OPENSSL) */

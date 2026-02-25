@@ -2756,6 +2756,11 @@ _dprintf("restart_nas_services(%d): test 6.\n", getpid());
 			}
 		}
 		file_unlock(lock);
+#ifdef RTCONFIG_FRS_FEEDBACK
+#ifdef RTCONFIG_DBLOG
+		start_dblog(0);
+#endif /* RTCONFIG_DBLOG */
+#endif /* RTCONFIG_FRS_FEEDBACK */
 	}
 #endif
 	else if (strncmp(interface ? : "", "8/", 2) == 0) {	/* usb storage */
@@ -3343,7 +3348,7 @@ start_samba(void)
 	char smbd_cmd[32];
 
 	if (getpid() != 1) {
-		notify_rc_and_wait_1min("start_samba");
+		notify_rc_and_wait_2min("start_samba");
 		return;
 	}
 
@@ -3547,7 +3552,7 @@ start_samba(void)
 void stop_samba(int force)
 {
 	if(!force && getpid() != 1){
-		notify_rc_and_wait_1min("stop_samba");
+		notify_rc_and_wait_2min("stop_samba");
 		return;
 	}
 

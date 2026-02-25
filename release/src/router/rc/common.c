@@ -785,6 +785,7 @@ void setup_conntrack(void)
 		f_write_string("/proc/sys/net/ipv4/netfilter/ip_conntrack_max", p, 0, 0);
 	}
 	else if (f_read_string("/proc/sys/net/ipv4/netfilter/ip_conntrack_max", buf, sizeof(buf)) > 0) {
+		if (buf[strlen(buf)-1] == '\n') buf[strlen(buf)-1] = '\0';
 		if (atoi(buf) > 0) nvram_set("ct_max", buf);
 	}
 #endif
@@ -1231,10 +1232,10 @@ const zoneinfo_t tz_list[] = {
         {"UTC4DST_2",	"America/Santiago"},	// (GMT-04:00) Santiago
         {"NST3.30DST",	"Canada/Newfoundland"},	// (GMT-03:30) Newfoundland
         {"EBST3",	"America/Araguaina"},	// (GMT-03:00) Brasilia //EBST3DST_1
-		{"UTC3DST",     "America/Saint-Pierre-et-Miquelon"},    // (GMT-03:00) Saint Pierre	//UTC2DST
-		{"UTC3",	"America/Araguaina"},	// (GMT-03:00) Buenos Aires, Georgetown
-        {"UTC2_1",	"America/Godthab"},	// (GMT-03:00) Greenland	//EBST3DST_2
+	{"UTC3DST",	"America/Saint-Pierre-et-Miquelon"},	// (GMT-03:00) Saint Pierre	//UTC2DST
+	{"UTC3",	"America/Araguaina"},	// (GMT-03:00) Buenos Aires, Georgetown
         {"UTC2",	"Atlantic/South_Georgia"},	// (GMT-02:00) South Georgia
+	{"UTC2DST_1",   "America/Godthab"},     // (GMT-02:00) Greenland        //UTC2_1        //EBST3DST_2
         {"EUT1DST",     "Atlantic/Azores"},	// (GMT-01:00) Azores
         {"UTC1",        "Atlantic/Cape_Verde"},	// (GMT-01:00) Cape Verde Is.
         {"GMT0",        "GMT"},			// (GMT+00:00) Greenwich Mean Time
@@ -1274,12 +1275,12 @@ const zoneinfo_t tz_list[] = {
         {"UTC-4.30",    "Asia/Kabul"},		// (GMT+04:30) Kabul
         {"UTC-5",       "Asia/Karachi"},	// (GMT+05:00) Islamabad, Karachi, Tashkent
         {"UTC-5_1",     "Asia/Yekaterinburg"},	// (GMT+05:00) Yekaterinburg
+	{"UTC-5_2",	"Asia/Almaty"},		// (GMT+05:00) Almaty, Astana     //RFT-6
         {"UTC-5.30_2",  "Asia/Kolkata"},	// (GMT+05:00) Kolkata, Chennai
         {"UTC-5.30_1",  "Asia/Calcutta"},	// (GMT+05:30) Mumbai, New Delhi
         {"UTC-5.30",    "Asia/Calcutta"},	// (GMT+05:30) Sri Jayawardenepura
 	{"UTC-5.45",    "Asia/Kathmandu"},	// (GMT+05:45) Kathmandu
-        {"RFT-6",       "Asia/Almaty"},		// (GMT+06:00) Almaty
-        {"UTC-6",       "Asia/Dhaka"},		// (GMT+06:00) Astana, Dhaka
+        {"UTC-6",	"Asia/Dhaka"},		// (GMT+06:00) Dhaka
         {"UTC-6_2",     "Asia/Novosibirsk"},	// (GMT+06:00) Novosibirsk
         {"UTC-6.30",    "Asia/Yangon"},		// (GMT+06:30) Yangon
         {"UTC-7",       "Asia/Bangkok"},	// (GMT+07:00) Bangkok, Hanoi, Jakarta
@@ -1348,6 +1349,11 @@ void time_zone_x_mapping(void)
 	}else if (nvram_match("time_zone", "MST7DST_3")){
 		nvram_set("time_zone", "MST7");               /*Mazatlan*/
 		nvram_set("time_zone_dst", "0");
+	}else if (nvram_match("time_zone", "RFT-6")){
+		nvram_set("time_zone", "UTC-5_2");		/*Almaty, Astana*/
+	}else if (nvram_match("time_zone", "EBST3DST_2") || nvram_match("time_zone", "UTC2_1")){
+		nvram_set("time_zone", "UTC2DST_1");            /*Greenland*/
+		nvram_set("time_zone_dst", "1");
 	}else if (nvram_match("time_zone", "EBST3DST_2")){
 		nvram_set("time_zone", "UTC2_1");		/*Greenland*/
 		nvram_set("time_zone_dst", "0");
@@ -1416,28 +1422,30 @@ void time_zone_x_mapping(void)
 	else if (nvram_match("time_zone", "UTC-6_2")){  /*Novosibirsk*/
 		nvram_set("time_zone", "UTC-7_3");
 	}
-	else if (nvram_match("time_zone", "UTC2DST")){  /*Saint-Pierre-et-Miquelon*/
+	else if (nvram_match("time_zone", "UTC2DST")){	/*Saint-Pierre-et-Miquelon*/
 		nvram_set("time_zone", "UTC3DST");
 	}
 	else if (nvram_match("time_zone", "JST")){	/* convert JST to JST-9 */
 		nvram_set("time_zone", "JST-9");
 	}
-
-
-	len = snprintf(tmpstr, sizeof(tmpstr), "%s", nvram_safe_get("time_zone"));
-	/* replace . with : */
-	while ((ptr=strchr(tmpstr, '.'))!=NULL) *ptr = ':';
-	/* remove *_? */
-	while ((ptr=strchr(tmpstr, '_'))!=NULL){
-		*ptr = 0x0;
-		len = ptr-tmpstr;
+	else if (nvram_match("time_zone", "UTC4DST_3")){  /* convert JST to UTC3_1 */
+		nvram_set("time_zone", "UTC3_1");
 	}
 
+	snprintf(tmpstr, sizeof(tmpstr), "%s", nvram_safe_get("time_zone"));
+	/* replace . with : */
+	while ((ptr=strchr(tmpstr, '.'))!=NULL) *ptr = ':';
+	/* terminate string at first instance of '_', if there is one */
+	ptr = strchr(tmpstr, '_');
+	if(ptr) 
+        	*ptr = '\0';
+
 	/* check time_zone_dst for daylight saving */
-	if (nvram_get_int("time_zone_dst"))
-    {
-		len += sprintf(tmpstr + len, ",%s", nvram_safe_get("time_zone_dstoff"));
-    }        
+	if (nvram_get_int("time_zone_dst")){
+		/* append time zone dst offset */
+		len = strnlen(tmpstr, sizeof(tmpstr));
+		snprintf(tmpstr + len, sizeof(tmpstr) - len, ",%s", nvram_safe_get("time_zone_dstoff"));
+	}
 #ifdef CONVERT_TZ_TO_GMT_DST
 	else	gettzoffset(tmpstr, tmpstr, sizeof(tmpstr));
 #endif
@@ -1467,6 +1475,8 @@ setup_timezone(void)
 #define RC_BUILDTIME	1704067200	// Jan  1 00:00:00 GMT 2024
 #endif
 	time_t now;
+	struct tm gm, local;
+	struct timezone tz;
 	struct timeval tv = { RC_BUILDTIME, 0 };
 	struct timeval *tvp = NULL;
 
@@ -1478,12 +1488,8 @@ setup_timezone(void)
 	setenv("TZ", nvram_get("time_zone_x"), 1);
 #endif
 
-	time(&now);
-
-	struct tm gm, local;
-	struct timezone tz;
-
 	/* Update kernel timezone */
+	time(&now);
 	gmtime_r(&now, &gm);
 	localtime_r(&now, &local);
 	gm.tm_isdst = local.tm_isdst;
@@ -1618,6 +1624,55 @@ int setup_dnsmq(int mode)
 	return 0;
 }
 #endif
+
+
+int
+is_invalid_char_for_volname(char c)
+{
+	int ret = 0;
+
+	if (c < 0x20)
+		ret = 1;
+#if 0
+	else if (c >= 0x21 && c <= 0x2c)
+		ret = 1;
+#else	/* allow '+' */
+	else if (c >= 0x21 && c <= 0x2a)	/* !"#$%&'()* */
+		ret = 1;
+	else if (c == 0x2c)			/* , */
+		ret = 1;
+#endif
+	else if (c >= 0x2e && c <= 0x2f)
+		ret = 1;
+	else if (c >= 0x3a && c <= 0x40)
+		ret = 1;
+	else if (c >= 0x5b && c <= 0x5e)
+		ret = 1;
+	else if (c == 0x60)
+		ret = 1;
+	else if (c >= 0x7b)
+		ret = 1;
+	return ret;
+}
+
+int
+is_valid_volname(const char *name)
+{
+	int len, i;
+
+	if (!name)
+		return 0;
+
+	len = strlen(name);
+	for (i = 0; i < len ; i++) {
+		if (is_invalid_char_for_volname(name[i])) {
+			len = 0;
+			break;
+		}
+	}
+	return len;
+}
+
 
 void stop_if_misc(void)
 {
@@ -1910,29 +1965,5 @@ void envsave(const char* path)
 		}
 		fclose(fp);
 	}
-}
-
-int remove_ip_rules(const int pref, const int v6)
-{
-	char tmp[256], pref_str[8], tmp2[256];
-	FILE *fp;
-	static const char iprule_tmp[] = "/tmp/iprule_tmp";
-
-	// remove current default routing table
-	snprintf(pref_str, sizeof(pref_str), "%d", pref);
-	snprintf(tmp, sizeof(tmp), "ip %s rule show | grep %d > %s", (v6)?"-6":"-4", pref, iprule_tmp);
-
-	system(tmp);
-	fp = fopen(iprule_tmp, "r");
-	if(fp)
-	{
-		while(fgets(tmp, sizeof(tmp), fp))
-		{
-			eval("ip", (v6)?"-6":"-4", "rule", "del", "priority", pref_str);
-		}
-		fclose(fp);
-	}
-	unlink(iprule_tmp);
-	return 0;
 }
 

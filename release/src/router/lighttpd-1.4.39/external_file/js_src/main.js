@@ -1397,7 +1397,7 @@ function addtoFavorite(){
     var isMSIE = isIE();
     
 	if(ddns==""){		
-		favorite_url = g_storage.get('request_host_url');//window.location.href;
+		favorite_url = g_storage.get('request_host_url');
 	}
 		
 	if ((typeof window.sidebar == "object") && (typeof window.sidebar.addPanel == "function")) {
@@ -1473,6 +1473,12 @@ function getMouseXY(e) {
   	return true
 }
 
+function getSafeLocation() {
+    var url = new URL(window.location.href); //- Safely parsing URLs using the URL API
+	var sanitizedUrl = encodeURIComponent(url.origin); //- Encode the URL to prevent XSS
+	return sanitizedUrl;
+}
+
 $(document).ready(function(){
 	
 	if( ( navigator.userAgent.match(/iPhone/i)) || 
@@ -1482,9 +1488,8 @@ $(document).ready(function(){
 		option = option.substr(option.lastIndexOf("?")+1, option.length);
 		
 		if(option.indexOf("desktop=1")!=0){
-			var url = window.location.href;		
-			url = url.substr(0, url.lastIndexOf("?"));
-			window.location = url + '?mobile=1';
+			var url = getSafeLocation();
+			window.location = decodeURIComponent(url) + '?mobile=1';
 			return;
 		}
 	}

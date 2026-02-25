@@ -16,7 +16,7 @@
 <script type="text/javascript" src="/js/https_redirect/https_redirect.js"></script>
 <style>
 body{
-	font-family: Microsoft Yahei UI, Arial, MS UI Gothic, MS P Gothic, sans-serif;
+	font-family: Arial, MS UI Gothic, MS P Gothic, Microsoft Yahei UI, sans-serif;
 }
 .wrapper{
 	background:#1F1F1F url(images/New_ui/login_bg.png) no-repeat center center fixed;

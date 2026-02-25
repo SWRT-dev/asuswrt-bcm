@@ -92,9 +92,6 @@ ifeq ($(RTCONFIG_DEBUG),y)
 endif
 
 	$(MAKE) certs-install
-ifeq ($(RTCONFIG_LETSENCRYPT),y)
-	install -m 0644 certs/DST_Root_CA_X3.pem $(INSTALLDIR)/rom/etc/ssl/certs/letsencrypt.pem
-endif
 ifeq ($(RTCONFIG_APP_FILEFLEX),y)
 	install -m 0644 ipkg.conf $(INSTALLDIR)/rom/ipkg.conf
 endif
@@ -291,20 +288,48 @@ endif
 
 ifeq ($(RTAC68U),y)
 	mkdir -p $(INSTALLDIR)/rom/cfe
+ifeq ($(EA6700),y)
+	cp -rf cfe/ea6700.bin $(INSTALLDIR)/rom/cfe/
+else ifeq ($(DIR868L),y)
+	cp -rf cfe/dir868l.bin $(INSTALLDIR)/rom/cfe/
+else ifeq ($(R6300V2),y)
+	cp -rf cfe/r6300v2.bin $(INSTALLDIR)/rom/cfe/
+else ifeq ($(SBRAC1900P),y)
+	cp -rf cfe/sbrac1900p.bin $(INSTALLDIR)/rom/cfe/
+else ifeq ($(F9K1118),y)
+else
 	cp -rf cfe/cfe_tmo.bin $(INSTALLDIR)/rom/cfe/
 	cp -rf cfe/cfe_1.0.2.0.bin $(INSTALLDIR)/rom/cfe
 	cp -rf cfe/cfe_1.0.2.0_esmt.bin $(INSTALLDIR)/rom/cfe
 	cp -rf cfe/cfe_ac66u_b1_1.1.2.0.bin $(INSTALLDIR)/rom/cfe
 	cp -rf cfe/cfe_rt-ac68u_5636_c0_1.3.0.7.bin $(INSTALLDIR)/rom/cfe
 	cp -rf cfe/cfe_rt-ac68u_v2_5003_1.0.2.9.bin $(INSTALLDIR)/rom/cfe
+endif
+ifneq ($(F9K1118),y)
 	cp -rf cfe/mtd-write $(INSTALLDIR)/rom/cfe/
+endif
 endif
 
 ifeq ($(RTAC3200),y)
 	mkdir -p $(INSTALLDIR)/rom/cfe
+ifneq ($(SBRAC3200P),y)
 	cp -rf cfe/cfe_rt-ac3200_1.0.1.7_128k.bin $(INSTALLDIR)/rom/cfe
 	cp -rf cfe/cfe_rt-ac3200_2.0.0.4_128k.bin $(INSTALLDIR)/rom/cfe
+endif
 	cp -rf cfe/mtd-write $(INSTALLDIR)/rom/cfe/
+endif
+ifeq ($(R8500),y)
+	mkdir -p $(INSTALLDIR)/rom/cfe
+	cp -rf cfe/r8500.bin $(INSTALLDIR)/rom/cfe
+endif
+ifeq ($(K3),y)
+	mkdir -p $(INSTALLDIR)/rom/cfe
+	cp -rf cfe/k3.bin $(INSTALLDIR)/rom/cfe
+endif
+
+ifeq ($(XWR3100),y)
+	mkdir -p $(INSTALLDIR)/rom/cfe
+	cp -rf cfe/xwr.bin $(INSTALLDIR)/rom/cfe
 endif
 
 ifeq ($(RTCONFIG_MEDIA_SERVER),y)
@@ -370,7 +395,7 @@ else
 	rm -f $(INSTALLDIR)/rom/etc/profile.hnd
 endif
 
-ifeq ($(RTCONFIG_TPVPN),y)
+ifeq ($(RTCONFIG_HMA),y)
 	mkdir -p $(INSTALLDIR)/rom/vpn
 	install -m 0644 vpn/HMA_TCP.JSON $(INSTALLDIR)/rom/vpn/HMA_TCP.JSON
 	install -m 0644 vpn/HMA_UDP.JSON $(INSTALLDIR)/rom/vpn/HMA_UDP.JSON
@@ -416,5 +441,10 @@ ifeq ($(RTCONFIG_BCMARM),y)
 	install -m 0755 apps_scripts/brcmsysinfo.sh $(INSTALLDIR)/usr/sbin
 endif
 
+ifeq ($(RTCONFIG_GEARUPPLUGIN),y)
+	install -m 0755 gearup_script/guplugin_monitor.sh $(INSTALLDIR)/usr/sbin
+endif
+
 .PHONY: dummy
+
 

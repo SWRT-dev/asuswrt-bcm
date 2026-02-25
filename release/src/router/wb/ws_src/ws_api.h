@@ -54,6 +54,7 @@
 #define MAX_DEV_TICKET_EXP_LEN 	64
 #define MAX_ID_LEN		64
 #define MAX_STATUS_LEN		32
+#define MAX_DEVICE_DESC_LEN		1024
 #define MAX_DESC_LEN		512
 #define MAX_PIN_LEN		64
 #define MAX_IP_ADDR_LEN		128 	//32
@@ -105,6 +106,7 @@ typedef struct _Login{
 	pSrvInfo	psrinfoList;
 	pSrvInfo	webstorageinfoList;
 	pSrvInfo	ddnsinfoList;
+	pSrvInfo	awsiotinfoList;
 	char	deviceticketexpiretime[MAX_DEV_TICKET_EXP_LEN];
 	char 	time[MAX_TIME_LEN];
 } Login, *pLogin;
@@ -129,7 +131,7 @@ typedef struct _Profile{
 	char	devicename[MAX_DEVICEID_LEN];
 	char	deviceservice[MAX_DEVICEID_LEN];
 	char	devicenat[MAX_DEVICEID_LEN];
-	char	devicedesc[MAX_DESC_LEN];
+	char	devicedesc[MAX_DEVICE_DESC_LEN];
 } Profile, *pProfile;
 
 typedef struct _ListProfile{
@@ -213,6 +215,7 @@ typedef struct _GetUserTicketByRefresh
 	char 	status[MAX_STATUS_LEN];
 	char	userticket[MAX_DEVTICKET_LEN];
 	char    userrefreshticket[MAX_REFRESH_TICKET_LEN];
+	char    userticketexpiretime[MAX_DEV_TICKET_EXP_LEN];
 	char	time[MAX_TIME_LEN];
 }GetUserTicketByRefresh, *pGetUserTicketByRefresh;
 
@@ -284,6 +287,10 @@ int send_getservicearea_req(
 	GetServiceArea* pGSA//out put
 	);
 
+void free_login_srv_list(
+	Login*		pLogin
+	);
+
 int send_login_req(
 	const char* server,
 	const char* userid, 
@@ -302,10 +309,18 @@ int send_login_req(
 	Login*		pLogin
 	);
 
+void free_query_friend_list(
+	QueryFriend *pQueryFriend
+	);
+
 int send_query_friend_req(
 	const char* server,
 	const char* user_ticket,
 	QueryFriend*	fd_list
+	);
+
+void free_list_profile_list(
+	ListProfile *pListProfile
 	);
 
 int send_list_profile_req(
@@ -433,6 +448,7 @@ int send_getawscertificate_req(
 	const char* fwver, 
 	const int apilevel,
 	const char* modelname,
+	int newcert,
 	GetAWSCertificate* pGAC
 );
 

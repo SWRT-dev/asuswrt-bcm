@@ -94,6 +94,23 @@ double wl_get_txpwr_target_max(char *name);
 double get_wifi_maxpower(int target_unit);
 #endif
 
+int getPid_fromFile(char *file_name)
+{
+	FILE *fp;
+	char *pidfile = file_name;
+	int result = -1;
+
+	fp= fopen(pidfile, "r");
+	if (!fp) {
+	    dbg("can not open:%s\n", file_name);
+	    return -1;
+	}
+	fscanf(fp,"%d",&result);
+	fclose(fp);
+
+	return result;
+}
+
 // led_str_ctrl
 enum led_id get_led_id(const char *led_str)
 {
@@ -836,6 +853,33 @@ static int rctest_main(int argc, char *argv[])
 		fflush(stdout);
 	}
 #endif
+#if defined(RTCONFIG_AMAS) && defined(RTCONFIG_BCMWL6)
+	else if (strcmp(argv[1], "chk_acsc")==0) {
+        	int ret = 0;
+
+        	ret = chk_acscli2_cmds("acs_restart");
+        	_dprintf("%s, acscli2_can_do_restart:%d\n", __func__, ret);
+	}
+	else if (strcmp(argv[1], "acsc")==0) {
+		char _acs_restart_ifnames[128];
+        	char word[32]={0}, *next = NULL, cmd[128];
+
+		if(argv[2])
+			strlcpy(_acs_restart_ifnames, argv[2], sizeof(_acs_restart_ifnames));
+		else
+			strlcpy(_acs_restart_ifnames, nvram_safe_get("wl_ifnames"), sizeof(_acs_restart_ifnames));
+
+        	if(nvram_match("acscli2_acs_restart", "1") && !nvram_match("force_restart_acsd2", "1")) {
+                	foreach (word, _acs_restart_ifnames, next) {
+                        	snprintf(cmd, sizeof(cmd), "acs_cli2 -i %s acs_restart", word);
+                        	avbl_reset_exclvalid(word);
+                        	_dprintf("%s, do %s\n", __func__, cmd);
+                        	system(cmd);
+                        	sleep(1);
+                	}
+		}
+	}
+#endif
 	else if (strcmp(argv[1], "nvramhex")==0) {
 		int i;
 		char *nv;
@@ -1072,7 +1116,38 @@ static int rctest_main(int argc, char *argv[])
 		snprintf(event, sizeof(event), AAE_AWSIOT_TNL_TEST_MSG, EID_AWSIOT_TUNNEL_TEST, (argv[2] ? : "204f0a0bde0b06a1f6fa261f729b2862"));
 		aae_sendIpcMsg(MASTIFF_IPC_SOCKET_PATH, event, strlen(event));
 	}
+	else if (strcmp(argv[1], "mastiff_rc_on")==0) {
+		char event[AAE_MAX_IPC_PACKET_SIZE];
+		snprintf(event, sizeof(event), AAE_MASTIFF_GENERIC_MSG, AAE_EID_MASTIFF_ACTION_REMOTE_CONN_TURNED_ON);
+		aae_sendIpcMsg(MASTIFF_IPC_SOCKET_PATH, event, strlen(event));
+	}
+	else if (strcmp(argv[1], "mastiff_eula_signed")==0) {
+		char event[AAE_MAX_IPC_PACKET_SIZE];
+		snprintf(event, sizeof(event), AAE_MASTIFF_GENERIC_MSG, AAE_EID_MASTIFF_ACTION_EULA_SIGNED);
+		aae_sendIpcMsg(MASTIFF_IPC_SOCKET_PATH, event, strlen(event));
+	}
+	else if (strcmp(argv[1], "aaews_sip_unreg")==0) {
+		char event[AAE_MAX_IPC_PACKET_SIZE];
+		snprintf(event, sizeof(event), AAE_AAEWS_GENERIC_MSG, AAE_EID_AAEWS_ACTION_SIP_UNREG);
+		aae_sendIpcMsg(AAEWS_IPC_SOCKET_PATH, event, strlen(event));
+	}
+	else if (strcmp(argv[1], "aaews_sip_reg")==0) {
+		char event[AAE_MAX_IPC_PACKET_SIZE];
+		snprintf(event, sizeof(event), AAE_AAEWS_GENERIC_MSG, AAE_EID_AAEWS_ACTION_SIP_REG);
+		aae_sendIpcMsg(AAEWS_IPC_SOCKET_PATH, event, strlen(event));
+	}
+	else if (strcmp(argv[1], "aaews_sdk_deinit")==0) {
+		char event[AAE_MAX_IPC_PACKET_SIZE];
+		snprintf(event, sizeof(event), AAE_AAEWS_GENERIC_MSG, AAE_EID_AAEWS_ACTION_SDK_DEINIT);
+		aae_sendIpcMsg(AAEWS_IPC_SOCKET_PATH, event, strlen(event));
+	}
+	else if (strcmp(argv[1], "aaews_sdk_init")==0) {
+		char event[AAE_MAX_IPC_PACKET_SIZE];
+		snprintf(event, sizeof(event), AAE_AAEWS_GENERIC_MSG, AAE_EID_AAEWS_ACTION_SDK_INIT);
+		aae_sendIpcMsg(AAEWS_IPC_SOCKET_PATH, event, strlen(event));
+	}
 #endif
+#if defined(RTCONFIG_CONNDIAG)
 	else if (strcmp(argv[1], "diag_stainfo")==0) {
 		char *stainfo_buf = NULL;
 		if(argv[2] && query_stainfo((!strcmp(argv[2], "all") ? NULL : argv[2]), &stainfo_buf) > 0){
@@ -1080,6 +1155,15 @@ static int rctest_main(int argc, char *argv[])
 			free_stainfo(&stainfo_buf);
 		}
 	}
+	else if (strcmp(argv[1], "diag_print_sta")==0) {
+		char value[512];
+
+		snprintf(value, sizeof(value), "{\"%s\":{\"%s\":\"%d\"}}",
+			CONNDIAG_PREFIX, RAST_EVENT_ID, EID_CD_PRINT_STA_INFO);
+		extern int amas_cd_ipc_send_event(const char *ipc_path, char *data);
+		amas_cd_ipc_send_event(CONNDIAG_IPC_SOCKET_PATH,value);
+	}
+#endif
 	else {
 		on = atoi(argv[2]);
 		_dprintf("%s %d\n", argv[1], on);
@@ -1472,7 +1556,8 @@ static int rctest_main(int argc, char *argv[])
 				return 0;
 			}
 
-			int ret = discover_pppoe(argv[2]);
+			char pppoe_mac[] = "XX:XX:XX:XX:XX:XX\0";
+			int ret = discover_pppoe(argv[2], pppoe_mac);
 			_dprintf("result: %s\n", (ret == 1)?"PPPoE":(ret == 0)?"No":"Failed");
 		}
 #if defined(RTCONFIG_BCM_MFG)
@@ -2131,6 +2216,9 @@ static const applets_t applets[] = {
 #ifdef RTCONFIG_NORDVPN
 	{ "nordvpn",			nordvpn_main				},
 #endif
+#ifdef RTCONFIG_SURFSHARK
+	{ "surfshark",			surfshark_main				},
+#endif
 #endif
 #ifdef RTCONFIG_EAPOL
 	{ "wpa_cli",			wpacli_main			},
@@ -2289,12 +2377,20 @@ static const applets_t applets[] = {
 	{ "firmware_check_update",	firmware_check_update_main	},
 #endif
 #endif
+#ifdef RTCONFIG_CFGSYNC
+	{ "firmware_webs_update",	firmware_webs_update_main	},
+#endif
+#ifdef RTCONFIG_FRS_FEEDBACK
+	{ "sendfeedback",	start_sendfeedback },
+#endif
 #ifdef RTAC68U
 	{ "firmware_enc_crc",		firmware_enc_crc_main		},
 	{ "fw_check",			fw_check_main			},
 #endif
 #if defined(RTAX82U) || defined(GSAX3000) || defined(GSAX5400) || defined(TUFAX5400) || defined(GTAX11000_PRO) || defined(GTAXE16000) || defined(GTAX6000) || defined(GT10) || defined(RTAX82U_V2) || defined(TUFAX5400_V2)
 	{ "ledg",			ledg_main			},
+#endif
+#if defined(RTAX82U) || defined(GSAX3000) || defined(GSAX5400) || defined(TUFAX5400) || defined(GTAX6000) || defined(GT10) || defined(RTAX82U_V2) || defined(TUFAX5400_V2)
 	{ "ledbtn",			ledbtn_main			},
 #endif
 #if defined(DSL_AX82U)
@@ -2876,6 +2972,13 @@ int main(int argc, char **argv)
 			_dprintf("tmpsta wrap:[%d]/[%s]/[%s]\n", band, argv[2], prefix);
 			create_tmp_sta(band, argv[2], prefix);
 		}
+		return 0;
+	}
+#endif
+
+#ifdef RTCONFIG_WIREGUARD
+	if (!strcmp(base, "check_wgc_ep")) {
+		check_wgc_endpoint();
 		return 0;
 	}
 #endif
@@ -3733,8 +3836,10 @@ int main(int argc, char **argv)
 			wan_proto = WAN_LW4O6;
 		else if (!strcmp(argv[2], "v6plus"))
 			wan_proto = WAN_V6PLUS;
-		else
+		else if (!strcmp(argv[2], "ocnvc"))
 			wan_proto = WAN_OCNVC;
+		else
+			wan_proto = WAN_V6OPTION;
 
 		while (fgets(rules, sizeof(rules), stdin) != NULL) {
 			if (s46_mapcalc(0, wan_proto, rules, peerbuf, sizeof(peerbuf), addr6buf, sizeof(addr6buf),

@@ -1,5 +1,5 @@
 /*
- * Copyright 2004-2018 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2004-2023 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the OpenSSL license (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -24,6 +24,8 @@
 #ifndef OPENSSL_POLICY_TREE_NODES_MAX
 # define OPENSSL_POLICY_TREE_NODES_MAX 1000
 #endif
+
+static void exnode_free(X509_POLICY_NODE *node);
 
 /*
  * Enable this to print out the complete policy tree at various point during
@@ -572,15 +574,24 @@ static int tree_calculate_user_set(X509_POLICY_TREE *tree,
             extra->qualifier_set = anyPolicy->data->qualifier_set;
             extra->flags = POLICY_DATA_FLAG_SHARED_QUALIFIERS
                 | POLICY_DATA_FLAG_EXTRA_NODE;
-            node = level_add_node(NULL, extra, anyPolicy->parent, tree, 1);
+            node = level_add_node(NULL, extra, anyPolicy->parent,
+                                  tree, 1);
+            if (node == NULL) {
+                policy_data_free(extra);
+                return 0;
+            }
         }
         if (!tree->user_policies) {
             tree->user_policies = sk_X509_POLICY_NODE_new_null();
-            if (!tree->user_policies)
-                return 1;
+            if (!tree->user_policies) {
+                exnode_free(node);
+                return 0;
+            }
         }
-        if (!sk_X509_POLICY_NODE_push(tree->user_policies, node))
+        if (!sk_X509_POLICY_NODE_push(tree->user_policies, node)) {
+            exnode_free(node);
             return 0;
+        }
     }
     return 1;
 }

@@ -5,7 +5,7 @@
 }
 body{
 	margin: 0;
-	font-family: Microsoft Yahei UI, Verdana, MS UI Gothic, MS P Gothic, sans-serif;
+	font-family: Verdana, MS UI Gothic, MS P Gothic, Microsoft Yahei UI, sans-serif;
 	font-size: 13px;
 	/*
 	font-family: Roboto, Microsoft JhengHei, Helvetica, Arial, sans-serif;
@@ -358,6 +358,7 @@ input[type="text"], input[type="password"], .input_option{
 	line-height: 100%;
 	font-size: 11px;
 	margin-top: 4px;
+	width: 85%;
 }
 .port_status_icon_desc{
 	display: flex;

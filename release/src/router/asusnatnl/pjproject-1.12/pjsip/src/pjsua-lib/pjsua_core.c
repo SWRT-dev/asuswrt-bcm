@@ -627,7 +627,7 @@ static void log_rotate(pjsua_inst_id inst_id, int num_of_rotate) {
 		pjsua_var[inst_id].log_cfg.log_filename.ptr,
 		flags, 
 		&pjsua_var[inst_id].log_file,
-		&pjsua_var[inst_id].log_written_size);
+		(unsigned *)&pjsua_var[inst_id].log_written_size);
 }
 
 
@@ -671,7 +671,7 @@ static void log_writer(pjsua_inst_id inst_id, int level, const char *buffer, int
 		if (!pjsua_var[inst_id].log_cfg.disable_console_log) {
 			// callback or stdout
 			if (pjsua_var[inst_id].log_cfg.cb)
-				(*pjsua_var[inst_id].log_cfg.cb)(inst_id, level, buffer, len);
+				(*pjsua_var[inst_id].log_cfg.cb)(inst_id, level, buffer, len, flush);
 			else
 				pj_log_write(inst_id, level, buffer, len, flush);
 		}
@@ -726,7 +726,7 @@ PJ_DEF(pj_status_t) pjsua_reconfigure_logging(pjsua_inst_id inst_id, const pjsua
 			      pjsua_var[inst_id].log_cfg.log_filename.ptr,
 			      flags, 
 				  &pjsua_var[inst_id].log_file,
-				  &pjsua_var[inst_id].log_written_size);
+				  (unsigned *)&pjsua_var[inst_id].log_written_size);
 
 	if (status != PJ_SUCCESS) {
 	    pjsua_perror(THIS_FILE, "Error creating log file", status);
@@ -1197,14 +1197,17 @@ static void stun_resolve_dec_ref(pjsua_stun_resolve *sess)
 static void stun_resolve_complete(pjsua_stun_resolve *sess)
 {
     pj_stun_resolve_result result;
+	int srv_idx = sess->idx;
 
     if (sess->has_result)
 	goto on_return;
 
     pj_bzero(&result, sizeof(result));
+	if (srv_idx)
+		srv_idx--;
     result.token = sess->token;
     result.status = sess->status;
-    result.name = sess->srv[sess->idx];
+	result.name = sess->srv[srv_idx];
     pj_memcpy(&result.addr, &sess->addr, sizeof(result.addr));
     sess->has_result = PJ_TRUE;
 
@@ -1213,8 +1216,8 @@ static void stun_resolve_complete(pjsua_stun_resolve *sess)
 	pj_sockaddr_print(&result.addr, addr, sizeof(addr), 3);
 	PJ_LOG(4,(THIS_FILE, 
 		  "STUN resolution success, using %.*s, address is %s",
-		  (int)sess->srv[sess->idx].slen,
-		  sess->srv[sess->idx].ptr,
+		  (int)sess->srv[srv_idx].slen,
+		  sess->srv[srv_idx].ptr,
 		  addr));
     } else {
 	char errmsg[PJ_ERR_MSG_SIZE];
@@ -1470,6 +1473,17 @@ static void internal_stun_resolve_cb(pjsua_inst_id inst_id, const pj_stun_resolv
     if (result->status == PJ_SUCCESS) {
 	pj_memcpy(&pjsua_var[inst_id].stun_srv, &result->addr, sizeof(result->addr));
     }
+
+	if (pjsua_var[inst_id].log_cfg.app_log_cb) {
+		char addr_str[PJ_INET6_ADDRSTRLEN+10] = {0};
+		if (pj_sockaddr_has_addr(&result->addr))
+			pj_sockaddr_print(&result->addr, addr_str, sizeof(addr_str), 3); // addr+port
+		pjsua_var[inst_id].log_cfg.app_log_cb(inst_id, 4, 
+									"natnl", "stun_resolve : stun=[%.*s], addr=[%s], status=[%d]", 
+									result->name.slen, result->name.ptr, addr_str, result->status);
+	}
+	/*if (pjsua_var[inst_id].ua_cfg.cb.on_stun_resolve)
+		pjsua_var[inst_id].ua_cfg.cb.on_stun_resolve(inst_id, result->status, result->name, result->addr);*/
 }
 
 /*
@@ -2140,7 +2154,7 @@ PJ_DEF(pj_status_t) pjsua_transport_create( pjsua_inst_id inst_id,
 	if (status != PJ_SUCCESS)
 	    goto on_return;
 
-	pj_ansi_strcpy(hostbuf, addr_string(&pub_addr));
+        pj_ansi_strxcpy(hostbuf, addr_string(&pub_addr), sizeof(hostbuf));
 	addr_name.host = pj_str(hostbuf);
 	addr_name.port = pj_sockaddr_get_port(&pub_addr);
 
@@ -2466,7 +2480,7 @@ PJ_DEF(pj_status_t) pjsua_transport_set_enable( pjsua_inst_id inst_id,
 
 
     /* To be done!! */
-    PJ_TODO(pjsua_transport_set_enable);
+    //PJ_TODO(pjsua_transport_set_enable);
     PJ_UNUSED_ARG(enabled);
 
     return PJ_EINVALIDOP;
@@ -2793,7 +2807,7 @@ PJ_DEF(pj_status_t) pjsua_verify_url(pjsua_inst_id inst_id, const char *c_url)
     if (!pool) return PJ_ENOMEM;
 
     url = (char*) pj_pool_alloc(pool, len+1);
-    pj_ansi_strcpy(url, c_url);
+    pj_ansi_strxcpy(url, c_url, len+1);
 
     p = pjsip_parse_uri(inst_id, pool, url, len, 0);
 
@@ -2818,7 +2832,7 @@ PJ_DEF(pj_status_t) pjsua_verify_sip_url(pjsua_inst_id inst_id,
     if (!pool) return PJ_ENOMEM;
 
     url = (char*) pj_pool_alloc(pool, len+1);
-    pj_ansi_strcpy(url, c_url);
+    pj_ansi_strxcpy(url, c_url, len+1);
 
     p = pjsip_parse_uri(inst_id, pool, url, len, 0);
     if (!p || (pj_stricmp2(pjsip_uri_get_scheme(p), "sip") != 0 &&

@@ -68,12 +68,12 @@
 	font:13px Arial, Helvetica, sans-serif;
 }
 </style>
+<script type="text/javascript" src="/js/jquery.js"></script>
 <script language="JavaScript" type="text/javascript" src="/state.js"></script>
 <script language="JavaScript" type="text/javascript" src="/help.js"></script>
 <script language="JavaScript" type="text/javascript" src="/general.js"></script>
 <script language="JavaScript" type="text/javascript" src="/popup.js"></script>
 <script language="JavaScript" type="text/javascript" src="/validator.js"></script>
-<script type="text/javascript" src="/js/jquery.js"></script>
 <script type="text/javascript" src="/switcherplugin/jquery.iphone-switch.js"></script>
 <script type="text/javascript" language="JavaScript" src="/js/table/table.js"></script>
 <script type="text/javascript" src="/js/httpApi.js"></script>
@@ -122,6 +122,7 @@ var faq_href1 = "https://nw-dlcdnet.asus.com/support/forward.html?model=&type=Fa
 var faq_href2 = "https://nw-dlcdnet.asus.com/support/forward.html?model=&type=Faq&lang="+ui_lang+"&kw=&num=130";
 
 var eth_wan_list = httpApi.hookGet("get_ethernet_wan_list", true);
+var orig_switch_wantag = '<% nvram_get("switch_wantag"); %>';
 
 var usb_bk_support = isSupport("usb_bk");
 var orig_autowan_enable = '<% nvram_get("autowan_enable"); %>';
@@ -208,6 +209,10 @@ function initial(){
 
 					if(lan_wan_port)
 						return;
+
+					if((parseInt(port_info[index].flag) & 2) == 2){
+						return;
+					}
 
 					if(port_info[index].max_rate == "2500"){
 						text_arr.push("2.5G/1G LAN");
@@ -311,7 +316,7 @@ function isEmpty(obj)
 	}
 
 	return true;
-};
+}
 
 function is_eth_wan(wan){
 	var found = false;
@@ -608,7 +613,22 @@ function applyRule(){
 		}
 	}
 
-	if(wans_flag == 1){
+	if(wans_flag == 1){//Dual WAN
+		/* DualWAN/IPTV Conflict Check */
+		if(switch_stb_x != "0" || orig_switch_wantag != "none"){
+			var hint_str = `<#conflict_function_hint#>`;
+			var msg = hint_str.replace("%1$@", `<#dualwan#>`).replace("%2$@", "IPTV");
+
+			if(confirm(msg)){
+				document.form.switch_wantag.disabled = false;
+				document.form.switch_wantag.value = "none";
+				document.form.switch_stb_x.disabled = false;
+				document.form.switch_stb_x.value = "0";
+			}
+			else
+				return false;
+		}
+
 		document.form.wans_extwan.value = "0";
 		if(document.form.wans_primary.value == "lan2"){
 			if(document.form.wans_second.value == "wan"){
@@ -751,7 +771,9 @@ function applyRule(){
 					return false;
 
 			if(wans_mode_orig != "lb" && check_bwdpi_engine_status()) {
-				var confirm_flag = confirm("<#dualwan_lb_dpi_conflict#>");
+				var confirm_str_lb_dpi_conflict = `<#dualwan_lb_dpi_conflict_new#>`;
+				confirm_str_lb_dpi_conflict = confirm_str_lb_dpi_conflict.replace('%@', `<#AiProtection_title#>`);	
+				var confirm_flag = confirm(confirm_str_lb_dpi_conflict);
 				if(confirm_flag) {
 					document.form.action_script.value = "dpi_disable;reboot;";
 				}
@@ -785,7 +807,7 @@ function applyRule(){
 			document.form.wans_routing_rulelist.disabled =true;
 		}
 	}
-	else{
+	else{//Single WAN
 		document.form.wans_mode.value = "fo";
 		document.form.wans_lb_ratio.disabled = true;
 		document.form.wan0_routing_isp_enable.disabled = true;
@@ -866,80 +888,12 @@ function applyRule(){
 	if (document.form.wans_dualwan.value.indexOf("lan") != -1 ||
 		((based_modelid == "GT10" || based_modelid == "TUF-AX3000_V2") && document.form.wans_extwan.value == "1")){
 		var conflict_lanport_text = "";
-		var port_conflict = false;
 		var lan_port_num = document.form.wans_lanport.value;
+
 		if((based_modelid == "GT10" || based_modelid == "TUF-AX3000_V2") && document.form.wans_extwan.value == "1")
 			var wan_lanport_num = "1";
 		else
 			var wan_lanport_num = "";
-
-		if(based_modelid == "GT-AC5300"){
-			/* Dual WAN: "LAN Port 1" (lan_port_num: 2), "LAN Port 2" (lan_port_num:1), "LAN Port 5" (lan_port_num:4), "LAN Port 6" (lan_port_num:3) */
-			if(iptv_port_settings == "56"){// LAN Port 5 (switch_stb_x: 3)  LAN Port 6 (switch_stb_x: 4)
-				if(lan_port_num == "4" && switch_stb_x == "3"){
-					port_conflict = true;
-					conflict_lanport_text = "LAN5";
-				}
-				else if(lan_port_num == "3" && switch_stb_x == "4"){
-					port_conflict = true;
-					conflict_lanport_text = "LAN6";
-				}
-				else if((switch_stb_x == "6" || switch_stb_x == "8") && (lan_port_num == '4' || lan_port_num == "3")){
-					port_conflict = true;
-					if(lan_port_num == '4')
-						conflict_lanport_text = "LAN5";
-					else
-						conflict_lanport_text = "LAN6";
-				}
-			}
-			else{// LAN Port 1 (switch_stb_x: 3)  LAN Port 2 (switch_stb_x: 4)
-				if(lan_port_num == "2" && switch_stb_x == "3"){ //LAN1
-					port_conflict = true;
-					conflict_lanport_text = "LAN1";
-				}
-				else if(lan_port_num == "1" && switch_stb_x == "4"){ //LAN2
-					port_conflict = true;
-					conflict_lanport_text = "LAN2";
-				}
-				else if((switch_stb_x == "6" || switch_stb_x == "8") && (lan_port_num == "2" || lan_port_num == "1")){
-					port_conflict = true;
-					if(lan_port_num == "2")
-						conflict_lanport_text = "LAN1";
-					else
-						conflict_lanport_text = "LAN2";
-				}
-			}
-		}
-		else{
-			if(switch_stb_x != "0" && ((switch_stb_x == lan_port_num) || (switch_stb_x == wan_lanport_num))){
-				port_conflict = true;
-				if(switch_stb_x == lan_port_num)
-					conflict_lanport_text = "LAN" + lan_port_num;
-				else
-					conflict_lanport_text = "LAN" + wan_lanport_num;
-			}
-			else{
-				for(var i = 0; i < stbPortMappings.length; i++){
-					if(switch_stb_x == stbPortMappings[i].value && stbPortMappings[i].comboport_value_list.length != 0){
-						var value_list = stbPortMappings[i].comboport_value_list.split(" ");
-						for(var j = 0; j < value_list.length; j++){
-							if((lan_port_num == value_list[j]) || (wan_lanport_num == value_list[j])){
-								port_conflict = true;
-								conflict_lanport_text = "LAN" + value_list[j];
-							}
-						}
-					}
-				}
-			}
-		}
-
-		if (port_conflict) {
-			var hint_str1 = "<#PortConflict_SamePort_Hint#>";
-			var hint_str2 = "<#ChooseOthers_Hint#>";
-			var alert_msg = hint_str1.replace("%1$@", "WAN").replace("%2$@", "IPTV") + " " + hint_str2;
-			alert(alert_msg);
-			return;
-		}
 
 		//Check Bonding port conflict
 		if(lacp_support && lacp_enabled == "1"){
@@ -1467,7 +1421,7 @@ function show_wans_rules(){
 					"option" : {"<#dualwan_primary#>" : "0", "<#dualwan_secondary#>" : "1"}
 				},
 			],
-			maximum: 32
+			maximum: 64
 		},
 
 		clickRawEditPanel: {

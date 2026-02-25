@@ -79,6 +79,8 @@ static int tencentgame_download_enable_tmp = 0;
 
 MQTTContext_t mqttContext_g;
 
+int check_mqtt_timer = 0;
+
 int get_mqtt_session_number = 0;
 
 
@@ -195,7 +197,7 @@ int publish_waiting = 0;
 /**
  * @brief Timeout for MQTT_ProcessLoop function in milliseconds.
  */
-#define MQTT_PROCESS_LOOP_TIMEOUT_MS        ( 500U )
+#define MQTT_PROCESS_LOOP_TIMEOUT_MS        ( 200U )
 
 /**
  * @brief The maximum time interval in seconds which is allowed to elapse
@@ -225,7 +227,7 @@ int publish_waiting = 0;
 /**
  * @brief Delay in seconds between two iterations of subscribeTopic().
  */
-#define MQTT_SUBPUB_LOOP_DELAY_SECONDS      ( 15U )
+#define MQTT_SUBPUB_LOOP_DELAY_SECONDS      ( 30U )
 
 /**
  * @brief Transport timeout in milliseconds for transport send and receive.
@@ -1023,6 +1025,7 @@ static void eventCallback( MQTTContext_t * pMqttContext,
         {
             case MQTT_PACKET_TYPE_SUBACK:
 
+                 Cdbg(APP_DBG, "Got a SUBACK from the broker.");
 
                 /* A SUBACK from the broker, containing the server response to our subscription request, has been received.
                  * It contains the status code indicating server approval/rejection for the subscription to the single topic
@@ -1135,8 +1138,8 @@ static int establishMqttSession( MQTTContext_t * pMqttContext,
         returnStatus = EXIT_FAILURE;
         LogError( ( "Connection with MQTT broker failed with status %s.",
                     MQTT_Status_strerror( mqttStatus ) ) );
-        Cdbg(APP_DBG, "Connection with MQTT broker failed with status %s.",
-                    MQTT_Status_strerror( mqttStatus ) );
+        Cdbg(APP_DBG, "Connection with MQTT broker failed with status %s, mqttStatus = %d",
+                    MQTT_Status_strerror( mqttStatus ), mqttStatus);
     }
     else
     {
@@ -1640,14 +1643,12 @@ static int publishToTopic( MQTTContext_t * pMqttContext, char * pTopicName, char
 
 		    mqttStatus = MQTT_ProcessLoop( pMqttContext, MQTT_PROCESS_LOOP_TIMEOUT_MS );
 
-		    if( mqttStatus == MQTTSuccess )
-		    {
-
-	            LogInfo( ( "mqttStatus == == == MQTTSuccess" ) );
-
-		    } else {
-	            LogInfo( ( "mqttStatus != != != MQTTSuccess" ) );
-		    }
+            if( mqttStatus == MQTTSuccess ) {
+                LogInfo( ( "MQTT_ProcessLoop  mqttStatus == == == MQTTSuccess" ) );
+            } 
+            else {
+                LogInfo( ( "MQTT_ProcessLoop mqttStatus != != != MQTTSuccess" ) );
+            }
 
             LogInfo( ( "Cleaning up all the stored outgoing publishes." ) );
 
@@ -1789,7 +1790,6 @@ static int subscribeTopic( MQTTContext_t * pMqttContext,
          * subscribed to, so it will expect all the messages it sends to the broker
          * to be sent back to it from the broker. This demo uses QOS1 in Subscribe,
          * therefore, the Publish messages received from the broker will have QOS1. */
-        LogInfo( ( "Subscribing to the MQTT topic" ) );
         returnStatus = subscribeToTopic( pMqttContext );
     }
 
@@ -1813,7 +1813,7 @@ static int subscribeTopic( MQTTContext_t * pMqttContext,
                         MQTT_Status_strerror( mqttStatus ) ) );
         }
     }
-
+    
     /* Check if recent subscription request has been rejected. globalSubAckStatus is updated
      * in eventCallback to reflect the status of the SUBACK sent by the broker. */
     if( ( returnStatus == EXIT_SUCCESS ) && ( globalSubAckStatus == MQTTSubAckFailure ) )
@@ -1826,8 +1826,26 @@ static int subscribeTopic( MQTTContext_t * pMqttContext,
         //            MQTT_EXAMPLE_TOPIC ) );
         // returnStatus = handleResubscribe( pMqttContext );
 
-        returnStatus == MQTTSubAckFailure;
+        // returnStatus = MQTTSubAckFailure;
 
+        //- Try to use MQTT_ProcessLoop to receive packet from network again.
+        int count = 0;
+        int max_count = 3;
+        while (globalSubAckStatus == MQTTSubAckFailure) {
+            if (count > max_count) {
+                break;
+            }
+
+            count++;
+
+            Cdbg(APP_DBG, "Try to use MQTT_ProcessLoop to receive packet from network again.(%d)", count);
+            mqttStatus = MQTT_ProcessLoop( pMqttContext, MQTT_PROCESS_LOOP_TIMEOUT_MS );
+        }
+
+        if (globalSubAckStatus == MQTTSubAckFailure) {
+            Cdbg(APP_DBG, "Still haven’t received sub ack!!");
+            returnStatus = MQTTSubAckFailure;
+        }
     }
 
 
@@ -1906,6 +1924,12 @@ void init_basic_data()
 
         int link_internet = nvram_get_int("link_internet"); // 2 -> connected
 
+        if (!IS_EULA_OR_PPV2_SIGNED())
+        {
+            sleep(30);
+            continue;
+        }
+
         if((ntp_ready == 1) && (link_internet == 2)) {
             Cdbg(APP_DBG, "waiting ntp_ready -> %d, link_internet -> %d", ntp_ready, link_internet);
             break;
@@ -1955,7 +1979,7 @@ void init_basic_data()
         snprintf(awsiot_endpoint, sizeof(awsiot_endpoint), "%s", nvram_safe_get("awsiotendpoint"));
         snprintf(awsiot_clientid, sizeof(awsiot_clientid), "%s", nvram_safe_get("awsiotclientid"));
 
-        if( (strlen(awsiot_endpoint) > 2) &&  (strlen(awsiot_clientid) > 2) ) {
+        if( (strlen(awsiot_endpoint) > 2) &&  (strlen(awsiot_clientid) > 2) && ((nvram_get_int("ASUS_EULA") == 1) || (get_ASUS_privacy_policy_state(ASUS_PP_ACCOUNT_BINDING) == 1)) ) {
             LogInfo( ( "Get awsiot_endpoint -> %s, awsiot_clientid -> %s", awsiot_endpoint, awsiot_clientid) );
             Cdbg(APP_DBG, "Get awsiot_endpoint -> %s, awsiot_clientid -> %s", awsiot_endpoint, awsiot_clientid);
             break;
@@ -2153,6 +2177,13 @@ int run_subscribe_topic(MQTTContext_t * pMqttContext, bool * pMqttSessionEstabli
             continue;
         }
 
+        if (!IS_EULA_OR_PPV2_SIGNED())
+        {
+            //- EULA level is not allow and exit awsiot.
+            Cdbg(APP_DBG, "run_subscribe_topic() EULA level is not allow and exit awsiot.");
+            returnStatus = EXIT_AWSIOT;
+            break;
+        }
         mqttStatus = MQTT_ProcessLoop( pMqttContext, MQTT_PROCESS_LOOP_TIMEOUT_MS );
 
         if( mqttStatus != MQTTSuccess )
@@ -2383,6 +2414,30 @@ static size_t header_callback(char *buffer, size_t size,
   return nitems * size;
 }
 
+int check_mqtt_port() {
+
+    int ret = -1;
+    FILE *fp;
+    char cmd[128] = {0};
+
+    strlcpy(cmd, "netstat -na | grep 8883 2>&1" , sizeof(cmd));
+    if ((fp = popen(cmd, "r")) != NULL)
+    {
+        while (fgets(cmd, sizeof(cmd), fp) != NULL)
+        {
+            if (strlen(cmd) > 5)
+            {
+                ret = 0;
+                break;
+            }
+            else
+                ret = -1;
+        }
+        pclose(fp);
+    }
+    return ret;
+}
+
 int main( int argc, char ** argv )
 {
 
@@ -2437,19 +2492,18 @@ int main( int argc, char ** argv )
             if( returnStatus == EXIT_FAILURE )
             {
 
-                /* Log error to indicate connection failure after all
-                 * reconnect attempts are over. */
-                // LogError( ( "Failed to connect to MQTT broker %.*s.",
-                //             AWS_IOT_ENDPOINT_LENGTH,
-                //             AWS_IOT_ENDPOINT ) );
+                /* connection failure after all reconnect attempts are over. */
+                Cdbg(APP_DBG, "TCP connection cannot be established, Failed to connect to MQTT broker %s, ntp_ready = %d, link_internet = %d",
+                            awsiot_endpoint, nvram_get_int("ntp_ready"), nvram_get_int("link_internet"));
 
-                // Cdbg(APP_DBG, "Failed to connect to MQTT broker %.*s.",
-                //             AWS_IOT_ENDPOINT_LENGTH,
-                //             AWS_IOT_ENDPOINT);
+                if(check_mqtt_port() < 0) {
+                    check_mqtt_timer++;
+                }
 
-
-                Cdbg(APP_DBG, "Failed to connect to MQTT broker %s.",
-                            awsiot_endpoint);
+                if(check_mqtt_timer > 5) {
+                    Cdbg(APP_DBG, "check_mqtt_timer = %d, restart", check_mqtt_timer);
+                    break;
+                }
 
             }
             else
@@ -2471,11 +2525,17 @@ int main( int argc, char ** argv )
             /* End TLS session, then close TCP connection. */
             ( void ) Openssl_Disconnect( &networkContext );
 
-            if(returnStatus == EXIT_AWSIOT) {
+            // if(returnStatus == EXIT_AWSIOT) {
+            //     break;
+            // }
+
+            if (!IS_EULA_OR_PPV2_SIGNED())
+            {
+                //- EULA level is not allow and exit awsiot.
+                Cdbg(APP_DBG, "main() EULA level is not allow and exit awsiot.");
                 break;
             }
-
-            LogInfo( ( "Openssl disconnect, Short delay before starting the next iteration....\n" ) );
+            Cdbg(APP_DBG, "Openssl disconnect, Short delay before starting the next iteration....");
             sleep( MQTT_SUBPUB_LOOP_DELAY_SECONDS );
         }
     }

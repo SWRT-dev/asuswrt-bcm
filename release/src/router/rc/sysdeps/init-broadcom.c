@@ -1716,6 +1716,13 @@ void enable_jumbo_frame(void)
 
 	if (!nvram_contains_word("rc_support", "switchctrl"))
 		return;
+#if defined(RTAX55) || defined(RTAX1800) || defined(RTAX58U_V2) || defined(RTAX3000N) || defined(BR63)
+	if (enable)
+		system("rtkswitch 18");
+	else
+		system("rtkswitch 17");
+	return;
+#endif
 #ifdef RTCONFIG_HND_ROUTER_AX_6756
 #if defined(BCM6750) || defined(BCM6756) || defined(BCM4906_504)
 	int model = get_model();
@@ -2038,6 +2045,8 @@ void init_switch_pre()
 	system("ethswctl -c pause -p 0 -v 2");
 #elif defined(TUFAX3000_V2) || defined(RTAXE7800)
 	system("ethswctl -c pause -p 0 -v 2");
+	system("ethswctl -c pause -p 1 -v 2");
+	system("ethswctl -c pause -p 5 -v 2");
 	system("ethswctl -c pause -p 8 -v 2");
 #elif defined(BCM6750) || defined(BCM63178)
 	system("ethswctl -c pause -p 0 -v 2");
@@ -2207,15 +2216,20 @@ void init_switch_pre()
 #else
 	doSystem("ethswctl -c wan -i %s -o %s", wan_if_eth(), is_router_mode() ? "enable" : "disable");
 #endif
+#if defined(TUFAX3000_V2) || defined(RTAXE7800)
+	if (is_router_mode())
+		doSystem("ethswctl -c wan -i %s -o enable", WAN_IF_ETH);
+#else
 	if (is_router_mode() && strcmp(WAN_IF_ETH, wan_if_eth()))
 		doSystem("ethswctl -c wan -i %s -o disable", WAN_IF_ETH);
+#endif
 #endif
 
 #if defined(XC5)
 	doSystem("ethswctl -c softswitch -i eth2 -o enable");
 #endif
 
-#if defined(TUFAX3000_V2) || defined(RTAXE7800)
+#if defined(TUFAX3000_V2) || defined(RTAXE7800) || defined(XT8PRO)
 	doSystem("ethswctl -c softswitch -i %s -o %s", wan_if_eth(), is_router_mode() ? "disable" : "enable");
 
 	char *wired_ifnames[] = { "eth0", "eth1", "eth2", "eth3", "eth4" };
@@ -2224,7 +2238,13 @@ void init_switch_pre()
 		if (!strcmp(wired_ifnames[i], wan_if_eth()))
 			continue;
 		lacp_enabled = nvram_get_int("lacp_enabled") &&
-			(!strcmp(wired_ifnames[i], "eth1") || !strcmp(wired_ifnames[i], "eth2"));
+			(
+#if defined(XT8PRO)
+				!strcmp(wired_ifnames[i], "eth2") || !strcmp(wired_ifnames[i], "eth3")
+#else
+				!strcmp(wired_ifnames[i], "eth1") || !strcmp(wired_ifnames[i], "eth2")
+#endif
+			);
 		doSystem("ethswctl -c softswitch -i %s -o %s", wired_ifnames[i], lacp_enabled ? "enable" : "disable");
 	}
 #endif
@@ -2248,6 +2268,11 @@ void init_switch_pre()
 
 		doSystem("ethswctl -c softswitch -i %s -o %s", wired_ifnames[i], dualwan_lanif ? "enable" : "disable");
         }
+#endif
+
+#if defined(RTAX55) || defined(RTAX1800) || defined(RTAX58U_V2) || defined(RTAX3000N) || defined(BR63)
+	doSystem("ethswctl -c softswitch -i %s -o %s", wan_if_eth(), is_router_mode() ? "disable" : "enable");
+	doSystem("ethswctl -c softswitch -i eth1 -o enable");
 #endif
 
 #if (defined(BCM6750) || defined(BCM63178)) && !defined(RTCONFIG_HND_ROUTER_AX_6756)
@@ -2874,7 +2899,7 @@ void init_switch()
 		{
 			/* set wanports in init_nvram for dualwan */
 			/* WAN L1 L2 L3 */
-			int ports[6] = { 0, 1, 2, 3 };
+			int ports[4] = { 0, 1, 2, 3 };
 			char buf[64], *ptr;
 			int i, len, wancfg;
 			int tmp_type;
@@ -2967,7 +2992,7 @@ void init_switch()
 		}
 	}
 
-#ifdef RTCONFIG_EMF
+#if defined(RTCONFIG_EMF) && !defined(RTCONFIG_HND_ROUTER_AX_6756) && !defined(RTCONFIG_HND_ROUTER_BE_4916)
 	eval("insmod", "emf");
 	eval("insmod", "igs");
 #endif
@@ -3393,7 +3418,7 @@ void vlan_forwarding(int vid, int prio, int stb, int untag)
 
 	/* same vid case */
 	if(stb == 6) {
-#if defined(RTAX55) || defined(RTAX58U_V2) || defined(RTAX3000N) || (defined(BR63) && !defined(NEW_SWITCH_ORDER))
+#if defined(RTAX55) || defined(RTAX58U_V2) || defined(RTAX3000N) || defined(BR63) && !defined(NEW_SWITCH_ORDER)
 		mask |= 1 << abs(3 - 4);
 		mask |= 1 << abs(4 - 4);
 #else
@@ -3402,7 +3427,7 @@ void vlan_forwarding(int vid, int prio, int stb, int untag)
 #endif
 	}
 	else {
-#if defined(RTAX55) || defined(RTAX58U_V2) || defined(RTAX3000N) || (defined(BR63) && !defined(NEW_SWITCH_ORDER))
+#if defined(RTAX55) || defined(RTAX58U_V2) || defined(RTAX3000N) || defined(BR63) && !defined(NEW_SWITCH_ORDER)
 		mask |= 1 << abs(stb - 4);
 #else
 		mask |= 1 << (stb - 1);
@@ -3414,7 +3439,7 @@ void vlan_forwarding(int vid, int prio, int stb, int untag)
 	}
 	/* Meo(Bridge Mode) LAN4 leave tag */
 	else if(untag == 2) {
-#if defined(RTAX55) || defined(RTAX58U_V2) || defined(RTAX3000N) || (defined(BR63) && !defined(NEW_SWITCH_ORDER))
+#if defined(RTAX55) || defined(RTAX58U_V2) || defined(RTAX3000N) || defined(BR63) && !defined(NEW_SWITCH_ORDER)
 		mask |= abs(1 << 16);
 #else
 		mask |= abs((1 << 3) << 16);
@@ -3454,7 +3479,7 @@ void config_switch(void)
 				if (get_dualwan_by_unit(unit) == WANS_DUALWAN_IF_LAN) {
 					if (nvram_match("wans_lanport", "1")) {
 						/* add vlan 2 as WAN from rtkswitch */
-#if defined(RTAX55) || defined(RTAX58U_V2) || defined(RTAX3000N) || (defined(BR63) && !defined(NEW_SWITCH_ORDER))
+#if defined(RTAX55) || defined(RTAX58U_V2) || defined(RTAX3000N) || defined(BR63) && !defined(NEW_SWITCH_ORDER)
 						__setup_vlan(2, 0, 0x00080008); //LAN1 as WAN
 						__setup_vlan(0, 0, 0x00070007); //no-tag fwd mask except LAN1
 #else
@@ -3464,7 +3489,7 @@ void config_switch(void)
 					}
 					else if (nvram_match("wans_lanport", "2")) {
 						/* add vlan 2 as WAN from rtkswitch */
-#if defined(RTAX55) || defined(RTAX58U_V2) || defined(RTAX3000N) || (defined(BR63) && !defined(NEW_SWITCH_ORDER))
+#if defined(RTAX55) || defined(RTAX58U_V2) || defined(RTAX3000N) || defined(BR63) && !defined(NEW_SWITCH_ORDER)
 						__setup_vlan(2, 0, 0x00040004); //LAN2 as WAN
 						__setup_vlan(0, 0, 0x000B000B); //no-tag fwd mask except LAN1
 #else
@@ -3474,7 +3499,7 @@ void config_switch(void)
 					}
 					else if (nvram_match("wans_lanport", "3")) {
 						/* add vlan 2 as WAN from rtkswitch */
-#if defined(RTAX55) || defined(RTAX58U_V2) || defined(RTAX3000N) || (defined(BR63) && !defined(NEW_SWITCH_ORDER))
+#if defined(RTAX55) || defined(RTAX58U_V2) || defined(RTAX3000N) || defined(BR63) && !defined(NEW_SWITCH_ORDER)
 						__setup_vlan(2, 0, 0x00020002); //LAN3 as WAN
 						__setup_vlan(0, 0, 0x000D000D); //no-tag fwd mask except LAN1
 #else
@@ -3484,7 +3509,7 @@ void config_switch(void)
 					}
 					else if (nvram_match("wans_lanport", "4")) {
 						/* add vlan 2 as WAN from rtkswitch */
-#if defined(RTAX55) || defined(RTAX58U_V2) || defined(RTAX3000N) || (defined(BR63) && !defined(NEW_SWITCH_ORDER))
+#if defined(RTAX55) || defined(RTAX58U_V2) || defined(RTAX3000N) || defined(BR63) && !defined(NEW_SWITCH_ORDER)
 						__setup_vlan(2, 0, 0x00010001); //LAN4 as WAN
 						__setup_vlan(0, 0, 0x000E000E); //no-tag fwd mask except LAN1
 #else
@@ -3681,7 +3706,7 @@ void init_switch()
 	if (nvram_get_int("ctf_disable") == 0)
 		eval("insmod", "ctf");
 
-#ifdef RTCONFIG_EMF
+#if defined(RTCONFIG_EMF) && !defined(RTCONFIG_HND_ROUTER_AX_6756) && !defined(RTCONFIG_HND_ROUTER_BE_4916)
 	eval("insmod", "emf");
 	eval("insmod", "igs");
 #endif
@@ -3793,18 +3818,23 @@ set_bcm4360ac_vars(void)
 }
 #endif
 
-#if (defined(RTCONFIG_FRONTHAUL_DWB) || defined(RTCONFIG_MSSID_PRELINK)) && !defined(RTCONFIG_MSSID_REALMAC)
+#if !defined(RTCONFIG_MSSID_REALMAC)
 /* mac_binary[0], mac_binary[1], ... , mac_binary[5] */
 /* vif_addr[5], vif_addr[4], ... , vif_addr[0] */
 /* refer to wlconf.c */
 unsigned char gen_mssid_hwaddr_mac0(unsigned char mac_binary[])
 {
 	char vif_addr[WLC_IOCTL_SMLEN];
+	int max_wl_cap_mbss = 16 ; /* to meet all model, always using mbss16 to generate mac0 */
+	int adjustment = 0 ;
 
 	memcpy(vif_addr, mac_binary, ETHER_ADDR_LEN);
 
-	vif_addr[5] = (vif_addr[5] & ~(16 /* max_no_vifs */ - 1)) | (mac_binary[5] & (16 /* max_no_vifs */ - 1));
-	vif_addr[0] = 96 + (vif_addr[5]%( 16 /* max_no_vifs */ -1) * 8);
+	if(vif_addr[0] == 96){
+		if(vif_addr[5]%(max_wl_cap_mbss -1) == 0) adjustment = 1;
+		else adjustment = 0;
+	}
+	vif_addr[0] = 96 + ((vif_addr[5]+adjustment)%(max_wl_cap_mbss -1) * 8);
 
 	ETHER_SET_LOCALADDR(vif_addr);
 
@@ -3822,7 +3852,7 @@ reset_mssid_hwaddr(int unit)
 	unsigned char *macp;
 	int model = get_model();
 	int idx, subunit;
-#if (defined(RTCONFIG_FRONTHAUL_DWB) || defined(RTCONFIG_MSSID_PRELINK)) && !defined(RTCONFIG_MSSID_REALMAC)
+#if !defined(RTCONFIG_MSSID_REALMAC)
 	int max_mssid = (num_of_mssid_support(unit) > 3) ? 3 : num_of_mssid_support(unit);
 #else
 	int max_mssid = num_of_mssid_support(unit);
@@ -3841,7 +3871,7 @@ reset_mssid_hwaddr(int unit)
 			|| rp_mode()
 			);
 #endif
-#if (defined(RTCONFIG_FRONTHAUL_DWB) || defined(RTCONFIG_MSSID_PRELINK)) && !defined(RTCONFIG_MSSID_REALMAC)
+#if !defined(RTCONFIG_MSSID_REALMAC)
 	unsigned char vif_mac0 = 0;
 #endif
 
@@ -3995,7 +4025,7 @@ const unsigned int devpath_idx[4] = {1, 2, 0};    // 2.4G, 5G-1, 5G-2
 					mac_binary[5]);
 			macvalue = strtoll(macbuf, (char **) NULL, 16);
 
-#if (defined(RTCONFIG_FRONTHAUL_DWB) || defined(RTCONFIG_MSSID_PRELINK)) && !defined(RTCONFIG_MSSID_REALMAC)
+#if !defined(RTCONFIG_MSSID_REALMAC)
 			/* virtual mac address generation */
 			vif_mac0 = gen_mssid_hwaddr_mac0((unsigned char *) &mac_binary);
 #else
@@ -4072,7 +4102,7 @@ const unsigned int devpath_idx[4] = {1, 2, 0};    // 2.4G, 5G-1, 5G-2
 				else
 					macp = (unsigned char*) &macvalue;
 
-#if (defined(RTCONFIG_FRONTHAUL_DWB) || defined(RTCONFIG_MSSID_PRELINK)) && !defined(RTCONFIG_MSSID_REALMAC)
+#if !defined(RTCONFIG_MSSID_REALMAC)
 				/* global virtual MAC rule */
 				*(macp+5) = vif_mac0;
 				*(macp+0) = (mac_binary[5] & 0xF0) + ((mac_binary[5] + subunit) & 0x0F);
@@ -4932,6 +4962,12 @@ void init_syspara(void)
 		nvram_set("wps_device_pin", wps_gen_pin(devPwd, sizeof(devPwd)) ? devPwd : "12345670");
 	} else
 		nvram_set("wps_device_pin", value);
+#ifdef RTCONFIG_AMAS
+	int ret = 0;
+
+	ret = chk_acscli2_cmds("acs_restart");
+	_dprintf("%s, acscli2_can_do_restart:%d\n", __func__, ret);
+#endif
 }
 
 #ifdef RTCONFIG_BCMARM
@@ -5443,7 +5479,6 @@ void init_others(void)
 
 #if defined(RTAC68U) && !defined(RTAC68A) && !defined(RT4GAC68U)
 	update_cfe();
-	update_cfe_tm1900();
 #endif
 #ifdef RTAC3200
 	update_cfe_ac3200();
@@ -6170,7 +6205,11 @@ void generate_wl_para(char *ifname, int unit, int subunit)
 		int dwds = 0;
 		if (!nvram_get_int("dwds_ctrl")) {
 #if defined(RTCONFIG_BCM4708) || defined(RTCONFIG_BCM_7114) || defined(RTCONFIG_HND_ROUTER)
+#if defined(RPAX56) || defined(RPAX58)
+			dwds = !client_mode();
+#else
 			dwds = 1;
+#endif
 #else
 			dwds = !(is_ure(unit) || is_psta(unit));
 #endif
@@ -6483,7 +6522,7 @@ void generate_wl_para(char *ifname, int unit, int subunit)
 				) {
 #if defined(RTCONFIG_HND_ROUTER_AX) || defined(RTCONFIG_BW160M)
 					if (nvram_match(strcat_r(prefix, "bw_160", tmp), "1") || is_psta(unit) || is_psr(unit))
-						nvram_set(strcat_r(prefix, "bw_cap", tmp), hw_he_cap() ? "15" : (hw_vht_cap() ? "15" : "7"));	// 160M
+						nvram_set(strcat_r(prefix, "bw_cap", tmp), hw_vht_cap() ? (hw_he_cap() ? "15" : "7") : "3");	// 160M
 					else
 #endif
 					nvram_set(strcat_r(prefix, "bw_cap", tmp), hw_vht_cap() ? "7" : "3");		// 80M
@@ -6499,7 +6538,7 @@ void generate_wl_para(char *ifname, int unit, int subunit)
 				nvram_match(strcat_r(prefix, "nband", tmp2), "2") ? nvram_match("no_coex", "1") ? 0 : nvram_match("no_coex", "0") ? 1 : 0 : 0);
 #else
 			nvram_set_int(strcat_r(prefix, "obss_coex", tmp),
-				nvram_match(strcat_r(prefix, "nband", tmp2), "2") ? nvram_match("no_coex", "1") ? 0 : nvram_match("no_coex", "0") ? 1 : 1 : 0);
+				nvram_match(strcat_r(prefix, "nband", tmp2), "2") ? 1 : 0);
 #endif
 		}
 		else if (nvram_match(strcat_r(prefix, "bw", tmp), "1") ||	// 20M
@@ -6535,10 +6574,8 @@ void generate_wl_para(char *ifname, int unit, int subunit)
 		{
 			if (nvram_match(strcat_r(prefix, "nband", tmp), "2"))	// 2.4G
 				nvram_set(strcat_r(prefix, "bw_cap", tmp), "3");
-			else if	(hw_he_cap() || hw_vht_cap())
-				nvram_set(strcat_r(prefix, "bw_cap", tmp), "15");
 			else
-				nvram_set(strcat_r(prefix, "bw_cap", tmp), "7");
+				nvram_set(strcat_r(prefix, "bw_cap", tmp), hw_vht_cap() ? (hw_he_cap() ? "15" : "7") : "3");
 			nvram_set(strcat_r(prefix, "obss_coex", tmp), "0");
 		}
 #endif
@@ -6886,7 +6923,13 @@ void generate_wl_para(char *ifname, int unit, int subunit)
 #ifdef RTCONFIG_BCMARM
 			if (!nvram_get_int("dwds_ctrl"))
 #ifdef RTCONFIG_HND_ROUTER_AX
-			nvram_set(strcat_r(prefix, "dwds", tmp), "1");
+#if defined(RPAX56) || defined(RPAX58)
+			{
+				nvram_set(strcat_r(prefix, "dwds", tmp), client_mode()? "0": "1");
+			}
+#else
+				nvram_set(strcat_r(prefix, "dwds", tmp), "1");
+#endif
 #else
 			nvram_set(strcat_r(prefix, "dwds", tmp), is_ure(unit) ? "0" : "1");
 #endif
@@ -8134,15 +8177,21 @@ _dprintf("*** Multicast IPTV: config Singtel TR069 on wan port ***\n");
 			if(nvram_match("HwId", "A") || nvram_match("HwId", "C")){
 				sprintf(ethPort1, "eth1");
 				sprintf(vlanDev1, "eth1.v0");
+				sprintf(ethPort2, "eth1");
+				sprintf(vlanDev2, "eth1.v0");
 			} else {
 				sprintf(ethPort1, "");
 				sprintf(vlanDev1, "");
+				sprintf(ethPort2, "");
+				sprintf(vlanDev2, "");
 			}
 		}
 		/* Spefici net devices order for XD4PRO */
 		else if (model == MODEL_XD4PRO) {
 			sprintf(ethPort1, "eth1");
 			sprintf(vlanDev1, "eth1.v0");
+			sprintf(ethPort2, "eth1");
+			sprintf(vlanDev2, "eth1.v0");
 		}
                 /* Spefici net devices order for XC5 */
                 else if (model == MODEL_XC5) {
@@ -8155,6 +8204,8 @@ _dprintf("*** Multicast IPTV: config Singtel TR069 on wan port ***\n");
 		else if (model == MODEL_CTAX56_XD4) {
 			sprintf(ethPort1, "eth1");
 			sprintf(vlanDev1, "eth1.v0");
+			sprintf(ethPort2, "eth1");
+			sprintf(vlanDev2, "eth1.v0");
 		}
 		/* Spefici net devices order for EBA63 */
 		else if (model == MODEL_EBA63) {
@@ -9037,7 +9088,7 @@ _dprintf("*** Multicast IPTV: config VOIP on wan port ***\n");
 		if (nvram_match("switch_stb_x", "1") && nvram_match("switch_wantag", "none")) {
 			/* add vlan 1 to separate LAN and WAN bridge */
 			eval("brctl", "delif", "br0", "eth1");
-#if defined(RTAX55) || defined(RTAX58U_V2) || defined(RTAX3000N) || (defined(BR63) && !defined(NEW_SWITCH_ORDER))
+#if defined(RTAX55) || defined(RTAX58U_V2) || defined(RTAX3000N) || defined(BR63) && !defined(NEW_SWITCH_ORDER)
 			__setup_vlan(1, 0, 0x00080008); //LAN1
 			__setup_vlan(0, 0, 0x00070007); //no-tag fwd mask except LAN1
 #else
@@ -9051,7 +9102,7 @@ _dprintf("*** Multicast IPTV: config VOIP on wan port ***\n");
 		} else if (nvram_match("switch_stb_x", "2") && nvram_match("switch_wantag", "none")) {
 			/* add vlan 1 to separate LAN and WAN bridge */
 			eval("brctl", "delif", "br0", "eth1");
-#if defined(RTAX55) || defined(RTAX58U_V2) || defined(RTAX3000N) || (defined(BR63) && !defined(NEW_SWITCH_ORDER))
+#if defined(RTAX55) || defined(RTAX58U_V2) || defined(RTAX3000N) || defined(BR63) && !defined(NEW_SWITCH_ORDER)
 			__setup_vlan(1, 0, 0x00040004); //LAN2
 			__setup_vlan(0, 0, 0x000B000B); //no-tag fwd mask except LAN2
 #else
@@ -9067,7 +9118,7 @@ _dprintf("*** Multicast IPTV: config VOIP on wan port ***\n");
 				eval("brctl", "delif", "br0", "eth1");
 				system("rtkswitch 40 1"); //leave tag case
 				/* handle special case WAN vlan forwarding specific LAN*/
-#if defined(RTAX55) || defined(RTAX58U_V2) || defined(RTAX3000N) || (defined(BR63) && !defined(NEW_SWITCH_ORDER))
+#if defined(RTAX55) || defined(RTAX58U_V2) || defined(RTAX3000N) || defined(BR63) && !defined(NEW_SWITCH_ORDER)
 				__setup_vlan(100, nvram_get_int("switch_wan0prio"), 0x00000001); //LAN4 leave tag
 #else
 				__setup_vlan(100, nvram_get_int("switch_wan0prio"), 0x00000008); //LAN4 leave tag
@@ -9112,7 +9163,7 @@ _dprintf("*** Multicast IPTV: config VOIP on wan port ***\n");
 				sprintf(vlanDev1, "eth1.%d", voip_vid);
 				eval("ifconfig", vlanDev1, "allmulti", "up");
 				eval("brctl", "addif", br_dev, vlanDev1);
-#if defined(RTAX55) || defined(RTAX58U_V2) || defined(RTAX3000N) || (defined(BR63) && !defined(NEW_SWITCH_ORDER))
+#if defined(RTAX55) || defined(RTAX58U_V2) || defined(RTAX3000N) || defined(BR63) && !defined(NEW_SWITCH_ORDER)
 				__setup_vlan(voip_vid, 0, 0x00000002); //LAN3 leave tag
 				__setup_vlan(0, 0, 0x000D000D); //no-tag fwd mask except LAN3
 #else
@@ -9164,7 +9215,7 @@ _dprintf("*** Multicast IPTV: config VOIP on wan port ***\n");
 				eval("brctl", "addif", br_dev, vlanDev1);
 
 				system("rtkswitch 40 1"); //leave tag case
-#if defined(RTAX55) || defined(RTAX58U_V2) || defined(RTAX3000N) || (defined(BR63) && !defined(NEW_SWITCH_ORDER))
+#if defined(RTAX55) || defined(RTAX58U_V2) || defined(RTAX3000N) || defined(BR63) && !defined(NEW_SWITCH_ORDER)
 				__setup_vlan(821, 0, 0x0000002); //LAN3 leave tag
 				__setup_vlan(822, 0, 0x0000002); //LAN3 leave tag
 				__setup_vlan(0, 0, 0x000D000D); //no-tag fwd mask except LAN3
@@ -9208,7 +9259,7 @@ _dprintf("*** Multicast IPTV: config VOIP on wan port ***\n");
 				eval("ifconfig", br_dev, "allmulti", "up");
 				eval("brctl", "addif", br_dev, vlanDev1);
 				eval("brctl", "addif", br_dev, wan_dev);
-#if defined(RTAX55) || defined(RTAX58U_V2) || defined(RTAX3000N) || (defined(BR63) && !defined(NEW_SWITCH_ORDER))
+#if defined(RTAX55) || defined(RTAX58U_V2) || defined(RTAX3000N) || defined(BR63) && !defined(NEW_SWITCH_ORDER)
 				__setup_vlan(400, 0, 0x00020002); //LAN3 untag
 				__setup_vlan(0, 0, 0x000D000D); //no-tag fwd mask except LAN3
 #else
@@ -9220,7 +9271,7 @@ _dprintf("*** Multicast IPTV: config VOIP on wan port ***\n");
 			else if (nvram_match("switch_wantag", "none")) {
 				/* add vlan 1 to separate LAN and WAN bridge */
 				eval("brctl", "delif", "br0", "eth1");
-#if defined(RTAX55) || defined(RTAX58U_V2) || defined(RTAX3000N) || (defined(BR63) && !defined(NEW_SWITCH_ORDER))
+#if defined(RTAX55) || defined(RTAX58U_V2) || defined(RTAX3000N) || defined(BR63) && !defined(NEW_SWITCH_ORDER)
 				__setup_vlan(1, 0, 0x00020002); //LAN3
 				__setup_vlan(0, 0, 0x000D000D); //no-tag fwd mask except LAN3
 #else
@@ -9239,7 +9290,7 @@ _dprintf("*** Multicast IPTV: config VOIP on wan port ***\n");
 					eval("vlanctl", "--mcast", "--if-create", wan_if, "2");
 					eval("ifconfig", "eth0.v2", "allmulti", "up");
 					eval("vlanctl", "--if", wan_if, "--rx", "--tags", "1", "--filter-vid", vlan_entry, "0", "--set-rxif", "eth0.v2", "--rule-append");
-#if defined(RTAX55) || defined(RTAX58U_V2) || defined(RTAX3000N) || (defined(BR63) && !defined(NEW_SWITCH_ORDER))
+#if defined(RTAX55) || defined(RTAX58U_V2) || defined(RTAX3000N) || defined(BR63) && !defined(NEW_SWITCH_ORDER)
 					__setup_vlan(voip_vid, voip_prio, 0x00020003); //LAN3 untag LAN4 leave tag
 					__setup_vlan(0, 0, 0x000C000C); //no-tag fwd mask except LAN3 and LAN4
 #else
@@ -9262,7 +9313,7 @@ _dprintf("*** Multicast IPTV: config VOIP on wan port ***\n");
 					eval("brctl", "delif", "br0", "eth1");
 					/* Forward packets from wan to vlanDev2 (untag) */
 					vlan_forwarding(voip_vid, voip_prio, switch_stb, 1);
-#if defined(RTAX55) || defined(RTAX58U_V2) || defined(RTAX3000N) || (defined(BR63) && !defined(NEW_SWITCH_ORDER))
+#if defined(RTAX55) || defined(RTAX58U_V2) || defined(RTAX3000N) || defined(BR63) && !defined(NEW_SWITCH_ORDER)
 					__setup_vlan(0, 0, 0x000D000D); //no-tag fwd mask except LAN3
 #else
 					__setup_vlan(0, 0, 0x000B000B); //no-tag fwd mask except LAN3
@@ -9285,7 +9336,7 @@ _dprintf("*** Multicast IPTV: config VOIP on wan port ***\n");
 			if (nvram_match("switch_wantag", "hinet") || nvram_match("switch_wantag", "none")) {
 				/* add vlan 1 to separate LAN and WAN bridge */
 				eval("brctl", "delif", "br0", "eth1");
-#if defined(RTAX55) || defined(RTAX58U_V2) || defined(RTAX3000N) || (defined(BR63) && !defined(NEW_SWITCH_ORDER))
+#if defined(RTAX55) || defined(RTAX58U_V2) || defined(RTAX3000N) || defined(BR63) && !defined(NEW_SWITCH_ORDER)
 				__setup_vlan(1, 0, 0x00010001); //LAN4
 				__setup_vlan(0, 0, 0x000E000E); //no-tag fwd mask except LAN4
 #else
@@ -9312,7 +9363,7 @@ _dprintf("*** Multicast IPTV: config VOIP on wan port ***\n");
 				eval("ifconfig", br_dev, "allmulti", "up");
 				eval("brctl", "addif", br_dev, vlanDev1);
 				eval("brctl", "delif", "br0", "eth1");
-#if defined(RTAX55) || defined(RTAX58U_V2) || defined(RTAX3000N) || (defined(BR63) && !defined(NEW_SWITCH_ORDER))
+#if defined(RTAX55) || defined(RTAX58U_V2) || defined(RTAX3000N) || defined(BR63) && !defined(NEW_SWITCH_ORDER)
 				__setup_vlan(iptv_vid, 0, 0x00010001); //LAN4
 				__setup_vlan(0, 0, 0x000E000E); //no-tag fwd mask except LAN4
 #else
@@ -9360,7 +9411,7 @@ _dprintf("*** Multicast IPTV: config VOIP on wan port ***\n");
 				eval("ifconfig", br_dev, "allmulti", "up");
 				eval("brctl", "addif", br_dev, vlanDev1);
 				eval("brctl", "addif", br_dev, wan_dev);
-#if defined(RTAX55) || defined(RTAX58U_V2) || defined(RTAX3000N) || (defined(BR63) && !defined(NEW_SWITCH_ORDER))
+#if defined(RTAX55) || defined(RTAX58U_V2) || defined(RTAX3000N) || defined(BR63) && !defined(NEW_SWITCH_ORDER)
 				__setup_vlan(600, 0, 0x00010001); //LAN4
 				__setup_vlan(0, 0, 0x000E000E); //no-tag fwd mask except LAN4
 #else
@@ -9392,7 +9443,7 @@ _dprintf("*** Multicast IPTV: config VOIP on wan port ***\n");
 				eval("ifconfig", br_dev, "allmulti", "up");
 				eval("brctl", "addif", br_dev, vlanDev1);
 				eval("brctl", "delif", "br0", "eth1");
-#if defined(RTAX55) || defined(RTAX58U_V2) || defined(RTAX3000N) || (defined(BR63) && !defined(NEW_SWITCH_ORDER))
+#if defined(RTAX55) || defined(RTAX58U_V2) || defined(RTAX3000N) || defined(BR63) && !defined(NEW_SWITCH_ORDER)
 				__setup_vlan(iptv_vid, 0, 0x00000001); // LAN4 tag
 				__setup_vlan(0, 0, 0x000E000E); //no-tag fwd mask except LAN4
 #else
@@ -9408,7 +9459,7 @@ _dprintf("*** Multicast IPTV: config VOIP on wan port ***\n");
 				/* config ethPort1 = IPTV */
 				eval("brctl", "delif", "br0", "eth1");
 				vlan_forwarding(iptv_vid, iptv_prio, switch_stb, 1);
-#if defined(RTAX55) || defined(RTAX58U_V2) || defined(RTAX3000N) || (defined(BR63) && !defined(NEW_SWITCH_ORDER))
+#if defined(RTAX55) || defined(RTAX58U_V2) || defined(RTAX3000N) || defined(BR63) && !defined(NEW_SWITCH_ORDER)
 				__setup_vlan(0, 0, 0x000E000E); //no-tag fwd mask except LAN4
 #else
 				__setup_vlan(0, 0, 0x00070007); //no-tag fwd mask except LAN4
@@ -9429,7 +9480,7 @@ _dprintf("*** Multicast IPTV: config VOIP on wan port ***\n");
 		} else if (nvram_match("switch_stb_x", "5") && nvram_match("switch_wantag", "none")) {
 			/* add vlan 1 to separate LAN and WAN bridge */
 			eval("brctl", "delif", "br0", "eth1");
-#if defined(RTAX55) || defined(RTAX58U_V2) || defined(RTAX3000N) || (defined(BR63) && !defined(NEW_SWITCH_ORDER))
+#if defined(RTAX55) || defined(RTAX58U_V2) || defined(RTAX3000N) || defined(BR63) && !defined(NEW_SWITCH_ORDER)
 			__setup_vlan(1, 0, 0x000C000C); //LAN1 and LAN2
 			__setup_vlan(0, 0, 0x00030003); //no-tag fwd mask except LAN1 and LAN2
 #else
@@ -9462,7 +9513,7 @@ _dprintf("*** Multicast IPTV: config VOIP on wan port ***\n");
 			else if (nvram_match("switch_wantag", "none")) {
 				/* add vlan 1 to separate LAN and WAN bridge */
 				eval("brctl", "delif", "br0", "eth1");
-#if defined(RTAX55) || defined(RTAX58U_V2) || defined(RTAX3000N) || (defined(BR63) && !defined(NEW_SWITCH_ORDER))
+#if defined(RTAX55) || defined(RTAX58U_V2) || defined(RTAX3000N) || defined(BR63) && !defined(NEW_SWITCH_ORDER)
 				__setup_vlan(1, 0, 0x00030003); //LAN3 and LAN4
 				__setup_vlan(0, 0, 0x000C000C); //no-tag fwd mask except LAN3 and LAN4
 #else
@@ -9526,7 +9577,7 @@ _dprintf("*** Multicast IPTV: config VOIP on wan port ***\n");
 				eval("brctl", "addif", br_dev, "vlan12");
 				eval("brctl", "addif", "br0", "eth1");
 
-#if defined(RTAX55) || defined(RTAX58U_V2) || defined(RTAX3000N) || (defined(BR63) && !defined(NEW_SWITCH_ORDER))
+#if defined(RTAX55) || defined(RTAX58U_V2) || defined(RTAX3000N) || defined(BR63) && !defined(NEW_SWITCH_ORDER)
 				__setup_vlan(12, 0, 0x00010003); // LAN3 tag, LAN4 untag
 				__setup_vlan(0, 0, 0x000C000C); //no-tag fwd mask except LAN3 and LAN4
 #else
@@ -9582,7 +9633,7 @@ _dprintf("*** Multicast IPTV: config VOIP on wan port ***\n");
 					}
 				}
 
-#if defined(RTAX55) || defined(RTAX58U_V2) || defined(RTAX3000N) || (defined(BR63) && !defined(NEW_SWITCH_ORDER))
+#if defined(RTAX55) || defined(RTAX58U_V2) || defined(RTAX3000N) || defined(BR63) && !defined(NEW_SWITCH_ORDER)
 				__setup_vlan(0, 0, 0x000C000C); //no-tag fwd mask except LAN3 and LAN4
 #else
 				__setup_vlan(0, 0, 0x00030003); //no-tag fwd mask except LAN3 and LAN4
@@ -11225,8 +11276,8 @@ int reset_exclbase(int ifnum)
 
 int reset_exclvalid()
 {
-	int i, ifnum=0;
-	char exchans[32], exchans_valid[32];
+	int i, ifnum=0, acs_valid=0;
+	char exchans[32], exchans_valid[32], wl_tmp[32];
 	char word[256], *next;
 
 	if(nvram_get_int("re_mode") == 1)
@@ -11236,6 +11287,11 @@ int reset_exclvalid()
 		ifnum++;
 
 	for(i=0; i<ifnum; ++i) {
+		sprintf(wl_tmp, "wl%d_chanspec", i);
+		acs_valid = nvram_match(wl_tmp, "0")?1:0;
+		if(!acs_valid)
+			continue;
+
 		sprintf(exchans, "wl%d_acs_excl_chans", i);
 		sprintf(exchans_valid, "wl%d_acs_excl_chans_valid", i);
 		nvram_set(exchans_valid, nvram_safe_get(exchans));

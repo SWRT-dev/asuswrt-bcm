@@ -384,6 +384,7 @@ process_post_login(struct vsf_session* p_sess)
 				break;
 			}
 		}
+//ftp_dbg("1. cmd=%s, arg=%s, path=%s.\n", str_getbuf(&p_sess->ftp_cmd_str), str_getbuf(&p_sess->ftp_arg_str), str_getbuf(&p_sess->full_path));
 
 	if(!chk_path)
 		goto VSFTPD_CMD;
@@ -433,6 +434,7 @@ process_post_login(struct vsf_session* p_sess)
 				str_alloc_text(&p_sess->full_path, fullpath);
 			}
 		}
+//ftp_dbg("2. cmd=%s, arg=%s, path=%s.\n", str_getbuf(&p_sess->ftp_cmd_str), str_getbuf(&p_sess->ftp_arg_str), str_getbuf(&p_sess->full_path));
 
 		// remove the char '/' in the end of p_sess->ftp_arg_str.
 		arg_buf = (char *)str_getbuf(&p_sess->ftp_arg_str);
@@ -441,6 +443,7 @@ process_post_login(struct vsf_session* p_sess)
 			memset(fullpath, 0, PATH_MAX);
 			strncpy(fullpath, arg_buf, len-1);
 			str_alloc_text(&p_sess->ftp_arg_str, fullpath);
+//ftp_dbg("3. cmd=%s, arg=%s, path=%s.\n", str_getbuf(&p_sess->ftp_cmd_str), str_getbuf(&p_sess->ftp_arg_str), str_getbuf(&p_sess->full_path));
 		}
 
 		// remove the char '/' in the end of p_sess->full_path.
@@ -448,6 +451,7 @@ process_post_login(struct vsf_session* p_sess)
 		len = str_getlen(&p_sess->full_path);
 		if(arg_buf != NULL && len > 1 && arg_buf[len-1] == '/'){
 			str_trunc(&p_sess->full_path, len-1);
+//ftp_dbg("4. cmd=%s, arg=%s, path=%s.\n", str_getbuf(&p_sess->ftp_cmd_str), str_getbuf(&p_sess->ftp_arg_str), str_getbuf(&p_sess->full_path));
 		}
 	}
 // 2008.05 James. }
@@ -457,12 +461,14 @@ process_post_login(struct vsf_session* p_sess)
 	if(str_equal_text(&p_sess->ftp_cmd_str, "CDUP") || str_equal_text(&p_sess->ftp_cmd_str, "XCUP"))
 		--layer;
 
-	if(layer < BASE_LAYER
-#if defined(RTCONFIG_HND_ROUTER_AX)
-			|| (layer >= MOUNT_LAYER && !strcmp(mount_path, "/tmp/mnt/defaults"))
-#endif
-			){
+//ftp_dbg("layer=%d.\n", layer);
+	if(layer < BASE_LAYER){
 		cmd_ok = 0;
+
+		if(mount_path != NULL)
+			free(mount_path);
+		if(share_name != NULL)
+			free(share_name);
 
 		goto VSFTPD_CMD;
 	}

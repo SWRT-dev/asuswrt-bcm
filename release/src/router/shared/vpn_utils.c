@@ -123,7 +123,7 @@ int vpnc_load_profile(VPNC_PROFILE *list, const int list_size, const int prof_ve
 			{
 				list[cnt].protocol = VPNC_PROTO_L2TP;
 			}
-			else if (!strcmp(proto, PROTO_OVPN))
+			else if (!strcmp(proto, PROTO_OVPN) || !strcmp(proto, PROTO_CYBERGHOST))
 			{
 				list[cnt].protocol = VPNC_PROTO_OVPN;
 				list[cnt].config.ovpn.ovpn_idx = atoi(server);
@@ -399,4 +399,3 @@ int is_wgc_connected(int unit)
 		return 0;
 }
 #endif
-

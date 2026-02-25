@@ -2,7 +2,7 @@
  *
  * Copyright (C) 2003-2004  Narcis Ilisei <inarcis2002@hotpop.com>
  * Copyright (C) 2006       Steve Horbachuk
- * Copyright (C) 2010-2020  Joachim Nilsson <troglobit@gmail.com>
+ * Copyright (C) 2010-2021  Joachim Wiberg <troglobit@gmail.com>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -180,7 +180,7 @@ static int is_address_valid(int family, const char *host)
 	 * block cloudflare ips so that https://1.1.1.1/cdn-cgi/trace would work
 	 * even if 1.1.1.1 is the first ip in the response body
 	 */
-	const char *except[] = {
+	static const char *except[] = {
 		"1.1.1.1",
 		"1.0.0.1",
 		"2606:4700:4700::1111",
@@ -196,8 +196,9 @@ static int is_address_valid(int family, const char *host)
 		"2606:4700:4700::64",
 		"2606:4700:4700::6400"
 	};
+	size_t i;
 
-	for (size_t i = 0; i < NELEMS(except); i++) {
+	for (i = 0; i < NELEMS(except); i++) {
 		if (!strncmp(host, except[i], strlen(host))) {
 			return 0;
 		}
@@ -254,7 +255,7 @@ error:
 static int parse_ipv4_address(char *buffer, char *address, size_t len)
 {
 	int found = 0;
-	char *accept = "0123456789.";
+	static const char *accept = "0123456789.";
 	char *needle, *haystack, *end;
 	struct in_addr  addr;
 
@@ -294,7 +295,7 @@ static int parse_ipv4_address(char *buffer, char *address, size_t len)
 static int parse_ipv6_address(char *buffer, char *address, size_t len)
 {
 	int found = 0;
-	char *accept = "0123456789abcdefABCDEF:";
+	static const char *accept = "0123456789abcdefABCDEF:";
 	char *needle, *haystack, *end;
 	struct in6_addr addr;
 
@@ -476,7 +477,12 @@ static int get_address_backend(ddns_t *ctx, ddns_info_t *info, char *address, si
 	if (!get_address_cmd   (ctx, info, address, len))
 		return 0;
 
-	if (!get_address_iface (ctx, iface,address, len))
+	/* Check info specific interface */
+	if (!get_address_iface (ctx, info->ifname, address, len))
+		return 0;
+
+	/* Check the global interface */
+	if (!get_address_iface (ctx, iface, address, len))
 		return 0;
 
 	if (!get_address_remote(ctx, info, address, len))
@@ -689,7 +695,6 @@ static int send_update(ddns_t *ctx, ddns_info_t *info, ddns_alias_t *alias, int 
 	rc = http_init(client, "Sending IP# update to DDNS server");
 	if (rc) {
 		/* Update failed, force update again in ctx->cmd_check_period seconds */
-		logit(LOG_NOTICE, "[%s, %d]http_init fail. rc=%d\n", __FUNCTION__, __LINE__, rc);
 		ctx->force_addr_update = 1;
 		return rc;
 	}
@@ -710,14 +715,13 @@ static int send_update(ddns_t *ctx, ddns_info_t *info, ddns_alias_t *alias, int 
 		goto exit;
 	}
 
+	ctx->request_buf[trans.req_len] = 0;
+	logit(LOG_DEBUG, "Sending alias table update to DDNS server: %s", ctx->request_buf);
+
 #ifdef ENABLE_SIMULATION
 	logit(LOG_WARNING, "In simulation, skipping update to server ...");
 	goto exit;
 #endif
-
-	ctx->request_buf[trans.req_len] = 0;
-	logit(LOG_DEBUG, "Sending alias table update to DDNS server: %s", ctx->request_buf);
-
 	rc = http_transaction(client, &trans);
 	if (rc) {
 		/* Update failed, force update again in ctx->cmd_check_period seconds */
@@ -808,7 +812,6 @@ static int update_alias_table(ddns_t *ctx)
 				/* Only reset if send_update() succeeds. */
 				alias->update_required = 0;
 				alias->last_update = time(NULL);
-
 				/* Update cache file for this entry */
 				write_cache_file(alias);
 			}
@@ -822,7 +825,6 @@ static int update_alias_table(ddns_t *ctx)
 				alias->name, event, rc);
 		}
 
-		//logit(LOG_NOTICE, "[%s, %d]<%d, %d>\n", __FUNCTION__, __LINE__, remember, rc);
 		if (RC_DDNS_RSP_NOTOK == rc || RC_DDNS_RSP_AUTH_FAIL == rc
 #ifdef ASUSWRT
 			/* Time-out case */
@@ -939,7 +941,7 @@ static int get_encoded_user_passwd(void)
 			break;
 		}
 
-		logit(LOG_DEBUG, "Base64 encoded string: %s", encode);
+//		logit(LOG_DEBUG, "Base64 encoded string: %s", encode);
 		info->creds.encoded_password = encode;
 		info->creds.encoded = 1;
 		info->creds.size = strlen(info->creds.encoded_password);
@@ -1076,9 +1078,7 @@ int ddns_main_loop(ddns_t *ctx)
 	static int first_startup = 1;
 
 	if (!ctx)
-	{
 		return RC_INVALID_POINTER;
-	}
 
 	/* On first startup only, optionally wait for network and any NTP daemon
 	 * to set system time correctly.  Intended for devices without battery
@@ -1130,7 +1130,6 @@ int ddns_main_loop(ddns_t *ctx)
 			    ++ctx->num_iterations >= ctx->total_iterations)
 				break;
 		}
-
 		if (ctx->cmd == CMD_RESTART) {
 			logit(LOG_INFO, "RESTART command received. Restarting.");
 			ctx->cmd = NO_CMD;
@@ -1140,9 +1139,7 @@ int ddns_main_loop(ddns_t *ctx)
 
 		/* On error, check why, possibly need to retry sooner ... */
 		if (check_error(ctx, rc))
-		{
 			break;
-		}
 
 		/* Now sleep a while. Using the time set in update_period data member */
 		wait_for_cmd(ctx);

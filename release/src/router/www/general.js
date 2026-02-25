@@ -337,21 +337,22 @@ function change_common_radio(o, s, v, r){
 				}
 				showhide("wildcard_field",0);
 			}else{
-				if(is_CN && ddns_server_x == ""){
-					$("#ddns_server_x").val("WWW.ASUS.COM.CN");
-				}
-				else if(document.form.ddns_server_x.value == "WWW.ORAY.COM"){
+				if(document.form.ddns_server_x.value == "WWW.ORAY.COM"){
 					if(ddns_updated == "1")
 						document.getElementById("ddns_hostname_info_tr").style.display = "";
 				}
 				else
 					document.form.ddns_hostname_x.parentNode.parentNode.parentNode.style.display = "";
-				inputCtrl(document.form.ddns_username_x, 1);
-				inputCtrl(document.form.ddns_passwd_x, 1);
-				showhide("wildcard_field",1);
+
+				if(document.form.ddns_server_x.value !== ""){
+					inputCtrl(document.form.ddns_username_x, 1);
+					inputCtrl(document.form.ddns_passwd_x, 1);
+					showhide("wildcard_field",1);
+				}
 			}
 
 			change_ddns_setting(document.form.ddns_server_x.value);
+			inputCtrl(document.form.ddns_refresh_x, 1);
 			show_ipv6update_setting();
 		}else{
 			if(document.form.ddns_server_x.value == "WWW.ASUS.COM"){
@@ -360,7 +361,7 @@ function change_common_radio(o, s, v, r){
 			else{
 				if(document.form.ddns_server_x.value == "WWW.ORAY.COM")
 					document.getElementById("ddns_hostname_info_tr").style.display = "none";
-				document.form.ddns_hostname_x.parentNode.parentNode.parentNode.style.display = "none";
+				document.form.ddns_hostname_x.parentNode.parentNode.parentNode.parentNode.style.display = "none";
 				inputCtrl(document.form.ddns_username_x, 0);
 				inputCtrl(document.form.ddns_passwd_x, 0);
 			}
@@ -371,8 +372,9 @@ function change_common_radio(o, s, v, r){
 			document.form.ddns_regular_check.value = 0;
 			showhide("check_ddns_field", 0);
 			inputCtrl(document.form.ddns_regular_period, 0);
+			inputCtrl(document.form.ddns_refresh_x, 0);
 			showhide("ddns_ipv6update_tr", 0);
-
+			document.getElementById("ddns_hostname_tr").style.display = "none";
 			document.getElementById("ddns_status_tr").style.display = "none";
 			document.getElementById("ddns_result_tr").style.display = "none";
 		}
@@ -465,25 +467,25 @@ function openLink(s){
 		if (document.form.ddns_server_x.value.indexOf("WWW.DYNDNS.ORG")!=-1)
 			tourl = "https://account.dyn.com/";
 		else if (document.form.ddns_server_x.value == 'WWW.ZONEEDIT.COM')
-			tourl = "http://www.zoneedit.com/";
+			tourl = "https://www.zoneedit.com/";
 		else if (document.form.ddns_server_x.value == 'WWW.SELFHOST.DE')
-			tourl = "http://WWW.SELFHOST.DE";
+			tourl = "https://WWW.SELFHOST.DE";
 		else if (document.form.ddns_server_x.value == 'WWW.DNSOMATIC.COM')
-			tourl = "http://dnsomatic.com/create/";
+			tourl = "https://dnsomatic.com/create/";
 		else if (document.form.ddns_server_x.value == 'DNS.HE.NET')
 			tourl = "https://ipv6.he.net/certification/register.php";
 		else if (document.form.ddns_server_x.value == 'WWW.TUNNELBROKER.NET')
-			tourl = "http://www.tunnelbroker.net/register.php";
+			tourl = "https://www.tunnelbroker.net/register.php";
 		else if (document.form.ddns_server_x.value == 'WWW.ASUS.COM')
 			tourl = "";
 		else if (document.form.ddns_server_x.value == 'WWW.NO-IP.COM')
-			tourl = "http://www.no-ip.com/newUser.php";
+			tourl = "https://www.no-ip.com/newUser.php";
 		else if (document.form.ddns_server_x.value == 'WWW.NAMECHEAP.COM')
 			tourl = "https://www.namecheap.com";
 		else if (document.form.ddns_server_x.value == "FREEDNS.AFRAID.ORG")
 			tourl = "https://freedns.afraid.org/";
 		else if (document.form.ddns_server_x.value == 'WWW.ORAY.COM')
-			tourl = "http://www.oray.com/";
+			tourl = "https://www.oray.com/";
 		else if (document.form.ddns_server_x.value == '3322')
 			tourl = "http://www.pubyun.com/";
 		else if (document.form.ddns_server_x.value == 'oray')
@@ -494,6 +496,10 @@ function openLink(s){
 			tourl = "https://www.cloudflare.com/";
 		else if (document.form.ddns_server_x.value == 'DOMAINS.GOOGLE.COM')
 			tourl = "https://domains.google/";
+		else if (document.form.ddns_server_x.value == 'FREEDNS.AFRAID.ORG')
+			tourl = "https://freedns.afraid.org/signup/";
+		else if (document.form.ddns_server_x.value == 'FREEMYIP.COM')
+			tourl = "https://freemyip.com";
 		else	tourl = "";
 		link = window.open(tourl, "DDNSLink","toolbar=yes,location=yes,directories=no,status=yes,menubar=yes,scrollbars=yes,resizable=yes,copyhistory=no,width=640,height=480");
 	}
@@ -732,7 +738,7 @@ function has_dfs_channel(chint){
 }
 
 function filter_5g_channel_by_bw(ch_ary, bw){
-	var del, ary;;
+	var del, ary;
 	if(bw == 160){
 		var ch=[36,100], cnt=[0,0], d = 28, nr_ch=8;
 	}else if(bw == 80){
@@ -762,7 +768,7 @@ function filter_5g_channel_by_bw(ch_ary, bw){
 }
 
 function filter_6g_channel_by_bw(ch_ary, bw){
-	var del, ary;;
+	var del, ary;
 	if(bw == 160){
 		var ch=[33,65,97,129,161,193], cnt=[0,0,0,0,0,0], d = 28, nr_ch=8;
 	}else if(bw == 80){
@@ -1757,7 +1763,7 @@ function wl_auth_mode_change(isload){
 function showhide(element, sh)
 {
 	var status;
-	if (sh == 1){
+	if ((sh == 1) || (sh == true)){
 		status = "";
 	}
 	else{
@@ -2115,7 +2121,7 @@ function gen_switch_menu(_arrayList, _currentItem) {
 		var gen_not_pressed_content = function(_itemArray, _cssMode) {
 			var not_pressed_code = "";
 			not_pressed_code += "<div style='width:110px;height:30px;float:left;" + _cssMode + "' class='block_filter'>";
-			not_pressed_code += "<a href='" + _itemArray[1] + "'>";
+			not_pressed_code += "<a href='" + _itemArray[1] + "' target='_parent'>";
 			not_pressed_code += "<div class='block_filter_name'>" +  _itemArray[0] + "</div>";
 			not_pressed_code += "</a>";
 			not_pressed_code += "</div>";

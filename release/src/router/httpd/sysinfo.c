@@ -133,7 +133,14 @@ void read_meminfo(meminfo_t *m)
 	f = fopen("/proc/meminfo", "r");
 	if (!f)
 		return;
-
+#if defined(RTCONFIG_BCMARM)
+	fgets(field, sizeof(field) - 1, f);
+	if(strstr(field, "total")){
+		fgets(field, sizeof(field), f);
+		fgets(field, sizeof(field), f);
+	}else
+		fseek(f, 0, SEEK_SET);
+#endif
 	while (fscanf(f, " %63[^:]: %d kB", field, &size) == 2) {
 		for (i = 0; i < MI_MAX; i++) {
 			if (strcmp(field, meminfo_name[i]) == 0) {
@@ -229,7 +236,11 @@ int ej_show_sysinfo(int eid, webs_t wp, int argc, char_t ** argv)
 					    && !strcmp(variant, "0xa")
 					    && !strcmp(part, "0x801")
 					    && (!strcmp(arch, "7") || !strcmp(arch, "8")))
+#if defined(RTCONFIG_SOC_IPQ53XX)
+						sprintf(model, "IPQ53xx - Cortex A53 ARMv8 revision %s", revision);
+#else
 						sprintf(model, "IPQ60xx - Cortex A53 ARMv8 revision %s", revision);
+#endif
 					else if (!strcmp(variant, "0x2")
 					    && !strcmp(part, "0xd03")
 					    && !strcmp(arch, "7"))
@@ -553,7 +564,7 @@ int ej_show_sysinfo(int eid, webs_t wp, int argc, char_t ** argv)
 					else
 						strlcpy(result, buffer, sizeof result);
 
-					if (tmp = strstr(result, "FWID"))
+					if ((tmp = strstr(result, "FWID")))
 						*tmp = '\0';
 
 					replace_char(result, '\n', ' ');
@@ -570,7 +581,7 @@ int ej_show_sysinfo(int eid, webs_t wp, int argc, char_t ** argv)
 					sscanf(tmp, "wave_release_minor=%s", result);
 				else
 					strcpy(result,"Unknow");
-
+				replace_char(result, '\n', ' ');
 				free(buffer);
 			}
 			unlink("/rom/opt/lantiq/etc/wave_components.ver");
@@ -579,13 +590,16 @@ int ej_show_sysinfo(int eid, webs_t wp, int argc, char_t ** argv)
 
 			if (buffer) {
 				strlcpy(result, buffer, sizeof(result));
+				replace_char(result, '\n', ' ');
 				free(buffer);
 			}
 #elif defined(RTCONFIG_RALINK)
 			char buffer[16] = {0};
 			if(get_mtk_wifi_driver_version(buffer, sizeof(buffer))>0){
-				if(*buffer)
-					strcpy(result,buffer);
+				if(*buffer){
+					strlcpy(result, buffer, sizeof(result));
+					replace_char(result, '\n', ' ');
+				}
 			} else
 				strcpy(result,"Unknow");
 #endif

@@ -101,6 +101,19 @@ int pidof(const char *name)
 	return p;
 }
 
+int ppid(int pid) {
+	char buf[512];
+	char path[64];
+	int ppid = 0;
+
+	buf[0] = 0;
+	sprintf(path, "/proc/%d/stat", pid);
+	if ((f_read_string(path, buf, sizeof(buf)) > 4))
+		sscanf(buf, "%*d %*s %*c %d", &ppid);
+
+	return ppid;
+}
+
 int killall(const char *name, int sig)
 {
 	pid_t *pids;
@@ -116,6 +129,26 @@ int killall(const char *name, int sig)
 		return r;
 	}
 	return -2;
+}
+
+void killall_tk_period_wait(const char *name, int wait)
+{
+	int n;
+
+	if (killall(name, SIGTERM) == 0) {
+		n = wait;
+		while ((killall(name, 0) == 0) && (n-- > 0)) {
+//			_dprintf("%s: waiting name=%s n=%d\n", __FUNCTION__, name, n);
+			sleep(1);
+		}
+		if (n < 0) {
+			n = wait;
+			while ((killall(name, SIGKILL) == 0) && (n-- > 0)) {
+//				_dprintf("%s: SIGKILL name=%s n=%d\n", __FUNCTION__, name, n);
+				sleep(1);
+			}
+		}
+	}
 }
 
 int process_exists(pid_t pid)

@@ -175,6 +175,7 @@ MASQUERADE_print(const void *ip, const struct xt_entry_target *target,
 		if (r->max.tcp.port != r->min.tcp.port)
 			printf("-%hu", ntohs(r->max.tcp.port));
 	}
+
 	if (r->flags & IP_NAT_RANGE_PROTO_PSID) {
 		printf(" psid: offset %d, length %d, 0x%x",
 			    r->min.psid.offset,
@@ -201,6 +202,7 @@ MASQUERADE_save(const void *ip, const struct xt_entry_target *target)
 		if (r->max.tcp.port != r->min.tcp.port)
 			printf("-%hu", ntohs(r->max.tcp.port));
 	}
+
 	if (r->flags & IP_NAT_RANGE_PROTO_PSID) {
 		printf(" --psid %d,%d,0x%x",
 			    r->min.psid.offset,

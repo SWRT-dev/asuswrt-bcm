@@ -1,10 +1,6 @@
 include ../common.mak
 
-ifeq ($(RTCONFIG_BCMARM),y)
-GOBI_LIB_VER=00.00.06
-else
 GOBI_LIB_VER=00.00.05
-endif
 
 NET_USB_GOBI = $(INSTALLDIR)/lib/modules/$(LINUX_KERNEL)/kernel/drivers/net/usb/
 ifeq ($(RTCONFIG_BCMARM),y)
@@ -71,15 +67,12 @@ else
 	@install -D $(LIBRT) $(INSTALLDIR)/lib/librt.so.0
 endif
 	@install -D $(LIBSTDC) $(INSTALLDIR)/usr/lib/libstdc++.so.6
-ifneq ($(wildcard src),)
-	@cp -f $(GOBI_UTIL_DIR)/$(GOBI_LIB_DIR)/$(LIB_GOBI_CONN_MGMT) src/lib/
-endif
 	@install -D $(GOBI_UTIL_DIR)/$(GOBI_LIB_DIR)/$(LIB_GOBI_CONN_MGMT) $(INSTALLDIR)/lib/$(LIB_GOBI_CONN_MGMT)
 	@cd $(INSTALLDIR)/lib/ && ln -s $(LIB_GOBI_CONN_MGMT) libGobiConnectionMgmt.so
-	@install -D $(GOBI_UTIL) $(INSTALLDIR)/usr/sbin/gobi_api
-	@-$(STRIP) $(INSTALLDIR)/usr/sbin/gobi_api
 	@install -D $(GOBI_UTIL_DIR)/sample $(INSTALLDIR)/usr/sbin/sample
-	@-$(STRIP) $(INSTALLDIR)/usr/sbin/sample
+	@$(STRIP) $(INSTALLDIR)/usr/sbin/sample
+	install -D $(GOBI_UTIL) $(INSTALLDIR)/usr/sbin/gobi_api
+	$(STRIP) $(INSTALLDIR)/usr/sbin/gobi_api
 	#@install $(GOBI_UTIL_DIR)/open_tty $(INSTALLDIR)/usr/sbin/open_tty
 	#@$(STRIP) $(INSTALLDIR)/usr/sbin/open_tty
 

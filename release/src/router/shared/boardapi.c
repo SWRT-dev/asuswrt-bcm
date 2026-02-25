@@ -9,7 +9,6 @@
 #include <linux/mii.h>
 #include <bcmnvram.h>
 
-#include "utils.h"
 #include "shutils.h"
 
 #include "shared.h"
@@ -1463,6 +1462,11 @@ int lanport_ctrl(int ctrl)
 		mask |= (0x0001<<atoi(word));
 #endif
 	}
+
+#ifdef BCM4912
+	if (rp_mode() || mb_mode() || re_mode())
+		system("ethctl eth0 phy-reset");
+#endif
 
 #if defined(EBG19)
 	if (ctrl)

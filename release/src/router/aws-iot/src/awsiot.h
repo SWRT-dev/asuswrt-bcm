@@ -23,6 +23,7 @@
 
 #define SHADOW_NAME_REMOTE_CONNECTION            "/shadow/name/RemoteConnection/update/delta"
 
+#define IS_EULA_OR_PPV2_SIGNED() ((nvram_get_int("ASUS_EULA") == 1) || (get_ASUS_privacy_policy_state(ASUS_PP_ACCOUNT_BINDING) == 1))
 char rootCA[CERT_PATH_LEN + 1];
 char clientCRT[CERT_PATH_LEN + 1];
 char clientPrivateKey[CERT_PATH_LEN + 1];
@@ -63,4 +64,4 @@ void asus_httpd(const char * shadowRxBuf, const char * subscribe_topic, const lo
 
 void tencentgame_data_process(const char *shadowRxBuf, const char *subscribe_topic);
 
-
+int check_mqtt_port();

@@ -1,4 +1,4 @@
-/* dnsmasq is Copyright (c) 2000-2022 Simon Kelley
+/* dnsmasq is Copyright (c) 2000-2024 Simon Kelley
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -193,7 +193,8 @@ void icmp6_packet(time_t now)
     return;
   
   for (tmp = daemon->dhcp_except; tmp; tmp = tmp->next)
-    if (tmp->name && wildcard_match(tmp->name, interface))
+    if (tmp->name && (tmp->flags & INAME_6) &&
+	wildcard_match(tmp->name, interface))
       return;
  
   if (packet[1] != 0)
@@ -504,7 +505,7 @@ RESEND:
 	      put_opt6_char((len/8) + 1);
 	      put_opt6_short(0);
 #if defined(RTAX82_XD6) || defined(XD6_V2) || defined(ET12)
-	      put_opt6_long((option_bool(OPT_RDNSS_WAR) && bootup && !nvram_match("ipv6_dns", "") && nvram_match("ipv6_dns1_x", "")) ? 0 : min_pref_time);
+ 	      put_opt6_long((option_bool(OPT_RDNSS_WAR) && bootup && !nvram_match("ipv6_dns", "") && nvram_match("ipv6_dns1_x", "")) ? 0 : min_pref_time);
 #else
 	      put_opt6_long(min_pref_time);
 #endif
@@ -514,39 +515,39 @@ RESEND:
 		  {
 #if defined(RTAX82_XD6) || defined(XD6_V2) || defined(ET12)
 		    if (parm.glob_pref_time != 0)
-		    {
-		      if (option_bool(OPT_RDNSS_WAR) && bootup && (inet_pton(AF_INET6, nvram_safe_get("ipv6_dns"), &addr) > 0))
 		      {
-		        bootup--;
-			if (!bootup)
-			{
-			  nvram_set("ipv6_dns", "");
-			  resend = 1;
-			}
-			put_opt6(&addr, IN6ADDRSZ);
-		      }
-		      else
-		      {
-		        if (option_bool(OPT_RDNSS_WAR))
-			{
-			  bootup = 0;
-			  memset(&addr, 0, sizeof(addr));
-			  inet_pton(AF_INET6, nvram_safe_get("ipv6_dns"), &addr);
-			  if (memcmp(&parm.link_global, &addr, sizeof(addr)))
-			  {
-			    addr6[0] = '\0';
-			    inet_ntop(AF_INET6, &parm.link_global, addr6, sizeof(addr6));
-		            nvram_set("ipv6_dns", addr6);
-		            nvram_commit();
-			  }
-			}
-			put_opt6(&parm.link_global, IN6ADDRSZ);
-		      }
-		    }
+		        if (option_bool(OPT_RDNSS_WAR) && bootup && (inet_pton(AF_INET6, nvram_safe_get("ipv6_dns"), &addr) > 0))
+		          {
+		            bootup--;
+  			        if (!bootup)
+			          {
+			            nvram_set("ipv6_dns", "");
+			            resend = 1;
+			          }
+			        put_opt6(&addr, IN6ADDRSZ);
+		          }
+		        else
+		          {
+		            if (option_bool(OPT_RDNSS_WAR))
+			          {
+			            bootup = 0;
+			            memset(&addr, 0, sizeof(addr));
+			            inet_pton(AF_INET6, nvram_safe_get("ipv6_dns"), &addr);
+			            if (memcmp(&parm.link_global, &addr, sizeof(addr)))
+			              {
+			                addr6[0] = '\0';
+			                inet_ntop(AF_INET6, &parm.link_global, addr6, sizeof(addr6));
+		                    nvram_set("ipv6_dns", addr6);
+		                    nvram_commit();
+			              }
+			           }
+			        put_opt6(&parm.link_global, IN6ADDRSZ);
+		          }
+		        }
 #else
 		    put_opt6(&parm.link_global, IN6ADDRSZ);
 #endif
-		  }
+		}
 		else if (IN6_IS_ADDR_ULA_ZERO(a))
 		  {
 		    if (parm.ula_pref_time != 0)
@@ -560,12 +561,12 @@ RESEND:
 		else if (IN6_IS_ADDR_LINK_LOCAL_ZERO(a))
 		  {
 		    if (parm.link_pref_time != 0)
-		    {
+			{
 #if defined(RTAX82_XD6) || defined(XD6_V2) || defined(ET12)
-		      if (option_bool(OPT_RDNSS_WAR)) bootup = 0;
+				if (option_bool(OPT_RDNSS_WAR)) bootup = 0;
 #endif
 		      put_opt6(&parm.link_local, IN6ADDRSZ);
-		    }
+			}
 		  }
 		else
 		  {
@@ -642,7 +643,7 @@ RESEND:
   while (retry_send(sendto(daemon->icmp6fd, daemon->outpacket.iov_base, 
 			   save_counter(-1), 0, (struct sockaddr *)&addr, 
 			   sizeof(addr))));
-  
+
 #if defined(RTAX82_XD6) || defined(XD6_V2) || defined(ET12)
   if (option_bool(OPT_RDNSS_WAR) && resend)
   {
@@ -832,7 +833,7 @@ static int add_prefixes(struct in6_addr *local,  int prefix,
 		  opt->valid_lifetime = htonl(valid);
 		  opt->preferred_lifetime = htonl(preferred);
 #endif
-		  opt->reserved = 0; 
+		  opt->reserved = 0;
 		  opt->prefix = *local;
 		  
 		  inet_ntop(AF_INET6, local, daemon->addrbuff, ADDRSTRLEN);
@@ -918,7 +919,8 @@ time_t periodic_ra(time_t now)
 	{
 	  struct iname *tmp;
 	  for (tmp = daemon->dhcp_except; tmp; tmp = tmp->next)
-	    if (tmp->name && wildcard_match(tmp->name, param.name))
+	    if (tmp->name && (tmp->flags & INAME_6) &&
+		wildcard_match(tmp->name, param.name))
 	      break;
 	  if (!tmp)
             {
@@ -1017,7 +1019,8 @@ static int iface_search(struct in6_addr *local,  int prefix,
     return 1;
 
   for (tmp = daemon->dhcp_except; tmp; tmp = tmp->next)
-    if (tmp->name && wildcard_match(tmp->name, param->name))
+    if (tmp->name && (tmp->flags & INAME_6) &&
+	wildcard_match(tmp->name, param->name))
       return 1;
 
   for (context = daemon->dhcp6; context; context = context->next)

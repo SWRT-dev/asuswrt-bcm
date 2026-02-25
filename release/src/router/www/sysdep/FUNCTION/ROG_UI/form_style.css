@@ -898,9 +898,9 @@ form{
 }
 /* CSS Document */
 @font-face{
-	font-family: rog;
-	src: url(/fonts/ROG_Fonts-Regular.woff) format("woff"),
-	     url(./fonts/ROG_Fonts-Regular.otf) format("opentype");
+	font-family: Xolonium;
+	src: url(/fonts/xolonium.regular.woff) format("woff"),
+             url(/fonts/xolonium.regular.otf) format("opentype");
 }
 body{
 color:#FFFFFF;
@@ -1013,7 +1013,7 @@ color:#FFFFFF;
 	display: block;
 	padding: 5px 5px 0 12px;
 	line-height: 20px;
-	font-family: Microsoft Yahei UI, Arial, Helvetica, MS UI Gothic, MS P Gothic, sans-serif;
+	font-family: Arial, Helvetica, MS UI Gothic, MS P Gothic, Microsoft Yahei UI, sans-serif;
 	font-size: 13px;
 	border-radius: 5px 5px 0 0;
 }
@@ -1026,7 +1026,7 @@ color:#FFFFFF;
 
 .tabclick_NW {
 	font-weight: bolder;
-	font-family: Microsoft Yahei UI, Verdana, MS UI Gothic, MS P Gothic, sans-serif;
+	font-family: Verdana, MS UI Gothic, MS P Gothic, Microsoft Yahei UI, sans-serif;
 	color: White;
 	display: block;
 	float: left;
@@ -1044,7 +1044,7 @@ color:#FFFFFF;
 	font-weight: bolder;
 	white-space:nowrap;
 	font-weight: bolder;
-	font-family: Microsoft Yahei UI, Arial, Helvetica, MS UI Gothic, MS P Gothic, sans-serif;
+	font-family: Arial, Helvetica, MS UI Gothic, MS P Gothic, Microsoft Yahei UI, sans-serif;
 	display: block;
 	padding: 5px 5px 0 12px;
 	line-height: 20px;
@@ -1375,13 +1375,10 @@ padding-top:1px;
 	cursor: pointer;
 }
 .notificationon{
-	position: absolute;
-	display:inline;
+	display:inline-block;
 	background-image:url(images/New_ui/notification.png);
 	background-repeat:no-repeat;
 	background-position:2px 2px;
-	margin-top:-5px;
-	margin-top:3px \9;	/*IE*/
 	height:30px;
 	width:30px;
 	cursor: pointer;
@@ -2094,6 +2091,20 @@ padding-top:1px;
 }
 .pop_div_bg{
 	background-color: rgb(62,3,13);
+}
+.pop_div_container{
+	position: absolute;
+	left: 0;
+	right: 0;
+	margin: auto;
+	-webkit-border-radius: 5px;
+	-moz-border-radius: 5px;
+	border-radius: 5px;
+	z-index: 200;
+	width: 70%;
+	max-width: 740px;
+	box-shadow: 3px 3px 10px #000;
+	display: none;
 }
 .analysis_bg, .web_frame{
 	background: rgba(17, 17, 17, .5);

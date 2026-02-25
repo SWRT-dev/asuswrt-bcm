@@ -334,9 +334,6 @@ void enable_wan_led()
 	led_control(LED_WAN_NORMAL, LED_ON);
 #endif
 #else
-#if defined(R8500) || defined(R7000P) || defined(XWR3100) || defined(EA6700) || defined(DIR868L) || defined(R6300V2)
-	led_control(LED_WAN, LED_ON);
-#endif
 	eval("et", "-i", "eth0", "robowr", "0", "0x18", "0x01ff");
 	eval("et", "-i", "eth0", "robowr", "0", "0x1a", "0x01ff");
 #endif
@@ -349,9 +346,6 @@ void disable_wan_led()
 #elif defined(HND_ROUTER)
 	led_control(LED_WAN_NORMAL, LED_OFF);
 #else
-#if defined(R8500) || defined(R7000P) || defined(XWR3100) || defined(EA6700) || defined(DIR868L) || defined(R6300V2)
-	led_control(LED_WAN, LED_OFF);
-#endif
 	eval("et", "-i", "eth0", "robowr", "0", "0x18", "0x01fe");
 	eval("et", "-i", "eth0", "robowr", "0", "0x1a", "0x01fe");
 #endif
@@ -376,7 +370,7 @@ static void wan_led_control(int sig) {
 	}
 #elif defined(RTAC68U) ||  defined(RTAC87U) || defined(RTAC3200) || defined(RTCONFIG_BCM_7114) || defined(DSL_AC68U) || defined(HND_ROUTER)
 	if(nvram_match("AllLED", "1")
-#if defined(RTAC68U) && !defined(DIR868L) && !defined(F9K1118) && !defined(EA6700) && !defined(R6300V2)
+#ifdef RTAC68U
 		&& (is_ac66u_v2_series() || is_ac68u_v3_series())
 #endif
 	) {
@@ -2028,8 +2022,14 @@ _dprintf("# wanduck(%d): if_wan_phyconnected: x_Setting=%d, link_modem=%d, sim_s
 			link_wan_nvname(wan_unit, wired_link_nvram, sizeof(wired_link_nvram));
 
 		if((ptr = nvram_get(wired_link_nvram)) == NULL || strlen(ptr) <= 0 || link_wan[wan_unit] != atoi(ptr)){
+			if(link_wan[wan_unit] == 1 && get_wan_state(wan_unit) == 2 && get_wan_auxstate(wan_unit) != 1){
+				link_changed[wan_unit] = 0;
+				link_setup[wan_unit] = 0;
+			}
+			else
+				link_changed[wan_unit] = 1;
+
 			if(link_wan[wan_unit]){
-//_dprintf("# wanduck(%d): set %s=%d.\n", wan_unit, wired_link_nvram, CONNED);
 				nvram_set_int(wired_link_nvram, CONNED);
 
 				record_wan_state_nvram(wan_unit, -1, -1, WAN_AUXSTATE_NONE);
@@ -2038,18 +2038,10 @@ _dprintf("# wanduck(%d): if_wan_phyconnected: x_Setting=%d, link_modem=%d, sim_s
 					add_multi_routes(0, -1);
 			}
 			else{
-//_dprintf("# wanduck(%d): set %s=%d.\n", wan_unit, wired_link_nvram, DISCONN);
 				nvram_set_int(wired_link_nvram, DISCONN);
 
 				record_wan_state_nvram(wan_unit, WAN_STATE_DISCONNECTED, -1, WAN_AUXSTATE_NOPHY);
 			}
-
-			if(link_wan[wan_unit] == 1 && get_wan_state(wan_unit) == 2){
-				link_changed[wan_unit] = 0;
-				link_setup[wan_unit] = 0;
-			}
-			else
-				link_changed[wan_unit] = 1;
 		}
 		else
 			link_changed[wan_unit] = 0;
@@ -2069,7 +2061,7 @@ _dprintf("# wanduck(%d): if_wan_phyconnected: x_Setting=%d, link_modem=%d, sim_s
 		}
 	}
 
-#if defined(RTCONFIG_LANWAN_LED) || defined(RTCONFIG_LAN4WAN_LED) || defined(XWR3100)
+#if defined(RTCONFIG_LANWAN_LED) || defined(RTCONFIG_LAN4WAN_LED)
 	LanWanLedCtrl();
 #endif
 
@@ -3432,6 +3424,12 @@ int wanduck_main(int argc, char *argv[]){
 	else
 #endif
 	if(is_router_mode() && !strcmp(dualwan_mode, "lb")){
+		if(wandog_delay > 0){
+			_dprintf("wanduck: 1st delay %d seconds...\n", wandog_delay);
+			sleep(wandog_delay);
+			_dprintf("wanduck: end of delay.\n");
+		}
+
 		cross_state = DISCONN;
 		for(wan_unit = WAN_UNIT_FIRST; wan_unit < WAN_UNIT_MAX; ++wan_unit){
 			if(get_dualwan_by_unit(wan_unit) == WANS_DUALWAN_IF_NONE)
@@ -3472,6 +3470,7 @@ int wanduck_main(int argc, char *argv[]){
 			_dprintf("wanduck: 1st delay %d seconds...\n", wandog_delay);
 			sleep(wandog_delay);
 			delay_detect = 0;
+			_dprintf("wanduck: end of delay.\n");
 		}
 
 		// To check the phy connection of the standby line.
@@ -3659,7 +3658,7 @@ _dprintf("wanduck(%d)(first detect start): state %d, state_old %d, changed %d, w
 		led_control(LED_WAN, LED_ON);
 #elif defined(RTAC68U) || defined(RTAC87U) || defined(RTAC3200) || defined(RTCONFIG_BCM_7114) || (defined(HND_ROUTER) && !defined(RTCONFIG_HND_ROUTER_AX))
 		if(nvram_match("AllLED", "1")
-#if defined(RTAC68U) && !defined(DIR868L) && !defined(F9K1118) && !defined(EA6700) && !defined(R6300V2)
+#ifdef RTAC68U
 				&& (is_ac66u_v2_series() || is_ac68u_v3_series())
 #endif
 				)
@@ -3894,6 +3893,10 @@ _dprintf("wanduck(%d): decide start_wan_if or stop_wan_if...\n", wan_unit);
 					if(get_disconn_count(wan_unit) >= max_disconn_count[wan_unit]){
 						set_disconn_count(wan_unit, S_IDLE);
 
+						char nv_link_wan[16];
+						link_wan_nvname(wan_unit, nv_link_wan, sizeof(nv_link_wan));
+_dprintf("\n# wanduck(%d): state=(%d %d %d), %s=%d, var link_wan=%d.\n", wan_unit, get_wan_state(wan_unit), get_wan_sbstate(wan_unit), get_wan_auxstate(wan_unit), nv_link_wan, nvram_get_int(nv_link_wan), link_wan[wan_unit]);
+
 #ifdef RTCONFIG_USB_MODEM
 						if(dualwan_unit__usbif(wan_unit)){
 							if((modem_unit = get_modemunit_by_type(get_dualwan_by_unit(wan_unit))) == MODEM_UNIT_NONE){
@@ -3942,6 +3945,7 @@ _dprintf("wanduck(%d)(lb change): state %d, state_old %d, changed %d, cross_stat
 				_dprintf("wanduck: FO: delay %d seconds...\n", wandog_delay_rpt);
 				sleep(wandog_delay_rpt);
 				delay_detect = 0;
+				_dprintf("wanduck: end of delay.\n");
 			}
 
 			// To check the phy connection of the standby line.
@@ -4751,13 +4755,13 @@ _dprintf("nat_rule: start_nat_rules 6.\n");
 		else if(conn_changed_state[current_wan_unit] == C2D || (conn_changed_state[current_wan_unit] == CONNED && isFirstUse)){
 			if(!rule_setup){
 				if(conn_changed_state[current_wan_unit] == C2D){
-#if defined(RTCONFIG_WPS_ALLLED_BTN) || defined(RTCONFIG_DSL)
+#if (defined(RTCONFIG_WPS_ALLLED_BTN) || defined(RTCONFIG_DSL)) && !defined(DSL_AX82U)
 					led_control(LED_WAN, LED_OFF);
 #elif defined(RTCONFIG_HND_ROUTER_AX) || defined(RTCONFIG_LANWAN_LED) || defined(RTCONFIG_WANRED_LED) || defined(RTCONFIG_FAILOVER_LED)
 					update_wan_leds(current_wan_unit, link_wan[current_wan_unit]);
 #elif defined(RTAC68U) || defined(RTAC87U) || defined(RTAC3200) || defined(RTCONFIG_BCM_7114) || defined(HND_ROUTER)
 					if(
-#if defined(RTAC68U) && !defined(DIR868L) && !defined(F9K1118) && !defined(EA6700) && !defined(R6300V2)
+#ifdef RTAC68U
 						(is_ac66u_v2_series() || is_ac68u_v3_series())
 #else
 						1
@@ -4849,7 +4853,7 @@ _dprintf("nat_rule: start_nat_rules 6.\n");
 				update_wan_leds(current_wan_unit, link_wan[current_wan_unit]);
 #elif defined(RTAC68U) || defined(RTAC87U) || defined(RTAC3200) || defined(RTCONFIG_BCM_7114) || defined(HND_ROUTER)
 				if(nvram_match("AllLED", "1")
-#if defined(RTAC68U) && !defined(DIR868L) && !defined(F9K1118) && !defined(EA6700) && !defined(R6300V2)
+#ifdef RTAC68U
 						&& (is_ac66u_v2_series() || is_ac68u_v3_series())
 #endif
 						)
@@ -4997,7 +5001,7 @@ _dprintf("nat_rule: stop_nat_rules 7.\n");
 #if defined(RTAC68U) || defined(RTAC87U) || defined(RTAC3200) || defined(RTCONFIG_BCM_7114) || (defined(HND_ROUTER) && !defined(RTCONFIG_HND_ROUTER_AX))
 		if (strcmp(dualwan_wans, "wan none")) {
 			if(nvram_match("AllLED", "1")
-#if defined(RTAC68U) && !defined(DIR868L) && !defined(F9K1118) && !defined(EA6700) && !defined(R6300V2)
+#ifdef RTAC68U
 				&& (is_ac66u_v2_series() || is_ac68u_v3_series())
 #endif
 			){

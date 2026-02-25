@@ -966,7 +966,6 @@ function restoreRule(){
 }
 
 function register_event(){
-	$(function() {
 		$( "#slider_wl0_bsd_steering_bandutil" ).slider({
 			orientation: "horizontal",
 			range: "min",
@@ -1620,8 +1619,7 @@ function register_event(){
 			stop:function(event, ui){
 				set_bandutil_qualify_power(ui.value,'wl2_bsd_if_qualify_policy');	  
 			}
-		}); 							
-	});
+		});
 }
 
 function check_power(power_value,flag){

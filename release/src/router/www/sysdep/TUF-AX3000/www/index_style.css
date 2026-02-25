@@ -618,12 +618,12 @@ width:122px;
 
 .modelName_top{
 	text-align: left;
-	font-size: 32px;
+	font-size: 28px;
 	float:left;
 	margin: 5px 0 0 -210px;
 	text-shadow: 3px 2px #000;
 	font-weight: bold;
-	font-family: ROG;
+	font-family: Xolonium;
     word-break: break-all;
     width: 420px;
 }
@@ -1140,4 +1140,3 @@ width:122px;
 .radio_hint{
     background-color: #FA9100;
 }
-

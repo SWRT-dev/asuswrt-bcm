@@ -72,6 +72,9 @@ int bn_set_words(BIGNUM *a, const BN_ULONG *words, int num_words);
  */
 int bn_mul_mont_fixed_top(BIGNUM *r, const BIGNUM *a, const BIGNUM *b,
                           BN_MONT_CTX *mont, BN_CTX *ctx);
+int bn_mod_exp_mont_fixed_top(BIGNUM *rr, const BIGNUM *a, const BIGNUM *p,
+                              const BIGNUM *m, BN_CTX *ctx,
+                              BN_MONT_CTX *in_mont);
 int bn_to_mont_fixed_top(BIGNUM *r, const BIGNUM *a, BN_MONT_CTX *mont,
                          BN_CTX *ctx);
 int bn_from_mont_fixed_top(BIGNUM *r, const BIGNUM *a, BN_MONT_CTX *mont,
@@ -86,10 +89,5 @@ int bn_lshift_fixed_top(BIGNUM *r, const BIGNUM *a, int n);
 int bn_rshift_fixed_top(BIGNUM *r, const BIGNUM *a, int n);
 int bn_div_fixed_top(BIGNUM *dv, BIGNUM *rem, const BIGNUM *m,
                      const BIGNUM *d, BN_CTX *ctx);
-int ossl_bn_rsa_do_unblind(const BIGNUM *intermediate,
-                           const BN_BLINDING *blinding,
-                           const BIGNUM *possible_arg2,
-                           const BIGNUM *to_mod, BN_CTX *ctx,
-                           unsigned char *buf, int num);
 
 #endif

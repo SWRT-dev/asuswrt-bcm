@@ -12,12 +12,12 @@
 <link rel="stylesheet" type="text/css" href="index_style.css"> 
 <link rel="stylesheet" type="text/css" href="form_style.css">
 <link rel="stylesheet" type="text/css" href="other.css">
+<script type="text/javascript" src="/js/jquery.js"></script>
 <script type="text/javascript" src="/state.js"></script>
 <script type="text/javascript" src="/general.js"></script>
 <script type="text/javascript" src="/popup.js"></script>
 <script type="text/javascript" src="/help.js"></script>
 <script type="text/javascript" language="JavaScript" src="/validator.js"></script>
-<script type="text/javascript" src="/js/jquery.js"></script>
 <script type="text/javascript" src="/js/httpApi.js"></script>
 <style>
 .perNode_app_table{
@@ -123,7 +123,6 @@ function disable_lacp_if_conflicts_with_iptv(){
 
 function initial(){
 	if((based_modelid == "RT-AX89U" || based_modelid == "GT-AXY16000")){
-		var wans_dualwan_array = '<% nvram_get("wans_dualwan"); %>'.split(" ");
 		document.form.aqr_hwnat_type.disabled = false;
 		document.form.aqr_link_speed.disabled = false;
 		document.form.aqr_ipg.disabled = false;

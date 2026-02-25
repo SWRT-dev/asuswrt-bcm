@@ -252,6 +252,7 @@ ifeq ($(strip ${BRCM_CHIP}),63178)
     DRV_OBJS += mac_drv_sf2.o
     DRV_OBJS += phy_drv_dsl_phy.o
     DRV_OBJS += ephy_led_init.o
+    DRV_OBJS += $(if $(wildcard $(CUR_DIR)/gpy211.c),gpy211.o,prebuilt/gpy211_6750.o)
     DRV_OBJS += $(if $(wildcard $(CUR_DIR)/phy_drv.c),phy_drv.o,prebuilt/phy_drv_6750.o)
     DRV_OBJS += $(if $(wildcard $(CUR_DIR)/phy_drv_brcm.c),phy_drv_brcm.o,prebuilt/phy_drv_brcm_6750.o)
 

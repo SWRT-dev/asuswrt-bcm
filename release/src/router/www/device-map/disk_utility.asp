@@ -35,7 +35,7 @@ a:active {
 	border-bottom: 1px solid #929eA1;
 }
 .font_style{
-	font-family: Verdana, Microsoft Yahei UI, Arial, Helvetica, MS UI Gothic, MS P Gothic, sans-serif;
+	font-family: Verdana, Arial, Helvetica, MS UI Gothic, MS P Gothic, Microsoft Yahei UI, sans-serif;
 }
 </style>
 <script type="text/javascript" src="/require/require.min.js"></script>
@@ -80,11 +80,8 @@ function initial(){
 	var usb_hfs_mod = '<% nvram_get("usb_hfs_mod"); %>';
 
 	disk_list_array = { "info" : ["<#diskUtility_information#>", "disk.asp"], "health" : ["<#diskUtility#>", "disk_utility.asp"], "format" : ["<#CTL_format#>", "disk_format.asp"]};
-	if(!parent.diskUtility_support) {
+	if(!parent.diskUtility_support || usb_fatfs_mod != "tuxera" || usb_ntfs_mod != "tuxera" || usb_hfs_mod != "tuxera") {
 		delete disk_list_array.health;
-		delete disk_list_array.format;
-	}
-	if(usb_fatfs_mod != "tuxera" && usb_ntfs_mod != "tuxera" && usb_hfs_mod != "tuxera") {
 		delete disk_list_array.format;
 	}
 	$('#diskTab').html(parent.gen_tab_menu(disk_list_array, "health"));

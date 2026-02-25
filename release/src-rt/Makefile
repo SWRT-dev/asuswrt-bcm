@@ -703,6 +703,7 @@ endif
 	@echo 'EXTENDNO=$(EXTENDNO)' > router/extendno.conf
 	@echo '#define RT_FWVER "$(SWRT_VER_MINOR)"' >> router/shared/version.h
 	@echo '#define RT_FWEXTENDNO "$(SWRTEXTENDNO)"' >> router/shared/version.h
+	@echo '#define RT_FWSWRTNAME "$(SWRT_NAME)"' >> router/shared/version.h
 	@-$(MAKE) -f model-desc.mak
 
 rt_ver_ntools:
@@ -1658,6 +1659,10 @@ define RouterOptions
 		sed -i "/RTCONFIG_TCPDUMP/d" $(1); \
 		echo "RTCONFIG_TCPDUMP=y" >>$(1); \
 	fi;
+	if [ "$(TCPREPLAY)" = "y" ]; then \
+		sed -i "/RTCONFIG_TCPREPLAY/d" $(1); \
+		echo "RTCONFIG_TCPREPLAY=y" >>$(1); \
+	fi;
 	if [ "$(DUMP4000)" = "y" ]; then \
 		sed -i "/RTCONFIG_DUMP4000/d" $(1); \
 		echo "RTCONFIG_DUMP4000=y" >>$(1); \
@@ -1952,8 +1957,19 @@ define RouterOptions
 	if [ "$(ASD)" = "y" ]; then \
 		sed -i "/RTCONFIG_ASD/d" $(1); \
 		echo "RTCONFIG_ASD=y" >>$(1); \
+		echo "# RTCONFIG_ASD_2_1 is not set" >>$(1); \
 		sed -i "/RTCONFIG_LIBASC/d" $(1); \
 		echo "RTCONFIG_LIBASC=y" >>$(1); \
+	fi;
+	if [ "$(ASD21)" = "y" ]; then \
+		sed -i "/RTCONFIG_ASD_2_1/d" $(1); \
+		echo "RTCONFIG_ASD_2_1=y" >>$(1); \
+	fi;
+	if [ "$(MXL371X)" = "y" ]; then \
+		sed -i "/RTCONFIG_MXL371X/d" $(1); \
+		echo "RTCONFIG_MXL371X=y" >>$(1); \
+                sed -i "/RTCONFIG_MOCA/d" $(1); \
+                echo "RTCONFIG_MOCA=y" >>$(1); \
 	fi;
 	if [ "$(MXL371X)" = "y" ]; then \
 		sed -i "/RTCONFIG_MXL371X/d" $(1); \
@@ -2357,17 +2373,32 @@ define RouterOptions
 	if [ "$(IPV6SUPP)" = "y" -o "$(IPV6FULL)" = "y" ]; then \
 		sed -i "/RTCONFIG_IPV6/d" $(1); \
 		echo "RTCONFIG_IPV6=y" >>$(1); \
-		if [ "$(IPV6S46)" = "y" -o "$(IPV6FULL)" = "y" ]; then \
-			sed -i "/RTCONFIG_SOFTWIRE46/d" $(1); \
-			echo "RTCONFIG_SOFTWIRE46=y" >>$(1); \
-			if [ "$(OCNVC)" = "y" ]; then \
-				sed -i "/RTCONFIG_OCNVC/d" $(1); \
-				echo "RTCONFIG_OCNVC=y" >>$(1); \
-			fi; \
-			if [ "$(DSLITE)" = "y" ]; then \
-				sed -i "/RTCONFIG_DSLITE/d" $(1); \
-				echo "RTCONFIG_DSLITE=y" >>$(1); \
-			fi; \
+		sed -i "/RTCONFIG_SOFTWIRE46/d" $(1); \
+		echo "RTCONFIG_SOFTWIRE46=y" >>$(1); \
+		sed -i "/RTCONFIG_OCNVC/d" $(1); \
+		echo "RTCONFIG_OCNVC=y" >>$(1); \
+		sed -i "/RTCONFIG_DSLITE/d" $(1); \
+		echo "RTCONFIG_DSLITE=y" >>$(1); \
+		if [ "$(OCNVC)" = "n" ]; then \
+			sed -i "/RTCONFIG_OCNVC/d" $(1); \
+			echo "# RTCONFIG_OCNVC is not set" >>$(1); \
+		fi; \
+		if [ "$(DSLITE)" = "n" ]; then \
+			sed -i "/RTCONFIG_DSLITE/d" $(1); \
+			echo "# RTCONFIG_DSLITE is not set" >>$(1); \
+		fi; \
+		if [ "$(V6OPTION)" = "y" ]; then \
+			sed -i "/RTCONFIG_V6OPTION/d" $(1); \
+			echo "RTCONFIG_V6OPTION=y" >>$(1); \
+		elif [ "$(V6OPTION)" = "n" ]; then \
+			sed -i "/RTCONFIG_V6OPTION/d" $(1); \
+			echo "# RTCONFIG_V6OPTION is not set" >>$(1); \
+		fi; \
+		sed -i "/RTCONFIG_IPV6_PRIVACY/d" $(1); \
+		if [ "$(IPV6_PRIVACY)" = "y" ]; then \
+			echo "RTCONFIG_IPV6_PRIVACY=y" >>$(1); \
+		else\
+			echo "# RTCONFIG_IPV6_PRIVACY is not set" >>$(1); \
 		fi; \
 	fi;
 	if [ "$(IPSEC)" = "y" ] || \
@@ -3498,7 +3529,16 @@ define RouterOptions
 		sed -i "/RTCONFIG_VPN_FUSION_SUPPORT_INTERFACE/d" $(1); \
 		echo "RTCONFIG_VPN_FUSION_SUPPORT_INTERFACE=y" >>$(1); \
 	fi;
-	if [ "$(TPVPN)" = "y" ]; then \
+	if [ "$(TPVPN)" = "n" ]; then \
+		sed -i "/RTCONFIG_TPVPN/d" $(1); \
+		echo "# RTCONFIG_TPVPN is not set" >>$(1); \
+		sed -i "/RTCONFIG_HMA/d" $(1); \
+		echo "# RTCONFIG_HMA is not set" >>$(1); \
+		sed -i "/RTCONFIG_NORDVPN/d" $(1); \
+		echo "# RTCONFIG_NORDVPN is not set" >>$(1); \
+		sed -i "/RTCONFIG_SURFSHARK/d" $(1); \
+		echo "# RTCONFIG_SURFSHARK is not set" >>$(1); \
+	elif [ "$(TPVPN)" != "" ]; then \
 		sed -i "/RTCONFIG_TPVPN/d" $(1); \
 		echo "RTCONFIG_TPVPN=y" >>$(1); \
 		if [ "$(findstring hma, $(TPVPN))" = "hma" ]; then \
@@ -3508,6 +3548,10 @@ define RouterOptions
 		if [ "$(findstring nordvpn, $(TPVPN))" = "nordvpn" ]; then \
 			sed -i "/RTCONFIG_NORDVPN/d" $(1); \
 			echo "RTCONFIG_NORDVPN=y" >>$(1); \
+		fi; \
+		if [ "$(findstring surfshark, $(TPVPN))" = "surfshark" ]; then \
+			sed -i "/RTCONFIG_SURFSHARK/d" $(1); \
+			echo "RTCONFIG_SURFSHARK=y" >>$(1); \
 		fi; \
 	fi;
 	if [ "$(MTK_8021X3000)" = "y" ]; then \
@@ -3772,6 +3816,11 @@ define RouterOptions
 			echo "# RTCONFIG_AMAS_CENTRAL_OPTMZ is not set" >>$(1); \
 			echo "# RTCONFIG_AMAS_CENTRAL_ADS is not set" >>$(1); \
 		fi; \
+		if [ "$(AMAS_DIS_HASH_KEY_GEN_CHECK)" = "y" ]; then \
+			echo "RTCONFIG_DIS_HASH_KEY_GEN_CHECK=y" >>$(1); \
+		else \
+			echo "# RTCONFIG_DIS_HASH_KEY_GEN_CHECK is not set" >>$(1); \
+		fi; \
 	fi;
 	sed -i "/RTCONFIG_BATMAN_ADV/d" $(1); \
 	if [ "$(BATMAN)" = "y" ]; then \
@@ -3945,6 +3994,10 @@ define RouterOptions
 	if [ "$(UUPLUGIN)" = "y" ]; then \
 		sed -i "/RTCONFIG_UUPLUGIN/d" $(1); \
 		echo "RTCONFIG_UUPLUGIN=y" >>$(1); \
+	fi;
+	if [ "$(GEARUPPLUGIN)" = "y" ]; then \
+		sed -i "/RTCONFIG_GEARUPPLUGIN/d" $(1); \
+		echo "RTCONFIG_GEARUPPLUGIN=y" >>$(1); \
 	fi;
 	if [ "$(TCPLUGIN)" = "y" ]; then \
 		sed -i "/RTCONFIG_TCPLUGIN/d" $(1); \
@@ -4272,6 +4325,10 @@ define RouterOptions
 	if [ "$(AUTO_WANPORT)" = "y" ]; then \
 		sed -i "/RTCONFIG_AUTO_WANPORT/d" $(1); \
 		echo "RTCONFIG_AUTO_WANPORT=y" >>$(1); \
+	fi;
+	if [ "$(SECURE_BY_DEFAULT)" = "y" ]; then \
+		sed -i "/RTCONFIG_SECURE_BY_DEFAULT\>/d" $(1); \
+		echo "RTCONFIG_SECURE_BY_DEFAULT=y" >>$(1); \
 	fi;
 	if [ "$(SOFTCENTER)" = "y" ]; then \
 		sed -i "/RTCONFIG_SOFTCENTER/d" $(1); \
@@ -4612,6 +4669,8 @@ define BusyboxOptions
 		else \
 			sed -i "/CONFIG_FEATURE_LS_COLOR\b/d" $(1); \
 			echo "CONFIG_FEATURE_LS_COLOR=y" >>$(1); \
+			sed -i "/CONFIG_SENDMAIL/d" $(1); \
+			echo "CONFIG_SENDMAIL=y" >>$(1); \
 			if [ "$(BCM_MFG)" = "y" ]; then \
 				sed -i "/CONFIG_FEATURE_LS_COLOR_IS_DEFAULT/d" $(1); \
 				echo "# CONFIG_FEATURE_LS_COLOR_IS_DEFAULT is not set" >>$(1); \
@@ -4699,6 +4758,12 @@ define BusyboxOptions
 	if [ "$(BCMWL6)" = "y" ]; then \
 		sed -i "/CONFIG_FEATURE_NETSTAT_PRG/d" $(1); \
 		echo "CONFIG_FEATURE_NETSTAT_PRG=y" >>$(1); \
+		sed -i "/CONFIG_UNIQ/d" $(1); \
+		echo "CONFIG_UNIQ=y" >>$(1); \
+		sed -i "/CONFIG_LSOF/d" $(1); \
+		echo "CONFIG_LSOF=y" >>$(1); \
+		sed -i "/CONFIG_FEATURE_PS_LONG/d" $(1); \
+		echo "CONFIG_FEATURE_PS_LONG=y" >>$(1); \
 	fi;
 	if [ "$(HND_ROUTER_AX_6756)" = "y" ]; then \
 		sed -i "/CONFIG_SHA256SUM/d" $(1); \
@@ -5058,7 +5123,7 @@ if [ "$(TUNEK)" != "n" ]; then \
 			sed -i "/CONFIG_EXT4_DEBUG/d" $(1); \
 			echo "# CONFIG_EXT4_DEBUG is not set" >>$(1); \
 		fi; \
-		if [ "$(IPV6S46)" = "y" -o "$(IPV6FULL)" = "y" ]; then \
+		if [ "$(IPV6SUPP)" = "y" -o "$(IPV6FULL)" = "y" ]; then \
 			sed -i "/CONFIG_IPV6_TUNNEL/d" $(1); \
 			echo "CONFIG_IPV6_TUNNEL=m" >>$(1); \
 		fi; \
@@ -5580,10 +5645,8 @@ fi;
 	if [ "$(CONNTRACK)" = "y" ] || [ "$(PARENTAL2)" = "y" -o "$(PARENTAL)" = "y" ] && [ "$(CONFIG_BCMWL5)" = "y" ] && [ "$(ARM)" = "y" ]; then \
 		sed -i "/CONFIG_NF_CT_NETLINK/d" $(1); \
 		echo "CONFIG_NF_CT_NETLINK=y" >>$(1); \
-		if [ "$(HND_ROUTER_AX_675X)" = "y" ] || [ "$(HND_ROUTER_AX_6756)" = "y" ]; then \
-			sed -i "/CONFIG_NF_CT_NETLINK_TIMEOUT/d" $(1); \
-			echo "# CONFIG_NF_CT_NETLINK_TIMEOUT is not set" >>$(1); \
-		fi; \
+		sed -i "/CONFIG_NF_CT_NETLINK_TIMEOUT/d" $(1); \
+		echo "# CONFIG_NF_CT_NETLINK_TIMEOUT is not set" >>$(1); \
 	fi; \
 	if [ "$(NFCM)" = "y" || [ "$(TIME_QUOTA)" = "y" ]; then \
 		sed -i "/CONFIG_NF_CT_NETLINK/d" $(1); \
@@ -5793,9 +5856,15 @@ fi;
 			echo "# CONFIG_BCM_RECVFILE is not set" >>$(1); \
 		fi; \
 	fi;
-	if [ "$(IPV6S46)" = "y" -o "$(IPV6FULL)" = "y" ]; then \
+	if [ "$(IPV6SUPP)" = "y" -o "$(IPV6FULL)" = "y" ]; then \
 		sed -i "/CONFIG_IPV6_TUNNEL/d" $(1); \
 		echo "CONFIG_IPV6_TUNNEL=m" >>$(1); \
+		sed -i "/CONFIG_IPV6_PRIVACY/d" $(1); \
+		if [ "$(IPV6_PRIVACY)" = "y" ]; then \
+			echo "CONFIG_IPV6_PRIVACY=y" >>$(1); \
+		else \
+			echo "# CONFIG_IPV6_PRIVACY is not set" >>$(1); \
+		fi; \
 	fi;
 	if [ "$(IPSEC)" = "y" ] || \
 	   [ "$(IPSEC)" = "QUICKSEC" ] || \

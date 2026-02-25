@@ -13,12 +13,12 @@
 <link rel="stylesheet" type="text/css" href="form_style.css">
 <link rel="stylesheet" type="text/css" href="menu_style.css">
 <link rel="stylesheet" type="text/css" href="pwdmeter.css">
+<script type="text/javascript" src="/js/jquery.js"></script>
 <script language="JavaScript" type="text/javascript" src="/help.js"></script>
 <script language="JavaScript" type="text/javascript" src="/state.js"></script>
 <script language="JavaScript" type="text/javascript" src="/general.js"></script>
 <script language="JavaScript" type="text/javascript" src="/popup.js"></script>
 <script language="JavaScript" type="text/javascript" src="/validator.js"></script>
-<script type="text/javascript" src="/js/jquery.js"></script>
 <script type="text/javascript" src="/switcherplugin/jquery.iphone-switch.js"></script>
 <script language="JavaScript" type="text/javascript" src="/form.js"></script>
 <script type="text/javascript" src="/js/httpApi.js"></script>
@@ -97,7 +97,7 @@ function initial(){
 		var wan1_ipaddr = secondary_wanlink_ipaddr();
 		document.getElementById("wan_ctrl").style.display = "none";
 		document.getElementById("dualwan_ctrl").style.display = "";	
-		document.getElementById("dualwan_ctrl").innerHTML = "<#PPTP_desc2#> <span class=\"formfontdesc\">Primary WAN IP : " + wan0_ipaddr + " </span><span class=\"formfontdesc\">Secondary WAN IP : " + wan1_ipaddr + "</span>";
+		document.getElementById("dualwan_ctrl").innerHTML = "<#PPTP_desc2_new#> <span class=\"formfontdesc\">Primary WAN IP : " + wan0_ipaddr + " </span><span class=\"formfontdesc\">Secondary WAN IP : " + wan1_ipaddr + "</span>";
 		//check DUT is belong to private IP. //realip doesn't support lb
 		if(validator.isPrivateIP(wan0_ipaddr) && validator.isPrivateIP(wan1_ipaddr)){
 			document.getElementById("privateIP_notes").style.display = "";
@@ -107,7 +107,7 @@ function initial(){
 		
 		var wan_ipaddr = wanlink_ipaddr();
 
-		document.getElementById("wan_ctrl").innerHTML = "<#PPTP_desc2#>" +  wan_ipaddr;
+		document.getElementById("wan_ctrl").innerHTML = "<#PPTP_desc2_new#>" +  wan_ipaddr;
 
 		//check DUT is belong to private IP.
 		setTimeout("show_warning_message();", 1000);
@@ -962,8 +962,6 @@ function update_pptp_client_status(){
 										<div class="formfontdesc"><#PPTP_desc#></div>
 										<div id="wan_ctrl" class="formfontdesc"></div>
 										<div id="dualwan_ctrl" style="display:none;" class="formfontdesc"></div>
-										<div class="formfontdesc" style="margin-top:-10px;"><#PPTP_desc3#></div>
-										<div class="formfontdesc" style="margin-top:-10px;">(7) <#NSlookup_help#></div>
 										<div class="formfontdesc" style="margin:-10px 0px 0px -15px;">
 											<ul>
 												<li>
