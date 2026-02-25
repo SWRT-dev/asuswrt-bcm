@@ -20,6 +20,7 @@ jobs:
             git clone --depth=1 https://github.com/SWRT-dev/asuswrt-bcm bcm4912
             cd bcm4912/release/src-rt-5.04axhnd.675x
             sudo /home/docker/envs/bcm.sh
+            git checkout 102
             make gt-ax6000
 
   testbcm6756:
