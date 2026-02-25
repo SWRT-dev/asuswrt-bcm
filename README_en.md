@@ -83,7 +83,7 @@ sudo apt-get -y install build-essential asciidoc binutils bzip2 gawk gettext git
 
 	`git checkout 386 && make rt-ax55`
 
-	`make rt-ax56u`
+	`git checkout 24353 && make rt-ax56u`
 
 	`make rt-ax58u`
 
@@ -111,15 +111,15 @@ sudo apt-get -y install build-essential asciidoc binutils bzip2 gawk gettext git
 
 	`cd asuswrt-bcm/release/src-rt-5.04axhnd.675x` 
 
-	`make rt-ax86u_pro`
+	`git checkout 102 && make rt-ax86u_pro`
 
-	`make gt-ax11000_pro`
+	`git checkout 102 && make gt-ax11000_pro`
 
-	`make gt-ax6000`
+	`git checkout 102 && make gt-ax6000`
 
-	`make gt-axe16000`
+	`git checkout 102 && make gt-axe16000`
 
-	`make xt12`
+	`git checkout 102 && make xt12`
 
 	`make rt-ax82u_v2`
 
@@ -127,7 +127,7 @@ sudo apt-get -y install build-essential asciidoc binutils bzip2 gawk gettext git
 
 	`git checkout 22525 && make tuf-ax5400_v2`
 
-	`make rt-ax88u_pro`
+	`git checkout 102 && make rt-ax88u_pro`
 
 	`git checkout 22525 && make gt10`
 
