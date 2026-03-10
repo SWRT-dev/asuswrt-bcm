@@ -21,8 +21,8 @@ jobs:
           MODELCFG: ${{ matrix.cfg.model }}
           SDK: ${{ matrix.cfg.sdk }}
           SKIP_BUILD: ${{ matrix.cfg.skip }}
-          GIT_REPO: "https://github.com/SWRT-dev/swrt-gpl.git"
-          PROJECT_DIR: "/project/swrt-gpl"
+          GIT_REPO: "https://github.com/SWRT-dev/asuswrt-bcm.git"
+          PROJECT_DIR: "/project/asuswrt-bcm"
           PROJECTBASEDIR: "/project" # REMOVE_ME: Fixes https://github.com/SonarSource/sonarcloud-github-action/pull/58
         options: --user docker 
         volumes:
