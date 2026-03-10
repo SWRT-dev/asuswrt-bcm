@@ -78,7 +78,6 @@ include/Makefile.in
 include/libxml/Makefile.in
 install-sh
 ltmain.sh
-m4/
 missing
 python/Makefile.in
 python/tests/Makefile.in
