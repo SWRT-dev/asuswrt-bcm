@@ -2,19 +2,18 @@
 <html>
 <head>
 	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 	<meta http-equiv="X-UA-Compatible" content="ie=edge">
 	<title><#Web_Title#> - <#AiProtection_detection_blocking#></title>
 	<link rel="stylesheet" href="index_style.css"> 
 	<link rel="stylesheet" href="form_style.css">
 	<link rel="stylesheet" href="/css/adaptive_mobile.css">
-
+    <script type="text/javascript" src="/js/jquery.js"></script>
 	<script src="/js/httpApi.js"></script>
 	<script src="/state.js"></script>
 	<script src="/popup.js"></script>
 	<script src="/general.js"></script>
 	<script src="/help.js"></script>
-	<script src="/js/jquery.js"></script>
 	<script src="/disk_functions.js"></script>
 	<script src="/form.js"></script>
 	<script src="/client_function.js"></script>

@@ -1,13 +1,19 @@
 AC_PREREQ(2.61)
-AC_INIT([In-a-dyn], [2.8.1], [https://github.com/troglobit/inadyn/issues],
+AC_INIT([In-a-dyn], [2.10.0], [https://github.com/troglobit/inadyn/issues],
 	[inadyn], [https://troglobit.com/projects/inadyn/])
 AC_CONFIG_AUX_DIR(aux)
 AM_INIT_AUTOMAKE([1.11 foreign dist-xz])
 AM_SILENT_RULES([yes])
 
 AC_CONFIG_SRCDIR([src/main.c])
-AC_CONFIG_HEADER([include/config.h])
-AC_CONFIG_FILES([Makefile inadyn.service src/Makefile include/Makefile man/Makefile examples/Makefile])
+AC_CONFIG_HEADERS([include/config.h])
+AC_CONFIG_FILES([Makefile
+		 inadyn.service
+		 src/Makefile
+		 test/Makefile
+		 include/Makefile
+		 man/Makefile
+		 examples/Makefile])
 AC_CONFIG_MACRO_DIR([m4])
 
 AC_ARG_ENABLE(ssl,
@@ -22,10 +28,29 @@ AC_ARG_ENABLE(openssl,
         [ac_enable_openssl="no"]
 )
 
+AC_ARG_ENABLE(mbedtls,
+        [AS_HELP_STRING([--enable-mbedtls], [Use MbedTLS for HTTPS, default: GnuTLS])],
+        [ac_enable_mbedtls="$enableval"],
+        [ac_enable_mbedtls="no"]
+)
+
+AC_ARG_ENABLE(reduced,
+        [AS_HELP_STRING([--enable-reduced], [Drop some features to reduce the binary size, default: disabled])],
+        [ac_enable_reduced="$enableval"],
+        [ac_enable_reduced="no"]
+)
+
+
 AC_ARG_ENABLE(simulation,
         [AS_HELP_STRING([--enable-simulation], [Developer simulation mode, do not use!])],
         [ac_enable_simulation="$enableval"],
         [ac_enable_simulation="no"]
+)
+
+AC_ARG_ENABLE(test,
+        [AS_HELP_STRING([--enable-test], [Enable tests, requries ~/.config/inadyn/*.conf!])],
+        [ac_enable_test="$enableval"],
+        [ac_enable_test="no"]
 )
 
 AC_ARG_WITH([systemd],
@@ -34,18 +59,15 @@ AC_ARG_WITH([systemd],
 )
 
 # Define necessary build flags
-AC_GNU_SOURCE
 AC_USE_SYSTEM_EXTENSIONS
 
 # Checks for programs.
 AC_PROG_CC
-AC_PROG_CC_C99
 AM_PROG_CC_C_O
 AC_PROG_GCC_TRADITIONAL
 AC_PROG_INSTALL
 
 # Checks for header files.
-AC_HEADER_STDC
 AC_CHECK_HEADERS([arpa/inet.h arpa/nameser.h netinet/in.h stdlib.h stdint.h \
 	          string.h sys/ioctl.h sys/socket.h sys/types.h syslog.h unistd.h],
                   [], [],
@@ -90,7 +112,7 @@ AC_CHECK_LIB([confuse], [cfg_init], [],
 AC_CHECK_HEADERS([confuse.h], [],
              AC_MSG_ERROR([*** Cannot find required header files!]))
 
-# If HTTPS is enabled we check for either OpenSSL/LibreSSL or GnuTLS libs+headers
+# If HTTPS is enabled we check for either OpenSSL/LibreSSL, MbedTLS or GnuTLS libs+headers
 if test "x$ac_enable_ssl" = "xyes"; then
    if test "x$ac_enable_openssl" = "xyes"; then
       ac_enable_gnutls="no"
@@ -109,6 +131,17 @@ if test "x$ac_enable_ssl" = "xyes"; then
 			#include <openssl/conf.h>
 			])
       AC_DEFINE([CONFIG_OPENSSL], [], [Enable HTTPS support using OpenSSL/LibreSSL library])
+   elif test "x$ac_enable_mbedtls" = "xyes"; then
+      ac_enable_gnutls="no"
+      PKG_CHECK_MODULES([MbedTLS], [mbedtls])
+      LDFLAGS="$LDFLAGS $MbedTLS_LIBS"
+      CPPFLAGS="$CPPFLAGS $MbedTLS_CFLAGS"
+      AC_CHECK_LIB([mbedcrypto], [mbedtls_entropy_init], [], AC_MSG_ERROR([*** Mbed Crypto library not found!]))
+      AC_CHECK_LIB([mbedx509], [mbedtls_x509_crt_init], [], AC_MSG_ERROR([*** Mbed X509 library not found!]))
+      AC_CHECK_LIB([mbedtls], [mbedtls_ssl_init], [], AC_MSG_ERROR([*** Mbed TLS library not found!]))
+      AC_CHECK_HEADERS([mbedtls/base64.h mbedtls/ctr_drbg.h mbedtls/entropy.h mbedtls/md5.h mbedtls/net_sockets.h \
+         mbedtls/sha1.h mbedtls/ssl.h], [], AC_MSG_ERROR([*** Cannot find required header files!]))
+      AC_DEFINE([CONFIG_MBEDTLS], [], [Enable HTTPS support using MbedTLS library])
    else
       ac_enable_gnutls="yes"
       PKG_CHECK_MODULES([GnuTLS], [gnutls >= 3.0])
@@ -116,6 +149,10 @@ if test "x$ac_enable_ssl" = "xyes"; then
       CPPFLAGS="$CPPFLAGS $GnuTLS_CFLAGS"
       AC_CHECK_LIB([gnutls], [gnutls_init], [],
                           AC_MSG_ERROR([*** SSL library (GnuTLS) not found!]))
+      dnl GnuTLS uses nettle, so this doesn't really add a new dependency. It must
+      dnl be made explicit to avoid underlinking.
+      AC_CHECK_LIB([nettle], [nettle_md5_init], [],
+                          AC_MSG_ERROR([*** Crypto library (nettle) not found!]))
       AC_CHECK_HEADERS([gnutls/gnutls.h gnutls/x509.h], [],
 			  AC_MSG_ERROR([*** Cannot find required header files!]))
       AC_DEFINE([CONFIG_GNUTLS], [], [Enable HTTPS support using GnuTLS library])
@@ -124,15 +161,20 @@ if test "x$ac_enable_ssl" = "xyes"; then
 else
    ac_enable_gnutls="no"
    ac_enable_openssl="no"
+   ac_enable_mbedtls="no"
 fi
 
 
-# By default we rely on the built-in locations of Open/LibreSSL and GnuTLS,
+# By default we rely on the built-in locations of Open/LibreSSL, MbedTLS and GnuTLS,
 # on error we fall back to these two locations
 # For more excellent information on the topic, see this blog post
 #   https://www.happyassassin.net/2015/01/12/a-note-about-ssltls-trusted-certificate-stores-and-platforms/
 CAFILE1="/etc/ssl/certs/ca-certificates.crt"
 CAFILE2="/etc/pki/tls/certs/ca-bundle.trust.crt"
+
+if test "x$ac_enable_reduced" = "xyes"; then
+      CPPFLAGS="$CPPFLAGS -DMAX_LOG_LEVEL=LOG_ERR -DDROP_VERBOSE_STRINGS -DDROP_CHECK_CONFIG"
+fi
 
 # Add OS-specific flags
 case "$host_os" in
@@ -142,15 +184,17 @@ darwin*)
    ;;
 esac
 
-AC_DEFINE_UNQUOTED([CAFILE1], "$CAFILE1", [First fallback location for Open/LibreSSL and GnuTLS trust db])
-AC_DEFINE_UNQUOTED([CAFILE2], "$CAFILE2", [Second location for Open/LibreSSL and GnuTLS trust db])
+AC_DEFINE_UNQUOTED([CAFILE1], "$CAFILE1", [First fallback location for Open/LibreSSL, MbedTLS and GnuTLS trust db])
+AC_DEFINE_UNQUOTED([CAFILE2], "$CAFILE2", [Second location for Open/LibreSSL, MbedTLS and GnuTLS trust db])
 
 AM_CONDITIONAL([ENABLE_SSL], test "x$ac_enable_ssl" = "xyes")
 AM_CONDITIONAL([ENABLE_OPENSSL], test "x$ac_enable_openssl" = "xyes")
+AM_CONDITIONAL([ENABLE_MBEDTLS], test "x$ac_enable_mbedtls" = "xyes")
 
-if test "x$ac_enable_simulation" = "xyes"; then
-   AC_DEFINE([ENABLE_SIMULATION], [], [Enable developer-only simulation mode])
-fi
+AS_IF([test "x$ac_enable_simulation" = "xyes"], [
+   AC_DEFINE([ENABLE_SIMULATION], [], [Enable developer-only simulation mode])])
+
+AM_CONDITIONAL([ENABLE_TEST], [test "x$ac_enable_test" != "xno"])
 
 # Check where to install the systemd .service file
 AS_IF([test "x$with_systemd" = "xyes" -o "x$with_systemd" = "xauto"], [
@@ -175,6 +219,9 @@ AC_SUBST(SYSCONFDIR)
 SBINDIR=`eval echo $sbindir`
 SBINDIR=`eval echo $SBINDIR`
 AC_SUBST(SBINDIR)
+DOCDIR=`eval echo $docdir`
+DOCDIR=`eval echo $DOCDIR`
+AC_SUBST(DOCDIR)
 
 # Workaround for as-of-yet unreleased runstatedir support, planned for
 # autoconf 2.70, which some major distros have backported.
@@ -205,7 +252,9 @@ cat <<EOF
   HTTPS support..: $ac_enable_ssl
     GnuTLS.......: $ac_enable_gnutls
     Open/LibreSSL: $ac_enable_openssl
+    MbedTLS      : $ac_enable_mbedtls
   systemd........: $with_systemd
+  Unit tests.....: $ac_enable_test
 
 ------------- Compiler version --------------
 $($CC --version || true)

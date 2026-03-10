@@ -5,7 +5,7 @@
 .\" *                            | (__| |_| |  _ <| |___
 .\" *                             \___|\___/|_| \_\_____|
 .\" *
-.\" * Copyright (C) 1998 - 2022, Daniel Stenberg, <daniel@haxx.se>, et al.
+.\" * Copyright (C) Daniel Stenberg, <daniel@haxx.se>, et al.
 .\" *
 .\" * This software is licensed as described in the file COPYING, which
 .\" * you should have received as part of this distribution. The terms
@@ -22,7 +22,7 @@
 .\" *
 .\" **************************************************************************
 .\"
-.TH CURLOPT_HTTPPROXYTUNNEL 3 "May 17, 2022" "libcurl 7.84.0" "curl_easy_setopt options"
+.TH CURLOPT_HTTPPROXYTUNNEL 3 "September 26, 2023" "ibcurl 8.4.0" libcurl
 
 .SH NAME
 CURLOPT_HTTPPROXYTUNNEL \- tunnel through HTTP proxy
@@ -48,7 +48,7 @@ To suppress proxy CONNECT response headers from user callbacks use
 HTTP proxies can generally only speak HTTP (for obvious reasons), which makes
 libcurl convert non-HTTP requests to HTTP when using an HTTP proxy without
 this tunnel option set. For example, asking for an FTP URL and specifying an
-HTTP proxy will make libcurl send an FTP URL in an HTTP GET request to the
+HTTP proxy makes libcurl send an FTP URL in an HTTP GET request to the
 proxy. By instead tunneling through the proxy, you avoid that conversion (that
 rarely works through the proxy anyway).
 .SH DEFAULT
@@ -70,4 +70,6 @@ Always
 .SH RETURN VALUE
 Returns CURLE_OK
 .SH "SEE ALSO"
-.BR CURLOPT_PROXY "(3), " CURLOPT_PROXYTYPE "(3), " CURLOPT_PROXYPORT "(3), "
+.BR CURLOPT_PROXY (3),
+.BR CURLOPT_PROXYTYPE (3),
+.BR CURLOPT_PROXYPORT (3)

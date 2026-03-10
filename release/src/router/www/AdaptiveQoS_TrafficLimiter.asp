@@ -795,12 +795,16 @@ function apply(){
 
 	document.form.submit();
 }
+
 function show_alert_preference(){
-	cal_panel_block("alert_preference", 0.25);
-	check_smtp_server_type();
-	$('#alert_preference').fadeIn(300);
-	document.getElementById('mail_address').value = document.form.PM_MY_EMAIL.value;
-	document.getElementById('mail_password').value = document.form.PM_SMTP_AUTH_PASS.value;
+	alert(`<#AiProtection_alert_show#>`);
+
+	if($("#app_link_table").length > 0){
+        setTimeout(function(){
+    		$("#app_link_table").show();
+    		$("html, body").animate({ scrollTop: 0 }, "fast");
+        }, 1)
+	}
 }
 
 function close_alert_preference(){
@@ -838,13 +842,13 @@ function apply_alert_preference(){
 		}
 		
 		if(document.form.PM_MY_EMAIL.value == "" || document.form.PM_MY_EMAIL.value != address_temp)
-			document.form.action_script.value += ";reset_tl_count;email_conf;send_confirm_mail";
+			document.form.action_script.value += ";reset_tl_count;email_conf;";
 				
 		document.form.PM_MY_EMAIL.value = address_temp;	
 	}
 	else{	
 		if(document.form.PM_MY_EMAIL.value == "" || document.form.PM_MY_EMAIL.value != address_temp)
-			document.form.action_script.value += ";reset_tl_count;email_conf;send_confirm_mail";
+			document.form.action_script.value += ";reset_tl_count;email_conf;";
 			
 		document.form.PM_MY_EMAIL.value = account_temp[0] + "@" +smtpList[server_index].smtpDomain;
 	}
@@ -868,7 +872,7 @@ function check_smtp_server_type(){
 }
 
 function erase_traffic(){
-	if(confirm("Are you sure you want to clear data? ")){
+	if(confirm("<#AiProtection_TrafficLimiter_clear#>")){
 		document.form.action = "apply.cgi?interface=" + info.current_wan.ifname;
 		document.form.action_mode.value = "traffic_resetcount";
 		document.form.submit();

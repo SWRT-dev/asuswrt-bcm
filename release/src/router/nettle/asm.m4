@@ -73,12 +73,6 @@ define(`UCHAR', `STRUCT(`$1', 1)')dnl
 dnl UNSIGNED(name)
 define(`UNSIGNED', `STRUCT(`$1', 4)')dnl
 
-dnl Offsets in arcfour_ctx
-STRUCTURE(ARCFOUR)
-  STRUCT(S, 256)
-  UCHAR(I)
-  UCHAR(J)
-
 dnl Offsets in aes_table
 define(AES_SBOX_SIZE,	256)dnl
 define(AES_TABLE_SIZE,	1024)dnl
@@ -94,10 +88,10 @@ C For 64-bit implementation
 STRUCTURE(P1305)
   STRUCT(R0, 8)
   STRUCT(R1, 8)
+  STRUCT(S0, 8)
   STRUCT(S1, 8)
-  STRUCT(PAD, 12)
-  STRUCT(H2, 4)
   STRUCT(H0, 8)
   STRUCT(H1, 8)
+  STRUCT(H2, 8)
 
 divert

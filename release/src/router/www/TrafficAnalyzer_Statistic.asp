@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <html xmlns:v>
 <head>
@@ -9,12 +9,14 @@
 <link rel="shortcut icon" href="images/favicon.png">
 <link rel="icon" href="images/favicon.png">
 <title><#Web_Title#> - <#EZQoS#></title>
+<link rel="stylesheet" type="text/css" href="css/basic.css">
 <link rel="stylesheet" type="text/css" href="index_style.css">
 <link rel="stylesheet" type="text/css" href="form_style.css">
 <link rel="stylesheet" type="text/css" href="usp_style.css">
 <link rel="stylesheet" type="text/css" href="datepicker.css">
 <script type="text/javascript" src="/js/jquery.js"></script>
 <script type="text/javascript" src="/calendar/jquery-ui.js"></script>
+<script type="text/javascript" src="/js/httpApi.js"></script>
 <script type="text/javascript" src="/chart.js"></script>
 <script type="text/javascript" src="/state.js"></script>
 <script type="text/javascript" src="/help.js"></script>
@@ -22,8 +24,7 @@
 <script type="text/javascript" src="/client_function.js"></script>
 <script type="text/javascript" src="/switcherplugin/jquery.iphone-switch.js"></script>
 <script type="text/javascript" src="/popup.js"></script>
-<script type="text/javascript" src="/js/httpApi.js"></script>
-<script language="JavaScript" type="text/javascript" src="/js/asus_eula.js"></script>
+<script language="JavaScript" type="text/javascript" src="/js/asus_policy.js?v=4"></script>
 <style>
 *{
 	box-sizing: content-box;
@@ -121,8 +122,6 @@ function initial(){
 
 	$('#traffic_unit').val(getTrafficUnit());
 
-	if(!ASUS_EULA.status("tm"))
-		ASUS_EULA.config(eula_confirm, cancel);
 }
 
 var date_string = "";
@@ -228,17 +227,37 @@ function get_client_used_apps_info(client_index, used_data_array, top5_info, typ
 			}
 		}
 		else{
-			var _temp = client_index.replaceAll('%20', ' ');
-			document.getElementById('top_client_name').innerHTML = total_clients_array[_temp].name;
-			if(document.getElementById('traffic_option').value == "both"){
-				total_traffic = total_clients_array[_temp].rx + total_clients_array[_temp].tx;
-			}
-			else if(document.getElementById('traffic_option').value == "down"){
-				total_traffic = total_clients_array[_temp].rx;
+			if(type == "router"){
+				var _temp = client_index.replaceAll('%20', ' ');		
+				document.getElementById('top_client_name').innerHTML = total_clients_array[_temp].name;
+				if(document.getElementById('traffic_option').value == "both"){
+					total_traffic = total_clients_array[_temp].rx + total_clients_array[_temp].tx;
+				}
+				else if(document.getElementById('traffic_option').value == "down"){
+					total_traffic = total_clients_array[_temp].rx;
+				}
+				else{
+					total_traffic = total_clients_array[_temp].tx;
+				}
 			}
 			else{
-				total_traffic = total_clients_array[_temp].tx;
+				if(client_index == undefined){
+					client_index = "0";
+				}
+
+				var _temp = client_index.replaceAll('%20', ' ');		
+				document.getElementById('top_client_name').innerHTML = total_apps_array[_temp].name;
+				if(document.getElementById('traffic_option').value == "both"){
+					total_traffic = total_apps_array[_temp].rx + total_apps_array[_temp].tx;
+				}
+				else if(document.getElementById('traffic_option').value == "down"){
+					total_traffic = total_apps_array[_temp].rx;
+				}
+				else{
+					total_traffic = total_apps_array[_temp].tx;
+				}
 			}
+			
 		}
 
 		traffic_unit = translate_traffic(total_traffic);
@@ -1466,8 +1485,9 @@ function cal_panel_block(obj){
 	else if(winWidth <=1050){
 		blockmarginLeft= (winWidth)*0.2 + document.body.scrollLeft;
 	}
-
-	document.getElementById(obj).style.marginLeft = blockmarginLeft+"px";
+    if(document.getElementById(obj)!==null){
+	    document.getElementById(obj).style.marginLeft = blockmarginLeft+"px";
+    }
 }
 
 function eula_confirm(){
@@ -1494,23 +1514,25 @@ function cancel(){
 }
 function switch_control(_status){
 	if(_status) {
-              if(!dns_dpi_support){
-		if(reset_wan_to_fo.check_status()) {
-			if(ASUS_EULA.check("tm")){
-				document.form.bwdpi_db_enable.value = 1;
-				document.form.dns_dpi_trf_analysis.value = 1; //align user experience
-				applyRule();
-			}
-		}
-		else
-			cancel();
-               }
-              else {
-
-				document.form.bwdpi_db_enable.value = 1; // align user experience
-				document.form.dns_dpi_trf_analysis.value = 1;
-				applyRule();
-               }
+        if(!dns_dpi_support){
+            if(reset_wan_to_fo.check_status()) {
+                if(policy_status.TM == 0 || policy_status.TM_time == ''){
+                    const policyModal = new PolicyModalComponent({
+                        policy: "TM",
+                        agreeCallback: eula_confirm,
+                        disagreeCallback: cancel
+                    });
+                    policyModal.show();
+                }else{
+                    eula_confirm();
+                }
+            }else
+                cancel();
+        }else {
+            document.form.bwdpi_db_enable.value = 1; // align user experience
+            document.form.dns_dpi_trf_analysis.value = 1;
+            applyRule();
+        }
 	}
 	else {
 		if(!dns_dpi_support) {
@@ -1528,7 +1550,7 @@ function applyRule(){
 	  document.form.action_script.value = "restart_wrs;restart_firewall";
     }
     else {
-      document.form.action_script.value = "restart_nfcm;restart_dnsqd;restart_firewall";
+      document.form.action_script.value = "restart_dnsqd;restart_firewall";
     }
 
 	if(reset_wan_to_fo.change_status)
@@ -1644,7 +1666,7 @@ if(dns_dpi_support) {
 																				switch_control(0);
  																		})
 
-};
+}
 																	</script>
 																</td>
 															</tr>
@@ -1756,7 +1778,7 @@ if(dns_dpi_support) {
 													<div onclick="change_top5_clients(0);" style="width:100px;word-wrap:break-word;padding-left:5px;background-color:#B3645B;margin-right:-10px;border-top-left-radius:10px;border-bottom-left-radius:10px;"><#traffic_analysis_noclients#></div>
 												</td>
 												<td>
-													<div id="top5_info_block" style="width:310px;min-height:330px;;background-color:#B3645B;border-bottom-right-radius:10px;border-bottom-left-radius:10px;border-top-right-radius:10px;box-shadow: 3px 5px 5px #2E3537;">
+													<div id="top5_info_block" style="width:310px;min-height:330px;background-color:#B3645B;border-bottom-right-radius:10px;border-bottom-left-radius:10px;border-top-right-radius:10px;box-shadow: 3px 5px 5px #2E3537;">
 														<table style="width:99%;padding-top:20px">
 															<tr>
 																<th style="font-size:16px;text-align:left;padding-left:10px;width:140px;color:#ADADAD" id="top_client_title"><#MAC_Address#>:</th>
@@ -1798,3 +1820,4 @@ if(dns_dpi_support) {
 <div id="footer"></div>
 </body>
 </html>
+

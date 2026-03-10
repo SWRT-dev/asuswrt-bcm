@@ -1,4 +1,4 @@
-/* dnsmasq is Copyright (c) 2000-2022 Simon Kelley
+/* dnsmasq is Copyright (c) 2000-2025 Simon Kelley
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -52,6 +52,12 @@ const char* introspection_xml_template =
 "    <method name=\"SetFilterWin2KOption\">\n"
 "      <arg name=\"filterwin2k\" direction=\"in\" type=\"b\"/>\n"
 "    </method>\n"
+"    <method name=\"SetFilterA\">\n"
+"      <arg name=\"filter-a\" direction=\"in\" type=\"b\"/>\n"
+"    </method>\n"
+"    <method name=\"SetFilterAAAA\">\n"
+"      <arg name=\"filter-aaaa\" direction=\"in\" type=\"b\"/>\n"
+"    </method>\n"
 "    <method name=\"SetLocaliseQueriesOption\">\n"
 "      <arg name=\"localise-queries\" direction=\"in\" type=\"b\"/>\n"
 "    </method>\n"
@@ -100,6 +106,7 @@ const char* introspection_xml_template =
 "</node>\n";
 
 static char *introspection_xml = NULL;
+static int watches_modified = 0;
 
 struct watch {
   DBusWatch *watch;      
@@ -121,6 +128,7 @@ static dbus_bool_t add_watch(DBusWatch *watch, void *data)
   w->watch = watch;
   w->next = daemon->watches;
   daemon->watches = w;
+  watches_modified++;
 
   (void)data; /* no warning */
   return TRUE;
@@ -128,7 +136,7 @@ static dbus_bool_t add_watch(DBusWatch *watch, void *data)
 
 static void remove_watch(DBusWatch *watch, void *data)
 {
-  struct watch **up, *w, *tmp;  
+  struct watch **up, *w, *tmp;
   
   for (up = &(daemon->watches), w = daemon->watches; w; w = tmp)
     {
@@ -137,6 +145,7 @@ static void remove_watch(DBusWatch *watch, void *data)
 	{
 	  *up = tmp;
 	  free(w);
+	  watches_modified++;
 	}
       else
 	up = &(w->next);
@@ -476,28 +485,37 @@ static DBusMessage* dbus_read_servers_ex(DBusMessage *message, int strings)
   return error;
 }
 
-static DBusMessage *dbus_set_bool(DBusMessage *message, int flag, char *name)
+static DBusMessage *dbus_get_bool(DBusMessage *message, dbus_bool_t *enabled, char *name)
 {
   DBusMessageIter iter;
-  dbus_bool_t enabled;
 
   if (!dbus_message_iter_init(message, &iter) || dbus_message_iter_get_arg_type(&iter) != DBUS_TYPE_BOOLEAN)
     return dbus_message_new_error(message, DBUS_ERROR_INVALID_ARGS, "Expected boolean argument");
   
-  dbus_message_iter_get_basic(&iter, &enabled);
-
-  if (enabled)
-    { 
-      my_syslog(LOG_INFO, _("Enabling --%s option from D-Bus"), name);
-      set_option_bool(flag);
-    }
+  dbus_message_iter_get_basic(&iter, enabled);
+  
+  if (*enabled)
+    my_syslog(LOG_INFO, _("Enabling --%s option from D-Bus"), name);
   else
+    my_syslog(LOG_INFO, _("Disabling --%s option from D-Bus"), name);
+  
+  return NULL;
+}
+
+static DBusMessage *dbus_set_bool(DBusMessage *message, int flag, char *name)
+{
+  dbus_bool_t val;
+  DBusMessage *reply = dbus_get_bool(message, &val, name);
+  
+  if (!reply)
     {
-      my_syslog(LOG_INFO, _("Disabling --%s option from D-Bus"), name);
-      reset_option_bool(flag);
+      if (val)
+	set_option_bool(flag);
+      else
+	reset_option_bool(flag);
     }
 
-  return NULL;
+  return reply;
 }
 
 #ifdef HAVE_DHCP
@@ -512,8 +530,8 @@ static DBusMessage *dbus_add_lease(DBusMessage* message)
   union all_addr addr;
   time_t now = dnsmasq_time();
   unsigned char dhcp_chaddr[DHCP_CHADDR_MAX];
-
   DBusMessageIter iter, array_iter;
+
   if (!dbus_message_iter_init(message, &iter))
     return dbus_message_new_error(message, DBUS_ERROR_INVALID_ARGS,
 				  "Failed to initialize dbus message iter");
@@ -581,6 +599,10 @@ static DBusMessage *dbus_add_lease(DBusMessage* message)
 
   if (inet_pton(AF_INET, ipaddr, &addr.addr4))
     {
+      if (!daemon->dhcp)
+	return dbus_message_new_error(message, DBUS_ERROR_INVALID_ARGS,
+				      "DHCPv4 not configured");
+      
       if (ia_id != 0 || is_temporary)
 	return dbus_message_new_error(message, DBUS_ERROR_INVALID_ARGS,
 				      "ia_id and is_temporary must be zero for IPv4 lease");
@@ -591,16 +613,25 @@ static DBusMessage *dbus_add_lease(DBusMessage* message)
 #ifdef HAVE_DHCP6
   else if (inet_pton(AF_INET6, ipaddr, &addr.addr6))
     {
+      if (!daemon->doing_dhcp6)
+	return dbus_message_new_error(message, DBUS_ERROR_INVALID_ARGS,
+				      "DHCPv6 not configured");
+      
       if (!(lease = lease6_find_by_addr(&addr.addr6, 128, 0)))
 	lease = lease6_allocate(&addr.addr6,
 				is_temporary ? LEASE_TA : LEASE_NA);
-      lease_set_iaid(lease, ia_id);
+      if (lease)
+	lease_set_iaid(lease, ia_id);
     }
 #endif
   else
     return dbus_message_new_error_printf(message, DBUS_ERROR_INVALID_ARGS,
 					 "Invalid IP address '%s'", ipaddr);
-   
+
+  if (!lease) 
+    return dbus_message_new_error_printf(message, DBUS_ERROR_INVALID_ARGS,
+					 "unable to allocate lease for IP address '%s'", ipaddr);
+  
   hw_len = parse_hex((char*)hwaddr, dhcp_chaddr, DHCP_CHADDR_MAX, NULL, &hw_type);
   if (hw_len < 0)
     return dbus_message_new_error_printf(message, DBUS_ERROR_INVALID_ARGS,
@@ -623,7 +654,7 @@ static DBusMessage *dbus_add_lease(DBusMessage* message)
 
 static DBusMessage *dbus_del_lease(DBusMessage* message)
 {
-  struct dhcp_lease *lease;
+  struct dhcp_lease *lease = NULL;
   DBusMessageIter iter;
   const char *ipaddr;
   DBusMessage *reply;
@@ -641,10 +672,10 @@ static DBusMessage *dbus_del_lease(DBusMessage* message)
    
   dbus_message_iter_get_basic(&iter, &ipaddr);
 
-  if (inet_pton(AF_INET, ipaddr, &addr.addr4))
+  if (inet_pton(AF_INET, ipaddr, &addr.addr4) && daemon->dhcp)
     lease = lease_find_by_addr(addr.addr4);
 #ifdef HAVE_DHCP6
-  else if (inet_pton(AF_INET6, ipaddr, &addr.addr6))
+  else if (inet_pton(AF_INET6, ipaddr, &addr.addr6) && daemon->doing_dhcp6)
     lease = lease6_find_by_addr(&addr.addr6, 128, 0);
 #endif
   else
@@ -750,10 +781,10 @@ static DBusMessage *dbus_get_server_metrics(DBusMessage* message)
 	add_dict_entry(&dict_array, "address", daemon->namebuff);
 	
 	add_dict_int(&dict_array, "port", port);
-	add_dict_int(&dict_array, "queries", serv->queries);
-	add_dict_int(&dict_array, "failed_queries", serv->failed_queries);
-	add_dict_int(&dict_array, "nxdomain", serv->nxdomain_replies);
-	add_dict_int(&dict_array, "retries", serv->retrys);
+	add_dict_int(&dict_array, "queries", queries);
+	add_dict_int(&dict_array, "failed_queries", failed_queries);
+	add_dict_int(&dict_array, "nxdomain", nxdomain_replies);
+	add_dict_int(&dict_array, "retries", retrys);
 	add_dict_int(&dict_array, "latency", sigma_latency/count_latency);
 	
 	dbus_message_iter_close_container(&server_array, &dict_array);
@@ -816,6 +847,42 @@ DBusHandlerResult message_handler(DBusConnection *connection,
   else if (strcmp(method, "SetFilterWin2KOption") == 0)
     {
       reply = dbus_set_bool(message, OPT_FILTER, "filterwin2k");
+    }
+  else if (strcmp(method, "SetFilterA") == 0)
+    {
+      static int done = 0;
+      static struct rrlist list = { 0, NULL };
+      dbus_bool_t enabled;
+
+      if (!(reply = dbus_get_bool(message, &enabled, "filter-A")))
+	{
+	  if (!done)
+	    {
+	      done = 1;
+	      list.next = daemon->filter_rr;
+	      daemon->filter_rr = &list;
+	    }
+
+	  list.rr = enabled ? T_A : 0;
+	}
+    }
+  else if (strcmp(method, "SetFilterAAAA") == 0)
+    {
+      static int done = 0;
+      static struct rrlist list = { 0, NULL };
+      dbus_bool_t enabled;
+      
+      if (!(reply = dbus_get_bool(message, &enabled, "filter-AAAA")))
+	{
+	  if (!done)
+	    {
+	      done = 1;
+	      list.next = daemon->filter_rr;
+	      daemon->filter_rr = &list;
+	    }
+	  
+	  list.rr = enabled ? T_AAAA : 0;
+	}
     }
   else if (strcmp(method, "SetLocaliseQueriesOption") == 0)
     {
@@ -927,40 +994,52 @@ void set_dbus_listeners(void)
       {
 	unsigned int flags = dbus_watch_get_flags(w->watch);
 	int fd = dbus_watch_get_unix_fd(w->watch);
+	int poll_flags = POLLERR;
 	
 	if (flags & DBUS_WATCH_READABLE)
-	  poll_listen(fd, POLLIN);
-	
+	  poll_flags |= POLLIN;
 	if (flags & DBUS_WATCH_WRITABLE)
-	  poll_listen(fd, POLLOUT);
+	  poll_flags |= POLLOUT;
 	
-	poll_listen(fd, POLLERR);
+	poll_listen(fd, poll_flags);
       }
 }
 
-void check_dbus_listeners()
+static int check_dbus_watches()
 {
-  DBusConnection *connection = (DBusConnection *)daemon->dbus;
   struct watch *w;
 
+  watches_modified = 0;
   for (w = daemon->watches; w; w = w->next)
     if (dbus_watch_get_enabled(w->watch))
       {
 	unsigned int flags = 0;
 	int fd = dbus_watch_get_unix_fd(w->watch);
-	
-	if (poll_check(fd, POLLIN))
+	int poll_flags = poll_check(fd, POLLIN|POLLOUT|POLLERR);
+
+	if ((poll_flags & POLLIN) != 0)
 	  flags |= DBUS_WATCH_READABLE;
-	
-	if (poll_check(fd, POLLOUT))
+	if ((poll_flags & POLLOUT) != 0)
 	  flags |= DBUS_WATCH_WRITABLE;
-	
-	if (poll_check(fd, POLLERR))
+	if ((poll_flags & POLLERR) != 0)
 	  flags |= DBUS_WATCH_ERROR;
 
 	if (flags != 0)
-	  dbus_watch_handle(w->watch, flags);
+	  {
+	    dbus_watch_handle(w->watch, flags);
+	    if (watches_modified)
+	      return 0;
+	  }
       }
+
+  return 1;
+}
+
+void check_dbus_listeners()
+{
+  DBusConnection *connection = (DBusConnection *)daemon->dbus;
+
+  while (!check_dbus_watches()) ;
 
   if (connection)
     {

@@ -92,7 +92,7 @@ body {
 	filter: progid:DXImageTransform.Microsoft.DropShadow(OffX=1, OffY=1, Color=#000000);
 }
 
-.menu_QIS_table {
+.menu_QIS_title {
 	width:185px;
 	height: 53px;
 	font-family: Microsoft Yahei UI, Verdana, MS UI Gothic, MS P Gothic, sans-serif;
@@ -117,7 +117,7 @@ body {
 	border-right-color:#6D6D6D;
 }
 
-.menu_QIS_table:hover {
+.menu_QIS_title:hover {
 	background: #B9D8E6; /* Old browsers */
 	background: -moz-linear-gradient(top, #B9D8E6  0%, #699BBF 100%); /* FF3.6+ */
 	background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#B9D8E6), color-stop(100%,#699BBF )); /* Chrome,Safari4+ */
@@ -775,7 +775,7 @@ width:122px;
 }
 .faq-filter-block{
 	position: absolute;
-	margin: -200px 100px 0 0;
+	margin-top: -230px;
 	width: 300px;
 	border: 1px solid #474747;
 	height: 200px;
@@ -811,10 +811,13 @@ width:122px;
 }
 
 .block_filter_name{
-		text-align:center;
-		padding-top:5px;
-		color:#CCCCCC;
-		font-size:14px
+	text-align:center;
+	color:#CCCCCC;
+	font-size:14px;
+	height: 100%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
 } 
 
 .block_filter_name:hover{
@@ -883,6 +886,8 @@ width:122px;
 	text-align: center;
 	font-family: Microsoft Yahei UI, Verdana, MS UI Gothic, MS P Gothic, sans-serif;
 	border-radius: 5px 5px 0px 0px;
+	font-weight: bold;
+	text-shadow: 1px 1px 0px black;
 }
 .menu_Index{
 	background: url(images/New_ui/icon_indexes.png);
@@ -908,7 +913,7 @@ width:122px;
 	background: url(images/New_ui/game.png);
 	background-position: 0px 0px;
 }
-.menu_TrafficAnalyzer{
+.menu_TrafficAnalyzer, .menu_NewDashboard{
 	background: url(images/New_ui/icon_indexes.png);
 	background-position: 0px -144px;
 }
@@ -934,6 +939,9 @@ width:122px;
 .menu_AiCloud{
 	background: url(images/New_ui/icon_indexes.png);
 	background-position: 0px -252px;
+}
+.menu_SMS{
+	background: url(images/New_ui/icon_SMS.png);
 }
 .menu_Wireless{
 	background: url(images/New_ui/icon_menues.png);

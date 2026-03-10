@@ -8,7 +8,7 @@
 #define MAX_VALUE_CONNECTION_TIMEOUT	300	/* second */
 #define MAX_VALUE_TRAFFIC_TIMEOUT	300	/* second */
 
-#if (defined(RTCONFIG_JFFS2) || defined(RTCONFIG_BRCM_NAND_JFFS2) || defined(RTCONFIG_UBIFS))
+#if (defined(RTCONFIG_JFFS2) || defined(RTCONFIG_BRCM_NAND_JFFS2) || defined(RTCONFIG_UBIFS) || defined(RTCONFIG_JFFS_PARTITION))
 #define CFG_MNT_FOLDER		"/jffs/.sys/cfg_mnt/"
 #else
 #define CFG_MNT_FOLDER		"/tmp/cfg_mnt/"
@@ -38,6 +38,12 @@ static struct time_mapping_s time_mapping_list[] = {
 	{ "BLUECAVE",	120,	120,	60},
 	{ "BLUE_CAVE",	120,	120,	60},
 	{ "RT-AX89X",	80,	120,	60},
+	{ "TUF-AX4200",	70,     90,     90},
+	{ "TUF-AX4200Q",70,     90,     90},
+	{ "TUF-AX6000",	70,     90,     90},
+	{ "TUF-AX6000Q",70,     90,     90},
+	{ "RT-AX59U",	70,     90,     90},
+	{ "RT-AX52",	70,     90,     90},
 	{ "Lyra",	80,	60,	60},
 	{ "Lyra_Mini",	80,	60,	60},
 	{ "Lyra_Trio",		80,	120,	120},
@@ -55,6 +61,8 @@ static struct time_mapping_s time_mapping_list[] = {
 	{ "ET8PRO",   50,     120,     60},
 	{ "ZenWiFi_XD4",   50,     120,     60},
 	{ "ZenWiFi_XD4PRO",   50,     120,     60},
+	{ "ZenWiFi_XC5",   60,     120,     60},
+	{ "EBA63",   50,     120,     60},
 	{ "RT-AX56_XD4",   50,     120,     60},
 	{ "CT-AX56_XD4",   50,     60,     60},
 	{ "RT-AX55",    50,     120,     60},
@@ -73,6 +81,7 @@ static struct time_mapping_s time_mapping_list[] = {
 	{ "RT-AX56U",   50,     120,     60},
 	{ "RP-AX56",   50,     120,     60},
 	{ "RP-AX58",   50,     120,     60},
+	{ "RP-BE58",   80,     150,     150},
 	{ "GT-AX11000",	50,     120,     60},
 	{ "RT-AC85P",	120,	60,	60},
 	{ "GT-AXY16000",80,    120,     60},
@@ -86,6 +95,8 @@ static struct time_mapping_s time_mapping_list[] = {
 	{ "GT-AXE16000", 50,    120,     60},
 	{ "ET12", 50,    120,     60},
 	{ "XT12", 50,    120,     60},
+	{ "ZenWiFi_XD4S", 80,    120,     60},
+	{ "ZenWiFi_XD4_Plus", 80,    120,     60},
 	{ "RT-AXE7800",	90,     120,     90},
 	{ "RT-AX86U_PRO",    50,   120,     60},
 	{ "XT8_V2",   50,     120,     60},
@@ -99,6 +110,36 @@ static struct time_mapping_s time_mapping_list[] = {
 	{ "RT-AX88U_PRO", 50,    120,     60},
 	{ "ET8_V2",   50,     120,     60},
 	{ "RT-AX5400",   50,     120,     60},
+	{ "GT-BE98", 90,    120,     60},
+	{ "GT-BE98_Pro", 90,    120,     60},
+	{ "RT-BE96U", 90,    120,     180},
+	{ "BT12",   50,     120,     60},
+	{ "BQ16",   50,     120,     60},
+	{ "BQ16_PRO",   50,     120,     60},
+	{ "RT-AX9000",   50,     120,     60},
+	{ "GT-BE96",	90,	120,	60},
+	{ "RT-BE88U",	90,	120,	60},
+	{ "RT-BE86U",	50,	120,	60},
+	{ "RT-BE58U",	50,	120,	60},
+	{ "TUF-BE3600",	50,	120,	60},
+	{ "RT-BE58U_V2",50,	120,	60},
+	{ "TUF-BE3600_V2",50,	120,	60},
+	{ "RT-BE55",	50,	120,	60},
+	{ "GT-BE19000", 90,    120,     60},
+	{ "BT10",   50,     120,     60},
+	{ "RT-BE92U",	50,	120,	60},
+	{ "RT-BE95U",	50,	120,	60},
+	{ "RT-BE82U",	50,	120,	60},
+	{ "TUF-BE82",	50,	120,	60},
+	{ "RT-BE82M",	50,	120,	60},
+	{ "RT-BE58U_PRO",   50,     120,    60},
+	{ "RT-BE58_GO",   50,     120,    60},
+	{ "GT-BE19000AI", 90,    120,     60},
+	{ "GS-BE18000",	50,	120,	60},
+	{ "GS-BE12000", 50,	120,	60},
+	{ "GS7_PRO",	50,	120,	60},
+	{ "GT7",	50,	120,	60},
+	{ "GT-BE96_AI", 90,    120,     60},
 	/* END */
 	{ NULL, 0, 0, 0 }
 };

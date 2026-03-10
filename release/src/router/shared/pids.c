@@ -388,6 +388,8 @@ pid_t* find_pid_by_name(const char *procName)
 	procps_status_t* p = NULL;
 
 	pidList = calloc(1, sizeof(*pidList));
+	if(!pidList)
+		return NULL;
 	while ((p = procps_scan(p, PSSCAN_PID|PSSCAN_COMM|PSSCAN_ARGVN))) {
 		if (comm_match(p, procName)
 		/* or we require argv0 to match (essential for matching reexeced /proc/self/exe)*/
@@ -408,17 +410,23 @@ pid_t* find_pid_by_name(const char *procName)
 
 int pids_main(char *appname)
 {
-	pid_t *pidList;
+	pid_t *pidList = NULL;
 	pid_t *pl;
 	int count = 0;
 
 	pidList = find_pid_by_name(appname);
+	if(!pidList)
+	{
+		fprintf(stderr, "pid count: 0\n", count);
+		return 0;
+	}
 	for (pl = pidList; *pl; pl++) {
 		count++;
 		fprintf(stderr, "%u ", (unsigned)*pl);
 	}
 	if (count) fprintf(stderr, "\n");
-	free(pidList);
+	if(pidList)
+		free(pidList);
 
 	fprintf(stderr, "pid count: %d\n", count);
 
@@ -427,18 +435,53 @@ int pids_main(char *appname)
 
 int pids(char *appname)
 {
-	pid_t *pidList;
+	pid_t *pidList = NULL;
 	pid_t *pl;
 	int count = 0;
 
 	pidList = find_pid_by_name(appname);
+	if(!pidList)
+		return 0;
 	for (pl = pidList; *pl; pl++) {
 		count++;
 	}
-	free(pidList);
+	if(pidList)
+		free(pidList);
 
 	if (count)
 		return 1;
 	else
 		return 0;
+}
+
+int check_main_pids_exist(char *appname)
+{
+	pid_t *pidList = NULL;
+	pid_t *pl;
+	FILE *fp = NULL;
+	char buf[1024]={0}, path[128]={0};
+	int pid_num = -1, found = 0;
+	snprintf(path, sizeof(path), "/var/run/%s.pid", appname);
+
+	if ((fp = fopen(path, "r")) != NULL)
+	{
+		if(fread(buf, 1, sizeof(buf), fp))
+		{
+			pid_num = atoi(buf);
+			fprintf(stderr, "%s's main pid %d\n", appname, pid_num);
+		}
+		fclose(fp);
+	}
+	pidList = find_pid_by_name(appname);
+	if(pidList && pid_num != -1)
+	{
+		for (pl = pidList; *pl; pl++) {
+			if((unsigned)*pl == pid_num)
+				found++;
+		}
+	}
+	if(pidList)
+		free(pidList);
+	fprintf(stderr, "find %s's main pid %d %d\n", appname, pid_num, found);
+	return found;
 }

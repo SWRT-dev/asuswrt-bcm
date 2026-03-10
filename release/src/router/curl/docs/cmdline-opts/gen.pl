@@ -6,7 +6,7 @@
 #                            | (__| |_| |  _ <| |___
 #                             \___|\___/|_| \_\_____|
 #
-# Copyright (C) 1998 - 2022, Daniel Stenberg, <daniel@haxx.se>, et al.
+# Copyright (C) Daniel Stenberg, <daniel@haxx.se>, et al.
 #
 # This software is licensed as described in the file COPYING, which
 # you should have received as part of this distribution. The terms
@@ -33,7 +33,7 @@ Dev notes:
 
 We open *input* files in :crlf translation (a no-op on many platforms) in
 case we have CRLF line endings in Windows but a perl that defaults to LF.
-Unfortunately it seems some perls like msysgit can't handle a global input-only
+Unfortunately it seems some perls like msysgit cannot handle a global input-only
 :crlf so it has to be specified on each file open for text input.
 
 =end comment
@@ -51,6 +51,7 @@ use POSIX qw(strftime);
 my $date = strftime "%B %d %Y", localtime;
 my $year = strftime "%Y", localtime;
 my $version = "unknown";
+my $globals;
 
 open(INC, "<../../include/curl/curlver.h");
 while(<INC>) {
@@ -65,13 +66,16 @@ close(INC);
 sub manpageify {
     my ($k)=@_;
     my $l;
+    my $klong = $k;
+    # quote "bare" minuses in the long name
+    $klong =~ s/-/\\-/g;
     if($optlong{$k} ne "") {
         # both short + long
-        $l = "\\fI-".$optlong{$k}.", --$k\\fP";
+        $l = "\\fI-".$optlong{$k}.", \\-\\-$klong\\fP";
     }
     else {
         # only long
-        $l = "\\fI--$k\\fP";
+        $l = "\\fI\\-\\-$klong\\fP";
     }
     return $l;
 }
@@ -103,17 +107,24 @@ sub printdesc {
             print ".fi\n"; # fill-in
         }
         # skip lines starting with space (examples)
-        if($d =~ /^[^ ]/) {
-            for my $k (keys %optlong) {
+        if($d =~ /^[^ ]/ && $d =~ /--/) {
+            # scan for options in longest-names first order
+            for my $k (sort {length($b) <=> length($a)} keys %optlong) {
+                # --tlsv1 is complicated since --tlsv1.2 etc are also
+                # acceptable options!
+                if(($k eq "tlsv1") && ($d =~ /--tlsv1\.[0-9]\\f/)) {
+                    next;
+                }
                 my $l = manpageify($k);
-                $d =~ s/--$k([^a-z0-9_-])(\W)/$l$1$2/;
+                $d =~ s/\-\-$k([^a-z0-9-])/$l$1/g;
             }
         }
-        # quote "bare" minuses in the output
-        $d =~ s/( |\\fI|^)--/$1\\-\\-/g;
-        $d =~ s/([ -]|\\fI|^)-/$1\\-/g;
-        # handle single quotes first on the line
-        $d =~ s/(\s*)\'/$1\\(aq/;
+        # quote minuses in the output
+        $d =~ s/([^\\])-/$1\\-/g;
+        # replace single quotes
+        $d =~ s/\'/\\(aq/g;
+        # handle double quotes first on the line
+        $d =~ s/^(\s*)\"/$1\\(dq/;
         print $d;
     }
     if($exam) {
@@ -161,8 +172,8 @@ sub too_old {
     elsif($version =~ /^(\d+)\.(\d+)/) {
         $a = $1 * 1000 + $2 * 10;
     }
-    if($a < 7300) {
-        # we consider everything before 7.30.0 to be too old to mention
+    if($a < 7500) {
+        # we consider everything before 7.50.0 to be too old to mention
         # specific changes for
         return 1;
     }
@@ -172,7 +183,7 @@ sub too_old {
 sub added {
     my ($standalone, $data)=@_;
     if(too_old($data)) {
-        # don't mention ancient additions
+        # do not mention ancient additions
         return "";
     }
     if($standalone) {
@@ -202,6 +213,9 @@ sub single {
     my @examples; # there can be more than one
     my $magic; # cmdline special option
     my $line;
+    my $multi;
+    my $scope;
+    my $experimental;
     while(<F>) {
         $line++;
         if(/^Short: *(.)/i) {
@@ -229,6 +243,10 @@ sub single {
             $protocols=$1;
         }
         elsif(/^See-also: *(.*)/i) {
+            if($seealso) {
+                print STDERR "ERROR: duplicated See-also in $f\n";
+                return 1;
+            }
             $seealso=$1;
         }
         elsif(/^Requires: *(.*)/i) {
@@ -239,6 +257,15 @@ sub single {
         }
         elsif(/^Example: *(.*)/i) {
             push @examples, $1;
+        }
+        elsif(/^Multi: *(.*)/i) {
+            $multi=$1;
+        }
+        elsif(/^Scope: *(.*)/i) {
+            $scope=$1;
+        }
+        elsif(/^Experimental: yes/i) {
+            $experimental=1;
         }
         elsif(/^C: (.*)/i) {
             $copyright=$1;
@@ -291,6 +318,7 @@ sub single {
     }
     close(F);
     my $opt;
+
     if(defined($short) && $long) {
         $opt = "-$short, --$long";
     }
@@ -306,8 +334,7 @@ sub single {
     }
 
     # quote "bare" minuses in opt
-    $opt =~ s/( |^)--/$1\\-\\-/g;
-    $opt =~ s/( |^)-/$1\\-/g;
+    $opt =~ s/-/\\-/g;
     if($standalone) {
         print ".TH curl 1 \"30 Nov 2016\" \"curl 7.52.0\" \"curl manual\"\n";
         print ".SH OPTION\n";
@@ -324,8 +351,56 @@ sub single {
         print ".SH DESCRIPTION\n";
     }
 
+    if($experimental) {
+        print "**WARNING**: this option is experimental. Do not use in production.\n\n";
+    }
+
     printdesc(@desc);
     undef @desc;
+
+    if($scope) {
+        if($scope eq "global") {
+            print "\nThis option is global and does not need to be specified for each use of --next.\n";
+        }
+        else {
+            print STDERR "$f:$line:1:ERROR: unrecognized scope: '$scope'\n";
+            return 2;
+        }
+    }
+
+    my @extra;
+    if($multi eq "single") {
+        push @extra, "\nIf --$long is provided several times, the last set ".
+            "value is used.\n";
+    }
+    elsif($multi eq "append") {
+        push @extra, "\n--$long can be used several times in a command line\n";
+    }
+    elsif($multi eq "boolean") {
+        my $rev = "no-$long";
+        # for options that start with "no-" the reverse is then without
+        # the no- prefix
+        if($long =~ /^no-/) {
+            $rev = $long;
+            $rev =~ s/^no-//;
+        }
+        push @extra,
+            "\nProviding --$long multiple times has no extra effect.\n".
+            "Disable it again with \\-\\-$rev.\n";
+    }
+    elsif($multi eq "mutex") {
+        push @extra,
+            "\nProviding --$long multiple times has no extra effect.\n";
+    }
+    elsif($multi eq "custom") {
+        ; # left for the text to describe
+    }
+    else {
+        print STDERR "$f:$line:1:ERROR: unrecognized Multi: '$multi'\n";
+        return 2;
+    }
+
+    printdesc(@extra);
 
     my @foot;
     if($seealso) {
@@ -352,6 +427,7 @@ sub single {
         }
         push @foot, seealso($standalone, $mstr);
     }
+
     if($requires) {
         my $l = manpageify($long);
         push @foot, "$l requires that the underlying libcurl".
@@ -376,6 +452,8 @@ sub single {
         print "\nExample$s:\n.nf\n";
         foreach my $e (@examples) {
             $e =~ s!\$URL!https://example.com!g;
+            $e =~ s/-/\\-/g;
+            $e =~ s/\'/\\(aq/g;
             print " curl $e\n";
         }
         print ".fi\n";
@@ -451,6 +529,7 @@ sub header {
     while(<F>) {
         s/%DATE/$date/g;
         s/%VERSION/$version/g;
+        s/%GLOBALS/$globals/g;
         push @d, $_;
     }
     close(F);
@@ -466,7 +545,7 @@ sub listhelp {
  *                            | (__| |_| |  _ <| |___
  *                             \\___|\\___/|_| \\_\\_____|
  *
- * Copyright (C) 1998 - $year, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) Daniel Stenberg, <daniel\@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -500,7 +579,7 @@ HEAD
         my $long = $f;
         my $short = $optlong{$long};
         my @categories = split ' ', $catlong{$long};
-        my $bitmask;
+        my $bitmask = ' ';
         my $opt;
 
         if(defined($short) && $long) {
@@ -516,6 +595,7 @@ HEAD
                 $bitmask .= ' | ';
             }
         }
+        $bitmask =~ s/(?=.{76}).{1,76}\|/$&\n  /g;
         my $arg = $arglong{$long};
         if($arg) {
             $opt .= " $arg";
@@ -523,7 +603,7 @@ HEAD
         my $desc = $helplong{$f};
         $desc =~ s/\"/\\\"/g; # escape double quotes
 
-        my $line = sprintf "  {\"%s\",\n   \"%s\",\n   %s},\n", $opt, $desc, $bitmask;
+        my $line = sprintf "  {\"%s\",\n   \"%s\",\n  %s},\n", $opt, $desc, $bitmask;
 
         if(length($opt) > 78) {
             print STDERR "WARN: the --$long name is too long\n";
@@ -559,6 +639,36 @@ sub listcats {
     }
 }
 
+sub listglobals {
+    my (@files) = @_;
+    my @globalopts;
+
+    # Find all global options and output them
+    foreach my $f (sort @files) {
+        open(F, "<:crlf", "$f") ||
+            next;
+        my $long;
+        while(<F>) {
+            if(/^Long: *(.*)/i) {
+                $long=$1;
+            }
+            elsif(/^Scope: global/i) {
+                push @globalopts, $long;
+                last;
+            }
+            elsif(/^---/) {
+                last;
+            }
+        }
+        close(F);
+    }
+    return $ret if($ret);
+    for my $e (0 .. $#globalopts) {
+        $globals .= sprintf "%s--%s",  $e?($globalopts[$e+1] ? ", " : " and "):"",
+            $globalopts[$e],;
+    }
+}
+
 sub mainpage {
     my (@files) = @_;
     my $ret;
@@ -570,7 +680,9 @@ sub mainpage {
         $ret += single($f, 0);
     }
 
-    header("page-footer");
+    if(!$ret) {
+        header("page-footer");
+    }
     exit $ret if($ret);
 }
 
@@ -597,6 +709,7 @@ sub showprotocols {
 sub getargs {
     my ($f, @s) = @_;
     if($f eq "mainpage") {
+        listglobals(@s);
         mainpage(@s);
         return;
     }

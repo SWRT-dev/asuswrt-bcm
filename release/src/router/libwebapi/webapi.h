@@ -1,6 +1,7 @@
 #ifndef __WEBAPI_H__
 #define __WEBAPI_H__
 
+#include <json.h>
 #ifdef RTCONFIG_CFGSYNC
 #include <cfg_capability.h>
 #endif
@@ -34,10 +35,26 @@ enum {
 	HTTP_DM_SVR_FAIL
 };
 
+#ifndef RTCONFIG_BWDPI
+/* dpi_support index */
+enum{
+        INDEX_ALL = 0,
+        INDEX_MALS = 1,
+        INDEX_VP,
+        INDEX_CC,
+        INDEX_ADAPTIVE_QOS,
+        INDEX_TRAFFIC_ANALYZER,
+        INDEX_WEBS_FILTER,
+        INDEX_APPS_FILTER,
+        INDEX_WEB_HISTORY,        // NOTE: will remove in the future, replaced by web_mon
+        INDEX_BANDWIDTH_MONITOR
+};
+#endif
+
 struct RWD_MAPPING_TABLE {
         char *name;
         char *path;
-        char *white_theme;
+        char *theme_list;
 };
 
 struct JFFS_BACKUP_PROFILE_S {
@@ -48,6 +65,10 @@ struct JFFS_BACKUP_PROFILE_S {
         char *rc_service;
         int sync_flag; //0:nvram 1:openvpn 2:ipsec 3:usericon
 };
+
+#ifdef RTCONFIG_ENERGY_SAVE
+#define MaxRule_ENERGY_SAVE_SCHED 24
+#endif
 
 extern struct JFFS_BACKUP_PROFILE_S jffs_backup_profile_t[];
 #define JFFS_CFGS_EXCLUDE "/jffs/exclude_lists"
@@ -86,9 +107,7 @@ extern int upload_server_ipsec_cert_cgi();
 extern int gen_server_ipsec_file();
 #endif /* RTCONFIG_IPSEC */
 
-#ifdef RTCONFIG_AMAS_CENTRAL_CONTROL
 #define CFG_CNTRL_EXPORT_FILE	"/tmp/cfg_cntrl.bak"
-#endif
 
 extern struct nvram_tuple router_defaults[];
 #define BLACKLIST_CONFIG_FILE "/tmp/blacklist_config.json"
@@ -114,18 +133,30 @@ extern int delete_wireguard_client(int wgc_index);
 extern int get_wgc_connect_status(struct json_object *wgc_connect_status_obj);
 extern int del_wgsc_list(int s_unit, int c_unit);
 extern int get_wgsc_list(int s_unit, struct json_object *wgsc_list_array);
-extern int set_ASUS_EULA(char *ASUS_EULA);
-extern int set_app_mnt(char *app_mnt);
-extern int get_app_mnt(struct json_object *app_mnt_obj);
+extern int get_ASUS_privacy_policy_obj(struct json_object *ASUS_privacy_policy_obj);
+extern void replace_productid(char *GET_PID_STR, char *RP_PID_STR, int len);
 #ifdef RTCONFIG_CFGSYNC
 #define CFG_SERVER_PID		"/var/run/cfg_server.pid"
 extern int is_cfg_server_ready();
 extern void notify_cfg_server(json_object *cfg_root, int check);
 extern int check_cfg_changed(json_object *root);
-extern int save_changed_param(json_object *cfg_root, char *param);
+extern int save_changed_param(json_object *cfg_root, char *param, const char *value);
+#ifdef RTCONFIG_AMAS_CENTRAL_CONTROL
+#ifdef RTCONFIG_AMAS_CAP_CONFIG
+extern int is_cap_private_cfg(char *param);
+#endif	/* RTCONFIG_AMAS_CAP_CONFIG */
+#endif	/* RTCONFIG_AMAS_CENTRAL_CONTROL */
 #endif	/* RTCONFIG_CFGSYNC */
-extern char *rfctime(const time_t *timep);
-extern void reset_accpw();
-extern int b64_decode(const char *str, unsigned char *space, int size);
-extern int do_chpass(char *cur_username, char *cur_passwd, char *new_username, char *new_passwd, char *restart_httpd, char *defpass_enable, int from_service_id);
+#if defined(RTCONFIG_ASD) || defined(RTCONFIG_AHS)
+extern int set_security_update(char *security_update);
+extern int get_security_update(void);
+#endif
+extern int set_ASUS_EULA(char *ASUS_EULA);
+extern int set_ASUS_NEW_EULA(char *ASUS_NEW_EULA, char *from_service);
+extern int get_ASUS_privacy_policy_tbl(struct json_object *ASUS_privacy_policy_tbl);
+extern int get_ASUS_privacy_policy_info(struct json_object *ASUS_privacy_policy_info);
+extern int check_cmd_injection_blacklist(char *para);
+extern int check_xss_blacklist(char* para, int check_www);
+extern int validate_apply_input_value(char *name, char *value);
+extern int detect_vul_scan(void);
 #endif /* !__WEBAPI_H__ */

@@ -27,9 +27,9 @@ body{
 	border: 0px;
 	border-radius: 4px ;
 	transition: visibility 0s linear 0.218s,opacity 0.218s,background-color 0.218s;
-	height: 68px;
-	width: 300px;
-	font-size: 28pt;
+	height: 48px;
+	width: 200px;
+	font-size: 14pt;
 	color:#fff;
 	text-align:center;
 	vertical-align:center;
@@ -39,12 +39,12 @@ body{
 	background-color:rgba(255,255,255,0.2);
 	background-color:#576D73\9;
 	border-radius: 4px;
-	padding:26px 22px;
-	width: 480px;
+	padding:13px 11px;
+	width: 380px;
 	border: 0;
 	height:25px;
 	color:#fff;
-	font-size:28px
+	font-size:16px
 }
 .main_content{
 	width: 100%;
@@ -56,7 +56,7 @@ body{
 	margin: 35px 0px 0px 78px;
 }
 .main_content .title_name{
-	font-size: 40pt;
+	font-size: 30pt;
 	color:#93d2d9;
 }
 .main_content .title_name:before{
@@ -207,9 +207,15 @@ function isSupport(_ptn){
 }
 
 var gobi_support = isSupport("gobi");
+var secure_default = isSupport("secure_default");
 
 function initial(){
-	if(isSupport("BUSINESS")){
+	top.name = "";/* reset cache of state.js win.name */
+
+	if(`<% nvram_get("force_chgpass"); %>` == 1)
+		document.getElementById("QIS_pass_desc1").innerHTML ="To enhance security, a new password policy has been implemented.";
+
+	if(isSupport("UI4")){
 		$(".title_name").css({"color": "#000"})
 		$(".sub_title_name").css({"color": "#000"})
 		$(".form_input").css({
@@ -219,7 +225,7 @@ function initial(){
 		$(".businessStyle").css({"color": "#000"})
 	}
 
-	if(is_KR_sku || is_SG_sku || is_AA_sku)
+	if(is_KR_sku || is_SG_sku || is_AA_sku || secure_default)
 		$("#KRHint").show();
 
 	if(isIE8 || isIE9){
@@ -345,12 +351,20 @@ function validForm(){
 			return false;                   
 	}
 
-	if(is_KR_sku || is_SG_sku || is_AA_sku){		/* MODELDEP by Territory Code */
+	if(document.form.http_passwd_x.value == document.form.http_username_x.value){
+			showError(`<#JS_validLoginPWD_same#>`);
+			document.form.http_passwd_x.value = "";
+			document.form.http_passwd_x.focus();
+			document.form.http_passwd_x.select();
+			return false;                   
+	}
+
+	if(is_KR_sku || is_SG_sku || is_AA_sku || secure_default){		/* MODELDEP by Territory Code */
 		if(!validator.chkLoginPw_KR(document.form.http_passwd_x)){
 			return false;
 		}
 		if(document.form.http_passwd_x.value == document.form.http_username_x.value){
-			alert("<#JS_validLoginPWD#>");
+			alert("Password must contain at least 10 characters in length, including 1 letter, 1 special character, and 1 numeric character.");
 			document.form.http_passwd_x.focus();
 			document.form.http_passwd_x.select();
 			return false;	
@@ -473,15 +487,15 @@ var validator = {
 		
 		if(obj.value.length > 0 && obj.value.length < 5){
 			showError("<#JS_short_password#> <#JS_password_length#>");
-			obj.value = "";
 			obj.focus();
 			obj.select();
 			return false;
 		}
 		
 		if(obj.value.length > 32){
-            showError("<#JS_max_password#>");
-            obj.value = "";
+			var str_valid_max_password = `<#JS_max_password_var#>`;
+			str_valid_max_password = str_valid_max_password.replace("%1$@", "5");
+            showError(str_valid_max_password);
             obj.focus();
             obj.select();
             return false;
@@ -489,18 +503,16 @@ var validator = {
 
 		if(obj.value.charAt(0) == '"'){
 			showError('<#JS_validstr1#> ["]');
-			obj.value = "";
-                        obj.focus();
-                        obj.select();
-                        return false;
-                }
-                else if(obj.value.charAt(obj.value.length - 1) == '"'){
-                        showError('<#JS_validstr3#> ["]');
-			obj.value = "";
 			obj.focus();
 			obj.select();
-                        return false;
-                }
+			return false;
+		}
+		else if(obj.value.charAt(obj.value.length - 1) == '"'){
+			showError('<#JS_validstr3#> ["]');
+			obj.focus();
+			obj.select();
+			return false;
+		}
 		else{
 			var invalid_char = ""; 
 			for(var i = 0; i < obj.value.length; ++i){
@@ -511,7 +523,6 @@ var validator = {
 
 			if(invalid_char != ""){
 				showError("<#JS_validstr2#> '"+invalid_char+"' !");
-				obj.value = "";
 				obj.focus();
 				obj.select();
 				return false;
@@ -528,19 +539,19 @@ var validator = {
 		
 		if(!/[A-Za-z]/.test(obj.value) || !/[0-9]/.test(obj.value) || string_length < 10
 				|| !/[\!\"\#\$\%\&\'\(\)\*\+\,\-\.\/\:\;\<\=\>\?\@\[\\\]\^\_\`\{\|\}\~]/.test(obj.value)
-				|| /([A-Za-z0-9\!\"\#\$\%\&\'\(\)\*\+\,\-\.\/\:\;\<\=\>\?\@\[\\\]\^\_\`\{\|\}\~])\1/.test(obj.value)
+//				|| /([A-Za-z0-9\!\"\#\$\%\&\'\(\)\*\+\,\-\.\/\:\;\<\=\>\?\@\[\\\]\^\_\`\{\|\}\~])\1/.test(obj.value)
 		){
 				
-			showError("<#JS_validLoginPWD#>");
-			obj.value = "";
+			showError("Password must contain at least 10 characters in length, including 1 letter, 1 special character, and 1 numeric character.");
 			obj.focus();
 			obj.select();
 			return false;	
 		}
 		
 		if(obj.value.length > 32){
-			showError("<#JS_max_password#>");
-			obj.value = "";
+			var str_valid_max_password = `<#JS_max_password_var#>`;
+			str_valid_max_password = str_valid_max_password.replace("%1$@", "10");
+			showError(str_valid_max_password);
 			obj.focus();
 			obj.select();
 			return false;
@@ -548,14 +559,12 @@ var validator = {
 
 		if(obj.value.charAt(0) == '"'){
 			showError('<#JS_validstr1#> ["]');
-			obj.value = "";
 			obj.focus();
 			obj.select();
 			return false;
 		}
 		else if(obj.value.charAt(obj.value.length - 1) == '"'){
 			showError('<#JS_validstr3#> ["]');
-			obj.value = "";
 			obj.focus();
 			obj.select();
 			return false;
@@ -570,7 +579,6 @@ var validator = {
 
 		if(invalid_char != ""){
 			showError("<#JS_validstr2#> '"+invalid_char+"' !");
-			obj.value = "";
 			obj.focus();
 			obj.select();
 			return false;
@@ -592,7 +600,7 @@ function showError(str){
 <form method="post" name="form" action="/start_apply.htm" target="hidden_frame">
 <input type="hidden" name="group_id" value="">
 <input type="hidden" name="action_mode" value="apply">
-<input type="hidden" name="action_script" value="saveNvram">
+<input type="hidden" name="action_script" value="saveNvram;restart_chpass">
 <input type="hidden" name="action_wait" value="0">
 <input type="hidden" name="current_page" value="Main_Password.asp">
 <input type="hidden" name="next_page" value="">
@@ -601,17 +609,18 @@ function showError(str){
 <input name="foilautofill" style="display: none;" type="password">
 <input type="hidden" name="time_zone" value="" disabled>
 <input type="hidden" name="time_zone_dst" value="" disabled>
+<input type="hidden" name="cfg_pause" value="0">
 <table id="loginTable" align="center" cellpadding="0" cellspacing="0" style="display:none">
 	<tr>
 		<td>
 			<div class="main_content">
 				<div class="title_name"><#PASS_changepasswd#></div>
 				<div class="sub_title_name">
-					<div>
+					<div id="QIS_pass_desc1">
 						<#QIS_pass_desc1#>
 					</div>
 					<div id="KRHint" style="display:none">
-						<#JS_validLoginPWD#>
+						Password must contain at least 10 characters in length, including 1 letter, 1 special character, and 1 numeric character.
 					</div>
 				</div>
 				<div id="router_name_tr" class="ie_title">

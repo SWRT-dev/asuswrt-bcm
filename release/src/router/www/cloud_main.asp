@@ -12,10 +12,10 @@
 <link rel="stylesheet" type="text/css" href="index_style.css"> 
 <link rel="stylesheet" type="text/css" href="form_style.css">
 <link rel="stylesheet" type="text/css" href="app_installation.css">
+<script type="text/javascript" src="/js/jquery.js"></script>
 <script type="text/javascript" src="/state.js"></script>
 <script type="text/javascript" src="/popup.js"></script>
 <script type="text/javascript" src="/help.js"></script>
-<script type="text/javascript" src="/js/jquery.js"></script>
 <script type="text/javascript" src="/switcherplugin/jquery.iphone-switch.js"></script>
 <script type="text/javascript" src="/form.js"></script>
 <script language="JavaScript" type="text/javascript" src="/validator.js"></script>
@@ -63,6 +63,9 @@ if(tmo_support)
 	var theUrl = "cellspot.router"; 
 else
 	var theUrl = "<#Web_DOMAIN_NAME#>";
+
+var current_page = window.location.pathname.split("/").pop();
+var faq_index_tmp = get_faq_index(FAQ_List, current_page, 1);
 
 function initial(){
 	show_menu();
@@ -120,7 +123,7 @@ function initial(){
 			   aicloud_url += ":" + https_port;
 			}
 
-			document.getElementById("accessMethod").innerHTML = "<#AiCloud_enter#> <a id=\"cloud_url\" style=\"font-weight: bolder;text-decoration: underline;\" href=\"" + aicloud_url + "\" target=\"_blank\">" + aicloud_url + "</a>";
+			document.getElementById("accessMethod").innerHTML = "<#AiCloud_enter#> " + aicloud_url;
 
 			/*
 			if(https_port == 443)
@@ -136,17 +139,17 @@ function initial(){
 		case 1:
 			if('<% nvram_get("ddns_enable_x"); %>' == '1' && ddns_hostname != ''){
 				if(https_port == 443) // if the port number of https is 443, hide it
-					document.getElementById("accessMethod").innerHTML = "<#AiCloud_enter#> <a style=\"font-weight: bolder;text-decoration: underline;word-break:break-all;\" href=\"https://"+ ddns_hostname + ":"+ https_port +"\" target=\"_blank\">https://"+ ddns_hostname +"</a><br />";
+					document.getElementById("accessMethod").innerHTML = "<#AiCloud_enter#> https://"+ ddns_hostname +"<br />";
 				else
-					document.getElementById("accessMethod").innerHTML = "<#AiCloud_enter#> <a style=\"font-weight: bolder;text-decoration: underline;word-break:break-all;\" href=\"https://"+ ddns_hostname + ":"+ https_port +"\" target=\"_blank\">https://"+ ddns_hostname +":"+ https_port +"</a><br />";
+					document.getElementById("accessMethod").innerHTML = "<#AiCloud_enter#> https://"+ ddns_hostname +":"+ https_port +"<br />";
 				
 				document.getElementById("accessMethod").innerHTML += '<#aicloud_disk_case12#>';
 			}
 			else{
 				if(https_port == 443) // if the port number of https is 443, hide it
-					document.getElementById("accessMethod").innerHTML = "<#AiCloud_enter#> <a id=\"cloud_url\" style=\"font-weight: bolder;text-decoration: underline;\" href=\"https://<#Web_DOMAIN_NAME#>\" target=\"_blank\">https://<#Web_DOMAIN_NAME#></a>";
+					document.getElementById("accessMethod").innerHTML = "<#AiCloud_enter#> https://<#Web_DOMAIN_NAME#>";
 				else{
-					document.getElementById("accessMethod").innerHTML = "<#AiCloud_enter#> <a id=\"cloud_url\" style=\"font-weight: bolder;text-decoration: underline;\" href=\"https://<#Web_DOMAIN_NAME#>\" target=\"_blank\">https://<#Web_DOMAIN_NAME#></a>";
+					document.getElementById("accessMethod").innerHTML = "<#AiCloud_enter#> https://<#Web_DOMAIN_NAME#>";
                                 	document.getElementById('cloud_url').href = "https://"+ theUrl +":" + https_port;
 	                                document.getElementById('cloud_url').innerHTML = "https://"+ theUrl +":" + https_port;
 				}	
@@ -160,6 +163,10 @@ function initial(){
 
 	//check DUT is belong to private IP.
 	setTimeout("show_warning_message();", 1000);
+
+	if(isSupport("wifi7")){
+		$("#tr_aicloud_sync").remove();
+	}
 }
 
 var wans_mode ='<% nvram_get("wans_mode"); %>';
@@ -307,10 +314,10 @@ function show_partition(){
 function getStyleSheet(cssName, rule) {
 	for (i = 0; i < document.styleSheets.length; i++) {
 		if (document.styleSheets[i].href.toString().indexOf(cssName) != -1) {
-			for (x = 0; x < document.styleSheets[i].rules.length; x++) {
-				if(document.styleSheets[i].rules[x].type == 1) {
-					if (document.styleSheets[i].rules[x].selectorText.toString() == rule) {
-						return document.styleSheets[i].rules[x];
+			for (x = 0; x < document.styleSheets[i].cssRules.length; x++) {
+				if(document.styleSheets[i].cssRules[x].type == 1) {
+					if (document.styleSheets[i].cssRules[x].selectorText.toString() == rule) {
+						return document.styleSheets[i].cssRules[x];
 					}
 				}
 			}
@@ -675,15 +682,19 @@ function update_applist(e){
 		<td valign="top">
 			<div id="tabMenu" class="submenuBlock"></div>
 <!--==============Beginning of hint content=============-->
+
 			<table width="98%" border="0" align="left" cellpadding="0" cellspacing="0">
 			  <tr>
 					<td align="left" valign="top">
+					
 					  <table width="100%" border="0" cellpadding="5" cellspacing="0" class="FormTitle" id="FormTitle">
 							<tbody>
 							<tr>
 							  <td bgcolor="#4D595D" valign="top">
+							  	<div class="container">
 									<div>&nbsp;</div>
-									<div class="formfonttitle">AiCloud 2.0</div>									
+									<div class="formfonttitle">AiCloud 2.0</div>
+									<div class="formfonttitle_help"><i onclick="show_feature_desc(`<#HOWTOSETUP#>`)" class="icon_help"></i></div>
 									<div><img id="return_btn" onclick="location.href='/cloud_main.asp'" align="right" style="cursor:pointer;position:absolute;margin-left:690px;margin-top:-45px;" title="Back to AiCloud 2.0" src="/images/backprev.png" onMouseOver="this.src='/images/backprevclick.png'" onMouseOut="this.src='/images/backprev.png'"></div>
 									<div style="margin:10px 0 10px 5px;" class="splitLine"></div>
 									<div id="cloud_uninstall" style="display:none;">
@@ -706,6 +717,7 @@ function update_applist(e){
 									<div id="partition_div" style="display:none;"></div>
 									<div id="cloudsetup_movie" style="box-shadow: 2px 2px 15px #222;display:none;width:349px;height:193px;margin-left:165px;margin-top:40px;background:url(images/setup.jpg) no-repeat center;cursor:pointer" onClick="window.open('http://www.youtube.com/watch?v=1zIVzl1h8P4')"></div>
 									<div id="app_state" class="app_state" style="display:none;"><span id="apps_state_desc">Loading APP list...</span><img id="loadingicon" style="margin-left:5px;" src="/images/InternetScan.gif"></div>
+
 									<div id="cloud_installed" style="display:none;">
 									<table width="100%" height="550px" style="border-collapse:collapse;">
 
@@ -718,6 +730,9 @@ function update_applist(e){
 														<tr>
 															<td>
 																<ul style="margin: 0px;padding-left:15px;" >
+																	<li style="margin-top:-5px;">
+																	 <#HTTPS_Redirect_Desc2#>
+																	</li>
 																	<li style="margin-top:-5px;">
 																 	<div id="accessMethod"></div>
 																 	</li>
@@ -850,7 +865,7 @@ function update_applist(e){
 											</td>
 									  </tr>
 
-									  <tr class="block_bg">
+									  <tr class="block_bg" id="tr_aicloud_sync">
 									    <td class="cloud_main_radius_left" width="20%" height="50px">
 												<div style="padding:10px;" align="center">
 													<img src="/images/cloudsync/003.png">
@@ -874,21 +889,26 @@ function update_applist(e){
 									  </tr>
 									  <tr>
 									  	<td colspan="5" id="btn_cloud_uninstall">
-												<div class="apply_gen" style="margin-top:20px;">
-													<input class="button_gen" onclick="apps_form('remove','aicloud','');" type="button" value="Uninstall"/>
-			            			</div>			            
-			            		</td>
-			            	</tr>		
+											<div class="apply_gen" style="margin-top:20px;">
+												<input class="button_gen" onclick="apps_form('remove','aicloud','');" type="button" value="Uninstall"/>
+			            					</div>
+			            				</td>
+			            			  </tr>		
 									</table>
+
 									</div>
 
+								</div>	<!-- for .container  -->
+								<div class="popup_container popup_element_second"></div>
+
 							  </td>
-							</tr>				
+							</tr>
 							</tbody>	
-				  	</table>			
+				  	</table>
 					</td>
 				</tr>
 			</table>
+
 		</td>
 		<td width="20"></td>
 	</tr>

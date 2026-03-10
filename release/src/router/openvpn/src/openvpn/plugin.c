@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2024 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -23,8 +23,6 @@
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
-#elif defined(_MSC_VER)
-#include "config-msvc.h"
 #endif
 #ifdef HAVE_CONFIG_VERSION_H
 #include "config-version.h"
@@ -102,7 +100,13 @@ plugin_type_name(const int type)
             return "PLUGIN_CLIENT_CONNECT";
 
         case OPENVPN_PLUGIN_CLIENT_CONNECT_V2:
-            return "PLUGIN_CLIENT_CONNECT";
+            return "PLUGIN_CLIENT_CONNECT_V2";
+
+        case OPENVPN_PLUGIN_CLIENT_CONNECT_DEFER:
+            return "PLUGIN_CLIENT_CONNECT_DEFER";
+
+        case OPENVPN_PLUGIN_CLIENT_CONNECT_DEFER_V2:
+            return "PLUGIN_CLIENT_CONNECT_DEFER_V2";
 
         case OPENVPN_PLUGIN_CLIENT_DISCONNECT:
             return "PLUGIN_CLIENT_DISCONNECT";
@@ -113,11 +117,11 @@ plugin_type_name(const int type)
         case OPENVPN_PLUGIN_TLS_FINAL:
             return "PLUGIN_TLS_FINAL";
 
-        case OPENVPN_PLUGIN_ENABLE_PF:
-            return "PLUGIN_ENABLE_PF";
-
         case OPENVPN_PLUGIN_ROUTE_PREDOWN:
             return "PLUGIN_ROUTE_PREDOWN";
+
+        case OPENVPN_PLUGIN_CLIENT_CRRESPONSE:
+            return "PLUGIN_CRRESPONSE";
 
         default:
             return "PLUGIN_???";
@@ -161,12 +165,13 @@ plugin_option_list_new(struct gc_arena *gc)
 }
 
 bool
-plugin_option_list_add(struct plugin_option_list *list, char **p, struct gc_arena *gc)
+plugin_option_list_add(struct plugin_option_list *list, char **p,
+                       struct gc_arena *gc)
 {
     if (list->n < MAX_PLUGINS)
     {
         struct plugin_option *o = &list->plugins[list->n++];
-        o->argv = make_extended_arg_array(p, gc);
+        o->argv = make_extended_arg_array(p, false, gc);
         if (o->argv[0])
         {
             o->so_pathname = o->argv[0];
@@ -250,7 +255,7 @@ plugin_init_item(struct plugin *p, const struct plugin_option *o)
      * was parsed.
      *
      */
-    if (!absolute_pathname(p->so_pathname)
+    if (!platform_absolute_pathname(p->so_pathname)
         && p->so_pathname[0] != '.')
     {
         char full[PATH_MAX];
@@ -260,7 +265,7 @@ plugin_init_item(struct plugin *p, const struct plugin_option *o)
     }
     else
     {
-        rel = !absolute_pathname(p->so_pathname);
+        rel = !platform_absolute_pathname(p->so_pathname);
         p->handle = dlopen(p->so_pathname, RTLD_NOW);
     }
     if (!p->handle)
@@ -272,11 +277,23 @@ plugin_init_item(struct plugin *p, const struct plugin_option *o)
 
 #else  /* ifndef _WIN32 */
 
-    rel = !absolute_pathname(p->so_pathname);
-    p->module = LoadLibraryW(wide_string(p->so_pathname, &gc));
+    WCHAR *wpath = wide_string(p->so_pathname, &gc);
+    WCHAR normalized_plugin_path[MAX_PATH] = {0};
+    /* Normalize the plugin path, converting any relative paths to absolute paths. */
+    if (!GetFullPathNameW(wpath, MAX_PATH, normalized_plugin_path, NULL))
+    {
+        msg(M_ERR, "PLUGIN_INIT: could not load plugin DLL: %ls. Failed to normalize plugin path.", wpath);
+    }
+
+    if (!plugin_in_trusted_dir(normalized_plugin_path))
+    {
+        msg(M_FATAL, "PLUGIN_INIT: could not load plugin DLL: %ls. The DLL is not in a trusted directory.", normalized_plugin_path);
+    }
+
+    p->module = LoadLibraryW(normalized_plugin_path);
     if (!p->module)
     {
-        msg(M_ERR, "PLUGIN_INIT: could not load plugin DLL: %s", p->so_pathname);
+        msg(M_ERR, "PLUGIN_INIT: could not load plugin DLL: %ls", normalized_plugin_path);
     }
 
 #define PLUGIN_SYM(var, name, flags) dll_resolve_symbol(p->module, (void *)&p->var, name, p->so_pathname, flags)
@@ -520,11 +537,9 @@ plugin_call_item(const struct plugin *p,
                  const int type,
                  const struct argv *av,
                  struct openvpn_plugin_string_list **retlist,
-                 const char **envp
-#ifdef ENABLE_CRYPTO
-                 , int certdepth,
+                 const char **envp,
+                 int certdepth,
                  openvpn_x509_cert_t *current_cert
-#endif
                  )
 {
     int status = OPENVPN_PLUGIN_FUNC_SUCCESS;
@@ -553,14 +568,8 @@ plugin_call_item(const struct plugin *p,
                                                         (const char **const) envp,
                                                         p->plugin_handle,
                                                         per_client_context,
-#ifdef ENABLE_CRYPTO
                                                         (current_cert ? certdepth : -1),
-                                                        current_cert
-#else
-                                                        -1,
-                                                        NULL
-#endif
-            };
+                                                        current_cert };
 
             struct openvpn_plugin_args_func_return retargs;
 
@@ -594,7 +603,7 @@ plugin_call_item(const struct plugin *p,
                 p->so_pathname);
         }
 
-        argv_reset(&a);
+        argv_free(&a);
         gc_free(&gc);
     }
     return status;
@@ -789,11 +798,9 @@ plugin_call_ssl(const struct plugin_list *pl,
                 const int type,
                 const struct argv *av,
                 struct plugin_return *pr,
-                struct env_set *es
-#ifdef ENABLE_CRYPTO
-                , int certdepth,
+                struct env_set *es,
+                int certdepth,
                 openvpn_x509_cert_t *current_cert
-#endif
                 )
 {
     if (pr)
@@ -807,7 +814,6 @@ plugin_call_ssl(const struct plugin_list *pl,
         int i;
         const char **envp;
         const int n = plugin_n(pl);
-        bool success = false;
         bool error = false;
         bool deferred_auth_done = false;
 
@@ -821,16 +827,13 @@ plugin_call_ssl(const struct plugin_list *pl,
                                                 type,
                                                 av,
                                                 pr ? &pr->list[i] : NULL,
-                                                envp
-#ifdef ENABLE_CRYPTO
-                                                ,certdepth,
+                                                envp,
+                                                certdepth,
                                                 current_cert
-#endif
                                                 );
             switch (status)
             {
                 case OPENVPN_PLUGIN_FUNC_SUCCESS:
-                    success = true;
                     break;
 
                 case OPENVPN_PLUGIN_FUNC_DEFERRED:
@@ -877,11 +880,7 @@ plugin_call_ssl(const struct plugin_list *pl,
 
         gc_free(&gc);
 
-        if (type == OPENVPN_PLUGIN_ENABLE_PF && success)
-        {
-            return OPENVPN_PLUGIN_FUNC_SUCCESS;
-        }
-        else if (error)
+        if (error)
         {
             return OPENVPN_PLUGIN_FUNC_ERROR;
         }
@@ -1037,7 +1036,7 @@ plugin_return_print(const int msglevel, const char *prefix, const struct plugin_
         msg(msglevel, "PLUGIN #%d (%s)", i, prefix);
         while (l)
         {
-            msg(msglevel, "[%d] '%s' -> '%s'\n",
+            msg(msglevel, "[%d] '%s' -> '%s'",
                 ++count,
                 l->name,
                 l->value);
@@ -1046,10 +1045,4 @@ plugin_return_print(const int msglevel, const char *prefix, const struct plugin_
     }
 }
 #endif /* ifdef ENABLE_DEBUG */
-
-#else  /* ifdef ENABLE_PLUGIN */
-static void
-dummy(void)
-{
-}
 #endif /* ENABLE_PLUGIN */

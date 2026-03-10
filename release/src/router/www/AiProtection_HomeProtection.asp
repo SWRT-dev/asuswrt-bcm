@@ -6,20 +6,20 @@
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta HTTP-EQUIV="Pragma" CONTENT="no-cache">
 <meta HTTP-EQUIV="Expires" CONTENT="-1">
-<link rel="shortcut icon" href="images/favicon.png">
-<link rel="icon" href="images/favicon.png">
 <title><#Web_Title#> - <#AiProtection_Home#></title>
 <link rel="stylesheet" type="text/css" href="index_style.css">
 <link rel="stylesheet" type="text/css" href="form_style.css">
+<link rel="stylesheet" type="text/css" href="css/confirm_block.css">
+<script type="text/javascript" src="/js/confirm_block.js"></script>
+<script type="text/javascript" src="/js/jquery.js"></script>
 <script type="text/javascript" src="/state.js"></script>
 <script type="text/javascript" src="/popup.js"></script>
 <script type="text/javascript" src="/general.js"></script>
 <script type="text/javascript" src="/help.js"></script>
-<script type="text/javascript" src="/js/jquery.js"></script>
 <script type="text/javascript" src="/switcherplugin/jquery.iphone-switch.js"></script>
 <script type="text/javascript" src="/form.js"></script>
 <script type="text/javascript" src="/js/httpApi.js"></script>
-<script language="JavaScript" type="text/javascript" src="/js/asus_eula.js"></script>
+<script type="text/javascript" src="/js/asus_policy.js?v=4"></script>
 <style>
 *{
 	box-sizing: content-box;
@@ -140,6 +140,16 @@
 .shadow_m{
 	margin-top: -9px;
 }
+
+.alert_confirm_title_dark{
+	color:#FFCC00;
+	margin-left:15px;
+	font-size:10pt;
+}
+.alert_confirm_title_light{
+	color: blue;
+	font-size:10pt;
+}
 </style>
 <script>
 if(usb_support) addNewScript("/disk_functions.js");
@@ -147,11 +157,6 @@ window.onresize = function() {
 	if(document.getElementById("weakness_div") != null){
 		if(document.getElementById("weakness_div").style.display == "block") {
 			cal_panel_block("weakness_div", 0.25);
-		}
-	}
-	if(document.getElementById("alert_preference") != null){
-		if(document.getElementById("alert_preference").style.display == "block") {
-			cal_panel_block("alert_preference", 0.25);
 		}
 	}
 }
@@ -163,6 +168,98 @@ var risk_count = 0;
 var safe_count = 0;
 
 var faq_href = "https://nw-dlcdnet.asus.com/support/forward.html?model=&type=Faq&lang="+ui_lang+"&kw=&num=139";
+
+var getUrlParameter = function getUrlParameter(param){
+    var url_parm = window.location.search.substring(1);
+    var parm_array = url_parm.split("&");
+    var key_value;
+
+    for(var i = 0; i < parm_array.length; i += 1){
+        key_value = parm_array[i].split("=");
+        if (key_value[0] == param) {
+            return typeof key_value[1] == "undefined" ? "" : decodeURIComponent(key_value[1]);
+        }
+    }
+    return "";
+};
+var theme = getUrlParameter("current_theme").toUpperCase();
+
+function eventBind() {
+document.querySelectorAll(".alert_preference").forEach((element) => {
+
+	let confirm_content_dark = `<span class="alert_confirm_title_dark"><#AiProtection_alert_via_APP#></span><br>`;
+	let confirm_content_light = `<span class="alert_confirm_title_light"><#AiProtection_alert_via_APP#></span><br>`;
+	let confirm_content = (theme == "WHITE")?confirm_content_light:confirm_content_dark;
+
+	let confirm_content2 = `
+                            <div class="title_num_div">
+                            </div>
+                            <div style="margin-left:45px;margin-top:-22px;">
+                                <span style="color:#FFFFFF;"><b><#GB_mobile_desc_short#></b></span><br>
+                                <#AiProtection_alert_show#>
+                            </div>
+
+                            <!-- QR Codes -->
+                            <div style="padding:20px 0;">
+                                <div style="display:table-cell;vertical-align:middle;padding-left:80px;">
+                                    <img src="${Android_QR}" style="width:75px;height:75px;">
+                                </div>
+                                <div style="display:table-cell;vertical-align:middle;padding-left:110px;">
+                                    <img src="${IOS_QR}" style="width:75px;height:75px;">
+                                </div>
+                            </div>
+
+                            <!-- App Download Links -->
+                            <div style="padding:0;">
+                                <div style="display:table-cell;vertical-align:middle;padding-left:40px;">
+                                    <a href="${Android_app_link}" target="_blank">
+                                        <div style="width:160px; ${is_CN || ui_lang === "CN" ? 'font-size:24px;border:1px solid #BDBDBD;padding:10px 4px;border-radius:6px;' : 'height:46px;background:url(images/googleplay.png) no-repeat;background-size:100%;'} margin:auto;">
+                                            ${is_CN || ui_lang === "CN" ? 'Android App' : ''}
+                                        </div>
+                                    </a>
+                                </div>
+                                <div style="display:table-cell;vertical-align:middle;padding-left:20px;">
+                                    <a href="${IOS_app_link}" target="_blank">
+                                        <div style="width:160px;height:46px;background:url(images/AppStore.png) no-repeat;background-size:100%;margin:auto;"></div>
+                                    </a>
+                                </div>
+                            </div>          
+                        `;	//Untranslated
+                            
+                        // Click event handler
+                        element.addEventListener("click", function () {
+                            let confirm_flag = 1;
+                            if (confirm_flag === 1) {
+                                if ($(".confirm_block").length > 0) $(".confirm_block").remove();
+                                window.scrollTo && window.scrollTo(0, 0);
+                                
+                                $("#Loading").css("visibility", "visible");
+								$(".popup_bg").css("height", "1850px");
+                                $("#loadingBlock").css("visibility", "hidden");
+
+                                confirm_asus({
+                                    title: "",
+                                    contentA: confirm_content,
+                                    contentD: confirm_content2,
+                                    left_button: "Hidden",
+                                    left_button_callback: () => {},
+                                    right_button: "<#CTL_ok#>",
+                                    right_button_callback: () => {
+                                        confirm_cancel();
+                                        document.documentElement.style.overflow = "";
+                                        $("#Loading").css("visibility", "hidden");
+                                        return false;
+                                    },
+                                    iframe: "AFC",
+                                    margin: "0px",
+                                    note_display_flag: 0,
+                                });
+
+                                $(".confirm_block").css("zIndex", 10001);
+                            }
+                        });
+});
+}
 
 function initial(){
 	show_menu();
@@ -183,6 +280,17 @@ function initial(){
 		$("#vp_service_field").hide();
 	}
 
+	if(!isSupport("dpi_mals")) {
+		$("[data-group='dpi_mals']").hide();
+	}
+	if(!isSupport("dpi_cc")) {
+		$("[data-group='dpi_cc']").hide();
+	}
+	if(!isSupport("dpi_mals") && !isSupport("dpi_cc") && isSupport("dpi_vp")) {
+		$("[data-group='dpi_vp']").hide();
+		$("#tm_logo").css("margin-left", "0");
+	}
+
 	if(document.form.wrs_protect_enable.value == '1'){
 		shadeHandle('1');
 	}
@@ -193,11 +301,9 @@ function initial(){
 	getEventTime();
 	getEventData();
 	check_weakness();
+	eventBind();
 
 	$("#all_security_btn").hide();
-
-	if(!ASUS_EULA.status("tm"))
-		ASUS_EULA.config(eula_confirm, cancel);
 }
 
 function getEventTime(){
@@ -312,6 +418,11 @@ function applyRule(){
 }
 
 function showWeaknessTable(){
+	if(!usb_support){
+		$('#ftp_field').hide();
+		$('#samba_field').hide();
+	}
+
 	cal_panel_block("weakness_div", 0.25);
 	$('#weakness_div').fadeIn();
 }
@@ -397,7 +508,7 @@ function enable_whole_security(){
 
 	if(wan_access_enable ==1){
 		document.form.misc_http_x.value = 0;
-		document.form.misc_http_x.disabled = false;;
+		document.form.misc_http_x.disabled = false;
 		restart_time = 1;
 	}
 
@@ -914,16 +1025,22 @@ function eula_confirm(){
 	document.form.TM_EULA.value = 1;
 	document.form.wrs_protect_enable.value = "1";
 	document.form.action_wait.value = "15";
+    shadeHandle("1");
 	applyRule();
 }
 function switch_control(_status){
 	if(_status) {
 		if(reset_wan_to_fo.check_status()) {
-			if(ASUS_EULA.check("tm")){
-				document.form.wrs_protect_enable.value = "1";
-				shadeHandle("1");
-				applyRule();
-			}
+            if(policy_status.TM == 0 || policy_status.TM_time == ''){
+                const policyModal = new PolicyModalComponent({
+                    policy: "TM",
+                    agreeCallback: eula_confirm,
+                    disagreeCallback: cancel
+                });
+                policyModal.show();
+            }else{
+                eula_confirm();
+            }
 		}
 		else
 			cancel();
@@ -935,18 +1052,6 @@ function switch_control(_status){
 	}
 }
 
-function show_alert_preference(){
-	cal_panel_block("alert_preference", 0.25);
-	check_smtp_server_type();
-	parse_wrs_mail_bit();
-	$('#alert_preference').fadeIn(300);
-	document.getElementById('mail_address').value = document.form.PM_MY_EMAIL.value;
-	document.getElementById('mail_password').value = document.form.PM_SMTP_AUTH_PASS.value;
-}
-
-function close_alert_preference(){
-	$('#alert_preference').fadeOut(100);
-}
 var smtpList = new Array();
 smtpList = [
 	{smtpServer: "smtp.gmail.com", smtpPort: "587", smtpDomain: "gmail.com"},
@@ -955,89 +1060,6 @@ smtpList = [
 	{smtpServer: "smtp.163.com", smtpPort: "25", smtpDomain: "163.com"},
 	{end: 0}
 ];
-
-function apply_alert_preference(){
-	var address_temp = document.getElementById('mail_address').value;
-	var account_temp = document.getElementById('mail_address').value.split("@");
-	var authpass_temp = document.getElementById('mail_password').value;
-
-	var mail_bit = 0;
-	var server_index = document.getElementById("mail_provider").value;
-
-	if(address_temp == "") {
-		alert("Please input the mail account!");
-		return;
-	}
-
-	if(address_temp.indexOf("`")!=-1){
-		alert("` "+ " <#JS_validchar#>");
-		document.getElementById('mail_address').focus();
-		return;
-	}
-
-	if(authpass_temp == "") {
-		alert("Please input the mail password!");
-		return;
-	}
-
-	if(address_temp.indexOf('@') != -1){
-		if(account_temp[1] != "gmail.com" && account_temp[1] != "aol.com" && account_temp[1] != "qq.com" && account_temp[1] != "163.com"){
-			alert("Wrong mail domain");
-			document.getElementById('mail_address').focus();
-			return false;
-		}
-
-		if (document.form.PM_MY_EMAIL.value != address_temp)
-			document.form.action_script.value += ";email_conf;send_confirm_mail";
-
-		document.form.PM_MY_EMAIL.value = address_temp;
-	}
-	else{
-		if (document.form.PM_MY_EMAIL.value != address_temp)
-			document.form.action_script.value += ";email_conf;send_confirm_mail";
-
-		document.form.PM_MY_EMAIL.value = account_temp[0] + "@" +smtpList[server_index].smtpDomain;
-	}
-
-	if(document.getElementById("mal_website_item").checked)
-		mail_bit += 1;
-
-	if(document.getElementById("vp_item").checked)
-		mail_bit += 2;
-
-	if(document.getElementById("cc_item").checked)
-		mail_bit += 4;
-
-	document.form.wrs_mail_bit.value = mail_bit;
-	document.form.PM_SMTP_AUTH_USER.value = account_temp[0];
-	document.form.PM_SMTP_AUTH_PASS.value = document.getElementById('mail_password').value;
-	document.form.PM_SMTP_SERVER.value = smtpList[server_index].smtpServer;
-	document.form.PM_SMTP_PORT.value = smtpList[server_index].smtpPort;
-	$('#alert_preference').fadeOut(100);
-	document.form.submit();
-}
-
-function parse_wrs_mail_bit(){
-	var quot = document.form.wrs_mail_bit.value;
-	var mail_bit_array =  new Array();
-	for(i=0;i<3;i++){
-		mail_bit_array[i] = quot%2;
-		quot = parseInt(quot/2);
-	}
-
-	document.getElementById("mal_website_item").checked =  mail_bit_array[0] == 1 ? true : false;
-	document.getElementById("vp_item").checked =  mail_bit_array[1] == 1 ? true : false;
-	document.getElementById("cc_item").checked =  mail_bit_array[2] == 1 ? true : false;
-}
-
-function check_smtp_server_type(){
-	for(i = 0;i < smtpList.length; i++){
-		if(smtpList[i].smtpServer == document.form.PM_SMTP_SERVER.value){
-			document.getElementById("mail_provider").value = i;
-			break;
-		}
-	}
-}
 
 function shadeHandle(flag){
 	if(flag == "0"){
@@ -1048,6 +1070,7 @@ function shadeHandle(flag){
 	}
 
 }
+
 </script>
 </head>
 
@@ -1129,19 +1152,19 @@ function shadeHandle(flag){
 								<div id="port_forwarding"></div>
 							</td>
 						</tr>
-						<tr>
+						<tr id="ftp_field">
 							<th><#AiProtection_scan_item10#> -</th>
 							<td>
 								<div id="ftp_account"></div>
 							</td>
 						</tr>
-						<tr>
+						<tr id="samba_field">
 							<th><#AiProtection_scan_item11#> -</th>
 							<td>
 								<div id="samba_account"></div>
 							</td>
 						</tr>
-						<tr>
+						<tr data-group="dpi_mals">
 							<th><#AiProtection_scan_item12#> -</th>
 							<td>
 								<div id="wrs_service"></div>
@@ -1153,7 +1176,7 @@ function shadeHandle(flag){
 								<div id="vp_service"></div>
 							</td>
 						</tr>
-						<tr>
+						<tr data-group="dpi_cc">
 							<th><#AiProtection_detection_blocking#> -</th>
 							<td>
 								<div id="cc_service"></div>
@@ -1181,80 +1204,6 @@ function shadeHandle(flag){
 
 </div>
 
-<div id="alert_preference" class="alertpreference">
-	<table style="width:99%">
-		<tr>
-			<th>
-				<div style="font-size:16px;"><#AiProtection_alert_pref#></div>
-			</th>
-		</tr>
-			<td>
-				<div class="formfontdesc" style="font-size: 14px;"><#AiProtection_HomeDesc1#></div>
-			</td>
-		<tr>
-			<td>
-				<table class="FormTable" width="99%" border="1" align="center" cellpadding="4" cellspacing="0">
-					<tr>
-						<th><#Provider#></th>
-						<td>
-							<div>
-								<select class="input_option" id="mail_provider">
-									<option value="0">Google</option>
-									<option value="1">AOL</option>
-									<option value="2">QQ</option>
-									<option value="3">163</option>
-								</select>
-							</div>
-						</td>
-					</tr>
-					<tr>
-						<th>Email</th>
-						<td>
-							<div>
-								<input type="type" class="input_30_table" id="mail_address" value="">
-							</div>
-						</td>
-					</tr>
-					<tr>
-						<th><#HSDPAConfig_Password_itemname#></th>
-						<td>
-							<div>
-								<input type="password" class="input_30_table" id="mail_password" maxlength="100" value="" autocorrect="off" autocapitalize="off">
-							</div>
-						</td>
-					</tr>
-					<tr>
-						<th><#Notification_Item#></th>
-						<td>
-							<div>
-								<div>
-									<input type="checkbox" id="mal_website_item">
-									<span style="color: #FFF;"><#AiProtection_sites_blocking#></span>
-								</div>
-								<div>
-									<input type="checkbox" id="vp_item">
-									<span style="color: #FFF;"><#AiProtection_two-way_IPS#></span>
-								</div>
-								<div>
-									<input type="checkbox" id="cc_item">
-									<span style="color: #FFF;"><#AiProtection_detection_blocking#></span>
-								</div>
-							</div>
-						</td>
-					</tr>
-				</table>
-			</td>
-		</tr>
-		<tr>
-			<td>
-				<div style="text-align:center;margin-top:20px;">
-					<input class="button_gen" type="button" onclick="close_alert_preference();" value="<#CTL_close#>">
-					<input class="button_gen" type="button" onclick="apply_alert_preference();" value="<#CTL_apply#>">
-				</div>
-			</td>
-		</tr>
-	</table>
-</div>
 <iframe name="hidden_frame" id="hidden_frame" width="0" height="0" frameborder="0"></iframe>
 <form method="post" name="form" action="/start_apply.htm" target="hidden_frame">
 <input type="hidden" name="productid" value="<% nvram_get("productid"); %>">
@@ -1337,7 +1286,7 @@ function shadeHandle(flag){
 														<tr>
 															<td>
 																<div style="width:430px"><#AiProtection_HomeDesc2#></div>
-																<div style="width:430px">
+																<div data-group="dpi_vp" style="width:430px">
 																	<a id="faq" style="text-decoration:underline;" href="" target="_blank"><#AiProtection_title#> FAQ</a>
 																</div>
 															</td>
@@ -1345,7 +1294,7 @@ function shadeHandle(flag){
 																<div id="tm_logo" style="width:100px;height:48px;margin-left:-40px;background-image:url('images/New_ui/tm_logo.png');"></div>
 															</td>
 														</tr>
-														<tr id="scenario_tr">
+														<tr data-group="dpi_vp" id="scenario_tr">
 															<td rowspan="2">
 																<div>
 																	<img id="scenario_img" src="/images/New_ui/Home_Protection_Scenario.png">
@@ -1412,7 +1361,7 @@ function shadeHandle(flag){
 												</td>
 											</tr>
 											<tr style="height:10px;"></tr>
-											<tr class="block_bg block_line" style="height:120px;">
+											<tr data-group="dpi_mals" class="block_bg block_line" style="height:120px;">
 												<td style="border-radius:10px 0px 0px 10px;">
 													<div class="AiProtection_02"></div>
 												</td>
@@ -1517,7 +1466,7 @@ function shadeHandle(flag){
 											</tr>
 
 											<tr style="height:10px;"></tr>
-											<tr class="block_bg" style="height:120px;">
+											<tr data-group="dpi_cc" class="block_bg" style="height:120px;">
 												<td style="border-radius:10px 0px 0px 10px;">
 													<div class="AiProtection_03"></div>
 												</td>
@@ -1526,7 +1475,7 @@ function shadeHandle(flag){
 												</td>
 												<td style="padding:10px;cursor:pointer" onclick="location.href='AiProtection_InfectedDevicePreventBlock.asp'">
 													<div style="font-size:18px;text-shadow:1px 1px 0px black;"><#AiProtection_detection_blocking#></div>
-													<div style="font-size: 14px;color:#FC0;height:auto;;padding-top:5px;"><#AiProtection_detection_block_desc#></div>
+													<div style="font-size: 14px;color:#FC0;height:auto;padding-top:5px;"><#AiProtection_detection_block_desc#></div>
 												</td>
 												 <td>
 													<div class="line_vertical"></div>
@@ -1567,11 +1516,10 @@ function shadeHandle(flag){
 											</tr>
 										</table>
 									</div>
-									<div style=";margin:20px 0;text-align:right">
-										<div style="display:inline-block">
-											<input class="button_gen" type="button" onclick="show_alert_preference();" value="<#AiProtection_alert_pref#>">
-										</div>
+									<div data-group="dpi_vp" style="width:20%;margin:10px 0 10px 600px;border-radius:0px 10px 10px 0px;cursor:pointer;">
+										<input class="button_gen alert_preference" type="button" value="<#AiProtection_alert_pref#>">
 									</div>
+
 									<div style="width:96px;height:44px;margin: 10px 0 0 600px;background-image:url('images/New_ui/TrendMirco_logo.svg');background-size: 100%;"></div>
 								</td>
 							</tr>

@@ -1,7 +1,7 @@
 /* Interface for HTTP functions
  *
  * Copyright (C) 2003-2004  Narcis Ilisei <inarcis2002@hotpop.com>
- * Copyright (C) 2010-2020  Joachim Nilsson <troglobit@gmail.com>
+ * Copyright (C) 2010-2021  Joachim Wiberg <troglobit@gmail.com>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -31,6 +31,11 @@
 #include <openssl/ssl.h>
 #include <openssl/tls1.h>
 #include <openssl/err.h>
+#elif defined(CONFIG_MBEDTLS)
+#include <mbedtls/ctr_drbg.h>
+#include <mbedtls/entropy.h>
+#include <mbedtls/net_sockets.h>
+#include <mbedtls/ssl.h>
 #elif defined(CONFIG_GNUTLS)
 #include <gnutls/gnutls.h>
 #endif
@@ -47,16 +52,24 @@ typedef struct {
 	tcp_sock_t tcp;
 
 	int        ssl_enabled;
-#ifdef ENABLE_SSL
-#ifdef CONFIG_OPENSSL
+#if defined(ENABLE_SSL)
+#if defined(CONFIG_OPENSSL)
 	SSL       *ssl;
 	SSL_CTX   *ssl_ctx;
+#elif defined(CONFIG_MBEDTLS)
+	mbedtls_ssl_context      ssl;
+	mbedtls_net_context      server_fd;
+	mbedtls_ssl_config       conf;
+	mbedtls_x509_crt         cacert;
+	mbedtls_ctr_drbg_context ctr_drbg;
+	mbedtls_entropy_context  entropy;
 #else
 	gnutls_session_t ssl;
 #endif
 #endif
 
 	int        initialized;
+	int        connected;
 } http_t;
 
 typedef struct {

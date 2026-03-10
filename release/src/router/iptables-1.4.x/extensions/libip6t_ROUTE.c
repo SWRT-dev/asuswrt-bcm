@@ -93,7 +93,7 @@ parse(int c, char **argv, int invert, unsigned int *flags,
 
 		if (strlen(optarg) > sizeof(route_info->oif) - 1)
 			xtables_error(PARAMETER_PROBLEM,
-				   "Maximum interface name length %u",
+				   "Maximum interface name length %zu",
 				   sizeof(route_info->oif) - 1);
 
 		strcpy(route_info->oif, optarg);
@@ -208,14 +208,14 @@ save(const void *ip,
 	    || route_info->gw[2] 
 	    || route_info->gw[3]) {
 		char address[INET6_ADDRSTRLEN];
-		printf("--gw %s ", inet_ntop(AF_INET6, route_info->gw, address, INET6_ADDRSTRLEN));
+		printf(" --gw %s", inet_ntop(AF_INET6, route_info->gw, address, INET6_ADDRSTRLEN));
 	}
 
 	if (route_info->flags & IP6T_ROUTE_CONTINUE)
-		printf("--continue ");
+		printf(" --continue");
 
 	if (route_info->flags & IP6T_ROUTE_TEE)
-		printf("--tee ");
+		printf(" --tee");
 }
 
 

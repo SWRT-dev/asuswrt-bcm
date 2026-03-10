@@ -44,8 +44,9 @@ enum {
 };
 
 // ErP parameters
-/* the total period : 96 * 10  sec = 960 sec = 16 * 60 sec = 16 min */
-#define ERP_DEFAULT_COUNT  96
+/* the total period : 60 * 10  sec = 600 sec = 10 * 60 sec = 10 min */
+#define ERP_DEFAULT_COUNT  60
+//#define ERP_DEFAULT_COUNT  2
 static int erp_det_period = 0;             // detect mode
 static int erp_led_period = 0;             // led mode for flashing
 static int erp_count = ERP_DEFAULT_COUNT;  // ERP_DEFAULT_COUNT * 10 sec
@@ -110,13 +111,14 @@ static int erp_check_wl_stat(int model)
 	|| nvram_match("wl3_timesched", "1")
 #endif
 	) {
+
 		return -1;
 	}
 
 	if (nvram_get_int("wl0_radio")) ret++;
 	if (nvram_get_int("wl1_radio")) ret++;
 
-#ifdef RTCONFIG_HAS_5G_2
+#if defined(RTCONFIG_HAS_5G_2) || defined(RTCONFIG_HAS_6G_2) || defined(RTCONFIG_HAS_6G)
 	if (nvram_get_int("wl2_radio")) ret++;
 #endif
 #ifdef RTCONFIG_QUADBAND
@@ -126,6 +128,42 @@ static int erp_check_wl_stat(int model)
 	return ret;
 #endif
 }
+
+#if defined(RTCONFIG_QCA)
+static void erp_brcm_radio_down(int model)
+{
+	return;
+}
+#else
+static void erp_brcm_radio_down(int model)
+{
+	int i = 0;
+	char wl[32] = {0}, *next = NULL;
+
+	/* check each radio and make it down */
+	foreach(wl, nvram_safe_get("wl_ifnames"), next) {
+		SKIP_ABSENT_BAND_AND_INC_UNIT(i);
+		eval("wl", "-i", wl, "down");
+#if defined(RTCONFIG_HND_ROUTER_BE_4916)
+		eval("wlconf", wl, "power_down");
+		ERP_DBG("%s power_down (deep sleep)\n", wl);
+		sleep(3);
+#endif
+		ERP_DBG("wl = %s\n", wl);
+		i++;
+	}
+
+	/* TODO : special mode to shut down wireless radio */
+	if (model == MODEL_RTAC87U) {
+		eval("qcsapi_sockrpc", "pm", "suspend");
+		eval("qcsapi_sockrpc", "pm", "idle");
+	}
+
+	if (model == MODEL_DSLAC68U) {
+		eval("req_dsl_drv", "dslenable", "off"); //turn off DSL
+	}
+}
+#endif
 
 #if defined(RTCONFIG_QCA)
 /* Helper of erp_check_wl_auth_stat()
@@ -260,10 +298,14 @@ static int erp_check_arp_stat(int model)
 	int BR_NUM = 0;   // the bridge interface numbers
 	int unit = 0;
 	int wan_conn = 0; // wan connection stat
-#if defined(RTCONFIG_HND_ROUTER_AX_6756)
+#if defined(RTCONFIG_HND_ROUTER_AX_6756) || defined(RTCONFIG_HND_ROUTER_BE_4916)
 	char stat[20];    // ipv4 neigh stat
+	char mac[18];     // ipv4 neigh mac for filter
 	int stale_n = 0;  // ipv4 stale entries
 	int link_n = 0;   // ipv4 link entries
+#if defined(RTCONFIG_AI_SERVICE)
+	char aiboard_mac[18] = {0};
+#endif
 #endif
 
 	/* check arp table for IPv4 */
@@ -309,7 +351,7 @@ static int erp_check_arp_stat(int model)
 		fclose(fp);
 	}
 
-#if defined(RTCONFIG_HND_ROUTER_AX_6756)
+#if defined(RTCONFIG_HND_ROUTER_AX_6756) || defined(RTCONFIG_HND_ROUTER_BE_4916)
 	/* check ipv4 client for IPv4 */
 	doSystem("ip -f inet neigh show dev %s > %s", nvram_safe_get("lan_ifname"), ERP_IPV4_ARP);
 	if ((fp = fopen(ERP_IPV4_ARP, "r")) != NULL)
@@ -318,8 +360,15 @@ static int erp_check_arp_stat(int model)
 		while (fgets(buf, sizeof(buf), fp))
 		{
 			memset(stat, 0, sizeof(stat));
-			if (sscanf(buf, "%*s %*s %*s %s", stat) != 1) continue;
-			ERP_DBG("stat=%s\n", stat);
+			if (sscanf(buf, "%*s %*s %s %s", mac, stat) != 2) continue;
+			ERP_DBG("mac=%s, stat=%s\n", mac, stat);
+#if defined(RTCONFIG_AI_SERVICE)
+			snprintf(aiboard_mac, sizeof(aiboard_mac), "%s", nvram_safe_get("aiboard_macaddr"));
+			if (!strcasecmp(mac, aiboard_mac)) {
+				ERP_DBG("skip aiboard mac %s\n", aiboard_mac);
+				continue;
+			}
+#endif
 			if (!strcmp(stat, "STALE"))
 			{
 				stale_n++; // ipv4 clients
@@ -350,7 +399,7 @@ static int erp_check_arp_stat(int model)
 	}
 
 	/* check bridge interface for WLAN or LAN */
-#if defined(RTCONFIG_HND_ROUTER_AX_6756)
+#if defined(RTCONFIG_HND_ROUTER_AX_6756) || defined(RTCONFIG_HND_ROUTER_BE_4916)
 	if (link_n > BR_NUM) {
 		ret = 1;
 		goto check_end;
@@ -378,6 +427,61 @@ static int erp_check_arp_stat(int model)
 check_end:
 	ERP_DBG("ret = %d\n", ret);
 	return ret;
+}
+
+int Parse_GPhyStats(char *buf, int model)
+{
+	char *token = strtok(buf, ";");
+	char nv[16] = {0};
+	int no_link = 1;
+	int wan_link = 0;
+	char *key = NULL;
+	char *value = NULL;
+
+	while (token != NULL) {
+		ERP_DBG("token=%s\n", token);
+		strlcpy(nv, token, sizeof(nv));
+
+		char *tmp = strchr(nv, '=');
+		if (tmp != NULL) {
+			*tmp = '\0';
+			key = nv;
+			value = tmp + 1;
+			ERP_DBG("key=%s, value=%s\n", key, value);
+		}
+
+		/* skip ' ' or '\n' */
+		if (!strcmp(key, "") || *key == '\n') goto LOOP;
+
+		/* ignore DSL wan connection */
+		if (model == MODEL_DSLAC68U && (!strcmp(key, "W0"))) goto LOOP;
+
+		/* skip AI this tag */
+		if (!strcmp(key, "AI")) goto LOOP;
+
+		/* WAN has connection */
+		if ((!strcmp(key, "W0") || !strcmp(key, "W1")) && (strcmp(value, "X") != 0)) {
+			wan_link = 1;
+		}
+
+		/* WAN or LAN has connection */
+		if (strcmp(value, "X") != 0) {
+			ERP_DBG("key=%s, value=%s\n", key, value);
+			no_link = 0;
+		}
+
+LOOP:
+		token = strtok(NULL, ";");
+	}
+
+	ERP_DBG("wan_link=%d, no_link=%d\n", wan_link, no_link);
+	if (wan_link) {
+		return 2;
+	} else if (no_link) {
+		return 0;
+	} else {
+		return 1;
+	}
 }
 
 static int erp_check_gphy_stat(int model)
@@ -417,94 +521,17 @@ static int erp_check_gphy_stat(int model)
 
 	FILE *fp = NULL;
 	int ret = 1;
-	char v0[2], v1[2], v2[2], v3[2], v4[2], v5[2], v6[2], v7[2], v8[2];
-	char buf[80];
+	char buf[100] = {0};
 
 	doSystem("ATE Get_WanLanStatus > %s", ERP_GPHY);
 
 	if ((fp = fopen(ERP_GPHY, "r")) != NULL)
 	{
-		while (fgets(buf, sizeof(buf), fp))
-		{
-			memset(v0, 0, sizeof(v0));
-			memset(v1, 0, sizeof(v1));
-			memset(v2, 0, sizeof(v2));
-			memset(v3, 0, sizeof(v3));
-			memset(v4, 0, sizeof(v4));
-			memset(v5, 0, sizeof(v5));
-			memset(v6, 0, sizeof(v6));
-			memset(v7, 0, sizeof(v7));
-			memset(v8, 0, sizeof(v8));
-
-			int len = strlen(buf);
-			ERP_DBG("len = %d\n", len);
-			if (len == 46) {
-				sscanf(buf, "W0=%[^;];L1=%[^;];L2=%[^;];L3=%[^;];L4=%[^;];L5=%[^;];L6=%[^;];L7=%[^;];L8=%[^;];", v0, v1, v2, v3, v4, v5, v6, v7, v8);
-				if ( (!strcmp(v0, "X") || (model==MODEL_DSLAC68U)) /* DSL-AC68U v0 always = "M" */
-					&& !strcmp(v1, "X") && !strcmp(v2, "X") && !strcmp(v3, "X") && !strcmp(v4, "X")
-					&& !strcmp(v5, "X") && !strcmp(v6, "X") && !strcmp(v7, "X") && !strcmp(v8, "X"))
-				{
-					ret = 0;
-				}
-				else if (strcmp(v0, "X") && (model!=MODEL_DSLAC68U)) /* no DSL-model */
-				{
-					ret = 2;
-				}
-			}
-			else if(len == 36) {
-				sscanf(buf, "W0=%[^;];L1=%[^;];L2=%[^;];L3=%[^;];L4=%[^;];L5=%[^;];L6=%[^;];", v0, v1, v2, v3, v4, v5, v6);
-				if ( (!strcmp(v0, "X") || (model==MODEL_DSLAC68U)) /* DSL-AC68U v0 always = "M" */
-					&& !strcmp(v1, "X") && !strcmp(v2, "X") && !strcmp(v3, "X")
-					&& !strcmp(v4, "X") && !strcmp(v5, "X") && !strcmp(v6, "X"))
-				{
-					ret = 0;
-				}
-				else if (strcmp(v0, "X") && (model!=MODEL_DSLAC68U)) /* no DSL-model */
-				{
-					ret = 2;
-				}
-			}
-			else if(len == 31) {
-				sscanf(buf, "W0=%[^;];L1=%[^;];L2=%[^;];L3=%[^;];L4=%[^;];L5=%[^;];", v0, v1, v2, v3, v4, v5);
-				if ( (!strcmp(v0, "X") || (model==MODEL_DSLAC68U)) /* DSL-AC68U v0 always = "M" */
-					&& !strcmp(v1, "X") && !strcmp(v2, "X") && !strcmp(v3, "X") && !strcmp(v4, "X") && !strcmp(v5, "X"))
-				{
-					ret = 0;
-				}
-				else if (strcmp(v0, "X") && (model!=MODEL_DSLAC68U)) /* no DSL-model */
-				{
-					ret = 2;
-				}
-			}
-			else if(len == 26) {
-				sscanf(buf, "W0=%[^;];L1=%[^;];L2=%[^;];L3=%[^;];L4=%[^;];", v0, v1, v2, v3, v4);
-				if ( (!strcmp(v0, "X") || (model==MODEL_DSLAC68U)) /* DSL-AC68U v0 always = "M" */
-					&& !strcmp(v1, "X") && !strcmp(v2, "X") && !strcmp(v3, "X") && !strcmp(v4, "X"))
-				{
-					ret = 0;
-				}
-				else if (strcmp(v0, "X") && (model!=MODEL_DSLAC68U)) /* no DSL-model */
-				{
-					ret = 2;
-				}
-			}
-			else if(len == 21) {
-				sscanf(buf, "W0=%[^;];L1=%[^;];L2=%[^;];L3=%[^;];", v0, v1, v2, v3);
-				if ( (!strcmp(v0, "X") || (model==MODEL_DSLAC68U)) /* DSL-AC68U v0 always = "M" */
-					&& !strcmp(v1, "X") && !strcmp(v2, "X") && !strcmp(v3, "X"))
-				{
-					ret = 0;
-				}
-				else if (strcmp(v0, "X") && (model!=MODEL_DSLAC68U)) /* no DSL-model */
-				{
-					ret = 2;
-				}
-			}
-		}
+		fgets(buf, sizeof(buf), fp);
+		ret = Parse_GPhyStats(buf, model);
 		fclose(fp);
 	}
-
-	ERP_DBG("v0=%s, v1=%s, v2=%s, v3=%s, v4=%s, v5=%s, v6=%s, v7=%s, v8=%s, ret=%d\n", v0, v1, v2, v3, v4, v5, v6, v7, v8, ret);
+	ERP_DBG("ret=%d\n", ret);
 	return ret;
 #endif
 }
@@ -637,12 +664,14 @@ static int ERP_CHECK_MODEL_LIST()
 		|| model == MODEL_BC109
 		|| model == MODEL_BC105
 		|| model == MODEL_EBG19
-		|| model == MODEL_EBG15
-		|| model == MODEL_EBP15
 		|| model == MODEL_GTAX11000
 		|| model == MODEL_RTAX92U
 		|| model == MODEL_RTAX95Q
 		|| model == MODEL_XT8PRO
+		|| model == MODEL_BT12
+		|| model == MODEL_BT10
+		|| model == MODEL_BQ16
+		|| model == MODEL_BQ16_PRO
 		|| model == MODEL_BM68
 		|| model == MODEL_XT8_V2
 		|| model == MODEL_RTAXE95Q
@@ -650,7 +679,9 @@ static int ERP_CHECK_MODEL_LIST()
 		|| model == MODEL_ET8_V2
 		|| model == MODEL_RTAX56_XD4
 		|| model == MODEL_XD4PRO
+		|| model == MODEL_XC5
 		|| model == MODEL_CTAX56_XD4
+		|| model == MODEL_EBA63
 		|| model == MODEL_RTAX58U
 		|| model == MODEL_RTAX82U_V2
 		|| model == MODEL_TUFAX5400_V2
@@ -658,6 +689,7 @@ static int ERP_CHECK_MODEL_LIST()
 		|| model == MODEL_RTAX82_XD6S
 		|| model == MODEL_XD6_V2
 		|| model == MODEL_GT10
+		|| model == MODEL_RTAX9000
 		|| model == MODEL_RTAX58U_V2
 		|| model == MODEL_RTAX3000N
 		|| model == MODEL_BR63
@@ -667,14 +699,34 @@ static int ERP_CHECK_MODEL_LIST()
 		|| model == MODEL_RTAX56U
 		|| model == MODEL_RPAX56
 		|| model == MODEL_RPAX58
+		|| model == MODEL_RPBE58
 		|| model == MODEL_GTAXE11000
 		|| model == MODEL_GTAX6000
 		|| model == MODEL_GTAX11000_PRO
 		|| model == MODEL_GTAXE16000
+		|| model == MODEL_GTBE98
+		|| model == MODEL_GTBE98_PRO
 		|| model == MODEL_ET12
 		|| model == MODEL_XT12
 		|| model == MODEL_RTAX86U_PRO
 		|| model == MODEL_RTAX88U_PRO
+		|| model == MODEL_RTBE96U
+		|| model == MODEL_GTBE96
+		|| model == MODEL_RTBE88U
+		|| model == MODEL_RTBE86U
+		|| model == MODEL_RTBE58U
+		|| model == MODEL_RTBE58U_V2
+		|| model == MODEL_GTBE19000
+		|| model == MODEL_RTBE92U
+		|| model == MODEL_RTBE95U
+		|| model == MODEL_RTBE82U
+		|| model == MODEL_RTBE82M
+		|| model == MODEL_RTBE58U_PRO
+		|| model == MODEL_RTBE58_GO
+		|| model == MODEL_GTBE19000AI
+		|| model == MODEL_GSBE18000
+		|| model == MODEL_GT7
+		|| model == MODEL_GTBE96_AI
 #endif
 	) {
 		ret = 1;
@@ -709,152 +761,7 @@ static void erp_standby_mode(int model)
 #if defined(RTCONFIG_QCA)
 	pre_erp_standby_mode(model);
 #else
-	switch(model) {
-		case MODEL_RTAC87U:
-			eval("wl", "-i", "eth1", "down");
-			break;
-		case MODEL_GTAC5300:
-		case MODEL_GTAX11000:
-		case MODEL_RTAX92U:
-		case MODEL_GTAXE11000:
-			eval("wl", "-i", "eth6", "down");
-			eval("wl", "-i", "eth7", "down"); // turn off 5g radio
-			break;
-		case MODEL_GTAX6000:
-		case MODEL_GTAX11000_PRO:
-		case MODEL_RTAX86U_PRO:
-		case MODEL_RTAX88U_PRO:
-			eval("wl", "-i", "eth6", "down");
-			eval("wl", "-i", "eth7", "down"); // turn off 5g radio
-			break;
-		case MODEL_GTAXE16000:
-			eval("wl", "-i", "eth10", "down");
-			eval("wl", "-i", "eth7", "down"); // turn off 5g radio
-			break;
-		case MODEL_RTAX95Q:
-		case MODEL_XT8PRO:
-		case MODEL_BM68:
-		case MODEL_XT8_V2:
-		case MODEL_RTAXE95Q:
-		case MODEL_ET8PRO:
-		case MODEL_ET8_V2:
-		case MODEL_ET12:
-		case MODEL_XT12:
-			eval("wl", "-i", "eth4", "down");
-			eval("wl", "-i", "eth5", "down"); // turn off 5g radio
-			break;
-		case MODEL_RTAX56_XD4:
-		case MODEL_XD4PRO:
-		case MODEL_CTAX56_XD4:
-			eval("wl", "-i", "wl0", "down");
-			eval("wl", "-i", "wl1", "down"); // turn off 5g radio
-			break;
-		case MODEL_GT10:
-			eval("wl", "-i", "eth4", "down");
-			eval("wl", "-i", "eth5", "down");
-			eval("wl", "-i", "eth6", "down");
-			break;
-		case MODEL_RTAX58U:
-		case MODEL_TUFAX3000_V2:
-		case MODEL_RTAX82U_V2:
-		case MODEL_TUFAX5400_V2:
-		case MODEL_RTAX5400:
-		case MODEL_XD6_V2:
-			eval("wl", "-i", "eth5", "down");
-			eval("wl", "-i", "eth6", "down"); // turn off 5g radio
-			break;
-		case MODEL_RTAXE7800:
-			eval("wl", "-i", "eth5", "down");
-			eval("wl", "-i", "eth6", "down");
-			eval("wl", "-i", "eth7", "down");
-			break;
-		case MODEL_RTAX55:
-		case MODEL_RTAX58U_V2:
-		case MODEL_RTAX82_XD6S:
-		case MODEL_RTAX3000N:
-		case MODEL_BR63:
-			eval("wl", "-i", "eth2", "down");
-			eval("wl", "-i", "eth3", "down"); // turn off 5g radio
-			break;
-		case MODEL_RTAX56U:
-			eval("wl", "-i", "eth5", "down");
-			eval("wl", "-i", "eth6", "down"); // turn off 5g radio
-			break;
-		case MODEL_RPAX56:
-		case MODEL_RPAX58:
-			eval("wl", "-i", "eth1", "down");
-			eval("wl", "-i", "eth2", "down"); // turn off 5g radio
-			break;
-		case MODEL_RTAX88U:
-			eval("wl", "-i", "eth6", "down");
-			eval("wl", "-i", "eth7", "down"); // turn off 5g radio
-			break;
-		default:
-			eval("wl", "-i", "eth1", "down");
-			eval("wl", "-i", "eth2", "down"); // turn off 5g radio
-			break;
-	}
-
-	/* TODO : add different platform or model case here */
-	if (model == MODEL_RTAC87U) {
-		eval("qcsapi_sockrpc", "pm", "suspend");
-		eval("qcsapi_sockrpc", "pm", "idle");
-	}
-
-	if (model == MODEL_RTAC5300 || model == MODEL_RTAC3200)
-	{
-		// triple band
-		eval("wl", "-i", "eth3", "down"); // turn off 5g-2 radio
-	}
-
-	if (model == MODEL_GTAC5300 || model == MODEL_GTAX11000 || model == MODEL_GTAXE11000) {
-		// triple band
-		eval("wl", "-i", "eth8", "down"); // turn off 5g-2 radio
-	}
-
-	if (model == MODEL_GTAX11000_PRO) {
-		// triple band
-		eval("wl", "-i", "eth8", "down"); // turn off 5g-2 radio
-	}
-
-	if (model == MODEL_GTAXE16000) {
-		// triple band
-		eval("wl", "-i", "eth8", "down"); // turn off 5g-2 radio
-		eval("wl", "-i", "eth9", "down"); // turn off 6g radio
-	}
-
-	if (model == MODEL_ET12 || model == MODEL_XT12) {
-		// triple band
-		eval("wl", "-i", "eth6", "down"); // turn off 5g-2 radio
-	}
-
-	if (model == MODEL_RTAX92U) {
-		// triple band
-		eval("wl", "-i", "eth5", "down"); // turn off 2g radio
-	}
-
-	if (model == MODEL_RTAX95Q || model == MODEL_XT8PRO || model == MODEL_BM68 || model == MODEL_XT8_V2 || model == MODEL_RTAXE95Q || model == MODEL_ET8PRO || model == MODEL_ET8_V2) {
-		// triple band
-		eval("wl", "-i", "eth4", "down"); // turn off 2g radio
-	}
-
-	if (model == MODEL_RTAX56_XD4 || model == MODEL_XD4PRO || model == MODEL_CTAX56_XD4) {
-		// triple band
-		eval("wl", "-i", "wl0", "down"); // turn off 2g radio
-	}
-
-	if (model == MODEL_RTAX56U) {
-		// triple band
-		eval("wl", "-i", "eth5", "down"); // turn off 2g radio
-	}
-
-	if (model == MODEL_RPAX56 || model == MODEL_RPAX58) {
-		eval("wl", "-i", "eth1", "down"); // turn off 2g radio
-	}
-
-	if (model == MODEL_DSLAC68U) {
-		eval("req_dsl_drv", "dslenable", "off"); //turn off DSL
-	}
+	erp_brcm_radio_down(model);
 #endif
 
 	// step2. remove wireless driver module
@@ -867,11 +774,29 @@ static void erp_standby_mode(int model)
 	// step4. special case
 #if defined(RTCONFIG_QCA)
 	post_erp_standby_mode(model);
+#elif defined(RTCONFIG_HND_ROUTER_BE_4916)
+	// remove dhd module to save 1.4~1.6W
+	unload_wl();
 #else
 	if (model == MODEL_RTAC88U || model == MODEL_RTAC5300 || model == MODEL_RTAC3100) {
 		eval("devmem", "0x18000068", "32", "0x401");
 		eval("devmem", "0x18000064", "32", "0x0");
 	}
+#endif
+
+	// step5. BCM4916 with RGB led and rtkswitch special case
+#if defined(GTBE98) || defined(GTBE98_PRO) || defined(GTBE96) || defined(GTBE19000) || defined(GTBE19000AI) || defined(GTBE96_AI)
+	// disable RGB LED to save 1.4~1.6W
+	LEDGroupReset(LED_OFF);
+
+	// disable rtkswitch to save 0.2W
+	eval("rtkswitch", "6"); // rtkswitch off
+#endif
+
+#if defined(RTCONFIG_AI_SERVICE)
+	char buf[128] = {0};
+	snprintf(buf, sizeof(buf), "echo 0 > /sys/class/leds/led_gpio_6/brightness");
+	system(buf);
 #endif
 
 	/* update status */
@@ -955,12 +880,34 @@ static void post_erp_wakeup_mode(int model)
 }
 #endif
 
+#if defined(RTCONFIG_HND_ROUTER_BE_4916)
+static void erp_brcm_radio_up(int model)
+{
+	int i = 0;
+	char wl[32] = {0}, *next = NULL;
+
+	/* check each radio and make it down */
+	foreach(wl, nvram_safe_get("wl_ifnames"), next) {
+		SKIP_ABSENT_BAND_AND_INC_UNIT(i);
+		eval("wlconf", wl, "power_up");
+		ERP_DBG("%s power_up (deep sleep)\n", wl);
+		sleep(10);
+		i++;
+	}
+}
+#endif
+
 static void erp_wakeup_mode(int model)
 {
 	ERP_DBG("enter wakeup mode, model = %d\n", model);
 
 	/* usb power up*/
 	eval("rc", "pwr_usb", "1");
+
+#if defined(RTCONFIG_HND_ROUTER_BE_4916)
+	load_wl();
+	erp_brcm_radio_up(model);
+#endif
 
 #if defined(RTCONFIG_QCA)
 	pre_erp_wakeup_mode(model);
@@ -1001,6 +948,18 @@ static void erp_wakeup_mode(int model)
 
 #if defined(RTCONFIG_HND_ROUTER_AX_6756)
 	if (is_erp_cled_model() == 1) doSystem("rc cled 0 0"); // recover led behavior
+#endif
+
+#if defined(GTBE98) || defined(GTBE98_PRO) || defined(GTBE96) || defined(GTBE19000) || defined(GTBE19000AI) || defined(GTBE96_AI)
+	//LEDGroupReset(LED_ON); // this function will make RGB LED white, we use restart_ledg to replace and make it back to normal light
+	notify_rc("restart_ledg");
+	eval("rtkswitch", "5"); // rtkswitch on
+#endif
+
+#if defined(RTCONFIG_AI_SERVICE)
+	char buf[128] = {0};
+	snprintf(buf, sizeof(buf), "echo 255 > /sys/class/leds/led_gpio_6/brightness");
+	system(buf);
 #endif
 
 	/* update status */
@@ -1168,7 +1127,7 @@ static void ERP_CHECK_MODE()
 	if (erp_wl == -1) goto wakeup;
 
 	// wifi interface is over 1
-	if (erp_wl == 2 || erp_wl == 3) goto wakeup;
+	if (erp_wl > 1) goto wakeup;
 
 	// lan / wlan / wan connection
 	if (erp_arp != 0) goto wakeup;
@@ -1237,14 +1196,14 @@ int erp_monitor_main(int argc, char **argv)
 	/* check model list */
 	if (ERP_CHECK_MODEL_LIST() == 0)
 	{
-		logmessage("ERP", "The model isn't under support list!\n");
+		//logmessage("ERP", "The model isn't under support list!\n");
 		return -1;
 	}
 
 	/* check tcode */
 	if (ERP_CHECK_TCODE_LIST() == 0)
 	{
-		logmessage("ERP", "The model isn't under EU SKU!\n");
+		//logmessage("ERP", "The model isn't under EU SKU!\n");
 		return -2;
 	}
 
@@ -1267,6 +1226,7 @@ int erp_monitor_main(int argc, char **argv)
 
 	signal(SIGTERM, catch_sig);
 	signal(SIGALRM, catch_sig);
+	signal(SIGCHLD, chld_reap); // To avoid the child process turn to zombie state
 
 	while(1)
 	{

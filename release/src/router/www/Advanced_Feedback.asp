@@ -14,12 +14,12 @@
 <title><#Web_Title#> - <#menu_feedback#></title>
 <link rel="stylesheet" type="text/css" href="index_style.css"> 
 <link rel="stylesheet" type="text/css" href="form_style.css">
+<script type="text/javascript" src="/js/jquery.js"></script>
 <script language="JavaScript" type="text/javascript" src="/state.js"></script>
 <script language="JavaScript" type="text/javascript" src="/general.js"></script>
 <script language="JavaScript" type="text/javascript" src="/popup.js"></script>
 <script language="JavaScript" type="text/javascript" src="/help.js"></script>
 <script language="JavaScript" type="text/javascript" src="/validator.js"></script>
-<script language="JavaScript" type="text/javascript" src="js/jquery.js"></script>
 <script type="text/javascript" src="js/oauth.js"></script>
 <script type="text/javascript" src="js/httpApi.js"></script>
 <style>
@@ -36,13 +36,6 @@
 .dblog_stop_text {
 	cursor: pointer;
 	text-decoration: underline;
-}
-.loadingIcon {
-	background: url('/images/InternetScan.gif') center no-repeat;
-	width: 33px;
-	height: 33px;
-	background-size: contain;
-	display: inline-block;
 }
 </style>
 <script>
@@ -80,6 +73,7 @@ function initial(){
 		document.getElementById("fb_desc0").style.display = "";
 		inputCtrl(document.form.fb_ISP, 0);
 		inputCtrl(document.form.fb_Subscribed_Info, 0);
+		document.form.gen_tarball_id.checked = false;
 		document.form.attach_syslog_id.checked = true;
 		document.form.attach_cfgfile_id.checked = true;
 		document.form.attach_iptables.checked = false;
@@ -118,18 +112,18 @@ function initial(){
 		$(".dblog_support_class").remove();
 	}
 
-	if(fb_state == "2"){
+	if(fb_state == "0" || fb_state == "1" || fb_state == "2"){
 		$('html, body').hide();
 		redirect();
 	}
-	else if(fb_state == "0"){
+	/*else if(fb_state == "0"){
 		disbled_feedback_filed(0);
 		detect_fb_state();
-	}
+	}*/
 
 	if(false){
 		$("#fb_email_provider_field").show();
-		var fb_email_provider = '<% nvram_get("fb_email_provider"); %>';
+		var fb_email_provider = httpApi.nvramGet(["fb_email_provider"], true).fb_email_provider;
 		if(fb_email_provider=="" && default_provider!=""){
 			document.form.fb_email_provider.value = default_provider;	
 		}
@@ -137,33 +131,10 @@ function initial(){
 			document.form.fb_email_provider.value = fb_email_provider;
 		}
 		change_fb_email_provider();
-
-		$("#oauth_google_btn").click(
-			function() {
-				oauth.google(onGoogleLogin);
-			}
-		);
-
-		//init check google token_status
-		if(document.form.fb_email_provider.value == "google") {
-			$(".oauth_google_status").hide();
-			if(httpApi.nvramGet(["oauth_google_refresh_token"], true).oauth_google_refresh_token != "") {
-				$("#oauth_google_loading").show();
-				document.form.fb_email.value = "";
-				check_refresh_token_valid(
-					function(_callBackValue) {
-						$("#oauth_google_loading").hide();
-						show_google_auth_status(_callBackValue);
-					}
-				);
-			}
-			else
-				show_google_auth_status();
-		}
 	}
 
 	if(reload_data==1){
-		document.form.fb_country.value = decodeURIComponent('<% nvram_char_to_ascii("", "fb_country"); %>');
+		//document.form.fb_country.value = decodeURIComponent('<% nvram_char_to_ascii("", "fb_country"); %>');
 		document.form.fb_ptype.value = decodeURIComponent('<% nvram_char_to_ascii("", "fb_ptype"); %>');
 		Reload_pdesc(document.form.fb_ptype);
 		document.form.fb_pdesc.value = decodeURIComponent('<% nvram_char_to_ascii("", "fb_pdesc"); %>');
@@ -172,8 +143,10 @@ function initial(){
 
 	var policy_href = "https://nw-dlcdnet.asus.com/support/forward.html?model=&type=Policy&lang="+ui_lang+"&kw=&num=";
 	$("#eula_content").find($("a")).attr({"href": policy_href});
-	var call_href = "https://nw-dlcdnet.asus.com/support/forward.html?model=&type=Call&lang="+ui_lang+"&kw=&num=";
-	$("#call_link").attr({"href": call_href});
+	//var call_href = "https://nw-dlcdnet.asus.com/support/forward.html?model=&type=Call&lang="+ui_lang+"&kw=&num=";
+	//$("#call_link").attr({"href": call_href});
+	var support_href = "https://nw-dlcdnet.asus.com/support/forward.html?model=&type=asus_support&lang="+ui_lang+"&kw=&num=";
+	$("#site_link").attr({"href": support_href});	//#feedback_note6#
 }
 
 function gen_contact_sel(){
@@ -195,9 +168,10 @@ function gen_contact_sel(){
  */
 function disbled_feedback_filed(status){
 	document.form.eula_checkbox.disabled = true;
-	document.form.fb_country.disabled = true;
+	//document.form.fb_country.disabled = true;
 	document.form.fb_email.disabled = true;
 	document.form.fb_serviceno.disabled = true;
+		document.form.gen_tarball.disabled = true;
 	document.form.attach_syslog.disabled = true;
 	document.form.attach_cfgfile.disabled = true;
 	document.form.attach_modemlog.disabled = true;
@@ -208,8 +182,6 @@ function disbled_feedback_filed(status){
 	document.form.btn_send.disabled = true;
 	if(status == 0){
 		$(".dblog_disabled_status").find("input, textarea, button, select").attr("disabled", true);
-		$("#apply_button").css("display", "none");
-		$("#loadingIcon").css("display", "");
 	}
 	else if(status == 1){
 		document.getElementById("fb_desc_disconnect").style.display = "";
@@ -230,12 +202,14 @@ function check_wan_state(){
 			document.form.fb_availability.disabled = true;
 			
 		}
+
 	}
 	else{
 		document.getElementById("fb_desc_disconnect").style.display = "none";
-		document.form.fb_country.disabled = "";
+		//document.form.fb_country.disabled = "";
 		document.form.fb_email.disabled = "";
 		document.form.fb_serviceno.disabled = "";
+		document.form.gen_tarball.disabled = "";
 		document.form.attach_syslog.disabled = "";
 		document.form.attach_modemlog.disabled = "";
 		document.form.attach_wlanlog.disabled = "";
@@ -311,7 +285,7 @@ function Reload_pdesc(obj, url){
 		desclist.push(["<#Traffic_Analyzer#>/<#Menu_TrafficManager#>","Traffic Analyzer/Manager"]);
 		url_group.push(["TrafficMonitor"]);
 
-		desclist.push(["<#Parental_Control#>","Parental Ctrl"]);
+		desclist.push([stringSafeGet("<#Parental_Control#>"),"Parental Ctrl"]);
 		url_group.push(["ParentalControl"]);
 
 		desclist.push(["<#Menu_usb_application#>","USB Application"]);		//10
@@ -594,19 +568,19 @@ function redirect_page(flag){
 
 	switch(flag) {
 		case "reboot_schedule_enable_x" :
-			document.location.href = "Advanced_System_Content.asp?af=reboot_schedule_enable_x";
+			top.location.href = "Advanced_System_Content.asp?af=reboot_schedule_enable_x";
 			break;
 		case "wl_radio" :
-			document.location.href = "Advanced_WAdvanced_Content.asp?af=wl_radio";
+			top.location.href = "Advanced_WAdvanced_Content.asp?af=wl_radio";
 			break;
 		case "wl_timesched" :
-			document.location.href = "Advanced_WAdvanced_Content.asp?af=wl_timesched";
+			top.location.href = "Advanced_WAdvanced_Content.asp?af=wl_timesched";
 			break;
 	}
 }
 
 function redirect(){
-	document.location.href = "Feedback_Info.asp";
+	top.location.href = "Feedback_Info.asp";
 }
 
 function applyRule(){
@@ -619,6 +593,11 @@ function applyRule(){
 				alert("Feedback report daily maximum(10) send limit reached.");
 				return false;
 		}*/
+		if(document.form.gen_tarball.checked == true)
+			document.form.fb_gen_tarball.value = 1;
+		else
+			document.form.fb_gen_tarball.value = 0;
+
 		if(document.form.attach_syslog.checked == true)
 			document.form.fb_attach_syslog.value = 1;
 		else
@@ -918,18 +897,20 @@ function diag_change_dblog_status() {
 	var dblog_enable = getRadioValue($('form[name="form"]').children().find('input[name=dblog_enable]'));
 	if(dblog_enable == "1") {
 		$(".dblog_item_tr").css("display", "");
-		if(usb_support) {
-			if(allUsbStatus.search("storage") == "-1")
-				alert("<#feedback_capturing_note#>");
-			else {
-				if($("input[name=dblog_tousb_cb]").prop("checked"))
-					alert("<#feedback_capturing_note1#>");
-				else
+		if(!top.webWrapper){
+			if(usb_support) {
+				if(allUsbStatus.search("storage") == "-1")
 					alert("<#feedback_capturing_note#>");
+				else {
+					if($("input[name=dblog_tousb_cb]").prop("checked"))
+						alert("<#feedback_capturing_note1#>");
+					else
+						alert("<#feedback_capturing_note#>");
+				}
 			}
+			else
+				alert("<#feedback_capturing_note#>");
 		}
-		else
-			alert("<#feedback_capturing_note#>");
 	}
 	else {
 		$(".dblog_item_tr").css("display", "none");
@@ -1125,119 +1106,13 @@ function dblog_stop() {
 	showLoading(3);
 	document.stop_dblog_form.submit();
 }
-
-function check_refresh_token() {
-	var interval_retry = 0;
-	interval_status = setInterval(function(){
-		var refresh_token = httpApi.nvramGet(["oauth_google_refresh_token"], true).oauth_google_refresh_token;
-		if(refresh_token == "" && interval_retry == 5) {
-			show_google_auth_status("0");
-			$("#oauth_google_loading").hide();
-			clearInterval(interval_status);
-		}
-		else if(refresh_token != "") {
-			clearInterval(interval_status);
-			check_refresh_token_valid(
-				function(_callBackValue) {
-					$("#oauth_google_loading").hide();
-					show_google_auth_status(_callBackValue);
-				}
-			);
-		}
-		interval_retry++;
-	}, 1000);
-}
-function onGoogleLogin(_parm) {
-	if(_parm.code != "error") {
-		$("#oauth_google_hint").hide();
-		$("#oauth_google_loading").show();
-		document.form.fb_email.value = "";
-		httpApi.nvramSet({
-			"oauth_google_auth_code" : _parm.code,
-			"fb_email_provider" : "google",
-			"action_mode": "apply",
-			"rc_service": "oauth_google_gen_token_email"
-			}, check_refresh_token);
-	}
-}
 function change_fb_email_provider(obj){
-	if(document.form.fb_email_provider.value == "google") {
-		$("#option_google").show();
-		document.form.fb_email.value = httpApi.nvramGet(["oauth_google_user_email"], true).oauth_google_user_email;
-		document.form.fb_email.readOnly = true;
-	}
-	else {
-		$("#option_google").hide();
-		document.form.fb_email.value = "";
-		document.form.fb_email.readOnly = false;
-	}
-}
-function check_refresh_token_valid(callBackFun) {
-	httpApi.nvramSet({
-		"action_mode": "apply",
-		"rc_service": "oauth_google_check_token_status"
-		},
-		function(){
-			var interval_retry = 0;
-			interval_status = setInterval(function(){
-				var token_status = httpApi.nvramGet(["oauth_google_token_status"], true).oauth_google_token_status;
-				if(token_status == "" && interval_retry >= 5) {
-					callBackFun("0");
-					clearInterval(interval_status);
-				}
-				else if(token_status != "") {
-					callBackFun(token_status);
-					clearInterval(interval_status);
-				}
-				interval_retry++;
-			}, 1000);
-		}
-	);
-}
-function show_google_auth_status(_status) {
-	$("#oauth_google_hint").show();
-	var auth_status_hint = "<#Authenticated_non#>";
 	document.form.fb_email.value = "";
-	switch(_status) {
-		case "0" :
-			auth_status_hint = "<#qis_fail_desc1#>";
-			break;
-		case "1" :
-			auth_status_hint = "<#Authenticated#>";
-			var googleAuthInfo = httpApi.nvramGet(["oauth_google_user_email"], true);
-			document.form.fb_email.value = googleAuthInfo.oauth_google_user_email;
-			break;
-	}
-	$("#oauth_google_hint").html(auth_status_hint);
+	document.form.fb_email.readOnly = false;
 }
 
 function startLogPrep(){
 	dr_advise();
-}
-
-var redirect_info = 0;
-function CheckFBSize(){
-	$.ajax({
-		url: '/ajax_fb_size.asp',
-		dataType: 'script',
-		timeout: 1500,
-		error: function(xhr){
-				redirect_info++;
-				if(redirect_info < 10){
-					setTimeout("CheckFBSize();", 1000);
-				}
-				else{
-					showLoading(35);
-					setTimeout("redirect()", 35000);
-				}
-		},
-		success: function(){
-				if(fb_state == 0)
-					setTimeout("CheckFBSize()", 3000);
-				else
-					setTimeout("redirect()", 1000);
-		}
-	});
 }
 
 function detect_fb_state(){
@@ -1279,6 +1154,7 @@ function detect_fb_state(){
 <input type="hidden" name="action_mode" value="apply">
 <input type="hidden" name="action_script" value="restart_sendfeedback">
 <input type="hidden" name="action_wait" value="60">
+<input type="hidden" name="fb_gen_tarball" value="">
 <input type="hidden" name="fb_attach_syslog" value="">
 <input type="hidden" name="fb_attach_cfgfile" value="">
 <input type="hidden" name="fb_attach_iptables" value="">	
@@ -1315,12 +1191,12 @@ function detect_fb_state(){
 <div id="fb_desc1" class="formfontdesc" style="display:none;"><#Feedback_desc1#></div>
 <div id="fb_desc_disconnect" class="formfontdesc hint-color" style="display:none;"><#Feedback_desc_disconnect#> <a class="hint-color" href="mailto:router_feedback@asus.com?Subject=<%nvram_get("productid");%>" target="_top">router_feedback@asus.com</a></div>
 <table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">
-<tr>
+<!-- tr>
 <th width="30%"><#feedback_country#> *</th>
 <td>
 	<input type="text" name="fb_country" maxlength="30" class="input_25_table" value="" autocorrect="off" autocapitalize="off">
 </td>
-</tr>
+</tr -->
 <tr>
 <th><#feedback_isp#> *</th>
 <td>
@@ -1339,18 +1215,12 @@ function detect_fb_state(){
 		<div style="float:left;">
 			<select class="input_option" name="fb_email_provider" onChange="change_fb_email_provider(this);">
 				<option value="">ASUS</option>
-				<option value="google">Google</option>
 			</select>
-		</div>
-		<div id="option_google" style="float:left;">
-			<div id="oauth_google_btn" class="oauth_google_btn"></div>
-			<img id="oauth_google_loading" src="/images/InternetScan.gif" class="oauth_google_status">
-			<span id="oauth_google_hint" class="oauth_google_status"></span>
 		</div>
 	</td>
 	</tr>
 <tr>
-<th><#feedback_email#> *</th>
+<th><#feedback_email#> <span style="color:#FFCC00;">*</span></th>
 <td>
 	<input type="text" name="fb_email" maxlength="50" class="input_25_table" value="" autocorrect="off" autocapitalize="off">	
 </td>
@@ -1363,7 +1233,13 @@ function detect_fb_state(){
 </td>
 </tr>
 <tr>
-<th><#feedback_extra_info#> *</th>
+<th><#feedback_special_option#></th>
+<td>
+	<input type="checkbox" class="input" name="gen_tarball" id="gen_tarball_id"><label for="gen_tarball_id"><#feedback_special_dblogs#></label>&nbsp;&nbsp;&nbsp;
+</td>
+</tr>
+<tr>
+<th><#feedback_extra_info#></th>
 <td>
 	<input type="checkbox" class="input" name="attach_syslog" id="attach_syslog_id"><label for="attach_syslog_id"><#System_Log#></label>&nbsp;&nbsp;&nbsp;
 	<input type="checkbox" class="input" name="attach_cfgfile" id="attach_cfgfile_id"><label for="attach_cfgfile_id"><#feedback_setting_file#></label>&nbsp;&nbsp;&nbsp;
@@ -1404,8 +1280,8 @@ function detect_fb_state(){
 		<div class="dblog_disabled_status">
 			<input type='radio' name='dblog_enable' id='dblog_status_en' value="1" onclick="diag_change_dblog_status();"><label for='dblog_status_en'><#checkbox_Yes#></label>
 			<input type='radio' name='dblog_enable' id='dblog_status_dis' value="0" onclick="diag_change_dblog_status();" checked><label for='dblog_status_dis'><#checkbox_No#></label>
-			<label class="storeUSBHint hint-color"><input type="checkbox" name="dblog_tousb_cb" value="1" onclick="diag_change_storeUSB();" checked><#feedback_debug_log_inDisk#></label>
-			<span class="noUSBHint hint-color">* <#no_usb_found#></span>
+			<label class="storeUSBHint"><input type="checkbox" name="dblog_tousb_cb" value="1" onclick="diag_change_storeUSB();" checked><#feedback_debug_log_inDisk#></label>
+			<span class="noUSBHint">* <#no_usb_found#></span>
 		</div>
 		<div class="dblog_enabled_status">
 			<span>* <#feedback_current_capturing#></span>
@@ -1498,9 +1374,10 @@ function detect_fb_state(){
 </tr>
 
 <tr style="display:none;">
-<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(34,2);"><#ASUS_Service_No#></a></th>
+<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(34,2);"><#ASUS_Service_No#></a> <span style="color:#FFCC00;">*</span></th>
 <td>
-	<input type="text" name="fb_serviceno" maxlength="32" class="input_20_table" placeholder="E1234567890-1234" value="" autocorrect="off" autocapitalize="off">
+	<input type="text" name="fb_serviceno" maxlength="32" class="input_20_table" placeholder="ex. N2406021655-0002" value="" autocorrect="off" autocapitalize="off">
+	<span style="color:#FFCC00;">Please enter the order number.</span>
 </td>
 </tr>
 
@@ -1513,32 +1390,35 @@ function detect_fb_state(){
 
 <tr>
 	<th>
-		<#feedback_comments#> *
+		<#feedback_comments#>
 	</th>
 	<td>
 		<textarea name="fb_comment" maxlength="2000" cols="55" rows="8" class="textarea_ssh_table" style="font-family:'Courier New', Courier, mono; font-size:13px;" onKeyDown="textCounter(this,document.form.msglength,2000);" onKeyUp="textCounter(this,document.form.msglength,2000)"></textarea>
-		<span class="hint-color"><#feedback_max_counts#> : </span>
-		<input type="text" class="input_6_table" name="msglength" id="msglength" maxlength="4" value="2000" autocorrect="off" autocapitalize="off" readonly>
+		<span><#feedback_max_counts#> : </span>
+		<input type="text" class="input_6_table short_input" name="msglength" id="msglength" maxlength="4" value="2000" autocorrect="off" autocapitalize="off" readonly>
 	</td>
 </tr>
 
 <tr>
 	<td colspan="2">
-		<div>
+		<div style="display: flex; align-items: center;">
+			<div style="display: flex; flex-direction: row; padding: 16px;">
 			<div style="float: left;"><input type="checkbox" name="eula_checkbox"/></div>
 			<div id="eula_content" style="margin-left: 20px;"><#feedback_eula#></div>
 		</div>
-		<input id="apply_button" class="button_gen" style="margin-left: 305px; margin-top:5px;" name="btn_send" onclick="applyRule()" type="button" value="<#btn_send#>"/>
-		<div  id="loadingIcon" style="display:none;"><div class="loadingIcon" style="float: left; margin-left: 305px; margin-top:5px;"></div><div style="float: left; margin-left: 15px; margin-top:10px;"><span class="hint-color"><#Main_alert_processing#>...</span></div></div>
+			<input class="btn_subusage button_gen" name="btn_send" onclick="applyRule()" type="button" value="<#btn_send#>"/>
+		</div>
 	</td>
 </tr>
 
 <tr>
 	<td colspan="2">
-		<strong><#FW_note#></strong>
+		<div class="warning_desc">
+		<strong class="warning_title"><#FW_note#></strong>
 		<ul>
-			<li><#feedback_note4#><br><a id="call_link" style="font-weight: bolder;text-decoration:underline;cursor:pointer;" href="" target="_blank">https://www.asus.com/support/CallUs/</a></li>
+			<li><#Feedback_desc0#>&nbsp;<#feedback_note6#>&nbsp;<#feedback_note7#></li>
 		</ul>
+	</div>
 	</td>
 </tr>	
 </table>

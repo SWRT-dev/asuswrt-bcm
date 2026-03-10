@@ -40,6 +40,7 @@
 #ifdef RTCONFIG_LIBASUSLOG
 #include "libasuslog.h"
 #endif
+#include <sys/syscall.h>
 
 typedef enum __amaslib_dhcp_flag_t_
 {
@@ -53,6 +54,7 @@ typedef struct __amaslib_dhcp__t_
 	char mac[18];       /* device MAC */
 	char ip[16];        /* device IP  */
 	int flag;           /* flag for checking use*/
+	char ifname[16];    /* interface name*/
 } AMASLIB_DHCP_T;
 
 
@@ -74,7 +76,7 @@ extern char *__progname;
 	}*/
 #define AMASLIB_DBG_SYSLOG(fmt,args...) \
 	if (nvram_get_int("amaslib_syslog")) { \
-		asusdebuglog(LOG_INFO, AMAS_LIB_DBG_LOG, LOG_CUSTOM, LOG_SHOWTIME, 0, "[%s][%d]][%s:(%d)] "fmt, __progname, getpid(), __FUNCTION__, __LINE__, ##args); \
+		asusdebuglog(LOG_INFO, AMAS_LIB_DBG_LOG, LOG_CUSTOM, LOG_SHOWTIME, 0, "[%s][%d][%d][%s:(%d)] "fmt, __progname, getpid(), syscall(SYS_gettid), __FUNCTION__, __LINE__, ##args); \
 	}
 #else
 #define AMASLIB_DBG_SYSLOG(fmt,args...) {}
@@ -82,7 +84,7 @@ extern char *__progname;
 
 #define AMASLIB_DBG(fmt,args...) do { \
 	if(f_exists(AMASLIB_DEBUG) > 0) { \
-		_dprintf("[AMASLIB][%s:(%d)]"fmt, __FUNCTION__, __LINE__, ##args); \
+		_dprintf("[%s][%d][%d][%s:(%d)] "fmt, __progname, getpid(), syscall(SYS_gettid), __FUNCTION__, __LINE__, ##args); \
 	} \
 	AMASLIB_DBG_SYSLOG(fmt,##args) \
 } while(0)
@@ -93,8 +95,11 @@ extern int is_amaslib_enabled();
 /* define amas usage */
 #define DHCP_TABLE     "/var/lib/misc/dnsmasq.leases"
 #define ARP_TABLE      "/proc/net/arp"
+#ifdef RTCONFIG_MULTILAN_CFG
+#define SDN_DHCP_TABLE     "/var/lib/misc/dnsmasq-%d.leases"
+#endif
 
-int amas_lib_device_ip_query(char *mac, char *ip);
+int amas_lib_device_ip_query(char *mac, char *ifname, char *ip);
 
 #endif /*  _amas_lib_h_ */
 

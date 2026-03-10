@@ -11,13 +11,13 @@
 <title><#Web_Title#> - AiCloud 2.0</title>
 <link rel="stylesheet" type="text/css" href="index_style.css"> 
 <link rel="stylesheet" type="text/css" href="form_style.css">
+<script type="text/javascript" src="/js/jquery.js"></script>
 <script type="text/javascript" src="/state.js"></script>
 <script type="text/javascript" src="/popup.js"></script>
 <script type="text/javascript" src="/help.js"></script>
 <script type="text/javascript" src="/general.js"></script>
 <script type="text/javascript" src="/validator.js"></script>
 <script type="text/javascript" src="/disk_functions.js"></script>
-<script type="text/javascript" src="/js/jquery.js"></script>
 <script type="text/javascript" src="/switcherplugin/jquery.iphone-switch.js"></script>
 <script language="JavaScript" type="text/javascript" src="/md5.js"></script>
 <script language="JavaScript" type="text/javascript" src="/form.js"></script>
@@ -185,7 +185,7 @@ else
         var theUrl = "<#Web_DOMAIN_NAME#>";
 	
 if(!rrsut_support){
-	alert("This function is not supported on this system.");
+	alert(stringSafeGet("<#sync_router_Invit_desc1#>"));
 	location.href = "/cloud_main.asp";
 }
 
@@ -378,9 +378,6 @@ function get_layer_items(layer_order){
 	$.ajax({
     		url: '/gettree.asp?layer_order='+layer_order,
     		dataType: 'script',
-    		error: function(xhr){
-    			;
-    		},
     		success: function(){
 				get_tree_items(treeitems);					
   			}
@@ -650,7 +647,7 @@ function GetTree(layer_order, v){
 		document.getElementById('e'+layer_order).style.visibility = "";
 	}
 	else
-		alert("Error when show the folder-tree!");
+		alert(stringSafeGet("<#ALERT_OF_ERROR_show#>"));
 }
 
 function cancel_folderTree(){

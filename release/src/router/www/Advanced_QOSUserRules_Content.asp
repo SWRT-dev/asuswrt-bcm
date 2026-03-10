@@ -12,14 +12,15 @@
 <link rel="stylesheet" type="text/css" href="/index_style.css"> 
 <link rel="stylesheet" type="text/css" href="/form_style.css">
 <link rel="stylesheet" type="text/css" href="device-map/device-map.css">
+<script type="text/javascript" src="/js/jquery.js"></script>
+<script type="text/javascript" src="/js/httpApi.js"></script>
 <script type="text/javascript" src="/state.js"></script>
 <script type="text/javascript" src="/help.js"></script>
 <script type="text/javascript" src="/general.js"></script>
 <script type="text/javascript" src="/popup.js"></script>
 <script type="text/javascript" src="/validator.js"></script>
 <script language="JavaScript" type="text/javascript" src="/client_function.js"></script>
-<script type="text/javascript" src="/js/jquery.js"></script>
-<script type="text/javascript" src="/js/httpApi.js"></script>
+<script type="text/javascript" src="/form.js"></script>
 <style>
 .Portrange{
 	font-size: 12px;
@@ -32,7 +33,8 @@ var qos_rulelist_array = "<% nvram_char_to_ascii("","qos_rulelist"); %>";
 var overlib_str0 = new Array();	//Viz add 2011.06 for record longer qos rule desc
 var overlib_str = new Array();	//Viz add 2011.06 for record longer portrange value
 
-var faq_href = "https://nw-dlcdnet.asus.com/support/forward.html?model=&type=Faq&lang="+ui_lang+"&kw=&num=110";
+var current_page = window.location.pathname.split("/").pop();
+var faq_index_tmp = get_faq_index(FAQ_List, current_page, 1);
 
 function key_event(evt){
 	if(evt.keyCode != 27 || isMenuopen == 0) 
@@ -42,7 +44,6 @@ function key_event(evt){
 
 function initial(){
 	show_menu();
-	document.getElementById("faq").href=faq_href;
 	if(bwdpi_support){
 		document.getElementById('content_title').innerHTML = "<#menu5_3_2#> - <#EzQoS_type_traditional#>";
 	}
@@ -612,13 +613,13 @@ function showQoSList(){
 var isMenuopen = 0;
 function pullQoSList(obj){
 	if(isMenuopen == 0){
-		obj.src = "/images/arrow-top.gif"
+		obj.src = "/images/unfold_less.svg"
 		document.getElementById("QoSList_Block").style.display = 'block';
 		//document.form.qos_service_name_x_0.focus();		
 		isMenuopen = 1;
 	}
 	else{
-		document.getElementById("pull_arrow").src = "/images/arrow-down.gif";
+		document.getElementById("pull_arrow").src = "/images/unfold_more.svg";
 		document.getElementById('QoSList_Block').style.display='none';
 		isMenuopen = 0;
 	}
@@ -634,7 +635,7 @@ function hideClients_Block(evt){
 		}
 	}
 
-	document.getElementById("pull_arrow").src = "/images/arrow-down.gif";
+	document.getElementById("pull_arrow").src = "/images/unfold_more.svg";
 	document.getElementById('QoSList_Block').style.display='none';
 	isMenuopen = 0;
 }
@@ -659,7 +660,7 @@ function pullLANIPList(obj){
 	var element = document.getElementById('ClientList_Block_PC');
 	var isMenuopen = element.offsetWidth > 0 || element.offsetHeight > 0;
 	if(isMenuopen == 0){		
-		obj.src = "/images/arrow-top.gif"
+		obj.src = "/images/unfold_less.svg"
 		element.style.display = 'block';		
 		document.form.qos_ip_x_0.focus();
 	}
@@ -668,7 +669,7 @@ function pullLANIPList(obj){
 }
 
 function hideClients_Block_mac(){
-	document.getElementById("pull_arrow_mac").src = "/images/arrow-down.gif";
+	document.getElementById("pull_arrow_mac").src = "/images/unfold_more.svg";
 	document.getElementById('ClientList_Block_PC').style.display='none';
 }
 
@@ -725,16 +726,18 @@ function linkport(obj){
 
 				<tr>
 		  			<td bgcolor="#4D595D" valign="top">
+					<div class="container">
 						<table>
 						<tr>
 						<td>
-						<table width="100%" >
+						<table width="100%">
 						<tr >
 						<td  class="formfonttitle" align="left">								
 							<div id="content_title" style="margin-top:5px;"></div>
+							<div class="formfonttitle_help"><i onclick="show_feature_desc(`<#HOWTOSETUP#>`)" class="icon_help"></i></div>
 						</td>
 						<td align="right" >	
-						<div style="margin-top:5px;">
+						<div style="margin-right:44px;margin-top:16px;">
 							<select onchange="switchPage(this.options[this.selectedIndex].value)" class="input_option">
 								<!--option><#switchpage#></option-->
 								<option value="1"><#Adaptive_QoS_Conf#></option>
@@ -760,7 +763,6 @@ function linkport(obj){
 									<li><#UserQoSRule_desc_one#></li>
 							</ul>
 					</div>
-					<div class="formfontdesc"><a id="faq" href="" style="text-decoration:underline;" target="_blank">QoS FAQ</a></div>
 
 					</div>	
 					</td>
@@ -770,7 +772,7 @@ function linkport(obj){
 						<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" class="FormTable_table" style="margin-top:8px">
 							<thead>
 							<tr>
-								<td colspan="4" id="TriggerList" style="border-right:none;"><#BM_UserList_title#>&nbsp;(<#List_limit#>&nbsp;32)</td>
+								<td colspan="4" id="TriggerList" style="border-right:none;"><#BM_UserList_title#>&nbsp;(<#List_limit#>&nbsp;128)</td>
 								<td colspan="3" id="TriggerList" style="border-left:none;">
 									<div style="margin-top:0px;display:none" align="right">
 										<select id='qos_default_sel' name='qos_default_sel' class="input_option" onchange="change_wizard(this);"></select>
@@ -791,12 +793,12 @@ function linkport(obj){
 							<tr>
 								<td width="20%">							
 									<input type="text" maxlength="32" class="input_12_table" style="float:left;width:105px;" placeholder="<#Select_menu_default#>" name="qos_service_name_x_0" onKeyPress="return validator.isString(this, event)" autocorrect="off" autocapitalize="off">
-									<img id="pull_arrow" height="14px;" src="/images/arrow-down.gif" onclick="pullQoSList(this);" title="<#select_service#>">
+									<img id="pull_arrow" height="14px;" src="/images/unfold_more.svg" onclick="pullQoSList(this);" title="<#select_service#>">
 									<div id="QoSList_Block" class="QoSList_Block" onclick="hideClients_Block()"></div>
 								</td>
 								<td width="20%">
 									<input type="text" maxlength="17" class="input_15_table" name="qos_ip_x_0" style="width:100px;float:left" autocorrect="off" autocapitalize="off">
-									<img id="pull_arrow_mac" class="pull_arrow"height="14px;" src="/images/arrow-down.gif" onclick="pullLANIPList(this);" title="<#select_client#>">
+									<img id="pull_arrow_mac" class="pull_arrow"height="14px;" src="/images/unfold_more.svg" onclick="pullLANIPList(this);" title="<#select_client#>">
 									<div id="ClientList_Block_PC" class="clientlist_dropdown" style="margin-left:2px;margin-top: 25px;"></div>
 								</td>
 								
@@ -829,7 +831,7 @@ function linkport(obj){
 								</td>
 								
 								<td width="6%">
-									<input type="button" class="add_btn" onClick="addRow_Group(32);">
+									<input type="button" class="add_btn" onClick="addRow_Group(128);">
 								</td>
 							</tr>
 							</table>
@@ -844,7 +846,11 @@ function linkport(obj){
 								<input name="button" type="button" class="button_gen" onClick="applyRule()" value="<#CTL_apply#>"/>
 							</div>
 						</td></tr>		
-						</table>			
+						</table>
+
+						</div>  <!-- for .container  -->
+						<div class="popup_container popup_element_second"></div>
+
 					</td>
 				</tr>
 

@@ -12,10 +12,10 @@
 <link rel="stylesheet" type="text/css" href="form_style.css">
 <link rel="stylesheet" type="text/css" href="usp_style.css">
 <link rel="stylesheet" type="text/css" href="app_installation.css">
+<script type="text/javascript" src="/js/jquery.js"></script>
 <script type="text/javascript" src="/state.js"></script>
 <script type="text/javascript" src="/popup.js"></script>
 <script type="text/javascript" src="/help.js"></script>
-<script type="text/javascript" src="/js/jquery.js"></script>
 <script>
 function initial(){
 	show_menu();
@@ -47,7 +47,6 @@ function initial(){
 			</td>	
 			<td valign="top">
 				<div id="tabMenu" style="*margin-top: -160px;"></div>
-				<br>
 		<!--=====Beginning of Main Content=====-->
 				<div class="app_table" id="applist_table" style="margin-top:-10px;">
 					<table>

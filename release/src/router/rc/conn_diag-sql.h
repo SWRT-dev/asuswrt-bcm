@@ -1,11 +1,9 @@
-#ifndef _CONN_DIAG_SQL_H_
-#define _CONN_DIAG_SQL_H_
 #include <limits.h>
 #include <sqlite3.h>
 #include <pthread.h>
 #include <conn_diag_log.h>
 
-#define RTCONFIG_UPLOADER
+// #define RTCONFIG_UPLOADER
 
 #define DIAG_TAB_NAME "conn_diag"
 #define DATA_TAB_NAME "diag_data"
@@ -93,6 +91,7 @@ struct amas_eth_port {
 	int ext_port_id;
 	char ifname[32];
 	unsigned int flag;
+	time_t last_notify_ts[2]; // index 0 is for link down, 1 is for link up
 };
 
 struct amas_eth_port_table {
@@ -108,6 +107,9 @@ struct stainfo {
 	double rx_rate;
 	int conn_time;
 	int inactive_flag;
+	char conn_if[16];
+	int conn_if_idx;
+	int conn_if_vidx;
 	//time_t last_update;
 	struct stainfo *next;
 };
@@ -286,8 +288,8 @@ struct json_object* get_uint_field_string_json_object(unsigned int value, char *
 struct json_object* get_uint64_field_string_json_object(unsigned long long value, char *buf, int buf_len);
 struct json_object* get_rate_field_string_json_object(double value, char *buf, int buf_len);
 extern int _get_node_eth_port_status(char *node_mac,char **buf);
+extern int is_amas_eth_port_table_empty();
 
 #ifdef RTCONFIG_AWSIOT
 extern int wifi_dfs_on_all_channels_process();
 #endif
-#endif	/* !_CONN_DIAG_SQL_H_ */

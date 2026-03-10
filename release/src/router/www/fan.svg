@@ -49,7 +49,7 @@ text {
 var week = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 var pointLoc = 0;
 var vWidth = 740;
-var vHeight = 300;
+var vHeight = 400;
 var crossH = 0;
 var crossV = 0;
 var maxV = 0;
@@ -62,7 +62,7 @@ var xpstVis = 1;
 var ignoreNext = 0;
 var eraseL = 0;
 var samp = 1;
-var nr_v_scale = 4;
+var nr_v_scale = 5;
 var pt_per_degree = vHeight / (top.d_temp * nr_v_scale);
 
 function initial(){
@@ -72,17 +72,18 @@ function initial(){
 	xpstslash = [];
 	xpstfan = [];
 
-	for (n=0; n<6; ++n){
+	for (n=0; n<7; ++n){
 		xpst[n] = E('xpst' + n);
 		setText(xpst[n], xps(n+1));
 	}
-
+/*
 	for (n=0; n < nr_v_scale; ++n){
 		xpstslash[n] = E('xpstslash' + n);
 		setText(xpstslash[n], xpsslash(n+1));
 		xpstfan[n] = E('xpstfan' + n);
 		setText(xpstfan[n], xpsfan(n+1));
 	}
+*/
 }
 
 function setText(e, text){
@@ -110,7 +111,7 @@ function xps(n){
 		return (x + currUnit);
 	}
 	else{
-		var x = (n-3)*5;
+		var x = (n - nr_v_scale+1)*5;
 		return (x + " min");
 	}
 }
@@ -145,7 +146,7 @@ function drawData(poly, data, mode, color){
 	advX = vWidth / maxL;
 	dataDiv = 2;
 
-	if(top.fanctrl_info.length == 0) return;
+//	if(top.fanctrl_info.length == 0) return;
 
 	x = 0;
 	if (mode == 0) {
@@ -186,15 +187,15 @@ function gen_svg(){
 	top.cpuTemp[top.cpuTemp.length] = top.curr_cpuTemp;
 	top.coreTmp_2[top.coreTmp_2.length] = top.curr_coreTmp_2;
 	top.coreTmp_5[top.coreTmp_5.length] = top.curr_coreTmp_5;
-	top.rxData[top.rxData.length] = (top.curr_rxData - top.rpm_base) / (top.d_rpm / top.d_temp) + top.temp_base;
+//	top.rxData[top.rxData.length] = (top.curr_rxData - top.rpm_base) / (top.d_rpm / top.d_temp) + top.temp_base;
 	updateSVG();
 }
 
 function updateSVG(){
-	drawData(polyCpu, top.cpuTemp, 0, "#FF9000");
-	//drawData(polyCoreTmp_2, top.coreTmp_2, 0, "#FF9000");
-	//drawData(polyCoreTmp_5, top.coreTmp_5, 0, "#33CCFF");
-	drawData(polyRx, top.rxData, 0, "#33CCFF");
+	drawData(polyCpu, top.cpuTemp, 0, "#00FF33");
+	drawData(polyCoreTmp_2, top.coreTmp_2, 0, "#FF9000");
+	drawData(polyCoreTmp_5, top.coreTmp_5, 0, "#33CCFF");
+//	drawData(polyRx, top.rxData, 0, "#33CCFF");
 	setTimeout('gen_svg();', 5000);
 }
 ]]></script>
@@ -202,24 +203,28 @@ function updateSVG(){
 <rect x="0" y="0" width="100%" height="100%" fill="#111" id="background"/>
 
 <g>
-<line stroke-width="1" stroke-opacity="0.1" stroke="rgb(255,255,255)" x1="0" y1="25%" x2="100%" y2="25%" />
-<line stroke-width="1" stroke-opacity="0.1" stroke="rgb(255,255,255)" x1="0" y1="50%" x2="100%" y2="50%" />
-<line stroke-width="1" stroke-opacity="0.1" stroke="rgb(255,255,255)" x1="0" y1="75%" x2="100%" y2="75%" />
+<line stroke-width="1" stroke-opacity="0.1" stroke="rgb(255,255,255)" x1="0" y1="20%" x2="100%" y2="20%" />
+<line stroke-width="1" stroke-opacity="0.1" stroke="rgb(255,255,255)" x1="0" y1="40%" x2="100%" y2="40%" />
+<line stroke-width="1" stroke-opacity="0.1" stroke="rgb(255,255,255)" x1="0" y1="60%" x2="100%" y2="60%" />
+<line stroke-width="1" stroke-opacity="0.1" stroke="rgb(255,255,255)" x1="0" y1="80%" x2="100%" y2="80%" />
 <line stroke-width="1" stroke-opacity="0.1" stroke="rgb(255,255,255)" x1="25%" y1="0%" x2="25%" y2="100%" />
 <line stroke-width="1" stroke-opacity="0.1" stroke="rgb(255,255,255)" x1="50%" y1="0%" x2="50%" y2="100%" />
 <line stroke-width="1" stroke-opacity="0.1" stroke="rgb(255,255,255)" x1="75%" y1="0%" x2="75%" y2="100%" />
-<text font-family="Verdana" fill="#FF9000" font-size="11" x="10" y="79%" id="xpst0" />
-<text font-family="Verdana" fill="#FFFFFF" font-size="11" x="45" y="79%" id="xpstslash0" />
-<text font-family="Verdana" fill="#33CCFF" font-size="11" x="55" y="79%" id="xpstfan0" />
-<text font-family="Verdana" fill="#FF9000" font-size="11" x="10" y="54%" id="xpst1" />
-<text font-family="Verdana" fill="#FFFFFF" font-size="11" x="45" y="54%" id="xpstslash1" />
-<text font-family="Verdana" fill="#33CCFF" font-size="11" x="55" y="54%" id="xpstfan1" />
-<text font-family="Verdana" fill="#FF9000" font-size="11" x="10" y="29%" id="xpst2" />
-<text font-family="Verdana" fill="#FFFFFF" font-size="11" x="45" y="29%" id="xpstslash2" />
-<text font-family="Verdana" fill="#33CCFF" font-size="11" x="55" y="29%" id="xpstfan2" />
-<text font-family="Verdana" fill="#FFFFFF" font-size="11" x="74%" y="98%" id="xpst3" />
-<text font-family="Verdana" fill="#FFFFFF" font-size="11" x="48%" y="98%" id="xpst4" />
-<text font-family="Verdana" fill="#FFFFFF" font-size="11" x="23%" y="98%" id="xpst5" />
+<text font-family="Verdana" fill="#FF9000" font-size="11" x="10" y="84%" id="xpst0" />
+<text font-family="Verdana" fill="#FFFFFF" font-size="11" x="45" y="84%" id="xpstslash0" />
+<text font-family="Verdana" fill="#33CCFF" font-size="11" x="55" y="84%" id="xpstfan0" />
+<text font-family="Verdana" fill="#FF9000" font-size="11" x="10" y="64%" id="xpst1" />
+<text font-family="Verdana" fill="#FFFFFF" font-size="11" x="45" y="64%" id="xpstslash1" />
+<text font-family="Verdana" fill="#33CCFF" font-size="11" x="55" y="64%" id="xpstfan1" />
+<text font-family="Verdana" fill="#FF9000" font-size="11" x="10" y="44%" id="xpst2" />
+<text font-family="Verdana" fill="#FFFFFF" font-size="11" x="45" y="44%" id="xpstslash2" />
+<text font-family="Verdana" fill="#33CCFF" font-size="11" x="55" y="44%" id="xpstfan2" />
+<text font-family="Verdana" fill="#FF9000" font-size="11" x="10" y="24%" id="xpst3" />
+<text font-family="Verdana" fill="#FFFFFF" font-size="11" x="45" y="24%" id="xpstslash3" />
+<text font-family="Verdana" fill="#33CCFF" font-size="11" x="55" y="24%" id="xpstfan3" />
+<text font-family="Verdana" fill="#FFFFFF" font-size="11" x="74%" y="98%" id="xpst4" />
+<text font-family="Verdana" fill="#FFFFFF" font-size="11" x="48%" y="98%" id="xpst5" />
+<text font-family="Verdana" fill="#FFFFFF" font-size="11" x="23%" y="98%" id="xpst6" />
 </g>
 
 <polyline id="polyCoreTmp_2" style="stroke-width:1" stroke-opacity="0.9" points="" />

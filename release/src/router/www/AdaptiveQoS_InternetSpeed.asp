@@ -11,10 +11,10 @@
 <title><#Web_Title#> - <#InternetSpeed#></title>
 <link rel="stylesheet" type="text/css" href="index_style.css">
 <link rel="stylesheet" type="text/css" href="form_style.css">
+<script type="text/javascript" src="/js/jquery.js"></script>
 <script language="JavaScript" type="text/javascript" src="/state.js"></script>
 <script language="JavaScript" type="text/javascript" src="/popup.js"></script>
 <script language="JavaScript" type="text/javascript" src="/help.js"></script>
-<script type="text/javascript" src="/js/jquery.js"></script>
 <script>
 
 $(document).ready(function(){
@@ -23,12 +23,17 @@ $(document).ready(function(){
 
 function load_page(){
 	document.getElementById("internetSpeed_iframe").style.height = document.getElementById("FormTitle").style.height;
-	document.getElementById("internetSpeed_iframe").src = "internet_speed.html";
+	var curTheme = (top.webWrapper) ? "?current_theme=white" : "";
+	document.getElementById("internetSpeed_iframe").src = "internet_speed.html" + curTheme;
 }
 
 function initial(){
 	show_menu();
-	if(rog_support){
+
+	if(isSupport("TS_UI")){
+		$("#FormTitle").css("background", "transparent");
+	}
+	else if(rog_support){
 		$("#FormTitle").css("background-color", "transparent");
 	}
 	else if(tuf_support){
@@ -39,7 +44,7 @@ function initial(){
 }
 </script>
 </head>
-<body>
+<body class="bg">
 <div id="TopBanner"></div>
 <div id="Loading" class="popup_bg"></div>
 <iframe name="hidden_frame" id="hidden_frame" src="" width="0" height="0" frameborder="0"></iframe>

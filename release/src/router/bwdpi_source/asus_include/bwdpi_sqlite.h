@@ -5,7 +5,7 @@
 #define DAY_SEC 86400
 #define HOURSEC 3600
 #define QUERY_LEN 960 // BWSQL_LOG buffer size is 1024
-#define LEN_MAX	8000
+#define LEN_MAX	32000
 
 #define BWMON_LOCK   "/var/lock/AiProtectionMonitor.lock"
 #define BWMON_PID    "/var/run/AiProtectionMonitor.pid"
@@ -33,6 +33,8 @@ extern void bwdpi_monitor_stat(int *retval, webs_t wp);
 extern void bwdpi_monitor_info(char *type, char *event, int *retval, webs_t wp);
 extern void bwdpi_monitor_ips(char *type, char *date, int *retval, webs_t wp);
 extern void bwdpi_monitor_nonips(char *type, char *date, int *retval, webs_t wp);
+extern void bwdpi_cgi_mon_to_json(char *type, char *start, char *end, FILE *stream);
+extern void bwdpi_cgi_mon_del_db(char *type, FILE *stream);
 
 // web_history.c
 extern int web_history_main(int argc, char **argv);

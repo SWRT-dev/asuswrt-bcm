@@ -66,6 +66,8 @@ _nettle_aes_encrypt(unsigned rounds, const uint32_t *keys,
 		    size_t length, uint8_t *dst,
 		    const uint8_t *src);
 
+/* The keys pointer points at the subkeys for the first decrypt round,
+   located at the end of the array. */
 void
 _nettle_aes_decrypt(unsigned rounds, const uint32_t *keys,
 		    const struct aes_table *T,
@@ -96,9 +98,8 @@ _nettle_aes_decrypt(unsigned rounds, const uint32_t *keys,
   | ((uint32_t) T->sbox[ B2(w2) ] << 16)		\
   | ((uint32_t) T->sbox[ B3(w3) ] << 24)) ^ (k))
      
-/* Globally visible so that the same sbox table can be used by aes_set_encrypt_key */
-
 extern const struct aes_table _nettle_aes_encrypt_table;
 #define aes_sbox (_nettle_aes_encrypt_table.sbox)
+extern const struct aes_table _nettle_aes_decrypt_table;
 
 #endif /* NETTLE_AES_INTERNAL_H_INCLUDED */

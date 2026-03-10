@@ -12,15 +12,17 @@
 <link rel="stylesheet" type="text/css" href="form_style.css">
 <link rel="stylesheet" type="text/css" href="usp_style.css">
 <link rel="stylesheet" type="text/css" href="app_installation.css">
+<script type="text/javascript" src="/js/jquery.js"></script>
 <script type="text/javascript" src="/state.js"></script>
 <script type="text/javascript" src="/popup.js"></script>
 <script type="text/javascript" src="/help.js"></script>
-<script type="text/javascript" src="/js/jquery.js"></script>
 <script>
 function initial(){
 	show_menu();
-	if(adBlock_support)
+	if(adBlock_support) {
 		document.getElementById("adBlock_field").style.display = "";
+		document.getElementById("adb_hdr").style.display = "";
+	}
 	if(keyGuard_support){
 		document.getElementById("keyGuard_field_h").style.display = "";
 		document.getElementById("keyGuard_field").style.display = "";
@@ -124,7 +126,8 @@ function initial(){
 													</div>
 												</td>
 											</tr>
-											<tr style="height:50px;"></tr>
+											<tr id="adb_hdr" style="height:50px; display:none;"></tr>
+
 											<tr id="adBlock_field" style="display:none">
 												<td align="center" class="app_table_radius_left" style="width:85px;">
 													<div style="text-align:center;background: url('/images/New_ui/Web_Apps_Restriction.png');width:130px;height:85px;margin-left:30px;"></div>
@@ -135,10 +138,12 @@ function initial(){
 													</div>
 													<div class="app_desc" style="height:60px;">
 														<li>Streaming Ad Blocking</li>
-														<li>Pop-Up window Ad Blocking</li>											
+														<li>Pop-Up window Ad Blocking</li>			
 													</div>
 												</td>
 											</tr>
+											<tr id="dnsf_hdr" style="height:50px; display:none;"></tr>
+
 											<tr id="keyGuard_field_h" style="display:none" style="height:50px;"></tr>
 											<tr id="keyGuard_field" style="display:none">
 												<td align="center" class="app_table_radius_left" style="width:85px;">

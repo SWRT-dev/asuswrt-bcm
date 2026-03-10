@@ -9,19 +9,21 @@
 <link rel="shortcut icon" href="images/favicon.png">
 <link rel="icon" href="images/favicon.png">
 <title><#Web_Title#> - <#Adaptive_History#></title>
+<link rel="stylesheet" type="text/css" href="css/basic.css">
 <link rel="stylesheet" type="text/css" href="index_style.css">
 <link rel="stylesheet" type="text/css" href="form_style.css">
 <link rel="stylesheet" type="text/css" href="usp_style.css">
 <link rel="stylesheet" type="text/css" href="css/element.css">
+<script type="text/javascript" src="/js/jquery.js"></script>
+<script type="text/javascript" src="/js/httpApi.js"></script>
 <script type="text/javascript" src="/state.js"></script>
 <script type="text/javascript" src="/help.js"></script>
-<script type="text/javascript" src="/js/jquery.js"></script>
 <script type="text/javascript" src="/general.js"></script>
 <script type="text/javascript" src="/popup.js"></script>
+<script type="text/javascript" src="/form.js"></script>
 <script type="text/javascript" src="/client_function.js"></script>
 <script type="text/javascript" src="/switcherplugin/jquery.iphone-switch.js"></script>
-<script type="text/javascript" src="/js/httpApi.js"></script>
-<script language="JavaScript" type="text/javascript" src="/js/asus_eula.js"></script>
+<script language="JavaScript" type="text/javascript" src="/js/asus_policy.js?v=4"></script>
 <style>
 *{
 	box-sizing: content-box;
@@ -35,6 +37,9 @@
 </style>
 <script>
 
+var current_page = window.location.pathname.split("/").pop();
+var faq_index_tmp = get_faq_index(FAQ_List, current_page, 1);
+
 function initial(){
 	show_menu();
 	if(document.form.bwdpi_wh_enable.value == 1){
@@ -46,9 +51,6 @@ function initial(){
 		document.getElementById("log_field").style.display = "none";
 	}
 
-	if(!ASUS_EULA.status("tm")){
-		ASUS_EULA.config(eula_confirm, cancel);
-	}	
 }
 
 var htmlEnDeCode = (function() {
@@ -302,10 +304,16 @@ function cancel(){
 function switch_control(_status){
 	if(_status) {
 		if(reset_wan_to_fo.check_status()) {
-			if(ASUS_EULA.check("tm")){
-				document.form.bwdpi_wh_enable.value = 1;
-				applyRule();
-			}
+			if(policy_status.TM == 0 || policy_status.TM_time == ''){
+                const policyModal = new PolicyModalComponent({
+                    policy: "TM",
+                    agreeCallback: eula_confirm,
+                    disagreeCallback: cancel
+                });
+                policyModal.show();
+            }else{
+                eula_confirm();
+            }
 		}
 		else
 			cancel();
@@ -473,8 +481,10 @@ function export_CSV(export_array) {
 						<table width="760px" border="0" cellpadding="5" cellspacing="0" bordercolor="#6b8fa3"  class="FormTitle" id="FormTitle">
 							<tr>
 								<td bgcolor="#4D595D" colspan="3" valign="top">
+									<div class="container">
 									<div>&nbsp;</div>
 									<div id="content_title" class="formfonttitle"><#menu5_3_2#> - <#Adaptive_History#></div>
+									<div class="formfonttitle_help"><i onclick="show_feature_desc(`<#HOWTOSETUP#>`)" class="icon_help"></i></div>
 									<div style="margin:10px 0 10px 5px;" class="splitLine"></div>
 									<div class="formfontdesc">
 										<#Adaptive_History_desc#>
@@ -503,7 +513,7 @@ function export_CSV(export_array) {
 												<option value="all" selected><#All_Client#></option>
 											</select>
 											<label style="margin: 0 5px 0 20px;visibility:hidden;cursor:pointer" id="previous_button" onclick="change_page('previous', document.getElementById('clientListOption').value);">Previous</label>
-											<input class="input_3_table" value="1" id="current_page"></input>
+											<input class="input_3_table short_input" value="1" id="current_page"></input>
 											<label style="margin-left:5px;cursor:pointer" id="next_button" onclick="change_page('next', document.getElementById('clientListOption').value);">Next</label>
 										</div>
 										<div class="web_frame" style="height:600px;overflow:auto;margin:5px">
@@ -515,6 +525,10 @@ function export_CSV(export_array) {
 											<input class="button_gen" onClick="exportWebHistoryLog()" type="button" value="<#btn_Export#>" >
 										</div>
 									</div>
+
+									</div>	<!-- for .container  -->
+									<div class="popup_container popup_element_second"></div>
+
 								</td>
 							</tr>
 						</table>

@@ -13,13 +13,14 @@
 <link rel="stylesheet" type="text/css" href="index_style.css"> 
 <link rel="stylesheet" type="text/css" href="form_style.css">
 <link rel="stylesheet" type="text/css" href="device-map/device-map.css">
+<script type="text/javascript" src="/js/jquery.js"></script>
+<script type="text/javascript" src="/js/httpApi.js"></script>
 <script language="JavaScript" type="text/javascript" src="/state.js"></script>
 <script language="JavaScript" type="text/javascript" src="/help.js"></script>
 <script language="JavaScript" type="text/javascript" src="/general.js"></script>
 <script language="JavaScript" type="text/javascript" src="/popup.js"></script>
 <script language="JavaScript" type="text/javascript" src="/client_function.js"></script>
 <script language="JavaScript" type="text/javascript" src="/validator.js"></script>
-<script type="text/javascript" src="/js/jquery.js"></script>
 <script type="text/javascript" src="/switcherplugin/jquery.iphone-switch.js"></script>
 <style>
 #pull_arrow{
@@ -47,14 +48,62 @@ function show_tor_redir_list(){
 	var tor_redir_array = Tor_redir_list_str.split('&#60');
 	var code = "";
 
-	code +='<table width="100%" border="1" cellspacing="0" cellpadding="4" align="center" class="list_table" id="tor_redir_list_table">'; 
+	code +='<table style="margin-top:0px;" width="100%" border="1" cellspacing="0" cellpadding="4" align="center" class="FormTable_table" id="tor_redir_list_table">';
+
 	if(tor_redir_array.length == 1){
 		code +='<tr><td style="color:#FFCC00;"><#IPConnection_VSList_Norule#></td>';
 	}		
 	else{
-		for(var i = 1; i < tor_redir_array.length; i++){
+		//user icon
+		var userIconBase64 = "NoIcon";
+		var clientName, deviceType, deviceVender;
+		for(var i=1; i<tor_redir_array.length; i++){
+
+			mac = tor_redir_array[i];
+
+			if(clientList[mac]) {
+				clientName = (clientList[mac].nickName == "") ? clientList[mac].name : clientList[mac].nickName;
+				deviceType = clientList[mac].type;
+				deviceVender = clientList[mac].vendor;
+			}
+			else {
+				clientName = mac;
+				deviceType = 0;
+				deviceVender = "";
+			}
 			code +='<tr id="row'+i+'">';
-			code +='<td width="80%">'+ tor_redir_array[i] +'</td>';	
+			code +='<td width="80%" title="'+mac+'">';
+
+			code += '<table width="100%"><tr><td style="width:35%;border:0;float:right;padding-right:30px;">';
+			if(clientList[mac] == undefined) {
+				code += '<div class="clientIcon type0" onClick="popClientListEditTable(&quot;' + mac + '&quot;, this, &quot;' + clientName + '&quot;, &quot;&quot;, &quot;DNSFilter&quot;)"></div>';
+			}
+			else {
+				if(usericon_support) {
+					userIconBase64 = getUploadIcon(mac.replace(/\:/g, ""));
+				}
+				if(userIconBase64 != "NoIcon") {
+					code += '<div style="text-align:center;" onClick="popClientListEditTable(&quot;' + mac + '&quot;, this, &quot;' + clientName + '&quot;, &quot;&quot;, &quot;DNSFilter&quot;)"><img class="imgUserIcon_card" src="' + userIconBase64 + '"></div>';
+				}
+				else if(deviceType != "0" || deviceVender == "") {
+					code += '<div class="clientIcon type' + deviceType + '" onClick="popClientListEditTable(&quot;' + mac + '&quot;, this, &quot;' + clientName + '&quot;, &quot;&quot;, &quot;DNSFilter&quot;)"></div>';
+				}
+				else if(deviceVender != "" ) {
+					var VendorIconClassName = getVendorIconClassName(deviceVender.toLowerCase());
+					if(VendorIconClassName != "") {
+						code += '<div class="vendorIcon ' + VendorIconClassName + '" onClick="popClientListEditTable(&quot;' + mac + '&quot;, this, &quot;' + clientName + '&quot;, &quot;&quot;, &quot;DNSFilter&quot;)"></div>';
+					}
+					else {
+						code += '<div class="clientIcon type' + deviceType + '" onClick="popClientListEditTable(&quot;' + mac + '&quot;, this, &quot;' + clientName + '&quot;, &quot;&quot;, &quot;DNSFilter&quot;)"></div>';
+					}
+				}
+			}
+
+			code += '</td><td id="client_info_'+i+'" style="width:65%;text-align:left;border:0;">';
+			code += '<div>' + clientName + '</div>';
+			code += '<div>' + mac + '</div>';
+			code += '</td></tr></table>';
+			code +='</td>';
 			code +='<td width="20%"><input type="button" class=\"remove_btn\" onclick=\"deleteRow(this);\" value=\"\"/></td></tr>';
 		}
 	}
@@ -86,14 +135,14 @@ function addRow(obj){
 		obj.focus();
 		obj.select();
 		return false;
-	}else if (!check_macaddr(obj, check_hwaddr_flag(obj))){
+	}else if (!check_macaddr(obj, check_hwaddr_flag(obj, 'inner'))){
 		obj.focus();
 		obj.select();		
 		return false;
 	}
 		
 	for(i = 0; i < device_num; i++){
-		if(obj.value.toLowerCase() == document.getElementById('tor_redir_list_table').rows[i].cells[0].innerHTML.toLowerCase()){
+		if(obj.value.toLowerCase() == document.getElementById('tor_redir_list_table').rows[i].cells[0].title.toLowerCase()){
 			alert("<#JS_duplicate#>");
 			return false;
 		}
@@ -111,7 +160,7 @@ function applyRule(){
 
 		for(i = 0; i < device_num; i++){
 			value += "<"		
-			value += document.getElementById('tor_redir_list_table').rows[i].cells[0].innerHTML;
+			value += document.getElementById('tor_redir_list_table').rows[i].cells[0].title;
 		}
 
 		if(value == "<"+"<#IPConnection_VSList_Norule#>" || value == "<"){
@@ -160,7 +209,7 @@ function pullLANMacList(obj){
 	var element = document.getElementById('TORMACList');
 	var isMenuopen = element.offsetWidth > 0 || element.offsetHeight > 0;	
 	if(isMenuopen == 0){		
-		obj.src = "/images/arrow-top.gif"
+		obj.src = "/images/unfold_less.svg"
 		element.style.display = 'block';		
 		document.form.tor_maclist_0.focus();		
 	}
@@ -169,7 +218,7 @@ function pullLANMacList(obj){
 }
 
 function hideClients_Block(){
-	document.getElementById("pull_arrow").src = "/images/arrow-down.gif";
+	document.getElementById("pull_arrow").src = "/images/unfold_more.svg";
 	document.getElementById('TORMACList').style.display='none';
 }
 
@@ -321,13 +370,13 @@ function show_tor_settings(value){
 							</tr>
 						</thead>		
 						<tr>
-							<th width="80%"><a class="hintstyle" href="javascript:void(0);" onClick="openHint(5,10);">MAC</th>
+							<th width="80%"><a class="hintstyle" href="javascript:void(0);" onClick="openHint(5,10);">MAC</a></th>
 							<th class="edit_table" width="20%"><#list_add_delete#></th>		
 						</tr>
 						<tr>
 							<td width="80%">
 								<input type="text" style="margin-left:220px;float:left;" maxlength="17" class="input_macaddr_table" name="tor_maclist_0" onKeyPress="return validator.isHWAddr(this,event)">
-								<img style="float:left;" id="pull_arrow" height="14px;" src="/images/arrow-down.gif" onclick="pullLANMacList(this);" title="Select the MAC address of the device.">
+								<img style="float:left;" id="pull_arrow" height="14px;" src="/images/unfold_more.svg" onclick="pullLANMacList(this);" title="Select the MAC address of the device.">
 								<div id="TORMACList" class="clientlist_dropdown" style="margin-left:220px;margin-top:25px;"></div>
 								</div>
 							</td>

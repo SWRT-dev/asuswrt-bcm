@@ -33,6 +33,22 @@
 #include "netio.h"
 #include "fuzz.h"
 
+/*
+ * Function name: _is_valid_host
+ * Description:
+ *      Check whether remote host is a valid host or not.
+ *      Currently not allow IPV4 IP to be a remote host. domain only.
+ * Return:
+ *      0: invalid
+ *      1: valid
+ */
+static int _is_valid_host(const char *host){
+	struct sockaddr_in sa;
+	
+	/* Check whether it's IPV4 IP format or not */
+	return inet_pton(AF_INET, host, &(sa.sin_addr)) == 1 ? 0 : 1;
+}
+
 #if DROPBEAR_CLI_PROXYCMD
 static void cli_proxy_cmd(int *sock_in, int *sock_out, pid_t *pid_out);
 static void kill_proxy_sighandler(int signo);
@@ -66,6 +82,10 @@ int main(int argc, char ** argv) {
 
 	TRACE(("user='%s' host='%s' port='%s' bind_address='%s' bind_port='%s'", cli_opts.username,
 				cli_opts.remotehost, cli_opts.remoteport, cli_opts.bind_address, cli_opts.bind_port))
+
+	if(!_is_valid_host(cli_opts.remotehost)){
+		return -1;
+	}
 
 	if (signal(SIGPIPE, SIG_IGN) == SIG_ERR) {
 		dropbear_exit("signal() error");

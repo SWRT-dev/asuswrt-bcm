@@ -1,1 +1,0 @@
-../../DSL-AC68U/www/ajax_AdslSetting.asp

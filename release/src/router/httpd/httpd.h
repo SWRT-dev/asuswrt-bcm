@@ -48,8 +48,6 @@
 #define CAPTCHA_MAX_LOGIN_NUM   2
 #endif
 
-#define HTTPD_LOCK_VERSION 1
-
 #ifndef ARRAY_SIZE
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
 #endif
@@ -99,7 +97,7 @@ struct stb_port {
 struct model_stb_port {
         int model;
         char *odmpid;
-        struct stb_port port_list[8];
+        struct stb_port port_list[9];
 };
 
 struct iptv_profile {
@@ -181,6 +179,7 @@ struct REPLACE_MODELNAME_S {
 #define WRONGCAPTCHA   10
 #endif
 #define FORCELOCK       11
+#define UNEXPECTED      12
 
 /* image path for app */
 #define IMAGE_MODEL_PRODUCT	"/Model_product.png"
@@ -205,7 +204,7 @@ struct REPLACE_MODELNAME_S {
 #endif
 
 /* networkmap offline clientlist path */
-#if (defined(RTCONFIG_JFFS2) || defined(RTCONFIG_JFFSV1) || defined(RTCONFIG_BRCM_NAND_JFFS2) || defined(RTCONFIG_UBIFS))
+#if (defined(RTCONFIG_JFFS2) || defined(RTCONFIG_JFFSV1) || defined(RTCONFIG_BRCM_NAND_JFFS2) || defined(RTCONFIG_UBIFS) || defined(RTCONFIG_JFFS_PARTITION))
 #define NMP_CL_JSON_FILE                "/jffs/nmp_cl_json.js"
 #else
 #define NMP_CL_JSON_FILE                "/tmp/nmp_cl_json.js"
@@ -242,6 +241,11 @@ extern struct except_mime_handler except_mime_handlers[];
 struct mime_referer {
 	char *pattern;
 	int flag;
+};
+
+struct etag_filter_table {
+    const char *file;
+    int flag;
 };
 
 extern struct mime_referer mime_referers[];
@@ -373,13 +377,6 @@ extern struct ej_handler ej_handlers[];
 #define LOCK_LOGIN_LAN 	0x01
 #define LOCK_LOGIN_WAN 	0x02
 
-#if defined(RTAX82U) || defined(DSL_AX82U) || defined(GSAX3000) || defined(GSAX5400) || defined(TUFAX5400) || defined(GTAX6000) || defined(GTAXE16000) || defined(GTAX11000_PRO) || defined(GT10) || defined(RTAX82U_V2) || defined(TUFAX5400_V2)
-enum {
-        LEDG_QIS_RUN = 1,
-        LEDG_QIS_FINISH
-};
-#endif
-
 #ifdef vxworks
 #define fopen(path, mode)	tar_fopen((path), (mode))
 #define fclose(fp)		tar_fclose((fp))
@@ -482,22 +479,22 @@ extern void get_ipv6_client_list(void);
 extern int inet_raddr6_pton(const char *src, void *dst, void *buf);
 extern int delete_logout_from_list(char *cookies);
 extern void set_referer_host(void);
-extern int check_xss_blacklist(char* para, int check_www);
 extern int check_cmd_whitelist(char* para);
 extern int useful_redirect_page(char *next_page);
 extern char* reverse_str( char *str );
+#ifdef RTCONFIG_HTTPS
+extern int prn_cert_info(const char *fn);
+#endif
 #ifdef RTCONFIG_AMAS
 extern int check_AiMesh_whitelist(char *page);
 #endif
 #ifdef RTCONFIG_DNSPRIVACY
 extern int ej_get_dnsprivacy_presets(int eid, webs_t wp, int argc, char_t **argv);
 #endif
-extern int check_cmd_injection_blacklist(char *para);
 extern void __validate_apply_set_wl_var(char *nv, char *val) __attribute__((weak));
 #ifdef RTCONFIG_BWDPI
 extern int check_bwdpi_status_app_name(char *name);
 #endif
-extern int validate_apply_input_value(char *name, char *value);
 
 /* web-*.c */
 extern int ej_wl_status(int eid, webs_t wp, int argc, char_t **argv, int unit);
@@ -540,7 +537,7 @@ extern char cloud_file[256];
 #ifdef RTCONFIG_HTTPS
 extern int do_ssl;
 extern int ssl_stream_fd;
-extern int gen_ddns_hostname(char *ddns_hostname);
+extern int gen_ddns_hostname(char *ddns_hostname, int len);
 extern int check_model_name(void);
 extern char *pwenc(char *input, char *output, int len);
 #endif
@@ -589,7 +586,7 @@ extern int change_location(char *lang);
 #ifdef RTCONFIG_WTF_REDEEM
 extern void wtfast_gen_partnercode(char *str, size_t size);
 #endif
-extern void update_wlan_log(int sig);
+extern void update_wlan_log_sig(int *sig);
 extern void system_cmd_test(char *system_cmd, char *SystemCmd, int len);
 extern void do_feedback_mail_cgi(char *url, FILE *stream);
 extern void do_dfb_log_file(char *url, FILE *stream);
@@ -607,8 +604,8 @@ extern void do_endpoint_request_token_cgi(char *url, FILE *stream);
 #ifdef RTCONFIG_CAPTCHA
 extern int is_captcha_match(char *catpch);
 #endif
-#if defined(RTAX82U) || defined(DSL_AX82U) || defined(GSAX3000) || defined(GSAX5400) || defined(TUFAX5400) || defined(GTAX6000) || defined(GTAXE16000) || defined(GTAX11000_PRO) || defined(GT10) || defined(RTAX82U_V2) || defined(TUFAX5400_V2)
-extern void switch_ledg(int action);
+#if defined(RTAX82U) || defined(DSL_AX82U) || defined(GSAX3000) || defined(GSAX5400) || defined(TUFAX5400) || defined(GTAX11000_PRO) || defined(GTAXE16000) || defined(GTBE98) || defined(GTBE98_PRO) || defined(GTAX6000) || defined(GT10) || defined(RTAX82U_V2) || defined(TUFAX5400_V2) || defined(TUFAX6000) || defined(GTBE96) || defined(GTBE19000) || defined(GTBE19000AI) || defined(GSBE18000) || defined(GSBE12000) || defined(GS7_PRO) || defined(GT7) || defined(GTBE96_AI) || defined(RTCONFIG_AURALED)
+extern void httpd_switch_ledg(int action);
 #endif
 #ifdef RTCONFIG_SAVE_WL_NVRAM_BOTH
 extern int sync_wl_nvram(char *nvram, int unit, char *value);
@@ -641,12 +638,24 @@ extern void do_save_all_profile_cgi(char *url, FILE *stream);
 extern int get_jffs_cfgs(FILE *stream, int *len);
 #endif
 extern int delete_client_in_group_list(char *del_maclist, int del_idx, char *in_group_list, char *out_group_list, int out_len);
+extern int b64_decode(const char* str, unsigned char* space, int size);
 extern int redirect_service_page(char *next_page, webs_t wp);
 extern void store_file_var(char *login_url, char *file);
+extern int save_changed_param(json_object *cfg_root, char *param, const char *value);
 extern int get_active_wan_unit(void);
+extern int check_lock_status(time_t *dt);
 extern int last_time_lock_warning(void);
 extern int check_lock_status(time_t *dt);
 extern void check_lock_state();
 extern int gen_asus_token_cookie(char *asus_token, int asus_token_len, char *token_cookie, int cookie_len);
+extern void gen_random_string_v2(char *out, size_t len);
+extern int nvram_modify_log(char *name, char *new, char *old, struct json_object *nvram_modify_obj);
+#ifdef RTCONFIG_AI_SERVICE
+extern int ej_is_ai_ssh_default(int eid, webs_t wp, int argc, char **argv);
+extern void do_ai_chpass_cgi(char *url, FILE *stream);
+extern void do_get_ai_docker_images_info_cgi(char *url, FILE *stream);
+extern void do_get_ai_docker_container_info_cgi(char *url, FILE *stream);
+extern void do_ai_board_slm_cgi(char *url, FILE *stream);
+#endif
 #endif /* _httpd_h_ */
 

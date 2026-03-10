@@ -56,32 +56,28 @@ CFLAGS += -I$(TOP)/cfg_mnt
 LIBS += -L$(TOP)/cfg_mnt -lcfgmnt
 endif
 
-ifeq ($(RTCONFIG_TRUSTZONE), y)
-CFLAGS += -I$(TOP)/ateed/
-LIBS += -L$(TOP)/ateed/ -latee
-endif
-
 ifeq ($(HND_ROUTER_BE_4916), y)
 CFLAGS+= -fcommon
 endif
 
-ifeq ($(RTCONFIG_HTTPS),y)
-CFLAGS += -I$(TOP)/mssl
-CFLAGS += -I$(TOP)/openssl/include
-LIBS += -L$(TOP)/mssl -lmssl
-LIBS += -L$(TOP)/openssl -lssl -lcrypto -ldl
+ifeq ($(BRCM_CHIP),6813)
+CFLAGS += -DCHIP_BCM4916
+endif
+ifeq ($(BRCM_CHIP),6764)
+CFLAGS += -DCHIP_BCM6764
 endif
 
-ifeq ($(RTCONFIG_USB),y)
-CFLAGS += -I$(TOP)/libdisk
-LIBS += -L$(TOP)/libdisk -ldisk
-ifeq ($(RTCONFIG_USB_SMS_MODEM),y)
-CFLAGS += -I$(TOP)/smspdu
-LIBS += -L$(TOP)/smspdu -lsmspdu
+# BUILD_NAME
+ifneq ($(findstring 4G-,$(BUILD_NAME)),)
+TARGET_MODEL = RT$(subst -,,$(BUILD_NAME))
+else ifneq ($(findstring DSL,$(BUILD_NAME)),)
+TARGET_MODEL = $(subst -,_,$(BUILD_NAME))
+else
+TARGET_MODEL = $(subst -,,$(subst +,P,$(BUILD_NAME)))
 endif
-endif
+CFLAGS  += -D$(TARGET_MODEL)
 
-all: libwebapi.so
+all: clean libwebapi.so
 
 # handle prebuilt object here
 ifneq ($(wildcard ./prebuild/$(BUILD_NAME)/priv_webapi.o),)
@@ -98,5 +94,5 @@ libwebapi.so: $(OBJS)
 .PHONY: clean
 clean:
 	@echo LINUXDIR=$(LINUXDIR)
-	-rm -rf libwebapi.so webapi.o $(OBJS)
+	rm -rf libwebapi.so *.o
 

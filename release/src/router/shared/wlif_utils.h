@@ -46,8 +46,12 @@
 #define ETHER_ADDR_LEN 6
 #endif
 
-#ifdef RTCONFIG_AMAS_WGN
-#define WLIFU_MAX_NO_BRIDGE		8
+#if defined(RTCONFIG_BCM_502L07P2)
+#define WLIFU_MAX_NO_BRIDGE		16
+#elif defined(RTCONFIG_MULTILAN_CFG)
+#define WLIFU_MAX_NO_BRIDGE		16	
+#elif defined(RTCONFIG_AMAS_WGN)
+#define WLIFU_MAX_NO_BRIDGE     8
 #else
 #define WLIFU_MAX_NO_BRIDGE		5
 #endif
@@ -178,9 +182,7 @@ extern unsigned char *get_wlmacstr_by_unit(char *unit);
 #define WLIF_SSID_MAX_SZ		32
 #define WLIF_PSK_MAX_SZ			64
 
-#ifdef RTCONFIG_HND_ROUTER_AX
 #define WLIF_DPP_PARAMS_MAX_SIZE	512
-#endif
 
 #define DPP_AKM		"dpp"
 #define PSK_AKM		"psk"
@@ -188,6 +190,38 @@ extern unsigned char *get_wlmacstr_by_unit(char *unit);
 #define PSK_SAE_AKM	"psk+sae"
 #define DPP_SAE_AKM	"dpp+sae"
 #define DPP_PSK_SAE_AKM	"dpp+psk+sae"
+
+#if defined(RTCONFIG_HND_ROUTER_BE_4916)
+#if defined(WIFI7_SDK_20250122)
+// Internal akm value bitflags
+#define HAPD_AKM_OPEN			0x0u
+#define HAPD_AKM_WEP			0x1u
+#define HAPD_AKM_PSK			0x2u
+#define HAPD_AKM_PSK2			0x4u
+#define HAPD_AKM_WPA3_SAE		0x8u
+#define HAPD_AKM_WPA3_SAE_FT		0x10u
+#define HAPD_AKM_WPA3_DPP		0x20u
+#define HAPD_AKM_PSK2_FT		0x40u
+#define HAPD_AKM_OWE			0x80u
+
+#define HAPD_AKM_PSK2_SHA256		0x100u
+#define HAPD_AKM_WPA3_SAE_EXT           0x200u
+#define HAPD_AKM_WPA3_SAE_FT_EXT        0x400u
+/* Start of Enterprise akm */
+#define HAPD_AKM_WPA			0x800u
+#define HAPD_AKM_WPA2			0x1000u
+#define HAPD_AKM_WPA2_OSEN		0x2000u
+#define HAPD_AKM_WPA3_SUITE_B           0x4000u
+#define HAPD_AKM_WPA3			0x8000u
+#ifdef CONFIG_PASN
+#define HAPD_AKM_PASN			0x10000u
+#endif /* CONFIG_PASN */
+
+#define HAPD_MFP_OFF			0	// PMF Off
+#define HAPD_MFP_CAP			1	// PMF Capable
+#define HAPD_MFP_REQ			2	// PMF Required
+#endif /* WIFI7_SDK_20250122 */
+#endif	/* RTCONFIG_HND_ROUTER_BE_4916 */
 
 // WPS states to update the UI
 typedef enum wlif_wps_ui_status_code_id {
@@ -234,6 +268,16 @@ typedef enum wlif_wps_mode {
 	WLIF_WPS_REGISTRAR	= 2
 } wlif_wps_mode_t;
 
+#if defined(RTCONFIG_HND_ROUTER_BE_4916)
+enum dpp_netrole {
+        DPP_NETROLE_STA,
+        DPP_NETROLE_AP,
+        DPP_NETROLE_CONFIGURATOR,
+        DPP_NETROLE_MAPAGENT,
+        DPP_NETROLE_MAP_BH_STA,
+};
+#endif
+
 // Struct to hold the network settings received using wps.
 typedef struct wlif_wps_nw_settings {
 	char ssid[WLIF_SSID_MAX_SZ + /* '\0' */ 1];	// SSID.
@@ -244,7 +288,6 @@ typedef struct wlif_wps_nw_settings {
 	bool invalid;		// Check for the validity of credentials
 } wlif_wps_nw_creds_t;
 
-#ifdef RTCONFIG_HND_ROUTER_AX
 // Structure to hold the network settings received in DPP config response.
 typedef struct wlif_dpp_config_settings {
 	char ssid[WLIF_SSID_MAX_SZ + /* '\0' */ 1];		// SSID
@@ -255,8 +298,10 @@ typedef struct wlif_dpp_config_settings {
 	char dpp_pp_key[WLIF_DPP_PARAMS_MAX_SIZE];		// DPP PP key
 	unsigned char dpp_psk[WLIF_PSK_MAX_SZ + /* '\0' */ 1];	// PSK
 	char dpp_pass[2*WLIF_PSK_MAX_SZ + /* '\0' */ 1];	// PASS
-} wlif_dpp_creds_t;
+#if defined(RTCONFIG_HND_ROUTER_BE_4916)
+	enum dpp_netrole netrole;				// DPP netrole
 #endif
+} wlif_dpp_creds_t;
 
 /* Struct to store the bss info */
 typedef struct wlif_bss {
@@ -283,7 +328,7 @@ int wl_wlif_apply_creds(wlif_bss_t *bss, wlif_wps_nw_creds_t *creds);
 /* Invokes the hostapd/wpa_supplicant wps session */
 int wl_wlif_wps_pbc_hdlr(char *wps_ifname, char *bh_ifname);
 /* Stops the hostapd/wpa_supplicant wps session */
-#if defined(RTCONFIG_WIFI6E) || defined(RTCONFIG_HND_ROUTER_AX_6756) || defined(RTCONFIG_BCM_502L07P2)
+#if defined(RTCONFIG_WIFI6E) || defined(RTCONFIG_HND_ROUTER_AX_6756) || defined(RTCONFIG_HND_ROUTER_BE_4916) || defined(RTCONFIG_BCM_502L07P2)
 int wl_wlif_wps_stop_session(char *wps_ifname, bool bUpdateUI);
 #else
 int wl_wlif_wps_stop_session(char *wps_ifname);
@@ -330,7 +375,7 @@ void wl_wlif_wps_gpio_cleanup(int board_fp);
 #endif	/* BCA_HNDROUTER */
 #endif	/* CONFIG_HOSTAPD */
 
-#if defined(RTCONFIG_HND_ROUTER_AX_6756) || defined(RTCONFIG_BCM_502L07P2)
+#if defined(RTCONFIG_HND_ROUTER_AX_6756) || defined(RTCONFIG_HND_ROUTER_BE_4916) || defined(RTCONFIG_BCM_502L07P2)
 #if !defined(RTCONFIG_SDK504L02_188_1303)
 /* LGI supported rate bitmap control feature */
 typedef enum _bits {
@@ -368,4 +413,11 @@ double wl_get_txpwr_target_max(char *name);
 double get_wifi_maxpower(int target_unit);
 #endif
 #endif
+
+#if defined(RTCONFIG_HND_ROUTER_BE_4916)
+#if defined(WIFI7_SDK_20250122)
+extern int wl_wlif_get_wlan_ifnames(char *ret_buf, size_t ret_buf_len, int band_needle);
+#endif /* WIFI7_SDK_20250122 */
+#endif	/* RTCONFIG_HND_ROUTER_BE_4916 */
+
 #endif /* _wlif_utils_h_ */

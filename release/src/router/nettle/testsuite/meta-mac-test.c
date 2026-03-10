@@ -5,6 +5,8 @@ const char* macs[] = {
   "cmac_aes128",
   "cmac_aes256",
   "cmac_des3",
+  "hmac_gosthash94",
+  "hmac_gosthash94cp",
   "hmac_md5",
   "hmac_ripemd160",
   "hmac_sha1",
@@ -14,6 +16,7 @@ const char* macs[] = {
   "hmac_sha512",
   "hmac_streebog256",
   "hmac_streebog512",
+  "hmac_sm3",
 };
 
 void

@@ -148,7 +148,7 @@
 
 &led_ctrl {
 
-    /* GPHY0 ~ GPHY3 SPD */
+    /* GPHY0 ~ GPHY3 ACT(on) */
     led1: port_0-led-1-pin_1 {
         active_low;
         link = <(LED_SPEED_1G)>;
@@ -176,7 +176,7 @@
         status = "okay";
     };
 
-    /* GPHY0 ~ GPHY3 ACT */
+    /* GPHY0 ~ GPHY3 SPD(blink) */
     led16: port_0-led_2-pin_16 {
         active_low;
         activity = <(LED_SPEED_100 | LED_SPEED_1G)>;
@@ -205,7 +205,7 @@
     };
 
     /* USB LED */
-    led2: sw_led_2-pin_2 {
+    led2: sw_led_12-pin_12 {
         active_low;
         init_high;
         status = "okay";
@@ -219,9 +219,19 @@
     };
 
     /* PWR LED */
-    pwr_led: sw_led_22-pin_22 {
+    pwr_led:led_gpio_22 {
+        compatible = "brcm,gpio-led";
+        software_led;
+        pin = <22>;
         active_low;
         init_low;
+        status = "okay";
+    };
+
+    /* ethall on */
+    led_ethall: sw_led_24-pin_24 {
+        active_low;
+        init_high;
         status = "okay";
     };
 

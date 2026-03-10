@@ -19,7 +19,7 @@ int facility = LOG_USER;
 int g_stream_type =0;
 int priority = LOG_ERR | LOG_USER;
 int g_is_log_opened =0;
-long FILE_MAX_SIZE = 1048576;
+long FILE_MAX_SIZE = 524288; //- 512K
 
 #define API_DBG 1
 
@@ -112,11 +112,11 @@ void close_log()
 void dprintf_impl(const char* file,const char* func, size_t line, int enable, const char* fmt, ...)
 {
 
-    long filesize = file_size(FEEDBACK_LOG_PATH);
+    long filesize = file_size(DBG_LOG_PATH);
 
     // if File > 512K , downsizing -> 1200 line
     if(filesize > FILE_MAX_SIZE) {
-        feedback_log_downsizing();
+        dbg_log_downsizing();
     }
 
     va_list ap;
@@ -143,18 +143,25 @@ void dprintf_impl2(const char* file,const char* func, size_t line, int enable, i
         char* ts;
         alloc_time_string(NULL, 1, &ts);
 
-
         //va_start(ap, fmt);
         // Log to file
-        if (fileExist(AWS_DEBUG_TO_FILE)) {
-            if (g_file_fp) {
-
-                fprintf(g_file_fp, WHERESTR, ts, file, func, line);
-                vfprintf(g_file_fp, fmt, ap);
-                fprintf(g_file_fp, "\n");
-                fflush(g_file_fp);
-            }
+        
+        if (g_file_fp) {
+            fprintf(g_file_fp, WHERESTR, ts, file, func, line);
+            vfprintf(g_file_fp, fmt, ap);
+            fprintf(g_file_fp, "\n");
+            fflush(g_file_fp);
         }
+
+        // if (fileExist(AWS_DEBUG_TO_FILE)) {
+        //     if (g_file_fp) {
+        //         fprintf(g_file_fp, WHERESTR, ts, file, func, line);
+        //         vfprintf(g_file_fp, fmt, ap);
+        //         fprintf(g_file_fp, "\n");
+        //         fflush(g_file_fp);
+        //     }
+        // }
+
         // Log to console
         if (fileExist(AWS_DEBUG_TO_CONSOLE)) {
             if (g_console_fp) {
@@ -197,9 +204,9 @@ long file_size(const char* filename)
 
 
 
-void feedback_log_downsizing() {
+void dbg_log_downsizing() {
 
-// int file_number = get_file_number(FEEDBACK_LOG_PATH);
+// int file_number = get_file_number(DBG_LOG_PATH);
 
 // if(file_number >= 1200) {
 
@@ -207,18 +214,18 @@ void feedback_log_downsizing() {
 
   char file_info[1023];
 
-  if ((fp = fopen(FEEDBACK_LOG_PATH, "r")) == NULL) {
+  if ((fp = fopen(DBG_LOG_PATH, "r")) == NULL) {
 
-      Cdbg(API_DBG, "%s open_file_error", FEEDBACK_LOG_PATH);
+      Cdbg(API_DBG, "%s open_file_error", DBG_LOG_PATH);
 
       return;
   }
   
 
-  FILE *fpTmp = fopen(FEEDBACK_LOG_TMP_PATH, "a+");
+  FILE *fpTmp = fopen(DBG_LOG_TMP_PATH, "a+");
 
   if( NULL == fpTmp ){
-    Cdbg(API_DBG, "write [%s] file error -> open failure", FEEDBACK_LOG_TMP_PATH);
+    Cdbg(API_DBG, "write [%s] file error -> open failure", DBG_LOG_TMP_PATH);
     return;
   }
 
@@ -247,20 +254,20 @@ void feedback_log_downsizing() {
 
   fclose(fp);
 
-    // remove FEEDBACK_LOG_TMP_PATH to FEEDBACK_LOG_PATH
-  if(remove(FEEDBACK_LOG_PATH) == 0 ) {
+    // remove DBG_LOG_TMP_PATH to DBG_LOG_PATH
+  if(remove(DBG_LOG_PATH) == 0 ) {
 
     char cmd[128];
 
-    snprintf(cmd, 128, "mv %s %s", FEEDBACK_LOG_TMP_PATH, FEEDBACK_LOG_PATH);
+    snprintf(cmd, 128, "mv %s %s", DBG_LOG_TMP_PATH, DBG_LOG_PATH);
     int ret = system(cmd);
     if(ret == 0) {
-      Cdbg(API_DBG, "feedback log [%s] rename to [%s] successfully ", FEEDBACK_LOG_TMP_PATH, FEEDBACK_LOG_PATH);
+      Cdbg(API_DBG, "feedback log [%s] rename to [%s] successfully ", DBG_LOG_TMP_PATH, DBG_LOG_PATH);
     } else {
-      Cdbg(API_DBG, "Error: [%s] unable rename to [%s]", FEEDBACK_LOG_TMP_PATH, FEEDBACK_LOG_PATH);
+      Cdbg(API_DBG, "Error: [%s] unable rename to [%s]", DBG_LOG_TMP_PATH, DBG_LOG_PATH);
     }
   } else {
-    Cdbg(API_DBG, "error : remove [%s] file fail", FEEDBACK_LOG_PATH);
+    Cdbg(API_DBG, "error : remove [%s] file fail", DBG_LOG_PATH);
   }
 
 

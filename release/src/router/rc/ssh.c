@@ -49,6 +49,11 @@ int start_sshd(void)
 		NULL };
 	int index = 3;
 
+	if (nvram_get_int("sshd_port") <= 0 || nvram_get_int("sshd_port") > 65535) {
+		nvram_set_int("sshd_enable", 0);
+		nvram_set("sshd_port", nvram_default_get("sshd_port"));
+	}
+
 	if (!nvram_get_int("sshd_enable"))
 		return 0;
 
@@ -68,8 +73,8 @@ int start_sshd(void)
 	check_host_keys();
 
 	port = buf;
-	if (is_routing_enabled() && nvram_get_int("sshd_enable") != 1)
-		port += snprintf(buf, sizeof(buf), "%s:", nvram_safe_get("lan_ipaddr"));
+	/*if (is_routing_enabled() && nvram_get_int("sshd_enable") != 1)
+		port += snprintf(buf, sizeof(buf), "%s:", nvram_safe_get("lan_ipaddr"));*/
 	snprintf(port, sizeof(buf) - (port - buf), "%d", nvram_get_int("sshd_port") ? : 22);
 
 	if (!nvram_get_int("sshd_pass"))

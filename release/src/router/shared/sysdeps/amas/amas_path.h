@@ -10,6 +10,7 @@
 #define ETH_3		0x20	//ethernet_3
 #define ETH_4		0x40	//ethernet_4
 #define WL_6G		0x80	//6G
+#define WL_6G_1		0x100	//6G-1
 
 
 #define CH_SYNC_INIT_STATE	0
@@ -19,6 +20,8 @@
 #define CH_SYNC_NO_COONECT	-2
 #define CH_SYNC_ETH_BHL		-3
 #define CH_SYNC_WIFI_BHL	-4
+
+#define NON_MLO_CONNECTION	"/tmp/non_mlo_connection"
 
 /*
 Ethernet selection rule:
@@ -56,6 +59,8 @@ enum {
     CONN_PRI_WIFI_6G = 400,
     /* PLC 10000X, X: index, 10000: Connection Priority */
     CONN_PRI_PLC = 10000,
+    /* MOCA 20000X, X: index, 20000: Connection Priority */
+    CONN_PRI_MOCA = 20000,
     CONN_PRI_CUSTOM = 0xFFFFFFFF
 };
 
@@ -72,7 +77,8 @@ enum {
     ETH_TYPE_5G      = 16,
     ETH_TYPE_10G     = 32,
     ETH_TYPE_10GPLUS = 64,	/* 10G SFP+ */
-    ETH_TYPE_PLC     = 65536
+    ETH_TYPE_PLC     = 65536,
+    ETH_TYPE_MOCA    = 131072
 };
 
 /**
@@ -241,6 +247,20 @@ typedef struct uplinkport_capval_s {
     char name[32];
     int val;
 } uplinkport_capval_s;
+
+#ifdef RTCONFIG_AMAS_CHANNEL_PLAN
+/**
+ * @brief Channel Plan
+ *
+ **/
+enum {
+	CHANNEL_PLAN_OFF = 0,
+	CHANNEL_PLAN_ON = 1,
+	CHANNEL_PLAN_MANUAL = 2,
+	CHANNEL_PLAN_CENTRAL = 3,
+	CHANNEL_PLAN_MAX
+};
+#endif
 
 /* Uplink Port capbility End */
 

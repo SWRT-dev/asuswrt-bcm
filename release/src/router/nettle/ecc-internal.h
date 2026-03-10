@@ -42,6 +42,8 @@
 /* Name mangling */
 #define ecc_pp1_redc _nettle_ecc_pp1_redc
 #define ecc_pm1_redc _nettle_ecc_pm1_redc
+#define ecc_mod_zero_p _nettle_ecc_mod_zero_p
+#define ecc_mod_equal_p _nettle_ecc_mod_equal_p
 #define ecc_mod_add _nettle_ecc_mod_add
 #define ecc_mod_sub _nettle_ecc_mod_sub
 #define ecc_mod_mul_1 _nettle_ecc_mod_mul_1
@@ -56,14 +58,13 @@
 #define ecc_mod_random _nettle_ecc_mod_random
 #define ecc_mod _nettle_ecc_mod
 #define ecc_mod_inv _nettle_ecc_mod_inv
-#define ecc_hash _nettle_ecc_hash
-#define gost_hash _nettle_gost_hash
 #define ecc_a_to_j _nettle_ecc_a_to_j
 #define ecc_j_to_a _nettle_ecc_j_to_a
 #define ecc_eh_to_a _nettle_ecc_eh_to_a
 #define ecc_dup_jj _nettle_ecc_dup_jj
 #define ecc_add_jja _nettle_ecc_add_jja
 #define ecc_add_jjj _nettle_ecc_add_jjj
+#define ecc_nonsec_add_jjj _nettle_ecc_nonsec_add_jjj
 #define ecc_dup_eh _nettle_ecc_dup_eh
 #define ecc_add_eh _nettle_ecc_add_eh
 #define ecc_add_ehh _nettle_ecc_add_ehh
@@ -78,10 +79,17 @@
 #define cnd_copy _nettle_cnd_copy
 #define sec_add_1 _nettle_sec_add_1
 #define sec_sub_1 _nettle_sec_sub_1
-#define sec_tabselect _nettle_sec_tabselect
 #define sec_modinv _nettle_sec_modinv
 #define curve25519_eh_to_x _nettle_curve25519_eh_to_x
 #define curve448_eh_to_x _nettle_curve448_eh_to_x
+
+/* For asserts that are incompatible with sc tests. Currently used
+   only by ECC code. */
+#if WITH_EXTRA_ASSERTS
+# define assert_maybe(x) assert(x)
+#else
+# define assert_maybe(x) ((void)(x))
+#endif
 
 extern const struct ecc_curve _nettle_secp_192r1;
 extern const struct ecc_curve _nettle_secp_224r1;
@@ -124,11 +132,16 @@ typedef void ecc_mod_inv_func (const struct ecc_modulo *m,
 			       mp_limb_t *vp, const mp_limb_t *ap,
 			       mp_limb_t *scratch);
 
-/* Computes the square root of (u/v) (mod p) */
+/* Computes the square root of ap mod p. No overlap between input and output. */
 typedef int ecc_mod_sqrt_func (const struct ecc_modulo *m,
-			       mp_limb_t *rp,
-			       const mp_limb_t *up, const mp_limb_t *vp,
+			       mp_limb_t *vp, const mp_limb_t *ap,
 			       mp_limb_t *scratch);
+
+/* Computes the square root of (u/v) (mod p). */
+typedef int ecc_mod_sqrt_ratio_func (const struct ecc_modulo *m,
+				     mp_limb_t *rp,
+				     const mp_limb_t *up, const mp_limb_t *vp,
+				     mp_limb_t *scratch);
 
 /* Allows in-place operation with r == p, but not r == q */
 typedef void ecc_add_func (const struct ecc_curve *ecc,
@@ -161,13 +174,20 @@ struct ecc_modulo
   unsigned short redc_size;
   unsigned short invert_itch;
   unsigned short sqrt_itch;
+  unsigned short sqrt_ratio_itch;
 
   const mp_limb_t *m;
   /* B^size mod m. Expected to have at least 32 leading zeros
      (equality for secp_256r1). */
   const mp_limb_t *B;
-  /* 2^{bit_size} - m, same value as above, but shifted. */
+  /* 2^{bit_size} - m. When different from B above, for numbers of
+     interest, usually B has trailing zeros and this is B shifted
+     right. */
   const mp_limb_t *B_shifted;
+  /* For ecc_mod_sub: B^size - 2m, if that doesn't underflow.
+     Otherwise, same as B */
+  const mp_limb_t *Bm2m;
+
   /* m +/- 1, for redc, excluding redc_size low limbs. */
   const mp_limb_t *redc_mpm1;
   /* (m+1)/2 */
@@ -179,6 +199,7 @@ struct ecc_modulo
      with inputs and outputs in redc form. */
   ecc_mod_inv_func *invert;
   ecc_mod_sqrt_func *sqrt;
+  ecc_mod_sqrt_ratio_func *sqrt_ratio;
 };
 
 /* Represents an elliptic curve of the form
@@ -189,9 +210,8 @@ struct ecc_curve
 {
   /* The prime p. */
   struct ecc_modulo p;
-  /* Group order. FIXME: Currently, many functions rely on q.size ==
-     p.size. This has to change for radix-51 implementation of
-     curve25519 mod p arithmetic. */
+  /* Group order. Currently, many functions rely on q.size ==
+     p.size. */
   struct ecc_modulo q;
 
   unsigned short use_redc;
@@ -227,7 +247,7 @@ struct ecc_curve
      The following entries differ by powers of 2^{kc},
 
        T[i] = 2^{kc} T[i-2^c]
-  */  
+  */
   const mp_limb_t *pippenger_table;
 };
 
@@ -237,9 +257,21 @@ ecc_mod_func ecc_pm1_redc;
 
 ecc_mod_inv_func ecc_mod_inv;
 
+/* Side channel silent. Requires that x < 2m, so checks if x == 0 or x == p */
+int
+ecc_mod_zero_p (const struct ecc_modulo *m, const mp_limb_t *xp);
+
+/* Requires that a < 2m, and ref < m, needs m->size limbs of scratch
+   space. Overlap, a == scratch or ref == scratch, is allowed. */
+int
+ecc_mod_equal_p (const struct ecc_modulo *m, const mp_limb_t *a,
+		 const mp_limb_t *ref, mp_limb_t *scratch);
+
 void
 ecc_mod_add (const struct ecc_modulo *m, mp_limb_t *rp,
 	     const mp_limb_t *ap, const mp_limb_t *bp);
+
+/* If inputs are in the range 0 <= a, b < 2m, then so is the output. */
 void
 ecc_mod_sub (const struct ecc_modulo *m, mp_limb_t *rp,
 	     const mp_limb_t *ap, const mp_limb_t *bp);
@@ -268,7 +300,7 @@ ecc_mod_sqr (const struct ecc_modulo *m, mp_limb_t *rp,
 
 /* These mul and sqr functions produce a canonical result, 0 <= R < M.
    Requirements on input and output areas are similar to the above
-   functions, except that it is *not* allowed to pass rp = rp +
+   functions, except that it is *not* allowed to pass rp = tp +
    m->size.
  */
 void
@@ -302,16 +334,6 @@ ecc_mod_pow_2k_mul (const struct ecc_modulo *m,
 void
 ecc_mod_random (const struct ecc_modulo *m, mp_limb_t *xp,
 		void *ctx, nettle_random_func *random, mp_limb_t *scratch);
-
-void
-ecc_hash (const struct ecc_modulo *m,
-	  mp_limb_t *hp,
-	  size_t length, const uint8_t *digest);
-
-void
-gost_hash (const struct ecc_modulo *m,
-	  mp_limb_t *hp,
-	  size_t length, const uint8_t *digest);
 
 /* Converts a point P in affine coordinates into a point R in jacobian
    coordinates. */
@@ -351,7 +373,7 @@ ecc_dup_jj (const struct ecc_curve *ecc,
 
      P = Q != 0                       Duplication of non-zero point
      P = 0, Q != 0 or P != 0, Q = 0   One input zero
-   
+
      Correctly gives R = 0 if P = Q = 0 or P = -Q. */
 void
 ecc_add_jja (const struct ecc_curve *ecc,
@@ -363,6 +385,14 @@ void
 ecc_add_jjj (const struct ecc_curve *ecc,
 	     mp_limb_t *r, const mp_limb_t *p, const mp_limb_t *q,
 	     mp_limb_t *scratch);
+
+/* Variant that handles the checks for the special cases P = ±Q.
+   Returns 1 on success, 0 if result is infinite. Not side-channel
+   silent, so must not be used with secret inputs. */
+int
+ecc_nonsec_add_jjj (const struct ecc_curve *ecc,
+		    mp_limb_t *r, const mp_limb_t *p, const mp_limb_t *q,
+		    mp_limb_t *scratch);
 
 /* Point doubling on a twisted Edwards curve, with homogeneous
    cooordinates. */
@@ -399,7 +429,7 @@ ecc_add_thh (const struct ecc_curve *ecc,
 /* Computes N * the group generator. N is an array of ecc_size()
    limbs. It must be in the range 0 < N < group order, then R != 0,
    and the algorithm can work without any intermediate values getting
-   to zero. */ 
+   to zero. */
 void
 ecc_mul_g (const struct ecc_curve *ecc, mp_limb_t *r,
 	   const mp_limb_t *np, mp_limb_t *scratch);
@@ -430,6 +460,7 @@ ecc_mul_m (const struct ecc_modulo *m,
 	   mp_limb_t *qx, const uint8_t *n, const mp_limb_t *px,
 	   mp_limb_t *scratch);
 
+/* The cnd argument must be 1 or 0. */
 void
 cnd_copy (int cnd, mp_limb_t *rp, const mp_limb_t *ap, mp_size_t n);
 
@@ -438,11 +469,6 @@ sec_add_1 (mp_limb_t *rp, mp_limb_t *ap, mp_size_t n, mp_limb_t b);
 
 mp_limb_t
 sec_sub_1 (mp_limb_t *rp, mp_limb_t *ap, mp_size_t n, mp_limb_t b);
-
-void
-sec_tabselect (mp_limb_t *rp, mp_size_t rn,
-	       const mp_limb_t *table, unsigned tn,
-	       unsigned k);
 
 void
 curve25519_eh_to_x (mp_limb_t *xp, const mp_limb_t *p,

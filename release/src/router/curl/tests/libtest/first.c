@@ -5,7 +5,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2022, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -33,10 +33,6 @@
 
 #ifdef HAVE_FCNTL_H
 #  include <fcntl.h> /* for setmode() */
-#endif
-
-#ifdef USE_NSS
-#include <nspr.h>
 #endif
 
 #ifdef CURLDEBUG
@@ -85,9 +81,7 @@ char **test_argv;
 
 struct timeval tv_test_start; /* for test timing */
 
-#ifdef UNITTESTS
 int unitfail; /* for unittests */
-#endif
 
 #ifdef CURLDEBUG
 static void memory_tracking_init(void)
@@ -178,17 +172,14 @@ int main(int argc, char **argv)
   fprintf(stderr, "URL: %s\n", URL);
 
   result = test(URL);
-
-#ifdef USE_NSS
-  if(PR_Initialized())
-    /* prevent valgrind from reporting possibly lost memory (fd cache, ...) */
-    PR_Cleanup();
-#endif
+  fprintf(stderr, "Test ended with result %d\n", result);
 
 #ifdef WIN32
   /* flush buffers of all streams regardless of mode */
   _flushall();
 #endif
 
-  return result;
+  /* Regular program status codes are limited to 0..127 and 126 and 127 have
+   * special meanings by the shell, so limit a normal return code to 125 */
+  return result <= 125 ? result : 125;
 }

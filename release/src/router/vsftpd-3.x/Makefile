@@ -70,7 +70,7 @@ LDFLAGS += -lpthread -ldl
 endif
 CFLAGS += -I$(TOP)/sqlCipher
 CFLAGS += -I$(TOP)/PMS_DBapis
-LDFLAGS += -L$(TOP)/openssl -lcrypto
+LDFLAGS += -L$(TOP)/$(OPENSSLDIR) -lcrypto
 LDFLAGS += -L$(TOP)/sqlCipher/.libs -lsqlcipher
 LDFLAGS += -L$(TOP)/PMS_DBapis -lpms_sql
 endif
@@ -78,6 +78,10 @@ endif
 ifeq ($(RTCONFIG_TRUSTZONE),y)
 CFLAGS += -I$(TOP)/ateed/
 LDFLAGS += -L$(TOP)/ateed/ -latee
+endif
+
+ifeq ($(BUILD_NAME),$(filter $(BUILD_NAME),RT-BE82M GS-BE18000 GS-BE12000 GS7_PRO GT7))
+LDFLAGS += -L$(TOP)/libhostapi -lhostapi
 endif
 
 OBJS	=	main.o utility.o prelogin.o ftpcmdio.o postlogin.o privsock.o \

@@ -5,8 +5,8 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
- *  Copyright (C) 2010-2018 Fox Crypto B.V. <openvpn@fox-it.com>
+ *  Copyright (C) 2002-2024 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2010-2021 Fox Crypto B.V. <openvpn@foxcrypto.com>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -130,6 +130,7 @@ result_t backend_x509_get_username(char *common_name, int cn_len,
  * --x509-username-field option.
  */
 bool x509_username_field_ext_supported(const char *extname);
+
 #endif
 
 /*
@@ -160,6 +161,17 @@ char *backend_x509_get_serial_hex(openvpn_x509_cert_t *cert,
                                   struct gc_arena *gc);
 
 /*
+ * Write the certificate to the file in PEM format.
+ *
+ *
+ * @param cert          Certificate to serialise.
+ *
+ * @return              \c FAILURE, \c or SUCCESS
+ */
+result_t backend_x509_write_pem(openvpn_x509_cert_t *cert,
+                                const char *filename);
+
+/*
  * Save X509 fields to environment, using the naming convention:
  *
  * X509_{cert_depth}_{name}={value}
@@ -175,7 +187,7 @@ void x509_setenv(struct env_set *es, int cert_depth, openvpn_x509_cert_t *cert);
  *
  * The tracked attributes are stored in ll_head.
  *
- * @param ll_head       The x509_track to store tracked atttributes in
+ * @param ll_head       The x509_track to store tracked attributes in
  * @param name          Name of the attribute to track
  * @param msglevel      Message level for errors
  * @param gc            Garbage collection arena for temp data
@@ -247,17 +259,6 @@ result_t x509_verify_cert_ku(openvpn_x509_cert_t *x509, const unsigned *const ex
  *                      usage is not enabled, or the values do not match.
  */
 result_t x509_verify_cert_eku(openvpn_x509_cert_t *x509, const char *const expected_oid);
-
-/*
- * Store the given certificate in pem format in a temporary file in tmp_dir
- *
- * @param cert          Certificate to store
- * @param tmp_dir       Temporary directory to store the directory
- * @param gc            gc_arena to store temporary objects in
- *
- *
- */
-result_t x509_write_pem(FILE *peercert_file, openvpn_x509_cert_t *peercert);
 
 /**
  * Return true iff a CRL is configured, but is not loaded.  This can be caused

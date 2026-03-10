@@ -11,21 +11,36 @@
 <title><#Web_Title#> - NAT Pass-Through</title>
 <link rel="stylesheet" type="text/css" href="index_style.css"> 
 <link rel="stylesheet" type="text/css" href="form_style.css">
+<script type="text/javascript" src="/js/jquery.js"></script>
 <script language="JavaScript" type="text/javascript" src="/state.js"></script>
 <script language="JavaScript" type="text/javascript" src="/help.js"></script>
 <script language="JavaScript" type="text/javascript" src="/general.js"></script>
 <script language="JavaScript" type="text/javascript" src="/popup.js"></script>
 <script language="JavaScript" type="text/javascript" src="/validator.js"></script>
-<script language="JavaScript" type="text/javascript" src="js/jquery.js"></script>
 <script language="JavaScript" type="text/javascript" src="js/httpApi.js"></script>
 <script>
+var wan0_proto = '<% nvram_get("wan0_proto"); %>';
+
+var get_s46_hgw_case_tmp = '<% nvram_get("wan0_s46_hgw_case"); %>';  //topology 2,3,6
+var s46_ports_check_flag_tmp = (get_s46_hgw_case_tmp == '3' || get_s46_hgw_case_tmp == '6');    //true for topology 3||6
+var get_ipv6_s46_ports_tmp = (Softwire46_support && (wan0_proto=="v6plus" || wan0_proto=="ocnvc" || wan0_proto=="v6opt"))? '<%nvram_get("ipv6_s46_ports");%>':'0';
+var array_ipv6_s46_ports_tmp = [];
+if(get_ipv6_s46_ports_tmp != "0" && get_ipv6_s46_ports_tmp != ""){
+    array_ipv6_s46_ports_tmp = get_ipv6_s46_ports_tmp.split(" ");
+}
+if (typeof s46_ports_check_flag === "undefined") {
+    s46_ports_check_flag = s46_ports_check_flag_tmp;
+}
+if (typeof array_ipv6_s46_ports === "undefined") {
+    array_ipv6_s46_ports = array_ipv6_s46_ports_tmp;
+}
 
 function initial(){
 	show_menu();
 	update_pppoerelay_option();
 	update_sip_alg_mode_option();
 
-	if((wan_proto == "v6plus" || wan_proto == "ocnvc") && s46_ports_check_flag && array_ipv6_s46_ports.length > 1){
+	if((wan0_proto == "v6plus" || wan0_proto == "ocnvc" || wan0_proto == "v6opt") && s46_ports_check_flag && array_ipv6_s46_ports.length > 1){
 		$(".setup_info_icon").show();
 		$(".setup_info_icon").click(
 			function() {
@@ -74,7 +89,7 @@ function applyRule(){
 	if(usb_support){
 		if(!validator.numberRange(document.form.vts_ftpport, 1, 65535))
 			return false;
-		if((wan_proto == "v6plus" || wan_proto == "ocnvc") && s46_ports_check_flag && array_ipv6_s46_ports.length > 1){
+		if((wan0_proto == "v6plus" || wan0_proto == "ocnvc" || wan0_proto == "v6opt") && s46_ports_check_flag && array_ipv6_s46_ports.length > 1){
 			if (!validator.range_s46_ports(document.form.vts_ftpport, "none")){
 				if(!confirm(port_confirm)){
 					document.form.vts_ftpport.focus();

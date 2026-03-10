@@ -14,16 +14,16 @@
 <link rel="stylesheet" type="text/css" href="usp_style.css">
 <link rel="stylesheet" type="text/css" href="/device-map/device-map.css" />
 <script type="text/javascript" src="/js/jquery.js"></script>
-<script type="text/javascript" src="/calendar/jquery-ui.js"></script>
+<script type="text/javascript" src="/js/httpApi.js"></script>
 <script type="text/javascript" src="/state.js"></script>
 <script type="text/javascript" src="/popup.js"></script>
 <script type="text/javascript" src="/help.js"></script>
 <script type="text/javascript" src="/general.js"></script>
 <script type="text/javascript" src="/client_function.js"></script>
+<script type="text/javascript" src="/calendar/jquery-ui.js"></script>
 <script type="text/javascript" src="/switcherplugin/jquery.iphone-switch.js"></script>
 <script type="text/javascript" src="/form.js"></script>
-<script type="text/javascript" src="/js/httpApi.js"></script>
-<script language="JavaScript" type="text/javascript" src="/js/asus_eula.js"></script>
+<script language="JavaScript" type="text/javascript" src="/js/asus_policy.js?v=4"></script>
 <style type="text/css">
 .appIcons{
 	width:36px;
@@ -159,6 +159,12 @@ function register_event(){
 				this.style.fontWeight = "bolder";
 			},
 			drop: function(event,ui){
+				// first is empty, the maximun  rule limit is 32
+				if(qos_rulelist.split("<").length > 33){
+					alert('<#List_limit#>: 32')
+					return false;
+				}
+
 				this.style.color = "";
 				this.style.backgroundColor = "";
 				this.style.fontWeight = "";
@@ -411,40 +417,45 @@ function show_clients(priority_type){
 			userIconBase64 = getUploadIcon(clientMac);
 		}
 		if(userIconBase64 != "NoIcon") {
-			if(top.isIE8){
-				code += '<div id="icon_' + i + '" onclick="show_apps(this);" class="closed qosLevel' + clientObj.qosLevel + ' clientIconIE8HACK" ';
-			}
-			else{
-				code += '<div id="icon_' + i + '" onclick="show_apps(this);" class="closed qosLevel' + clientObj.qosLevel + ' divUserIcon" ';
-			}
-			code += 'style="background-image:url('+userIconBase64+');background-size:50px;">';
-			code += '</div>';
-		}
-		else if(clientObj.type != "0" || clientObj.vendor == "") {
-			if(top.isIE8){
-				code += '<div id="icon_' + i + '" onclick="show_apps(this);" class="closed clientIconIE8HACK' + ' qosLevel' + clientObj.qosLevel + '"></div>';
-			}
-			else{
-				code += '<div id="icon_' + i + '" onclick="show_apps(this);" class="closed clientIcon type' + clientObj.type + ' qosLevel' + clientObj.qosLevel + '"></div>';
-			}
-		}
-		else if(clientObj.vendor != "") {
-			var clientListCSS = "";
-			var venderIconClassName = getVenderIconClassName(clientObj.vendor.toLowerCase());
-			if(venderIconClassName != "" && !downsize_4m_support) {
-				clientListCSS = "venderIcon " + venderIconClassName;
-			}
-			else {
-				clientListCSS = "clientIcon type" + clientObj.type;
-			}
+            if(top.isIE8){
+                code += '<div id="icon_' + i + '" onclick="show_apps(this);" class="closed qosLevel' + clientObj.qosLevel + ' clientIconIE8HACK" ';
+            }
+            else{
+                code += '<div id="icon_' + i + '" onclick="show_apps(this);" class="closed qosLevel' + clientObj.qosLevel + ' clientIcon" ';
+            }
+            code += '>';
+            if(clientObj.isUserUplaodImg){
+                code += '<img class="clientIcon" src="' + userIconBase64 + '">';
+            }else{
+                code += '<i class="type" style="--svg:url(' + userIconBase64 + ')"></i>';
+            }
+            code += '</div>';
+        }
+        else if(clientObj.type != "0" || clientObj.vendor == "") {
+            if(top.isIE8){
+                code += '<div id="icon_' + i + '" onclick="show_apps(this);" class="closed clientIconIE8HACK' + ' qosLevel' + clientObj.qosLevel + '"></div>';
+            }
+            else{
+                code += '<div id="icon_' + i + '" onclick="show_apps(this);" class="closed clientIcon qosLevel' + clientObj.qosLevel + '"><i class="type' + clientObj.type + '"></i></div>';
+            }
+        }
+        else if(clientObj.vendor != "") {
+            var clientListCSS = "";
+            var vendorIconClassName = getVendorIconClassName(clientObj.vendor.toLowerCase());
+            if(vendorIconClassName != "" && !downsize_4m_support) {
+                clientListCSS = "vendor-icon " + vendorIconClassName;
+            }
+            else {
+                clientListCSS = "type" + clientObj.type;
+            }
 
-			if(top.isIE8){
-				code += '<div id="icon_' + i + '" onclick="show_apps(this);" class="closed clientIconIE8HACK qosLevel' + clientObj.qosLevel + '"></div>';
-			}
-			else{
-				code += '<div id="icon_' + i + '" onclick="show_apps(this);" class="closed ' + clientListCSS + ' qosLevel' + clientObj.qosLevel + '"></div>';
-			}
-		}
+            if(top.isIE8){
+                code += '<div id="icon_' + i + '" onclick="show_apps(this);" class="closed clientIconIE8HACK qosLevel' + clientObj.qosLevel + '"></div>';
+            }
+            else{
+                code += '<div id="icon_' + i + '" onclick="show_apps(this);" class="closed qosLevel clientIcon' + clientObj.qosLevel + '"><i class="' + clientListCSS + '"></i></div>';
+            }
+        }
 
 		if(clientObj.wtfast && wtfast_support) {
 			code += '<div class="boost_tag_BM">BOOST</div>';/*untranslated*/
@@ -564,9 +575,9 @@ function show_apps(obj){
 			}
 			else if(clientObj.vendor != "") {
 				var clientListCSS = "";
-				var venderIconClassName = getVenderIconClassName(clientObj.vendor.toLowerCase());
-				if(venderIconClassName != "" && !downsize_4m_support) {
-					clientListCSS = "venderIcon " + venderIconClassName;
+				var vendorIconClassName = getVendorIconClassName(clientObj.vendor.toLowerCase());
+				if(vendorIconClassName != "" && !downsize_4m_support) {
+					clientListCSS = "vendorIcon " + vendorIconClassName;
 				}
 				else {
 					clientListCSS = "clientIcon type" + clientObj.type;
@@ -604,9 +615,9 @@ function show_apps(obj){
 			}
 			else if(clientObj.vendor != "") {
 				var clientListCSS = "";
-				var venderIconClassName = getVenderIconClassName(clientObj.vendor.toLowerCase());
-				if(venderIconClassName != "" && !downsize_4m_support) {
-					clientListCSS = "venderIcon_clicked " + venderIconClassName;
+				var vendorIconClassName = getVendorIconClassName(clientObj.vendor.toLowerCase());
+				if(vendorIconClassName != "" && !downsize_4m_support) {
+					clientListCSS = "vendorIcon_clicked " + vendorIconClassName;
 				}
 				else {
 					clientListCSS = "clientIcon_clicked type" + clientObj.type;
@@ -657,9 +668,9 @@ function cancel_previous_device_apps(obj){
 		}
 		else if(clientObj.vendor != "") {
 			var clientListCSS = "";
-			var venderIconClassName = getVenderIconClassName(clientObj.vendor.toLowerCase());
-			if(venderIconClassName != "" && !downsize_4m_support) {
-				clientListCSS = "venderIcon " + venderIconClassName;
+			var vendorIconClassName = getVendorIconClassName(clientObj.vendor.toLowerCase());
+			if(vendorIconClassName != "" && !downsize_4m_support) {
+				clientListCSS = "vendorIcon " + vendorIconClassName;
 			}
 			else {
 				clientListCSS = "clientIcon type" + clientObj.type;
@@ -1162,7 +1173,10 @@ function update_apps_tarffic(mac, obj, new_element) {
     },
     success: function(response){
 		render_apps(array_traffic, obj, new_element);
-		apps_time_flag = setTimeout((function (mac,obj,new_element){ return function (){ update_apps_tarffic(mac,obj,new_element); } })(mac,obj,new_element), detect_interval*1000);
+
+		apps_time_flag = setTimeout(function(){
+			update_apps_tarffic(mac,obj,new_element)
+		}, detect_interval*1000);
     }
   });
 }
@@ -1175,7 +1189,10 @@ function update_apps_tarffic_Dns(mac, obj, new_element) {
     },
     success: function(response){
 		render_apps(array_traffic, obj, new_element);
-		apps_time_flag = setTimeout((function (mac,obj,new_element){ return function (){ update_apps_tarffic_Dns(mac,obj,new_element); } })(mac,obj,new_element), detect_interval*1000);
+
+		apps_time_flag = setTimeout(function(){
+			update_apps_tarffic_Dns(mac,obj,new_element)
+		}, detect_interval*1000);
     }
   });
 }
@@ -1232,7 +1249,7 @@ function regen_qos_rule(obj, priority){
 
 function applyRule(){
   if(dns_dpi_support)
-		document.form.action_script.value = "restart_nfcm;restart_dnsqd;restart_qos;restart_firewall";
+		document.form.action_script.value = "restart_dnsqd;restart_qos;restart_firewall";
 	document.form.qos_rulelist.value = qos_rulelist;
 	document.form.submit();
 }
@@ -1254,7 +1271,7 @@ function eula_confirm(){
 		if(ctf_disable == 1){
 			document.form.action_script.value = "restart_qos;restart_firewall";
       if(dns_dpi_support)
-		    document.form.action_script.value = "restart_nfcm;restart_dnsqd;restart_qos;restart_firewall";
+		    document.form.action_script.value = "restart_dnsqd;restart_qos;restart_firewall";
 		}
 		else{
 			if(ctf_fa_mode == "2"){
@@ -1266,7 +1283,7 @@ function eula_confirm(){
 				else{
 					document.form.action_script.value = "restart_qos;restart_firewall";
           if(dns_dpi_support)
-		        document.form.action_script.value = "restart_nfcm;restart_dnsqd;restart_qos;restart_firewall";
+		        document.form.action_script.value = "restart_dnsqd;restart_qos;restart_firewall";
 				}
 			}
 		}
@@ -1282,6 +1299,36 @@ function cancel(){
 	else{
 		curState = 0;
 		$('#iphone_switch').animate({backgroundPosition: -37}, "slow", function() {});
+	}
+}
+
+function switch_control(_status){
+	if(_status) {
+        if(!dns_dpi_support){
+            if(reset_wan_to_fo.check_status()) {
+                if(policy_status.TM == 0 || policy_status.TM_time == ''){
+                    const policyModal = new PolicyModalComponent({
+                        policy: "TM",
+                        agreeCallback: eula_confirm,
+                        disagreeCallback: cancel
+                    });
+                    policyModal.show();
+                }else{
+                    eula_confirm();
+                }
+            }else
+                cancel();
+        }else {
+            document.form.apps_analysis.value = 1;
+            document.form.dns_dpi_apps_analysis.value = 1;
+            applyRule();
+        }
+	}
+	else {
+		document.form.apps_analysis.value = 0;
+		if(dns_dpi_support)
+			document.form.dns_dpi_apps_analysis.value = 0;
+		applyRule();
 	}
 }
 </script>
@@ -1353,33 +1400,21 @@ function cancel(){
                               {  
 																$('#apps_analysis_enable').iphoneSwitch('<% nvram_get("dns_dpi_apps_analysis"); %>',
 																	function(){
-																		ASUS_EULA.config(eula_confirm, cancel);
-																		document.form._flag.value = "dns_dpi_apps_analysis";
-
-																		if(ASUS_EULA.check("tm")){
-																			eula_confirm()
-																		}
-																	},
-																	function(){
-																		document.form.dns_dpi_apps_analysis.value = 0;
-																		applyRule();
-																	}
+                                                                        switch_control(1);
+                                                                    },
+                                                                    function(){
+                                                                        switch_control(0);
+                                                                    }
 																);
                               } else 
                               {
-                                $('#apps_analysis_enable').iphoneSwitch('<% nvram_get("apps_analysis"); %>',
+                                                                $('#apps_analysis_enable').iphoneSwitch('<% nvram_get("apps_analysis"); %>',
 																	function(){
-																		ASUS_EULA.config(eula_confirm, cancel);
-																		document.form._flag.value = "apps_analysis";
-
-																		if(ASUS_EULA.check("tm")){
-																			eula_confirm()
-																		}
-																	},
-																	function(){
-																		document.form.apps_analysis.value = 0;
-																		applyRule();
-																	}
+                                                                        switch_control(1);
+                                                                    },
+                                                                    function(){
+                                                                        switch_control(0);
+                                                                    }
 																);
                               }
 															</script>
@@ -1439,12 +1474,16 @@ function cancel(){
 													<script type="text/javascript">
 														$('#radio_gameBoost_enable').iphoneSwitch(enable_GameBoost,
 															function(){
-																ASUS_EULA.config(eula_confirm, cancel);
 																document.form._flag.value = "game";
-
-																if(ASUS_EULA.check("tm")){
-																	eula_confirm();
-																}
+                                                                if(policy_status.TM == 0 || policy_status.TM_time == ''){
+                                                                    const policyModal = new PolicyModalComponent({
+                                                                        policy: "TM",
+                                                                        agreeCallback: eula_confirm,
+                                                                    });
+                                                                    policyModal.show();
+                                                                }else{
+                                                                    eula_confirm();
+                                                                }
 															},
 															function(){
 																document.form.qos_enable.value = '0';

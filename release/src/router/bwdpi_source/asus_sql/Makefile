@@ -4,7 +4,6 @@ ifeq ($(TOP_PLATFORM),)
 TOP_PLATFORM=$(TOP)
 endif
 
-
 CFLAGS += -Os -Wall $(EXTRACFLAGS) -fPIC
 CFLAGS += -I. -I$(TOP)/shared -I$(SRCBASE)/include -I$(TOP)/sqlite -I$(TOP)/rc -I$(TOP)/httpd
 CFLAGS += -I$(TOP)/bwdpi_source/src/tdts_udb_sample
@@ -32,7 +31,7 @@ endif
 ifeq ($(HND_ROUTER),y)
 CFLAGS += -idirafter$(LINUXDIR)/include
 CFLAGS += -I$(HND_SRC)/userspace/public/include -I$(HND_SRC)/userspace/public/include/linux -I$(HND_SRC)/userspace/private/include
-ifeq ($(or $(HND_ROUTER_AX_675X),$(HND_ROUTER_AX_6756),$(HND_ROUTER_AX_6710),$(BCM_502L07P2)),y)
+ifeq ($(or $(HND_ROUTER_AX_675X),$(HND_ROUTER_AX_6756),$(HND_ROUTER_BE_4916),$(HND_ROUTER_AX_6710),$(BCM_502L07P2)),y)
 LDFLAGS += -L$(TOP_PLATFORM)/wlcsm -lwlcsm -L$(TOP_PLATFORM)/bcm_flashutil -lbcm_flashutil -L$(TOP_PLATFORM)/gen_util -lgen_util -L$(TOP_PLATFORM)/sys_util -lsys_util -L$(TOP_PLATFORM)/bcm_util -lbcm_util -L$(TOP_PLATFORM)/bcm_boardctl -lbcm_boardctl
 else
 LDFLAGS += -L$(TOP_PLATFORM)/wlcsm -lwlcsm -L$(TOP_PLATFORM)/bcm_flashutil -lbcm_flashutil -L$(TOP_PLATFORM)/bcm_util -lbcm_crc -L$(TOP_PLATFORM)/bcm_boardctl -lbcm_boardctl
@@ -54,6 +53,18 @@ CFLAGS += -I$(TOP)/openssl/include/openssl
 LDFLAGS += -L$(TOP)/openssl -lcrypto -lssl
 LDFLAGS += -L $(TOP)/sqlCipher/.libs -lsqlcipher
 LDFLAGS += -L$(TOP)/PMS_DBapis -lpms_sql
+endif
+
+ifeq ($(HND_ROUTER_BE_4916), y)
+CFLAGS+= -fcommon
+endif
+
+ifeq ($(RTCONFIG_TRUSTZONE),y)
+LDFLAGS += -L$(TOP)/ateed/ -latee
+endif
+
+ifeq ($(BUILD_NAME),$(filter $(BUILD_NAME),RT-BE82M GS-BE18000 GS-BE12000 GS7_PRO GT7))
+LDFLAGS += -L$(TOP)/libhostapi -lhostapi
 endif
 
 # for QCA toolchain compile issue, xxxx-ld has no pthead and dl in openwrt-toolchain
@@ -114,4 +125,3 @@ install: all
 
 clean:
 	rm -f *.o bwdpi_sqlite libbwdpi_sql.so
-

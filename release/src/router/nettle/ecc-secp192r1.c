@@ -2,7 +2,8 @@
 
    Compile time constant (but machine dependent) tables.
 
-   Copyright (C) 2013, 2014 Niels Möller
+   Copyright (C) 2013, 2014, 2019, 2021 Niels Möller
+   Copyright (C) 2019 Wim Lewis
 
    This file is part of GNU Nettle.
 
@@ -39,9 +40,6 @@
 
 #include <assert.h>
 
-/* FIXME: Remove ecc.h include, once prototypes of more internal
-   functions are moved to ecc-internal.h */
-#include "ecc.h"
 #include "ecc-internal.h"
 
 #define USE_REDC 0
@@ -92,7 +90,7 @@ ecc_secp192r1_modp (const struct ecc_modulo *m UNUSED, mp_limb_t *rp, mp_limb_t 
   cy = mpn_add_n (xp + 1, xp + 1, xp + 4, 2);
   cy = sec_add_1 (xp + 3, xp + 3, 1, cy);
   cy += mpn_add_n (xp + 2, xp + 2, xp + 4, 2);
-  assert (cy <= 2);
+  assert_maybe (cy <= 2);
 
   xp[4] = cy;
 
@@ -101,9 +99,9 @@ ecc_secp192r1_modp (const struct ecc_modulo *m UNUSED, mp_limb_t *rp, mp_limb_t 
   cy = sec_add_1 (xp + 2, xp + 2, 1, cy);
   cy += mpn_add_n (xp + 1, xp + 1, xp + 3, 2);
 
-  assert (cy <= 1);
+  assert_maybe (cy <= 1);
   cy = mpn_cnd_add_n (cy, rp, xp, ecc_Bmodp, 3);
-  assert (cy == 0);  
+  assert_maybe (cy == 0);
 }
   
 #else
@@ -183,6 +181,57 @@ ecc_secp192r1_inv (const struct ecc_modulo *p,
   ecc_mod_sqr (p, rp, rp, tp);		/* a^{2^191 - 2^63 - 2} */
   ecc_mod_sqr (p, rp, rp, tp);		/* a^{2^192 - 2^64 - 4} */
   ecc_mod_mul (p, rp, rp, ap, tp);
+
+#undef a62m1
+#undef t0
+#undef tp
+}
+
+/* To guarantee that inputs to ecc_mod_zero_p are in the required range. */
+#if ECC_LIMB_SIZE * GMP_NUMB_BITS != 192
+#error Unsupported limb size
+#endif
+
+#define ECC_SECP192R1_SQRT_ITCH (3*ECC_LIMB_SIZE)
+
+static int
+ecc_secp192r1_sqrt (const struct ecc_modulo *p,
+		    mp_limb_t *rp,
+		    const mp_limb_t *cp,
+		    mp_limb_t *scratch)
+{
+  /* This computes the square root modulo p192 using the identity:
+
+     sqrt(c) = c^(2^190 - 2^62)  (mod P-192)
+
+     which can be seen as a special case of Tonelli-Shanks with e=1.
+  */
+
+  /* We need one t0 (and use clobbering rp) and scratch space for mul and sqr. */
+
+#define t0 scratch
+#define tp (scratch + ECC_LIMB_SIZE)
+
+  ecc_mod_sqr(p, rp, cp, tp);		/* c^2 */
+  ecc_mod_mul(p, rp, rp, cp, tp);	/* c^3 */
+  ecc_mod_pow_2kp1(p, t0, rp, 2, tp);	/* c^(2^4 - 1) */
+  ecc_mod_pow_2kp1(p, rp, t0, 4, tp);	/* c^(2^8 - 1) */
+  ecc_mod_pow_2kp1(p, t0, rp, 8,  tp);	/* c^(2^16 - 1) */
+  ecc_mod_pow_2kp1(p, rp, t0, 16, tp);	/* c^(2^32 - 1) */
+  ecc_mod_pow_2kp1(p, t0, rp, 32, tp);	/* c^(2^64 - 1) */
+  ecc_mod_pow_2kp1(p, rp, t0, 64, tp);	/* c^(2^128 - 1) */
+
+  ecc_mod_pow_2k    (p, rp, rp,     62, tp);   /* c^(2^190 - 2^62) */
+
+  /* Check that input was a square, R^2 = C, for non-squares we'd get
+     R^2 = -C. */
+  ecc_mod_sqr(p, t0, rp, tp);
+  ecc_mod_sub(p, t0, t0, cp);
+
+  return ecc_mod_zero_p (p, t0);
+
+#undef t0
+#undef tp
 }
 
 const struct ecc_curve _nettle_secp_192r1 =
@@ -193,17 +242,20 @@ const struct ecc_curve _nettle_secp_192r1 =
     ECC_BMODP_SIZE,
     ECC_REDC_SIZE,
     ECC_SECP192R1_INV_ITCH,
+    ECC_SECP192R1_SQRT_ITCH,
     0,
 
     ecc_p,
     ecc_Bmodp,
-    ecc_Bmodp_shifted,    
+    ecc_Bmodp_shifted,
+    ecc_Bm2p,
     ecc_redc_ppm1,
     ecc_pp1h,
 
     ecc_secp192r1_modp,
     ecc_secp192r1_modp,
     ecc_secp192r1_inv,
+    ecc_secp192r1_sqrt,
     NULL,
   },
   {
@@ -213,16 +265,19 @@ const struct ecc_curve _nettle_secp_192r1 =
     0,
     ECC_MOD_INV_ITCH (ECC_LIMB_SIZE),
     0,
+    0,
 
     ecc_q,
     ecc_Bmodq,
     ecc_Bmodq_shifted,
+    ecc_Bm2q,
     NULL,
     ecc_qp1h,
 
     ecc_mod,
     ecc_mod,
     ecc_mod_inv,
+    NULL,
     NULL,
   },
   

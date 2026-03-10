@@ -80,11 +80,8 @@ function initial(){
 	var usb_hfs_mod = '<% nvram_get("usb_hfs_mod"); %>';
 
 	disk_list_array = { "info" : ["<#diskUtility_information#>", "disk.asp"], "health" : ["<#diskUtility#>", "disk_utility.asp"], "format" : ["<#CTL_format#>", "disk_format.asp"]};
-	if(!parent.diskUtility_support) {
+	if(!parent.diskUtility_support || usb_fatfs_mod != "tuxera" || usb_ntfs_mod != "tuxera" || usb_hfs_mod != "tuxera") {
 		delete disk_list_array.health;
-		delete disk_list_array.format;
-	}
-	if(usb_fatfs_mod != "tuxera" && usb_ntfs_mod != "tuxera" && usb_hfs_mod != "tuxera") {
 		delete disk_list_array.format;
 	}
 	$('#diskTab').html(parent.gen_tab_menu(disk_list_array, "health"));
@@ -484,7 +481,7 @@ function reset_force_stop(){
 				</tr>
 			</table>	
 		</div>
-		<div id="progressBar" style="margin-left:9px;;margin-top:10px;display:none">
+		<div id="progressBar" style="margin-left:9px;margin-top:10px;display:none">
 			<div id="scan_message"></div>
 			<div id="updateProgress_bg">
 				<div>

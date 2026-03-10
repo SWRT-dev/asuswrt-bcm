@@ -82,6 +82,7 @@ typedef unsigned int __u32;   // 1225 ham
 //#include "etioctl.h"
 
 #include <sys/file.h>
+#include <swrt.h>
 
 #ifdef RTCONFIG_HTTPS
 #include <syslog.h>
@@ -90,6 +91,9 @@ typedef unsigned int __u32;   // 1225 ham
 #define SERVER_PORT_SSL	443
 #endif
 #include "bcmnvram_f.h"
+#ifdef RTCONFIG_LIBASUSLOG
+#include <libasuslog.h>
+#endif
 
 /* A multi-family sockaddr. */
 struct usockaddr {
@@ -137,13 +141,13 @@ int do_ssl = 0; 	// use Global for HTTPS upgrade judgment in web.c
 int ssl_stream_fd; 	// use Global for HTTPS stream fd in web.c
 int json_support = 0;
 char wl_band_list[8][8] = {{0}};
+char pidfile[32];
 char HTTPD_LOGIN_FAIL_LAN[32] = {0};
 char HTTPD_LOGIN_FAIL_WAN[32] = {0};
 char HTTPD_LAST_LOGIN_FAIL_TS[32] = {0};
 char HTTPD_LAST_LOGIN_FAIL_TS_W[32] = {0};
 char CAPTCHA_FAIL_NUM[32] = {0};
 char HTTPD_LOCK_NUM[32] = {0};
-char pidfile[32];
 
 #ifdef TRANSLATE_ON_FLY
 char Accept_Language[16];
@@ -294,7 +298,7 @@ time_t login_timestamp=0; // the timestamp of the logined ip
 time_t login_timestamp_tmp=0; // the timestamp of the current session.
 unsigned int login_ip_tmp = 0; // IPv6 compat: the ip of the current session.
 uaddr login_uip_tmp = {0}; // the ip of the current session.
-usockaddr login_usa_tmp = {{{0}}};
+usockaddr login_usa_tmp = {0};
 //Add by Andy for handle the login block mechanism by LAN/WAN
 time_t login_timestamp_tmp_wan=0; // the timestamp of the current session.
 time_t auth_check_dt=0;
@@ -369,6 +373,72 @@ void Debug2File(const char *path, const char *fmt, ...)
 		fclose(fp);
 	} else
 		fprintf(stderr, "Open %s Error!\n", path);
+}
+#else
+void Debug2String(int level, char *path, int conlog, int showtime, unsigned filesize, char *function_name, int function_line, const char *fmt, ...)
+{
+	int max_log = 5;
+	int len = 0, str_end = 0;
+	char *p_message = NULL, *log_message = NULL;
+	char message[2048] = {0}, tmp1[768] = {0}, tmp2[1024] = {0};
+	va_list args;
+
+	va_start(args, fmt);
+	len = vsnprintf(message, sizeof(message), fmt, args);
+	va_end(args);
+
+	p_message = message;
+
+	while(len > 0 && max_log > 0){
+
+		strlcpy(tmp1, p_message, sizeof(tmp1));
+		log_message = tmp1;
+		str_end	 = strlen(tmp1);
+
+		if(tmp1[str_end-1] != '\n'){
+			snprintf(tmp2, sizeof(tmp2), "%s\n", tmp1);
+			log_message = tmp2;
+		}
+
+		asusdebuglog(level, path, conlog, showtime, filesize, "[%s(%d)]:%s", function_name, function_line, log_message);
+
+		len = len - str_end;
+		max_log--;
+		p_message += str_end;
+	}
+}
+
+void security2log(int level, char *path, int conlog, int showtime, unsigned filesize, const char *fmt, ...)
+{
+	int max_log = 5;
+	int len = 0, str_end = 0;
+	char *p_message = NULL, *log_message = NULL;
+	char message[2048] = {0}, tmp1[768] = {0}, tmp2[1024] = {0};
+	va_list args;
+
+	va_start(args, fmt);
+	len = vsnprintf(message, sizeof(message), fmt, args);
+	va_end(args);
+
+	p_message = message;
+
+	while(len > 0 && max_log > 0){
+
+		strlcpy(tmp1, p_message, sizeof(tmp1));
+		log_message = tmp1;
+		str_end	 = strlen(tmp1);
+
+		if(tmp1[str_end-1] != '\n'){
+			snprintf(tmp2, sizeof(tmp2), "%s\n", tmp1);
+			log_message = tmp2;
+		}
+
+		asusdebuglog(level, path, conlog, showtime, filesize, "%s", log_message);
+
+		len = len - str_end;
+		max_log--;
+		p_message += str_end;
+	}
 }
 #endif
 
@@ -504,8 +574,10 @@ page_default_redirect(int fromapp_flag, char* url)
 {
 	char inviteCode[256]={0};
 
-	if(check_xss_blacklist(url, 1))
+	if(check_xss_blacklist(url, 1)){
 		strncpy(login_url, indexpage, sizeof(login_url));
+		url = indexpage;
+	}
 	else
 		strncpy(login_url, url, sizeof(login_url));
 
@@ -555,7 +627,7 @@ send_login_page(int fromapp_flag, int error_status, char* url, char* file, int l
 	}else{
 		snprintf(inviteCode, sizeof(inviteCode), "\"error_status\":\"%d\", \"captcha_on\":\"%d\", \"last_time_lock_warning\":\"%d\"", error_status, captcha_on(), last_time_lock_warning());
 		if(error_status == LOGINLOCK){
-			snprintf(buf, sizeof(buf), ",\"remaining_lock_time\":\"%ld\",\"lock_version\":\"%d\"", max_lock_time - login_dt, HTTPD_LOCK_VERSION);
+			snprintf(buf, sizeof(buf), ",\"remaining_lock_time\":\"%ld\"", max_lock_time - login_dt);
 			strlcat(inviteCode, buf, sizeof(inviteCode));
 		}
 	}
@@ -633,13 +705,13 @@ static void
 send_headers( int status, char* title, char* extra_header, char* mime_type, int fromapp)
 {
     time_t now;
-    char timebuf[100];
+    char timebuf[100] = {0};
     (void) fprintf( conn_fp, "%s %d %s\r\n", PROTOCOL, status, title );
     (void) fprintf( conn_fp, "Server: %s\r\n", SERVER_NAME );
     (void) fprintf( conn_fp, "x-frame-options: SAMEORIGIN\r\n");
     (void) fprintf( conn_fp, "x-xss-protection: 1; mode=block\r\n");
 
-    if (fromapp != 0){
+     if (fromapp != 0){
 		if(fromapp == FROM_DUTUtil || fromapp == FROM_MyASUS){
 			(void) fprintf( conn_fp, "AiHOMEAPILevel: %d\r\n", EXTEND_AIHOME_API_LEVEL );
 			(void) fprintf( conn_fp, "Httpd_AiHome_Ver: %d\r\n", EXTEND_HTTPD_AIHOME_VER );
@@ -651,16 +723,18 @@ send_headers( int status, char* title, char* extra_header, char* mime_type, int 
 
     now = time( (time_t*) 0 );
     (void) strftime( timebuf, sizeof(timebuf), RFC1123FMT, gmtime( &now ) );
+
     (void) fprintf( conn_fp, "Date: %s\r\n", timebuf );
 
-	if ( extra_header != (char*) 0 ){
+	if ( extra_header != (char*) 0 && *extra_header != '\0'){
+
 		if(!strcmp(extra_header, cache_object) && fromapp != 0){
 			extra_header = cache_long_object;
 		}
 		(void) fprintf( conn_fp, "%s\r\n", extra_header );
 	}
 
-	if ( mime_type != (char*) 0 ){
+    if ( mime_type != (char*) 0 ){
 		if(fromapp != FROM_BROWSER && fromapp != FROM_WebView)
 			(void) fprintf( conn_fp, "Content-Type: %s\r\n", "application/json;charset=UTF-8" );
 		else
@@ -668,28 +742,28 @@ send_headers( int status, char* title, char* extra_header, char* mime_type, int 
 	}
 
 	(void) fprintf( conn_fp, "Connection: close\r\n" );
-	
+
 	if ( request_content_range!=NULL && strncasecmp( request_content_range, "bytes=", 6 ) == 0 ) {
 		//- ex. bytes=0-123
 		off_t content_start = 0;
 		off_t content_end = 0;
 		off_t content_length = 0;
-		
+
 		char *err = NULL;
 		char* cp = &request_content_range[6];
 		content_start = strtoll(cp, &err, 10);
 		content_end = strtoll(err+1, &err, 10);
 		if (content_end>=content_start) {
 			content_length = content_end - content_start + 1;
-			
-			(void) fprintf( conn_fp, "Content-Length: %lld\r\n", content_length);
-			(void) fprintf( conn_fp, "Content-Range: bytes %lld-%lld/%lld\r\n", content_start, content_end, request_file_size);
-			
+
+			(void) fprintf( conn_fp, "Content-Length: %jd\r\n", (intmax_t) content_length);
+			(void) fprintf( conn_fp, "Content-Range: bytes %jd-%jd/%lld\r\n", (intmax_t) content_start, (intmax_t) content_end, request_file_size);
+
 			HTTPD_DBG("Content-Range: bytes %lld-%lld/%lld, Content-Length: %lld\n", content_start, content_end, request_file_size, content_length);
 		}
 	}
 
-    (void) fprintf( conn_fp, "\r\n" );
+	(void) fprintf( conn_fp, "\r\n" );
 }
 
 static void
@@ -921,7 +995,7 @@ void do_file(char *path, FILE *stream)
 			if (content_start>=0) {
 				fseek(fp, content_start, SEEK_SET);
 			}
-			
+
 			if (content_length<read_size) {
 				read_size = content_length;
 			}
@@ -930,11 +1004,11 @@ void do_file(char *path, FILE *stream)
 		while ((nr = fread(buf, 1, read_size, fp)) > 0) {
 
 			do_fwrite(buf, nr, stream);
-			
+
 			if (content_length>0) {
 
 				read_count = read_count + read_size;
-				
+
 				if (read_count>=content_length) {
 					// HTTPD_DBG("read count: %d", read_count);
 					break;
@@ -972,7 +1046,7 @@ void set_referer_host(void)
 			memset(referer_host, 0, sizeof(referer_host));
 			snprintf(referer_host,sizeof(referer_host),"%s:%d",lan_ipaddr, port);
 		}
-#if defined(RTAC68U) || defined(RPAX56) || defined(RPAX58)
+#if defined(RTAC68U) || defined(RPAX56) || defined(RPAX58) || defined(RPBE58)
 	} else if (is_dpsta_repeater() && nvram_get_int("re_mode") == 0
 		&& !strncmp("repeater.asus.com", host_name, strlen("repeater.asus.com")) && *(host_name + strlen("repeater.asus.com")) == ':' && (port = atoi(host_name + strlen("repeater.asus.com") + 1)) > 0 && port < 65536){//transfer https domain to ip
 		if(port == 80)
@@ -984,7 +1058,7 @@ void set_referer_host(void)
 #endif
 	}else if(!strcmp(DUT_DOMAIN_NAME, host_name))	//transfer http domain to ip
 		strlcpy(referer_host, lan_ipaddr, sizeof(referer_host));
-#if defined(RTAC68U) || defined(RPAX56) || defined(RPAX58)
+#if defined(RTAC68U) || defined(RPAX56) || defined(RPAX58) || defined(RPBE58)
 	else if (is_dpsta_repeater() && nvram_get_int("re_mode") == 0
 		&& !strcmp("repeater.asus.com", host_name))   //transfer http domain to ip
 		strlcpy(referer_host, lan_ipaddr, sizeof(referer_host));
@@ -1044,6 +1118,96 @@ int wave_handle_flag(char *url)
 
 int max_lock_time = MAX_LOGIN_BLOCK_TIME;
 
+struct etag_filter_table etag_filter_table[] = {
+    {".cgi",0},
+    {"client.ovpn",0},
+    {"chanspec.js",0},
+    {"client_function.js",0},
+    {"asus_policy.js",2},
+    {"disk.js",0},
+    {"form.js",0},
+    {"general.js",0},
+    {"handler.js",0},
+    {"help.js",0},
+    {"https_redirect.js",0},
+    {"notification.js",0},
+    {"oauth.js",0},
+    {"plugins.js",0},
+    {"remote.js",0},
+    {"state.js",0},
+    {"subnet_rule.js",0},
+    {"tableValidator.js",0},
+    {"validator.js",0},
+    {"vpns_openvpn.js",0},
+    {".png",2},
+    {".svg",2},
+    {".jpg",2},
+    {".gif",2},
+    {".css",2},
+    {"jquery.js",2},
+    {"bootstrap.bundle.min.js",2},
+    {"jquery-ui.js",2},
+    {"chart.min.js",2},
+    {"require.min.js",2},
+    {"FreeWiFi_template.json",2}
+};
+
+int getEtagHeaderFlag(const char *key)
+{
+    int i, numTables = sizeof(etag_filter_table) / sizeof(etag_filter_table[0]);
+    for (i = 0; i < numTables; i++) {
+        if (strstr(key, etag_filter_table[i].file) != NULL) {
+            return etag_filter_table[i].flag;
+        }
+    }
+    return 1;
+}
+
+int append_etag_header(char *file, char *extra_header, char *if_none_match, char *title, int title_len, char *final_header, int final_header_len)
+{
+	int ret = 0, status = 200;
+	int etag_header_flag = 0, safariAgent = 0;
+	time_t now = time(NULL);
+	char md5String[35] = {0}, timebuf[100] = {0}, etag_header[512] = {0};
+
+	strlcpy(title, "OK", title_len);
+
+	etag_header_flag = getEtagHeaderFlag(file);
+
+	if(!strstr(user_agent, "Chrome") && strstr(user_agent, "Safari"))
+		safariAgent = 1;
+
+	if(!safariAgent && etag_header_flag > 0) {
+		if ((ret = get_file_md5(file, md5String, sizeof(md5String))) == 0) {
+
+			strftime( timebuf, sizeof(timebuf), RFC1123FMT, gmtime( &now ) );
+
+			if(strstr(file, ".js"))
+				sprintf(md5String, "%s%s", md5String, nvram_get("preferred_lang"));
+
+			if(etag_header_flag==2 && extra_header){
+				strlcpy(final_header, extra_header, final_header_len);
+				strlcat(final_header, "\r\n", final_header_len);
+			}
+			strlcat(final_header, "ETag: ", final_header_len);
+			strlcat(final_header, md5String, final_header_len);
+			strlcat(final_header, "\r\n", final_header_len);
+			strlcat(final_header, "Last-Modified: ", final_header_len);
+			strlcat(final_header, timebuf, final_header_len);
+
+			if (if_none_match && strstr(if_none_match, md5String)){
+				status = 304;
+				strlcpy(title, "Not Modified", title_len);
+			}
+		}
+	}
+
+	if(*final_header == '\0' && extra_header)
+		strlcpy(final_header, extra_header, final_header_len);
+
+	return status;
+}
+
 static void
 handle_request(void)
 {
@@ -1052,6 +1216,7 @@ handle_request(void)
 #endif
 	char line[10000], *cur;
 	char *method, *path, *protocol, *boundary, *alang, *cookies, *referer, *useragent, *range = NULL;
+	char *if_none_match = NULL;
 	char *cp;
 	char *file;
 	int len;
@@ -1244,6 +1409,13 @@ handle_request(void)
 			range = cp;
 			cur = cp + strlen(cp) + 1;
 		}
+		else if ( strncasecmp( cur, "If-None-Match:", 14 ) == 0 )
+		{
+			cp = &cur[14];
+			cp += strspn( cp, " \t" );
+			if_none_match = cp;
+			cur = cp + strlen(cp) + 1;
+		}
 	}
 
 	slowloris_check();
@@ -1341,8 +1513,10 @@ handle_request(void)
 		strlcpy(request_content_range, "", sizeof(request_content_range));
 
 	memset(user_agent, 0, sizeof(user_agent));
-	if(useragent != NULL)
+	if(useragent != NULL){
+		trimNL(useragent);
 		strlcpy(user_agent, useragent, sizeof(user_agent));
+	}
 	else
 		strlcpy(user_agent, "", sizeof(user_agent));
 
@@ -1396,8 +1570,11 @@ handle_request(void)
 	mime_exception = 0;
 	do_referer = 0;
 
+#if defined(RTCONFIG_UIDEBUG) || defined(RTCONFIG_DEMOUI)
+	if(0) {
+#else
 	if(!fromapp) {
-
+#endif
 		lock_status = check_lock_status(&login_dt);
 
 		if(lock_status == FORCELOCK || lock_status == LOGINLOCK){
@@ -1409,16 +1586,6 @@ handle_request(void)
 
 		http_login_timeout(&login_uip_tmp, cookies, fromapp);	// 2008.07 James.
 		login_state = http_login_check();
-		// for each page, mime_exception is defined to do exception handler
-
-		// check exception first
-		for (exhandler = &except_mime_handlers[0]; exhandler->pattern; exhandler++) {
-			if(match(exhandler->pattern, url))
-			{
-				mime_exception = exhandler->flag;
-				break;
-			}
-		}
 
 		// check doreferer first
 		for (doreferer = &mime_referers[0]; doreferer->pattern; doreferer++) {
@@ -1430,6 +1597,16 @@ handle_request(void)
 		}
 	}
 
+	// for each page, mime_exception is defined to do exception handler
+	// check exception first
+	for (exhandler = &except_mime_handlers[0]; exhandler->pattern; exhandler++) {
+		if(match(exhandler->pattern, url))
+		{
+			mime_exception = exhandler->flag;
+			break;
+		}
+	}
+
 	x_Setting = nvram_get_int("x_Setting");
 
 	for (handler = &mime_handlers[0]; handler->pattern; handler++) {
@@ -1438,7 +1615,7 @@ handle_request(void)
 			continue;
 #endif
 		if (match(handler->pattern, url) || customized_match(handler->pattern, url))
-		{	
+		{
 			if ( request_content_range!=NULL && strncasecmp( request_content_range, "bytes=", 6 ) == 0) {
 #ifdef RTCONFIG_TC_GAME_ACC
 				//- This is the download request for tencent game file.
@@ -1477,8 +1654,8 @@ handle_request(void)
 			}
 			if (handler->auth) {
 				url_do_auth = 1;
-#if defined(RTAX82U) || defined(DSL_AX82U) || defined(GSAX3000) || defined(GSAX5400) || defined(TUFAX5400) || defined(GTAX6000) || defined(GTAXE16000) || defined(GTAX11000_PRO) || defined(GT10) || defined(RTAX82U_V2) || defined(TUFAX5400_V2)
-				switch_ledg(LEDG_QIS_FINISH);
+#if defined(RTAX82U) || defined(DSL_AX82U) || defined(GSAX3000) || defined(GSAX5400) || defined(TUFAX5400) || defined(GTAX11000_PRO) || defined(GTAXE16000) || defined(GTBE98) || defined(GTBE98_PRO) || defined(GTAX6000) || defined(GT10) || defined(RTAX82U_V2) || defined(TUFAX5400_V2) || defined(TUFAX6000) || defined(GTBE96) || defined(GTBE19000) || defined(GTBE19000AI) || defined(GSBE18000) || defined(GSBE12000) || defined(GS7_PRO) || defined(GT7) || defined(GTBE96_AI) || defined(RTCONFIG_AURALED)
+				httpd_switch_ledg(LEDG_QIS_FINISH);
 #endif
 				if ((mime_exception&MIME_EXCEPTION_NOAUTH_FIRST)&&!x_Setting) {
 					//skip_auth=1;
@@ -1516,6 +1693,7 @@ handle_request(void)
 							return;
 						}
 					}
+#ifndef RTCONFIG_DEMOUI
 					auth_result = auth_check(url, file, cookies, fromapp, &add_try);
 					if (auth_result != 0)
 					{
@@ -1525,6 +1703,7 @@ handle_request(void)
 						send_login_page(fromapp, auth_result, url, file, auth_check_dt, add_try);
 						return;
 					}
+#endif
 				}
 
 				if(!fromapp) {
@@ -1591,7 +1770,7 @@ handle_request(void)
 				}
 #endif
 			}
-			if(!strstr(file, ".cgi") && !strstr(file, "syslog.txt") && !(strstr(file,"uploadIconFile.tar")) && !(strstr(file,"backup_jffs.tar")) && !(strstr(file,"networkmap.tar")) && !(strstr(file,".CFG")) && !(strstr(file,".log")) && !check_if_file_exist(file)
+			if(!strstr(file, ".cgi") && !strstr(file, "syslog.txt") && !(strstr(file,"uploadIconFile.tar")) && !(strstr(file,"networkmap.tar")) && !(strstr(file,".CFG")) && !(strstr(file,".log")) && !check_if_file_exist(file)
 #ifdef RTCONFIG_USB_MODEM
 					&& !strstr(file, "modemlog.txt")
 #endif
@@ -1602,6 +1781,7 @@ handle_request(void)
 					&& !strstr(file, "asustitle.png")
 #endif
 					&& !strstr(file,"cert.crt")
+					&& !strstr(file,"cacert_key.tar")
 					&& !strstr(file,"cert_key.tar")
 					&& !strstr(file,"cert.tar")
 #ifdef RTCONFIG_OPENVPN
@@ -1613,6 +1793,7 @@ handle_request(void)
 #ifdef RTCONFIG_IPSEC
 					&& !strstr(file, "renew_ikev2_cert_mobile.pem") && !strstr(file, "ikev2_cert_mobile.pem")
 					&& !strstr(file, "renew_ikev2_cert_windows.der") && !strstr(file, "ikev2_cert_windows.der")
+					&& !strstr(file, "ipsec_s2s.conf")
 					&& !strstr(file, "server_ipsec.cert")
 					&& !strstr(file, "ipsec.log")
 #endif
@@ -1640,15 +1821,22 @@ handle_request(void)
 					&& !strstr(url, "_result")
 #endif
 					){
-				send_error( 404, "Not Found", (char*) 0, "File not found." );
-				return;
-			}
-			if(nvram_match("x_Setting", "0") && (strcmp(url, "QIS_default.cgi")==0 || strcmp(url, "page_default.cgi")==0 || !strcmp(websGetVar(file, "x_Setting", ""), "1"))){
-				if(!fromapp) set_referer_host();
-				send_token_headers( 200, "OK", handler->extra_header, handler->mime_type, fromapp);
+              send_error( 404, "Not Found", (char*) 0, "File not found." );
+              return;
+           }
 
-			}else if(strcmp(file, "login.cgi") && strcmp(file, "login_v2.cgi")){
-				send_headers( 200, "OK", handler->extra_header, handler->mime_type, fromapp);
+            int status = 200;
+            char final_header[512] = {0}, title[64] = {0};
+
+            status = append_etag_header(file, handler->extra_header, if_none_match, title, sizeof(title), final_header, sizeof(final_header));
+
+			if (nvram_match("x_Setting", "0") &&
+				(strcmp(url, "QIS_default.cgi") == 0 || strcmp(url, "page_default.cgi") == 0 ||
+				!strcmp(websGetVar(file, "x_Setting", ""), "1"))) {
+				if (!fromapp) set_referer_host();
+				send_token_headers(status, title, final_header, handler->mime_type, fromapp);
+			}else if (strncmp(url, "login.cgi", strlen(url)) != 0 && strcmp(file, "login_v2.cgi")) {
+				send_headers(status, title, final_header, handler->mime_type, fromapp);
 			}
 			if (strcasecmp(method, "head") != 0 && handler->output) {
 				handler->output(file, conn_fp);
@@ -2490,7 +2678,7 @@ int main(int argc, char **argv)
 	/* Ignore broken pipes */
 	signal(SIGPIPE, SIG_IGN);
 	signal(SIGCHLD, chld_reap);
-	signal(SIGUSR1, update_wlan_log);
+	signal(SIGUSR1, update_wlan_log_sig);
 	signal(SIGALRM, check_alive);
 	signal(SIGTERM, httpd_exit);
 
@@ -2812,6 +3000,7 @@ void start_ssl(int http_port)
 			if (save)
 				save_cert();
 
+			prn_cert_info(HTTPD_CERT);
 			/* Unset reload flag if set */
 #if defined(RTCONFIG_IPV6)
 			if (!http_ipv6_only && nvram_get("httpds_reload_cert"))

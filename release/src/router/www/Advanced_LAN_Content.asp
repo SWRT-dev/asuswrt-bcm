@@ -18,11 +18,14 @@
 <script type="text/javascript" src="/popup.js"></script>
 <script type="text/javascript" src="/help.js"></script>
 <script type="text/javascript" src="/validator.js"></script>
+<script type="text/javascript" src="/js/httpApi.js"></script>
+<script type="text/javascript" src="/form.js"></script>
 
 <script><% wanlink(); %>
 
 var origin_lan_ip = '<% nvram_get("lan_ipaddr"); %>';
 var origin_lan_mask = '<% nvram_get("lan_netmask"); %>';
+var origin_hostname = '<% nvram_get("lan_hostname"); %>';
 
 if(pptpd_support){	
 	var pptpd_clients = '<% nvram_get("pptpd_clients"); %>';
@@ -39,6 +42,12 @@ if(tagged_based_vlan){
 	jsFile.setAttribute("src", "js/subnet_rule.js");
 	document.getElementsByTagName("head")[0].appendChild(jsFile);
 }
+
+var alert_sdn_conflict_str = "* Conflicting with one of your $feature$ profile LAN IP address, you will not be able to access the Internet. Please change to another IP address."; // Untranslated
+alert_sdn_conflict_str = stringSafeGet(alert_sdn_conflict_str.replace("$feature$", Guest_Network_naming));
+
+var current_page = window.location.pathname.split("/").pop();
+var faq_index_tmp = get_faq_index(FAQ_List, current_page, 1);
 
 function initial(){
 	show_menu();
@@ -78,6 +87,14 @@ function applyRule(){
 	if(validForm()){
 		if(based_modelid == "MAP-AC1300" || based_modelid == "MAP-AC2200" || based_modelid == "VZW-AC1300" || based_modelid == "MAP-AC1750")
 			alert("By applying new LAN settings, please reboot all Lyras connected to main Lyra manually.");
+
+		if ((('<% nvram_get("http_enable"); %>' != '0') &&
+		     ('<% nvram_get("le_enable"); %>' == '0')) &&
+		    ((origin_hostname != document.form.lan_hostname.value) ||
+		     (origin_lan_ip != document.form.lan_ipaddr.value) ||
+		     (origin_lan_mask != document.form.lan_netmask.value))) {
+			document.form.https_crt_gen.value = 1;
+		}
 
 		if(tagged_based_vlan){
 			var subnet_netmask = document.form.lan_ipaddr.value + '/' + netmask_to_bits(document.form.lan_netmask.value);
@@ -168,7 +185,7 @@ function validForm(){
 		return false;
 	}else{
 		document.getElementById("alert_hostname").style.display = "none";
- 	}
+	}
  
 	if(document.form.lan_domain.value.length > 0)
 		alert_str = validator.domainName(document.form.lan_domain);
@@ -180,9 +197,9 @@ function validForm(){
 		return false;
 	}else{
 		document.getElementById("alert_domain").style.display = "none";
- 	}
-	
-	if(sw_mode == 2 || sw_mode == 3 || sw_mode == 4){
+	}
+
+	if(sw_mode == 2 || sw_mode == 3  || sw_mode == 4){
 		if(document.form.lan_dnsenable_x_radio[0].checked == 1)
 			document.form.lan_dnsenable_x.value = 1;
 		else
@@ -223,7 +240,17 @@ function validForm(){
 			}						
 		}	
 	}	
-	
+
+	if(isSupport("mtlancfg")){
+		var subnet_rl = decodeURIComponent(httpApi.nvramCharToAscii(["subnet_rl"]).subnet_rl);
+		if(subnet_rl.indexOf(">" + document.form.lan_ipaddr.value + ">") >= 0){
+			document.form.lan_ipaddr.focus();
+			document.form.lan_ipaddr.select();
+			alert(alert_sdn_conflict_str);
+			return false;
+		}
+	}
+
 	var ip_obj = document.form.lan_ipaddr;
 	var ip_num = inet_network(ip_obj.value);
 	var ip_class = "";
@@ -272,9 +299,9 @@ function validForm(){
 	}
 	
 	// check IP changed or not
-  // No matter it changes or not, it will submit the form
-  //Viz modify 2011.10 for DHCP pool issue {
-	if(sw_mode == "1"){
+	if(sw_mode == "1" &&
+	   (origin_lan_ip != document.form.lan_ipaddr.value ||
+	    origin_lan_mask != document.form.lan_netmask.value)) {
 		var pool_change = calculatorIPPoolRange();
 		if(!pool_change)
 			return false;
@@ -283,7 +310,6 @@ function validForm(){
 			document.form.lan_netmask_rt.value = document.form.lan_netmask.value;			
 		}
 	}				
-	//}Viz modify 2011.10 for DHCP pool issue 
 
 	return true;
 }
@@ -320,12 +346,16 @@ function calculatorIPPoolRange() {
 	ipPoolEnd = ipPoolEndArray[0] + "." + ipPoolEndArray[1] + "." + ipPoolEndArray[2] + "." + ipPoolEndArray[3];
 
 	if((document.form.dhcp_start.value != ipPoolStart) || (document.form.dhcp_end.value != ipPoolEnd)){
-			if(confirm("<#JS_DHCP1#>")){
-				document.form.dhcp_start.value = ipPoolStart;
-				document.form.dhcp_end.value = ipPoolEnd;
-			}else{
-				return false;
-			}
+		let confirm_text = `<#JS_DHCP1#>`;
+		confirm_text += `\n\n`;
+		const vpn_fusion_text = isSupport("vpn_fusion") ? `, "<#VPN_Fusion#>",` : '';
+		confirm_text += `*<#ADSL_FW_note#> After changing the LAN IP, related feature rules such as "Manually Assigned IP"${vpn_fusion_text} and "Port Forwarding" will become invalid. Please update the settings accordingly.`;/* untranslated */
+		if(confirm(confirm_text)){
+			document.form.dhcp_start.value = ipPoolStart;
+			document.form.dhcp_end.value = ipPoolEnd;
+		}else{
+			return false;
+		}
 	}
 
 	return true;
@@ -416,6 +446,7 @@ function check_vpn(){		//true: lAN ip & VPN client ip conflict
 <input type="hidden" name="lan_ipaddr_rt" value="<% nvram_get("lan_ipaddr_rt"); %>">
 <input type="hidden" name="lan_netmask_rt" value="<% nvram_get("lan_netmask_rt"); %>">
 <input type="hidden" name="subnet_rulelist_ext" value='<% nvram_get("subnet_rulelist_ext"); %>' disabled>
+<input type="hidden" name="https_crt_gen" value='<% nvram_get("https_crt_gen"); %>' >
 
 <table class="content" align="center" cellpadding="0" cellspacing="0">
   <tr>
@@ -437,8 +468,11 @@ function check_vpn(){		//true: lAN ip & VPN client ip conflict
 	<tbody>
 	<tr>
 		  <td bgcolor="#4D595D" valign="top">
+		  <div class="container">
+		  	
 		  <div>&nbsp;</div>
 		  <div class="formfonttitle"><#menu5_2#> - <#menu5_2_1#></div>
+		  <div class="formfonttitle_help"><i onclick="show_feature_desc(`<#HOWTOSETUP#>`)" class="icon_help"></i></div>
 		  <div style="margin:10px 0 10px 5px;" class="splitLine"></div>
       <div class="formfontdesc"><#LANHostConfig_display1_sectiondesc#></div>
       <div id="VPN_conflict" class="formfontdesc" style="color:#FFCC00;display:none;"><#LANHostConfig_display1_sectiondesc2#></div>
@@ -472,8 +506,7 @@ function check_vpn(){		//true: lAN ip & VPN client ip conflict
 				<input type="radio" name="lan_proto_radio" class="input" onclick="change_ip_setting('static')" value="static" <% nvram_match("lan_proto", "static", "checked"); %>><#checkbox_No#>
 			</td>
 			</tr>
-            
-		  <tr>
+                 <tr>
 			<th width="30%">
 			  <a class="hintstyle" href="javascript:void(0);" onClick="openHint(4,1);"><#IPConnection_ExternalIPAddress_itemname#></a>
 			</th>			
@@ -540,7 +573,8 @@ function check_vpn(){		//true: lAN ip & VPN client ip conflict
 			<input class="button_gen" onclick="applyRule()" type="button" value="<#CTL_apply#>"/>
 		</div>
 
-	
+		</div>	<!-- for .container  -->
+		<div class="popup_container popup_element_second"></div>
 		
 	  </td>
 	</tr>
@@ -551,7 +585,7 @@ function check_vpn(){		//true: lAN ip & VPN client ip conflict
 		</td>
 	</form>					
 				</tr>
-			</table>				
+			</table>
 			<!--===================================End of Main Content===========================================-->
 </td>
 

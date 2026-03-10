@@ -337,21 +337,22 @@ function change_common_radio(o, s, v, r){
 				}
 				showhide("wildcard_field",0);
 			}else{
-				if(is_CN && ddns_server_x == ""){
-					$("#ddns_server_x").val("WWW.ASUS.COM.CN");
-				}
-				else if(document.form.ddns_server_x.value == "WWW.ORAY.COM"){
+				if(document.form.ddns_server_x.value == "WWW.ORAY.COM"){
 					if(ddns_updated == "1")
 						document.getElementById("ddns_hostname_info_tr").style.display = "";
 				}
 				else
 					document.form.ddns_hostname_x.parentNode.parentNode.parentNode.style.display = "";
-				inputCtrl(document.form.ddns_username_x, 1);
-				inputCtrl(document.form.ddns_passwd_x, 1);
-				showhide("wildcard_field",1);
+
+				if(document.form.ddns_server_x.value !== ""){
+					inputCtrl(document.form.ddns_username_x, 1);
+					inputCtrl(document.form.ddns_passwd_x, 1);
+					showhide("wildcard_field",1);
+				}
 			}
 
 			change_ddns_setting(document.form.ddns_server_x.value);
+			inputCtrl(document.form.ddns_refresh_x, 1);
 			show_ipv6update_setting();
 		}else{
 			if(document.form.ddns_server_x.value == "WWW.ASUS.COM"){
@@ -360,7 +361,7 @@ function change_common_radio(o, s, v, r){
 			else{
 				if(document.form.ddns_server_x.value == "WWW.ORAY.COM")
 					document.getElementById("ddns_hostname_info_tr").style.display = "none";
-				document.form.ddns_hostname_x.parentNode.parentNode.parentNode.style.display = "none";
+				document.form.ddns_hostname_x.parentNode.parentNode.parentNode.parentNode.style.display = "none";
 				inputCtrl(document.form.ddns_username_x, 0);
 				inputCtrl(document.form.ddns_passwd_x, 0);
 			}
@@ -371,8 +372,9 @@ function change_common_radio(o, s, v, r){
 			document.form.ddns_regular_check.value = 0;
 			showhide("check_ddns_field", 0);
 			inputCtrl(document.form.ddns_regular_period, 0);
+			inputCtrl(document.form.ddns_refresh_x, 0);
 			showhide("ddns_ipv6update_tr", 0);
-
+			document.getElementById("ddns_hostname_tr").style.display = "none";
 			document.getElementById("ddns_status_tr").style.display = "none";
 			document.getElementById("ddns_result_tr").style.display = "none";
 		}
@@ -402,7 +404,7 @@ function change_common_radio(o, s, v, r){
 						showhide("WPS_hideSSID_hint",0);
 			}
 	}
-	else if(v=="bond_wan" && (based_modelid == "RT-AX89U" || based_modelid == "GT-AXY16000")){
+	else if(v=="bond_wan" && wbmenu_support){
 		if(r==1){
 			document.getElementById("wanports_bond_menu").style.display = "";
 			document.form.wanports_bond.disabled = false;
@@ -465,25 +467,27 @@ function openLink(s){
 		if (document.form.ddns_server_x.value.indexOf("WWW.DYNDNS.ORG")!=-1)
 			tourl = "https://account.dyn.com/";
 		else if (document.form.ddns_server_x.value == 'WWW.ZONEEDIT.COM')
-			tourl = "http://www.zoneedit.com/";
+			tourl = "https://www.zoneedit.com/";
 		else if (document.form.ddns_server_x.value == 'WWW.SELFHOST.DE')
-			tourl = "http://WWW.SELFHOST.DE";
+			tourl = "https://WWW.SELFHOST.DE";
 		else if (document.form.ddns_server_x.value == 'WWW.DNSOMATIC.COM')
-			tourl = "http://dnsomatic.com/create/";
+			tourl = "https://dnsomatic.com/create/";
 		else if (document.form.ddns_server_x.value == 'DNS.HE.NET')
 			tourl = "https://ipv6.he.net/certification/register.php";
+		else if (document.form.ddns_server_x.value == 'DYNU.COM')
+			tourl = "https://www.dynu.com/ControlPanel/CreateAccount";
 		else if (document.form.ddns_server_x.value == 'WWW.TUNNELBROKER.NET')
-			tourl = "http://www.tunnelbroker.net/register.php";
+			tourl = "https://www.tunnelbroker.net/register.php";
 		else if (document.form.ddns_server_x.value == 'WWW.ASUS.COM')
 			tourl = "";
 		else if (document.form.ddns_server_x.value == 'WWW.NO-IP.COM')
-			tourl = "http://www.no-ip.com/newUser.php";
+			tourl = "https://www.no-ip.com/newUser.php";
 		else if (document.form.ddns_server_x.value == 'WWW.NAMECHEAP.COM')
 			tourl = "https://www.namecheap.com";
 		else if (document.form.ddns_server_x.value == "FREEDNS.AFRAID.ORG")
 			tourl = "https://freedns.afraid.org/";
 		else if (document.form.ddns_server_x.value == 'WWW.ORAY.COM')
-			tourl = "http://www.oray.com/";
+			tourl = "https://www.oray.com/";
 		else if (document.form.ddns_server_x.value == '3322')
 			tourl = "http://www.pubyun.com/";
 		else if (document.form.ddns_server_x.value == 'oray')
@@ -494,6 +498,10 @@ function openLink(s){
 			tourl = "https://www.cloudflare.com/";
 		else if (document.form.ddns_server_x.value == 'DOMAINS.GOOGLE.COM')
 			tourl = "https://domains.google/";
+		else if (document.form.ddns_server_x.value == 'FREEDNS.AFRAID.ORG')
+			tourl = "https://freedns.afraid.org/signup/";
+		else if (document.form.ddns_server_x.value == 'FREEMYIP.COM')
+			tourl = "https://freemyip.com";
 		else	tourl = "";
 		link = window.open(tourl, "DDNSLink","toolbar=yes,location=yes,directories=no,status=yes,menubar=yes,scrollbars=yes,resizable=yes,copyhistory=no,width=640,height=480");
 	}
@@ -732,7 +740,7 @@ function has_dfs_channel(chint){
 }
 
 function filter_5g_channel_by_bw(ch_ary, bw){
-	var del, ary;;
+	var del, ary;
 	if(bw == 160){
 		var ch=[36,100], cnt=[0,0], d = 28, nr_ch=8;
 	}else if(bw == 80){
@@ -762,7 +770,7 @@ function filter_5g_channel_by_bw(ch_ary, bw){
 }
 
 function filter_6g_channel_by_bw(ch_ary, bw){
-	var del, ary;;
+	var del, ary;
 	if(bw == 160){
 		var ch=[33,65,97,129,161,193], cnt=[0,0,0,0,0,0], d = 28, nr_ch=8;
 	}else if(bw == 80){
@@ -1546,7 +1554,7 @@ function wl_auth_mode_change(isload){
 	}
 
 	if(mode == "sae" || mode == "owe"){
-		var get_cfg_clientlist = httpApi.hookGet("get_cfg_clientlist", true);
+		var get_cfg_clientlist = httpApi.hookGet("get_cfg_clientlist");
 		if(get_cfg_clientlist != undefined){
 			var len = get_cfg_clientlist.length;
 			for(var i = 1; i < len; i += 1){//filter CAP
@@ -1622,7 +1630,7 @@ function wl_auth_mode_change(isload){
 
 	if(document.form.current_page.value == "Advanced_Wireless_Content.asp"){
 		if(mode == "wpa" || mode == "wpa2" || mode == "wpawpa2" || mode == "radius" || mode == "wpa3" || mode == "wpa2wpa3" || mode == "suite-b"){
-			if(Bcmwifi_support){
+		        if(Bcmwifi_support){
 				inputCtrl(document.form.wl_radius_ipaddr,  1);
 				inputCtrl(document.form.wl_radius_port,  1);
 				inputCtrl(document.form.wl_radius_key,  1);
@@ -1636,28 +1644,17 @@ function wl_auth_mode_change(isload){
 
 		if((mode == 'sae' || mode == 'owe' || mode == "wpa3" || mode == "suite-b") && document.form.wl_mfp.value != '2'){			
 			$('#mbo_notice_combo').hide();
-			$('#mbo_notice_combo_legacy').hide();
 			$('#mbo_notice_wpa3').show();
 			$('#mbo_notice').hide();
 		}
 		else if((mode == 'psk2sae') && document.form.wl_mfp.value == '0'){
 			$('#mbo_notice_wpa3').hide();
 			$('#mbo_notice_combo').show();
-			$('#mbo_notice_combo_legacy').hide();
-			$('#mbo_notice').hide();
-		}
-		else if(mode == 'pskpsk2' 
-			 && document.form.wl_mfp.value == '2' 
-			 && (band5g_11ax_support || based_modelid == 'RT-AC68U_V4')){
-			$('#mbo_notice_wpa3').hide();
-			$('#mbo_notice_combo').hide();
-			$('#mbo_notice_combo_legacy').show();
 			$('#mbo_notice').hide();
 		}
 		else{
 			$('#mbo_notice_wpa3').hide();
 			$('#mbo_notice_combo').hide();
-			$('#mbo_notice_combo_legacy').hide();
 			$('#mbo_notice').hide();
 		}
 
@@ -1757,7 +1754,7 @@ function wl_auth_mode_change(isload){
 function showhide(element, sh)
 {
 	var status;
-	if (sh == 1){
+	if ((sh == 1) || (sh == true)){
 		status = "";
 	}
 	else{
@@ -2007,7 +2004,7 @@ function limit_auth_method(g_unit){
 	}
 
 	if(isSupport("amas") && isSupport("amasRouter") && (isSwMode("rt") || isSwMode("ap"))){
-		var re_count = httpApi.hookGet("get_cfg_clientlist", true).length;
+		var re_count = httpApi.hookGet("get_cfg_clientlist").length;
 		if(re_count > 1){
 			auth_array = auth_array.filter(function(item){
 				return (item[1] != "wpa2" && item[1] != "wpawpa2");//have re node then hide WPA2-Enterprise, WPA/WPA2-Enterprise
@@ -2054,6 +2051,8 @@ function getDDNSState(ddns_return_code, ddns_hostname, ddns_old_hostname)
 		ddnsStateHint = "Server Error";
 	else if(ddns_return_code.indexOf('401')!=-1)
 		ddnsStateHint = "<#LANHostConfig_x_DDNS_alarm_10#>";
+	else if (ddns_return_code.indexOf('402')!=-1)
+		ddnsStateHint = "<#LANHostConfig_x_DDNS_alarm_15#>";
 	else if(ddns_return_code.indexOf('407')!=-1)
 		ddnsStateHint = "<#LANHostConfig_x_DDNS_alarm_11#>";
 	else if(ddns_return_code == 'Time-out')
@@ -2115,7 +2114,7 @@ function gen_switch_menu(_arrayList, _currentItem) {
 		var gen_not_pressed_content = function(_itemArray, _cssMode) {
 			var not_pressed_code = "";
 			not_pressed_code += "<div style='width:110px;height:30px;float:left;" + _cssMode + "' class='block_filter'>";
-			not_pressed_code += "<a href='" + _itemArray[1] + "'>";
+			not_pressed_code += "<a href='" + _itemArray[1] + "' target='_parent'>";
 			not_pressed_code += "<div class='block_filter_name'>" +  _itemArray[0] + "</div>";
 			not_pressed_code += "</a>";
 			not_pressed_code += "</div>";
@@ -2215,38 +2214,22 @@ function gen_tab_menu(_tab_list_array, _currentItem) {
 	}
 }
 
+
+var wlnband_list_array = `<% nvram_get("wlnband_list"); %>`.split("&#60");
 function is_unit_24g(_unit) {
-	if (based_modelid == "GT-AXE16000") {
-		if (_unit == 3) return true;
-	} else {
-		if (_unit == 0) return true;
-	}
-	return false;
+	return (!wlnband_list_array.hasOwnProperty(_unit)) ? false : wlnband_list_array[_unit].indexOf("2g") > -1;
 }
 
 function is_unit_5g(_unit) {
-	if (based_modelid == "GT-AXE16000") {
-		if (_unit == 0) return true;
-	} else if (wl_info.band5g_support) {
-		if (_unit == 1) return true;
-	}
-	return false;
+	return (!wlnband_list_array.hasOwnProperty(_unit)) ? false : wlnband_list_array[_unit].indexOf("5g1") > -1;
 }
 
 function is_unit_5g_2(_unit) {
-	if (based_modelid == "GT-AXE16000") {
-		if (_unit == 1) return true;
-	} else if (wl_info.band5g_2_support) {
-		if (_unit == 2) return true;
-	}
-	return false;
+	return (!wlnband_list_array.hasOwnProperty(_unit)) ? false : wlnband_list_array[_unit].indexOf("5g2") > -1;
 }
 
 function is_unit_6g(_unit) {
-	if (band6g_support) {
-		if (_unit == 2) return true;
-	}
-	return false;
+	return (!wlnband_list_array.hasOwnProperty(_unit)) ? false : wlnband_list_array[_unit].indexOf("6g") > -1;
 }
 
 function is_unit_60g(_unit){
@@ -2254,5 +2237,23 @@ function is_unit_60g(_unit){
 		if (_unit == 3) return true;
 	}
 	return false;
+}
+
+function check_file_exists(file_url){
+	var isExists = false;
+
+	$.ajax({
+		url: file_url,
+		async:false,
+		type:'HEAD',
+		error: function(){
+			isExists = false;
+		},
+		success: function(response){
+			isExists = true;
+		}
+	});
+
+	return isExists;
 }
 

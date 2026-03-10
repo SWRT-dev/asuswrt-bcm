@@ -12,12 +12,12 @@
 <link rel="stylesheet" type="text/css" href="index_style.css"> 
 <link rel="stylesheet" type="text/css" href="form_style.css">
 <link rel="stylesheet" type="text/css" href="other.css">
+<script type="text/javascript" src="/js/jquery.js"></script>
 <script type="text/javascript" src="state.js"></script>
 <script type="text/javascript" src="general.js"></script>
 <script type="text/javascript" src="popup.js"></script>
 <script type="text/javascript" src="help.js"></script>
 <script type="text/javascript" src="validator.js"></script>
-<script language="JavaScript" type="text/JavaScript" src="/js/jquery.js"></script>
 <script type="text/javascript" src="/js/httpApi.js"></script>
 <script>
 
@@ -491,10 +491,14 @@ function showInputfield2(s, v){
 		inputCtrl(document.form.ipv61_prefix_length, enable);
 
 		if(enable){
+			document.getElementById("ipv61_wan_setting").style.display="none";
+			inputCtrl(document.form.ipv61_prefix_len_wan, enable);
 			document.getElementById("ipv61_ipaddr_r").style.display = "none";
 			document.getElementById("ipv61_prefix_length_r").style.display = "none";
 				
 		}else{
+			document.getElementById("ipv61_wan_setting").style.display="";
+			inputCtrl(document.form.ipv61_prefix_len_wan, !enable);
 			document.getElementById("ipv61_ipaddr_r").style.display = "";
 			document.getElementById("ipv61_prefix_length_r").style.display = "";
 			document.getElementById("ipv61_prefix_length_span").innerHTML = "";
@@ -945,6 +949,11 @@ function genWANSoption(){
 				document.form.wan_selection.options[i] = new Option("10G base-T", i);
 			else if(wans_dualwan_NAME == "SFP+")
 				document.form.wan_selection.options[i] = new Option("10G SFP+", i);
+		} else if (based_modelid == "TUF-AX4200" || based_modelid == "TUF-AX6000") {
+			if (wans_dualwan_NAME == "WAN")
+				document.form.wan_selection.options[i] = new Option("2.5G WAN", i);
+			else if (wans_dualwan_NAME == "LAN Port 5")
+				document.form.wan_selection.options[i] = new Option("2.5G LAN", i);
 		}
 	}
 
@@ -1016,8 +1025,8 @@ function genWANSoption(){
 				<div>&nbsp;</div>
 				<div class="formfonttitle">IPv6</div>
 	      		<div style="margin:10px 0 10px 5px;" class="splitLine"></div>
-	      <div class="formfontdesc"><#LANHostConfig_display6_sectiondesc#></div>
-				<div class="formfontdesc" style="margin-top:-10px;">
+	      		<div class="formfontdesc">
+					<div><#LANHostConfig_display6_sectiondesc#></div>
 					<a id="faq" href="" target="_blank" style="font-family:Lucida Console;text-decoration:underline;">IPv6 FAQ</a>
 				</div>
 				  

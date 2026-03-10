@@ -142,7 +142,7 @@ body{
 	stroke:#33CFCF;
 }
 .core-fill-color-2{
-	stroke:#FFCC00;;
+	stroke:#FFCC00;
 }
 .core-fill-color-3{
 	stroke:#FF44FF;
@@ -153,6 +153,21 @@ body{
 }
 .ram-text-width{
 	width: 90px;
+}
+
+/* Traffic */
+.tx-color{
+	background-color:#3CF;
+}
+.rx-color{
+	background-color:#118811;
+}
+.bar-text-net {
+	font-size:11px;
+}
+.bar-text-percent-net{
+	font-size:11px;
+	width:90px;
 }
 
 /* Ports */
@@ -358,6 +373,7 @@ input[type="text"], input[type="password"], .input_option{
 	line-height: 100%;
 	font-size: 11px;
 	margin-top: 4px;
+	width: 85%;
 }
 .port_status_icon_desc{
 	display: flex;

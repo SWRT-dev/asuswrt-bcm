@@ -13,8 +13,8 @@
 <link rel="stylesheet" type="text/css" href="form_style.css">
 <link rel="stylesheet" type="text/css" href="usp_style.css">
 <link rel="stylesheet" type="text/css" href="other.css">
+<script type="text/javascript" src="/js/jquery.js"></script>
 <script language="JavaScript" type="text/javascript" src="/state.js"></script>
-<script language="JavaScript" type="text/javascript" src="/js/jquery.js"></script>
 <script language="JavaScript" type="text/javascript" src="/general.js"></script>
 <script language="JavaScript" type="text/javascript" src="/popup.js"></script>
 <script language="JavaScript" type="text/javascript" src="/help.js"></script>
@@ -42,7 +42,7 @@
 	font-size:14px;
 	z-index:200;
 	position:relative;
-	background-color:balck:
+	background-color:black:
 }	
 .QISform_wireless{
 	width:600px;
@@ -113,6 +113,9 @@ window.onresize = function() {
 } 
 if(sw_mode_orig == 3 && '<% nvram_get("wlc_psta"); %>' == 2)
 	sw_mode_orig = 2;
+
+var current_page = window.location.pathname.split("/").pop();
+var faq_index_tmp = get_faq_index(FAQ_List, current_page, 1);
 
 function initial(){
 	show_menu();
@@ -293,6 +296,10 @@ function initial(){
 		$("#apMode").hide();
 		$("#sw_mode3_radio").attr("disabled", true);
 	}
+
+	if(!ameshNode_support && !repeater_support && !psta_support && isSupport("noAP")){
+		$("#op_title_desc").hide();
+	}
 }
 
 function restore_wl_config(prefix){
@@ -345,6 +352,10 @@ function close_guest_unit(_unit, _subunit){
 }
 
 function saveMode(){
+	const OP_sdn_change_mode_desc1 = `<#OP_sdn_change_mode_desc1#>`.replace(`#FUNCTIONS`, `<#AiProtection_title#>, <#vpnc_title#>, <#BOP_isp_heart_item#>, <#EzQoS_type_QoS#>`);
+	const OP_sdn_change_mode_desc2 = `<#OP_sdn_change_mode_desc2#>`.replace(`#GUESTNAMING`, Guest_Network_naming);
+	const OP_sdn_change_mode_desc3 = `<#OP_sdn_change_mode_desc3#>`;
+	let sdn_change_mode_hint = `${OP_sdn_change_mode_desc1}\n${OP_sdn_change_mode_desc2}\n${OP_sdn_change_mode_desc3}\n<#Setting_factorydefault_hint2#>`;
 	if(sw_mode_orig == document.form.sw_mode.value){
 		if(document.form.sw_mode.value != 2){				
 			alert("<#Web_Title2#> <#op_already_configured#>");
@@ -373,7 +384,13 @@ function saveMode(){
 		return false;
 	}
 	else if(document.form.sw_mode.value == 3){
-		parent.location.href = '/QIS_wizard.htm?flag=lanip';
+		var confirmFlag = true;
+		if(isSupport("mtlancfg") && sw_mode_orig == "1"){
+			confirmFlag = confirm(sdn_change_mode_hint.replace("#OPMODE", $("#apMode").find("label").html()));
+		}
+		if(confirmFlag){
+			parent.location.href = '/QIS_wizard.htm?flag=lanip';
+		}
 		return false;
 	}
 	else if(document.form.sw_mode.value == 4){
@@ -385,7 +402,13 @@ function saveMode(){
 		return false;
 	}
 	else{ // default router
-		parent.location.href = '/QIS_wizard.htm?flag=rtMode';
+		let confirmFlag = true;
+		if(isSupport("mtlancfg") && sw_mode_orig == "3"){
+			confirmFlag = confirm(sdn_change_mode_hint.replace("#OPMODE", $("#routerMode").find("label").html()));
+		}
+		if(confirmFlag){
+			parent.location.href = '/QIS_wizard.htm?flag=rtMode';
+		}
 		return false;		
 	}
 
@@ -742,6 +765,7 @@ function change_smart_con(v){
 	<table id="smart_connect_table" style="display:none;" class="QISSmartCon_table">
 		<tr>
 			<td width="200px">
+
 			<div id="smart_connect_image" style="background: url(/images/New_ui/smart_connect.png); width: 130px; height: 87px; margin-left:115px; margin-top:20px; no-repeat;"></div>
 			</td>
 			<td>			
@@ -854,38 +878,50 @@ function change_smart_con(v){
 		<!--===================================Beginning of Main Content===========================================-->
 		<table width="98%" border="0" align="left" cellpadding="0" cellspacing="0">
 			<tr>
-				<td valign="top" >			
+				<td valign="top">
+
 					<table width="760px" border="0" cellpadding="5" cellspacing="0" class="FormTitle" id="FormTitle">
 						<tr bgcolor="#4D595D" valign="top">
 							<td>
+							<div class="container">
+
 								<div>&nbsp;</div>
 								<div class="formfonttitle"><#menu5_6#> - <#menu5_6_1_title#></div>
+								<div class="formfonttitle_help"><i onclick="show_feature_desc(`Introduction of Operation Mode`)" class="icon_help"></i></div>
 								<div style="margin:10px 0 10px 5px;" class="splitLine"></div>
-								<div class="formfontdesc"><#OP_desc1#></div>
+								<div class="formfontdesc" id="op_title_desc"><#OP_desc1#></div>
+							</div>	<!-- for .container  -->
 							</td>
 						</tr>
 						<tr bgcolor="#4D595D" valign="top" style="height:15%">
 							<td>
+								<div class="container">
 								<div style="width:95%; margin:0 auto; padding-bottom:3px;">
-									<span style="font-size:16px; font-weight:bold;color:white;text-shadow:1px 1px 0px black">
+									<span style="font-size:16px; font-weight:bold;color:white;">
 										<div id="operation_mode_bg"></div>
 									</span>
 									<br/>
-									<span style="word-wrap:break-word;word-break:break-all"><label id="mode_desc"></label></span>
+									<span style="word-wrap:break-word;word-break:break-all"><div class="formfontdesc" id="mode_desc"></div></span>
 								</div>
+								</div>	<!-- for .container  -->
 							</td>
 						</tr>
 						<tr bgcolor="#4D595D" valign="top" style="height:70%">
                  			<td>
+                 				<div class="container">
 							    <div id="Senario" >
 								<div id="Unplug-hint" style="border:2px solid red; background-color:#FFF; padding:3px;margin:0px 0px 0px 150px;width:250px; position:absolute; display:block; display:none;"><#web_redirect_suggestion1#></div>
 						         	</div>	
 								<div class="apply_gen">
 									<input name="button" type="button" class="button_gen" onClick="saveMode();" value="<#CTL_onlysave#>">
 								</div>
+
+								</div>	<!-- for .container  -->
+								<div class="popup_container popup_element_second"></div>
 							</td>
 						</tr>
 					</table>
+
 				</td>
 			</tr>
 		</table>

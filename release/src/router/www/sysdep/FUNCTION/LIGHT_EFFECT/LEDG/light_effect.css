@@ -81,9 +81,19 @@
 .setting_enable_bg > div:last-child {
 	float: right;
 }
+.settings_container{
+	min-height: 50px;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+}
 .light_effect_setting_bg .setting_enable_bg {
-	height: 70px;
+	height: 100%;
 	position: relative;
+	width: 100%;
+	min-height: 50px;
+	align-items: center;
+	display: flex;
 }
 .hue_bar {
 	cursor: pointer;
@@ -552,4 +562,7 @@
 .switch_mode_list_bg .mode_list_bg > div.antenna.active,
 .switch_mode_list_bg .mode_list_bg > div.antenna:hover {
 	background-image: url(/images/New_ui/light_effect/ic-antenna-active.svg);
+}
+.customize_alert .desc{
+	font-size: 18px !important;
 }

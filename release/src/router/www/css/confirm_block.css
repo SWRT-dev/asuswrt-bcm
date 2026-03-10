@@ -10,19 +10,22 @@
 }
 .confirm{
 	animation: confirm 0.3s ease 1 forwards;
-	background-color: rgb(43, 55, 59);/*rgb(33,51,62);*/
-	border-radius: 10px;
+	background-color: #191919;
+	border-radius: 5px;
 	max-width: 600px;
 	min-width: 200px;
 	margin: auto;
-	box-shadow: 0 0 20px #21333E;
+	box-shadow: 0 0 10px #21333E;
+	border: 1px solid #444f53;
 }
 .confirm_block{
 	position:absolute;
-	width:100%;
+	width:90%;
 	top:10%;
-	left:0%;
+	right: 5%;
+    left: 5%;
 	text-align:center;
+	line-height: 25px;
 }
 .confirm_title{
 	font-size: 18pt;
@@ -46,6 +49,12 @@
 	font-size: 12pt;
 	padding:0 15px 20px;
 	color:#FFCC00;
+	text-align:left;
+}
+.confirm_contentD{
+	font-size: 10pt;
+	padding:0 15px 20px;
+	color:#B8B8B8;
 	text-align:left;
 }
 .confirm_button{
@@ -99,7 +108,7 @@
 	height:34px;
 	text-align:center;
 	line-height:34px;
-	margin:0px 0px 20px 265px;
+	margin:10px;
 	font-family:Verdana;
 	font-size:12px; 	
   overflow:visible;
@@ -113,6 +122,78 @@
 	background: -webkit-linear-gradient(#09639C 0%, #003047 100%);
 	background: -o-linear-gradient(#09639C 0%, #003047 100%);
 	background: linear-gradient(#09639C 0%, #003047 100%);
+  border:0;
+  color: #FFFFFF;
+	height:34px;
+	font-family:Verdana;
+	font-size:12px;
+ 	width:155px;
+  overflow:visible;
+	cursor:pointer;
+	outline: none; /* for Firefox */
+ 	hlbr:expression(this.onFocus=this.blur()); /* for IE */
+ 	white-space:normal;
+}
+.confirm_button_gen_long_left_rog{
+	font-weight: bolder;
+	text-shadow: 1px 1px 0px black;
+	background: rgb(145,7,31);
+	-webkit-border-radius: 8px;
+	-moz-border-radius: 8px;
+	border-radius: 8px;
+  border:0;
+  color: #FFFFFF;
+  width:155px;
+	height:34px;
+	text-align:center;
+	line-height:34px;
+	margin:10px;
+	font-family:Verdana;
+	font-size:12px; 	
+  overflow:visible;
+	cursor:pointer;
+	outline: none; /* for Firefox */
+ 	hlbr:expression(this.onFocus=this.blur()); /* for IE */
+ 	white-space:normal;
+}
+.confirm_button_gen_long_left_rog:hover	/*, .button:active*/{
+	background: rgba(207,10,44,1);
+  border:0;
+  color: #FFFFFF;
+	height:34px;
+	font-family:Verdana;
+	font-size:12px;
+ 	width:155px;
+  overflow:visible;
+	cursor:pointer;
+	outline: none; /* for Firefox */
+ 	hlbr:expression(this.onFocus=this.blur()); /* for IE */
+ 	white-space:normal;
+}
+.confirm_button_gen_long_left_tuf{
+	font-weight: bolder;
+	text-shadow: 1px 1px 0px black;
+	background: rgb(255,165,35);
+	-webkit-border-radius: 8px;
+	-moz-border-radius: 8px;
+	border-radius: 8px;
+  border:0;
+  color: #FFFFFF;
+  width:155px;
+	height:34px;
+	text-align:center;
+	line-height:34px;
+	margin:10px;
+	font-family:Verdana;
+	font-size:12px; 	
+  overflow:visible;
+	cursor:pointer;
+	outline: none; /* for Firefox */
+ 	hlbr:expression(this.onFocus=this.blur()); /* for IE */
+ 	white-space:normal;
+}
+.confirm_button_gen_long_left_tuf:hover	/*, .button:active*/{
+	background: #D0982C;
   border:0;
   color: #FFFFFF;
 	height:34px;
@@ -142,7 +223,7 @@
 	height:34px;
 	text-align:center;
 	line-height:34px;
-	margin:-54px 0px 20px 430px;
+	margin:10px;
 	font-family:Verdana;
 	font-size:12px; 	
   overflow:visible;
@@ -168,7 +249,78 @@
  	hlbr:expression(this.onFocus=this.blur()); /* for IE */
  	white-space:normal;
 }
-
+.confirm_button_gen_long_right_rog{
+	font-weight: bolder;
+	text-shadow: 1px 1px 0px black;
+	background: rgb(145,7,31);
+	-webkit-border-radius: 8px;
+	-moz-border-radius: 8px;
+	border-radius: 8px;
+  border:0;
+  color: #FFFFFF;
+  width:155px;
+	height:34px;
+	text-align:center;
+	line-height:34px;
+	margin:10px;
+	font-family:Verdana;
+	font-size:12px; 	
+  overflow:visible;
+	cursor:pointer;
+	outline: none; /* for Firefox */
+ 	hlbr:expression(this.onFocus=this.blur()); /* for IE */
+ 	white-space:normal;
+}
+.confirm_button_gen_long_right_rog:hover	/*, .button:active*/{
+	background: rgba(207,10,44,1);
+  border:0;
+  color: #FFFFFF;
+	height:34px;
+	font-family:Verdana;
+	font-size:12px;
+ 	width:155px;
+  overflow:visible;
+	cursor:pointer;
+	outline: none; /* for Firefox */
+ 	hlbr:expression(this.onFocus=this.blur()); /* for IE */
+ 	white-space:normal;
+}
+.confirm_button_gen_long_right_tuf{
+	font-weight: bolder;
+	text-shadow: 1px 1px 0px black;
+	background: rgb(255,165,35);
+	-webkit-border-radius: 8px;
+	-moz-border-radius: 8px;
+	border-radius: 8px;
+  border:0;
+  color: #FFFFFF;
+  width:155px;
+	height:34px;
+	text-align:center;
+	line-height:34px;
+	margin:10px;
+	font-family:Verdana;
+	font-size:12px; 	
+  overflow:visible;
+	cursor:pointer;
+	outline: none; /* for Firefox */
+ 	hlbr:expression(this.onFocus=this.blur()); /* for IE */
+ 	white-space:normal;
+}
+.confirm_button_gen_long_right_tuf:hover	/*, .button:active*/{
+	background: #D0982C;
+  border:0;
+  color: #FFFFFF;
+	height:34px;
+	font-family:Verdana;
+	font-size:12px;
+ 	width:155px;
+  overflow:visible;
+	cursor:pointer;
+	outline: none; /* for Firefox */
+ 	hlbr:expression(this.onFocus=this.blur()); /* for IE */
+ 	white-space:normal;
+}
 .ribbon-wrapper-red {
   width: 85px;
   height: 88px;
@@ -219,4 +371,23 @@
   right: 0;
 }
 
-
+.title_num_div {
+	vertical-align:top;
+	padding-top:14px;
+	padding-left:14px;
+}
+.title_num {
+	display: block;
+	width: 21px;
+	height: 21px;
+	line-height: 22px;
+	-moz-border-radius: 50%;
+	-webkit-border-radius: 50%;
+	border-radius: 50%;
+	background-color: #C0C0C0;
+	text-align: center;
+	font-weight: 700;
+	font-family: sans-serif;
+	color: #4D595D;
+	font-size: 16px;
+}

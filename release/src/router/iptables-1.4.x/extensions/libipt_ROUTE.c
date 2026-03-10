@@ -85,7 +85,7 @@ static int ROUTE_parse(int c, char **argv, int invert, unsigned int *flags,
 
 		if (strlen(optarg) > sizeof(route_info->oif) - 1)
 			xtables_error(PARAMETER_PROBLEM,
-				   "Maximum interface name length %u",
+				   "Maximum interface name length %zu",
 				   sizeof(route_info->oif) - 1);
 
 		strcpy(route_info->oif, optarg);
@@ -103,7 +103,7 @@ static int ROUTE_parse(int c, char **argv, int invert, unsigned int *flags,
 
 		if (strlen(optarg) > sizeof(route_info->iif) - 1)
 			xtables_error(PARAMETER_PROBLEM,
-				   "Maximum interface name length %u",
+				   "Maximum interface name length %zu",
 				   sizeof(route_info->iif) - 1);
 
 		strcpy(route_info->iif, optarg);
@@ -214,14 +214,14 @@ static void ROUTE_save(const void *ip, const struct xt_entry_target *target)
 
 	if (route_info->gw) {
 		struct in_addr ip_1 = { route_info->gw };
-		printf("--gw %s ", inet_ntoa(ip_1));
+		printf(" --gw %s", inet_ntoa(ip_1));
 	}
 
 	if (route_info->flags & IPT_ROUTE_CONTINUE)
-		printf("--continue ");
+		printf(" --continue");
 
 	if (route_info->flags & IPT_ROUTE_TEE)
-		printf("--tee ");
+		printf(" --tee");
 }
 
 

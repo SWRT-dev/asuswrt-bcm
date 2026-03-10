@@ -12,6 +12,19 @@
 <script type="text/javascript" src="/js/https_redirect/https_redirect.js"></script>
 <title>ASUS Login</title>
 <style>
+html::-webkit-scrollbar{
+    display: block;
+    width: 4px;
+    height: 4px;
+    padding: 2px;
+}
+html::-webkit-scrollbar-thumb{
+    background-color: #248DFF !important;   
+    border-radius: 50px;
+}
+html::-webkit-scrollbar-track{
+    background-color: #192229 !important;
+}
 body{
 	font-family: Microsoft Yahei UI, Arial, MS UI Gothic, MS P Gothic, sans-serif;
 }
@@ -23,11 +36,11 @@ body{
 	background:#283437\9;
 }
 .title_name {
-	font-size: 40pt;
+	font-size: 30pt;
 	color:#93d2d9;
 }
 .prod_madelName{
-	font-size: 26pt;
+	font-size: 20pt;
 	color:#fff;
 	margin-left:78px;
 	margin-top: 10px;
@@ -39,7 +52,7 @@ body{
 	background-repeat: no-repeat;
 }
 .p1{
-	font-size: 16pt;
+	font-size: 12pt;
 	color:#fff;
 	width:480px;
 }
@@ -47,38 +60,44 @@ body{
 	background-color:#279FD9;
 	border-radius: 4px ;
 	transition: visibility 0s linear 0.218s,opacity 0.218s,background-color 0.218s;
-	height: 68px;
-	width: 300px;
-	font-size: 28pt;
+	height: 48px;
+	width: 200px;
+	font-size: 14pt;
 	color:#fff;
 	text-align: center;
 	float:right; 
-	margin:50px 0px 0px 78px;
-	line-height:68px;
+	margin:25px 79px 0px 39px;
+	line-height:48px;
+}
+.button:hover{
 	cursor:pointer;
+}
+.button.disabled{
+	filter: grayscale(100%) opacity(0.5);
+    pointer-events: none;
 }
 .form_input{
 	background-color:rgba(255,255,255,0.2);
 	background-color:#576D73\9;
 	border-radius: 4px;
-	padding:23px 22px;
-	width: 480px;
+	padding:13px 11px;
+	width: 380px;
 	border: 0;
-	height:30px;
+	height:25px;
 	color:#fff;
-	font-size:28px;
+	font-size:18px;
 }
 .nologin{
 	margin:10px 0px 0px 78px;
 	background-color:rgba(255,255,255,0.2);
 	padding:20px;
-	line-height:36px;
+	line-height:18px;
 	border-radius: 5px;
-	width: 480px;
+	width: 380px;
 	border: 0;
 	color:#FFF;
 	color:#FFF\9; /* IE6 IE7 IE8 */
-	font-size:28px;
+	font-size:16px;
 }
 .div_table{
 	display:table;
@@ -102,7 +121,7 @@ body{
 .error_hint{
 	color: rgb(255, 204, 0);
 	margin:10px 0px -10px 78px; 
-	font-size: 18px;
+	font-size: 12px;
 }
 
 .error_hint1{
@@ -116,11 +135,10 @@ body{
 	margin:100px auto 0;
 }
 .warming_desc{
+	font-size: 12px;
 	margin:10px 0px -10px 78px;
-	font-size: 14px;
 	color:#FC0;
-	line-height:20px;
-	width: 520px;
+	width: 600px;
 }
 
 #captcha_img_div{
@@ -289,10 +307,12 @@ function tryParseJSON (jsonString){
             return o;
         }
     }
-    catch (e) { }
+    catch (e) {
+        // do something
+    }
 
     return false;
-};
+}
 
 var htmlEnDeCode = (function() {
 	var charToEntityRegex,
@@ -363,17 +383,36 @@ var countdownid, rtime_obj;
 var redirect_page = login_info.page;
 var isRouterMode = (htmlEnDeCode.htmlEncode(decodeURIComponent('<% nvram_char_to_ascii("","sw_mode"); %>')) == '1') ? true : false;
 
+const getQueryString = function(name){
+	var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)", "i");
+	var r = window.location.search.substr(1).match(reg);
+	if (r != null) return unescape(r[2]); return null;
+};
+function loadScript(src, timeout = 2000) {
+    return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = src;
+        script.onload = () => resolve(script);
+        script.onerror = () => reject(new Error(`Failed to load script ${src}`));
+        document.head.appendChild(script);
+        setTimeout(() => {
+			loadScriptTimeout = true;
+            reject(new Error(`Loading script ${src} timed out`));
+        }, timeout);
+    });
+}
+var loadScriptTimeout = false;
 var header_info = [<% get_header_info(); %>][0];
 var ROUTERHOSTNAME = '<#Web_DOMAIN_NAME#>';
-var domainNameUrl = header_info.protocol+"://"+ROUTERHOSTNAME+":"+header_info.port;
-var chdom = function(){window.location.href=domainNameUrl};
-(function(){
+var domainNameUrl = `${header_info.protocol}://${ROUTERHOSTNAME}:${header_info.port}`;
+var chdom = function(){if(getQueryString("redirct")!=="false" && !loadScriptTimeout)window.location.href=domainNameUrl};
+if ('<% nvram_get("http_dut_redir"); %>' == '1') {
 	if(ROUTERHOSTNAME !== header_info.host && ROUTERHOSTNAME != "" && isRouterMode){
-		setTimeout(function(){
-			var s=document.createElement("script");s.type="text/javascript";s.src=domainNameUrl+"/chdom.json?hostname="+header_info.host;var h=document.getElementsByTagName("script")[0];h.parentNode.insertBefore(s,h);
-		}, 1);
+		setTimeout(() => {
+			loadScript(`${domainNameUrl}/chdom.json?hostname=${header_info.host}`).catch(error => {console.error(error.message);});
+		}, 100);
 	}
-})();
+}
 
 function isSupport(_ptn){
 	var ui_support = [<% get_ui_support(); %>][0];
@@ -387,7 +426,18 @@ else
 	var captcha_on = false;
 
 var faq_href = "https://nw-dlcdnet.asus.com/support/forward.html?model=&type=SG_TeleStand&lang=&kw=&num=";
+var ATEMODE = '<% nvram_get("ATEMODE"); %>';
+
 function initial(){
+	top.name = "";/* reset cache of state.js win.name */
+
+	if(ATEMODE == "1"){
+		$(".div_td.signin_hint").text("<#CTL_signin#>"+" (ATE MODE)");
+	}
+
+	if(isSupport("ROG_UI") || isSupport("TS_UI") || isSupport("TUF_UI")){
+		$(".wrapper").css({"background-size":"cover"});
+	}
 	var flag = login_info.error_status;
 	if(isIE8 || isIE9){
 		document.getElementById("name_title_ie").style.display ="";
@@ -460,7 +510,7 @@ function initial(){
 			if(captcha_on)
 				document.form.captcha_text.focus();
 			else
-				login();
+				preLogin();
 			return false;
 		}
 	};
@@ -479,7 +529,7 @@ function initial(){
 		document.form.captcha_text.onkeyup = function(e){
 			e=e||event;
 			if(e.keyCode == 13){
-				login();
+				preLogin();
 				return false;
 			}
 		};
@@ -496,7 +546,7 @@ function initial(){
 	else
 		document.getElementById("captcha_field").style.display = "none";
 
-	if(history.pushState != undefined) history.pushState("", document.title, window.location.pathname);
+	if(history.pushState != undefined) history.pushState("", document.title, window.location.pathname + window.location.search);
 }
 
 function countdownfunc(){
@@ -511,7 +561,27 @@ function countdownfunc(){
 	remaining_time--;
 }
 
-function login(){
+function preLogin(){
+    if(document.querySelector('#button')?.classList.contains('disabled') || document.querySelector('.button')?.classList.contains('disabled')) return;
+    document.querySelector('#button')?.classList.add('disabled');
+    document.querySelector('.button')?.classList.add('disabled');
+    let id = randomString(10);
+    fetch('get_Nonce.cgi', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({id: id})
+    })
+    .then(response => response.json())
+    .then(data => {
+        const { nonce } = data;
+        login(id, nonce);
+    })
+    .catch(error => top.location.href='/Main_Login.asp');
+}
+
+function login(id, nonce){
+
+    const cnonce = randomString(32);
 
 	var trim = function(val){
 		val = val+'';
@@ -569,8 +639,9 @@ function login(){
 		};
 	}
 
-	document.form.login_username.value = trim(document.form.login_username.value);
-	document.form.login_authorization.value = btoa(document.form.login_username.value + ':' + document.form.login_passwd.value);
+	document.form.id.value = id;
+    document.form.cnonce.value = cnonce;
+	document.form.login_authorization.value = sha256(`${document.form.login_username.value}:${nonce}:${document.form.login_passwd.value}:${cnonce}`);
 	document.form.login_username.disabled = true;
 	document.form.login_passwd.disabled = true;
 	document.form.login_captcha.value = btoa(document.form.captcha_text.value);
@@ -628,13 +699,23 @@ function regen_captcha(){
 	var queryString = "?t=" + timestamp;
 	captcha_pic.src = "captcha.gif" + queryString;
 }
+
+function randomString(length) {
+    let chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    let result = '';
+    for (var i = length; i > 0; --i) result += chars[Math.floor(Math.random() * chars.length)];
+    return result;
+}
+
+const sha256 = function a(b){function c(a,b){return a>>>b|a<<32-b}for(var d,e,f=Math.pow,g=f(2,32),h="length",i="",j=[],k=8*b[h],l=a.h=a.h||[],m=a.k=a.k||[],n=m[h],o={},p=2;64>n;p++)if(!o[p]){for(d=0;313>d;d+=p)o[d]=p;l[n]=f(p,.5)*g|0,m[n++]=f(p,1/3)*g|0}for(b+="\x80";b[h]%64-56;)b+="\x00";for(d=0;d<b[h];d++){if(e=b.charCodeAt(d),e>>8)return;j[d>>2]|=e<<(3-d)%4*8}for(j[j[h]]=k/g|0,j[j[h]]=k,e=0;e<j[h];){var q=j.slice(e,e+=16),r=l;for(l=l.slice(0,8),d=0;64>d;d++){var s=q[d-15],t=q[d-2],u=l[0],v=l[4],w=l[7]+(c(v,6)^c(v,11)^c(v,25))+(v&l[5]^~v&l[6])+m[d]+(q[d]=16>d?q[d]:q[d-16]+(c(s,7)^c(s,18)^s>>>3)+q[d-7]+(c(t,17)^c(t,19)^t>>>10)|0),x=(c(u,2)^c(u,13)^c(u,22))+(u&l[1]^u&l[2]^l[1]&l[2]);l=[w+x|0].concat(l),l[4]=l[4]+w|0}for(d=0;8>d;d++)l[d]=l[d]+r[d]|0}for(d=0;8>d;d++)for(e=3;e+1;e--){var y=l[d]>>8*e&255;i+=(16>y?0:"")+y.toString(16)}return i};
+
 </script>
 </head>
 <body class="wrapper" onload="initial();">
 <iframe name="hidden_frame" id="hidden_frame" width="0" height="0" frameborder="0"></iframe>
 <iframe id="dmRedirection" width="0" height="0" frameborder="0" scrolling="no" src=""></iframe>
 
-<form method="post" name="form" action="login.cgi" target="">
+<form method="post" name="form" action="login_v2.cgi" target="">
 <input type="hidden" name="group_id" value="">
 <input type="hidden" name="action_mode" value="">
 <input type="hidden" name="action_script" value="">
@@ -642,6 +723,8 @@ function regen_captcha(){
 <input type="hidden" name="current_page" value="Main_Login.asp">
 <input type="hidden" name="next_page" value="Main_Login.asp">
 <input type="hidden" name="login_authorization" value="">
+<input type="hidden" name="id" value="">
+<input type="hidden" name="cnonce" value="">
 <input type="hidden" name="login_captcha" value="">
 <div class="div_table main_field_gap">
 	<div class="div_tr">
@@ -649,7 +732,7 @@ function regen_captcha(){
 			<div class="div_td img_gap">
 				<div class="login_img"></div>
 			</div>
-			<div class="div_td"><#CTL_signin#></div>
+			<div class="div_td signin_hint"><#CTL_signin#></div>
 		</div>	
 		<div class="prod_madelName"><#Web_Title2#></div>
 
@@ -673,7 +756,7 @@ function regen_captcha(){
 				<div id="reCaptcha" onclick="regen_captcha();"></div>
 				<div class="error_hint" style="display:none; clear:left;" id="error_captcha_field">Captcha is wrong. Please input again.</div>
 			</div>
-				<div class="button" onclick="login();"><#CTL_signin#></div>
+			<input type="button" value="<#CTL_signin#>" class="button" style="border-style: hidden;" onclick="preLogin();">
 		</div>
 
 		<!-- No Login field -->
@@ -688,7 +771,9 @@ function regen_captcha(){
 		<!-- Logout field -->
 		<div id="logout_field" style="display:none;">
 			<div class="p1 title_gap"></div>
-			<div class="nologin"><#logoutmessage#></div>
+			<div class="nologin"><#logoutmessage#>
+				<br><br>Click <a style="color: #FFFFFF; font-weight: bolder;text-decoration:underline;" class="hyperlink" href="Main_Login.asp">here</a> to log back in.
+			</div>
 		</div>
 	</div>
 </div>

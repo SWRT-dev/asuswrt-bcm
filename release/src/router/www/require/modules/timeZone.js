@@ -40,7 +40,7 @@ define(function(){
 				"360":"CST6_2",
 				"300":"UTC5_1",
 				"240":"UTC4_1",
-				"210":"NST3.30DST",
+				"210":"NST3.30",
 				"180":"UTC3",
 				"120":"UTC2",
 				"60":"UTC1",
@@ -58,7 +58,7 @@ define(function(){
 				"-390":"UTC-6.30",
 				"-420":"UTC-7",
 				"-480":"CCT-8",
-				"-540":"JST",
+				"-540":"JST-9",
 				"-570":"CST-9.30",
 				"-600":"UTC-10_2",
 				"-630":"UTC-10DST_1",
@@ -78,7 +78,7 @@ define(function(){
 				"360":"UTC6DST",
 				"300":"EST5DST",
 				"240":"AST4DST",
-				"210":"NST3.30DST",
+				"210":"NST3.30",
 				"180":"EBST3",
 				"120":"UTC2",
 				"60":"EUT1DST",
@@ -92,11 +92,11 @@ define(function(){
 				"-300":"UTC-5",
 				"-330":"UTC-5.30_1",
 				"-345":"UTC-5.45",
-				"-360":"RFT-6",
+				"-360":"UTC-6",
 				"-390":"UTC-6.30",
 				"-420":"UTC-7",
 				"-480":"CCT-8",
-				"-540":"JST",
+				"-540":"JST-9",
 				"-570":"UTC-9.30DST",
 				"-600":"UTC-10DST_1",
 				"-630":"UTC-10DST_1",
@@ -141,7 +141,7 @@ define(function(){
 					return v;
 				}
 				else if(lang == "KR"){
-					if(v == "JST") return "UTC-9_1";
+					if(v == "JST-9") return "UTC-9_1";
 				}
 				else if(lang == "MS"){
 					if(v == "CCT-8") return "SST-8";

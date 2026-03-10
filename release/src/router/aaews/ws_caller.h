@@ -2,6 +2,8 @@
 #define _WS_CALLER_H
 #include <ws_api.h>					// include the header of web service 
 
+#define MAC_MAX_LEN		18
+
 typedef int (*cb_DeviceDesc)(char *buf, int *buf_len, int flag);
 
 int st_KeepAlive(GetServiceArea* gsa, Login* lg);
@@ -17,6 +19,6 @@ int st_Unregister(GetServiceArea* gsa, Login* lg);
 int st_PnsSendMsg(GetServiceArea* gsa, Login* lg, char *token, char *serviceid, char *msg);
 int st_IftttNotification(char *server, char *api, char *msg);
 int st_GetUserTicketByRefresh(char *server, GetUserTicketByRefresh* ut, char* cusid, char* devicemd5mac, char* refresh_ticket);
-int st_GetAWSCertificate(char *server, Login* lg, GetAWSCertificate* gact);
+int st_GetAWSCertificate(char *server, int newcert, Login* lg, GetAWSCertificate* gact);
 int st_PnsSendMsgFcm(GetServiceArea* gsa, Login* lg, char *msg);
 #endif

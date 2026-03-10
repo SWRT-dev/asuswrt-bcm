@@ -1,0 +1,417 @@
+﻿.popup_container.hide_title_cntr .action_container .btn_container.delete{
+	background: rgba(235, 235, 235, 0.2);
+	border: 1px solid #4D4D4D;
+	color: #EBEBEB;
+}
+.profile_item_container.wizard{
+	background: linear-gradient(to left, #fff, #fff) left top no-repeat, linear-gradient(to bottom, #fff, #fff) left top no-repeat, linear-gradient(to left, #fff, #fff) right top no-repeat, linear-gradient(to bottom, #fff, #fff) right top no-repeat, linear-gradient(to left, #fff, #fff) left bottom no-repeat, linear-gradient(to bottom, #fff, #fff) left bottom no-repeat, linear-gradient(to left, #fff, #fff) right bottom no-repeat, linear-gradient(to left, #fff, #fff) right bottom no-repeat,rgba(255, 255, 255, 0.08);
+	background-size: 1px 5px, 5px 1px, 1px 5px, 5px 1px;
+	margin: 0;
+	margin-bottom: 0.5rem;
+	border-radius: 0;
+}
+.profile_item_container.wizard:hover{
+	background: linear-gradient(0deg, rgba(10, 94, 219, 0.1), rgba(10, 94, 219, 0.1)), linear-gradient(0deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.08)), rgba(25, 53, 255, 0.05);
+	/* outline: 1px solid #FF3535; */
+	box-shadow: 0px 2px 2px rgba(0, 0, 0, 0.14), 0px 3px 1px rgba(0, 0, 0, 0.12), 0px 1px 5px rgba(0, 0, 0, 0.2);
+	border: 1px solid transparent;
+	-moz-border-image: -moz-linear-gradient(88.88deg, #0A5EDB 20.22%, #DB0A2C 85.8%);
+	-webkit-border-image: -webkit-linear-gradient(88.88deg, #0A5EDB 20.22%, #DB0A2C 85.8%);
+	border-image: linear-gradient(88.88deg, #0A5EDB 20.22%, #DB0A2C 85.8%);
+	border-image-slice: 1;
+}
+.profile_item_container.ScenariosExplorer{
+	background: #F5F5F5;
+}
+.profile_item_container.ScenariosExplorer .item_text_container .main_info{
+	color: #FF3535;
+}
+.profile_item_container.wizard .item_text_container {
+	flex-grow: 1;
+	margin-left: 40px;
+}
+.profile_item_container.wizard .item_text_container .main_info {
+	font-size: 16px;
+	margin-left: 24px;
+}
+.profile_item_container.wizard .item_text_container .sub_info{
+	color: #B3B3B3;
+	margin-left: 24px;
+}
+.profile_item_container.feature_desc{
+	background: linear-gradient(to left, #FF3535, #FF3535) left top no-repeat,
+		linear-gradient(to bottom, #FF3535, #FF3535) left top no-repeat,
+		linear-gradient(to left, #FF3535, #FF3535) right top no-repeat,
+		linear-gradient(to bottom, #FF3535, #FF3535) right top no-repeat,
+		linear-gradient(to left, #FF3535, #FF3535) left bottom no-repeat,
+		linear-gradient(to bottom, #FF3535, #FF3535) left bottom no-repeat,
+		linear-gradient(to left, #FF3535, #FF3535) right bottom no-repeat,
+		linear-gradient(to left, #FF3535, #FF3535) right bottom no-repeat;
+	background-size: 1px 5px, 5px 1px, 1px 5px, 5px 1px;
+	border: 1px outset rgba(128, 128, 128, 0.3);
+}
+.profile_item_container.feature_desc .main_info{
+	color: #FF3535;
+}
+.item_scenarios_container > .title{
+	color: #B3B3B3;
+}
+.item_tag_container > .item_tag.VPN:before{
+	-webkit-mask-size: 18px 22px;
+}
+.item_tag_container > .item_tag.Timer:before{
+	-webkit-mask-size: 14px 24px;
+}
+.item_tag_container > .item_tag.VPN:before,
+.item_tag_container > .item_tag.Timer:before{
+	background-image: initial;
+	transform: skew(30deg);
+	-webkit-mask-repeat: no-repeat;
+	-webkit-mask-position: center;
+	background-color: #FFFFFF;
+}
+.item_text_container .clients_num > .icon_client{
+	background-color: #ebebeb;
+}
+.status_info .conn_type.WiFi_offline{
+	background-color: #ebebeb;
+}
+.status_info .conn_type.WiFi_offline, .status_info .conn_type.WiFi_2G, .status_info .conn_type.WiFi_2G_lock, .status_info .conn_type.WiFi_5G, .status_info .conn_type.WiFi_5G_lock, .status_info .conn_type.WiFi_6G, .status_info .conn_type.WiFi_6G_lock{
+	background-position-y: 0;
+}
+.status_info .conn_type.WiFi_2G{
+	background-image: url(/images/New_ui/SDN/rog_theme/Notification/wifi_2g.svg);
+}
+.status_info .conn_type.WiFi_2G_lock{
+	background-image: url(/images/New_ui/SDN/rog_theme/Notification/wifi_2g_lock.svg);
+}
+.status_info .conn_type.WiFi_5G{
+	background-image: url(/images/New_ui/SDN/rog_theme/Notification/wifi_5g.svg);
+}
+.status_info .conn_type.WiFi_5G_lock{
+	background-image: url(/images/New_ui/SDN/rog_theme/Notification/wifi_5g_lock.svg);
+}
+.status_info .conn_type.WiFi_5G1{
+	background-image: url(/images/New_ui/SDN/rog_theme/Notification/wifi_5g1.svg);
+}
+.status_info .conn_type.WiFi_5G1_lock{
+	background-image: url(/images/New_ui/SDN/rog_theme/Notification/wifi_5g1_lock.svg);
+}
+.status_info .conn_type.WiFi_5G2{
+	background-image: url(/images/New_ui/SDN/rog_theme/Notification/wifi_5g2.svg);
+}
+.status_info .conn_type.WiFi_5G2_lock{
+	background-image: url(/images/New_ui/SDN/rog_theme/Notification/wifi_5g2_lock.svg);
+}
+.status_info .conn_type.WiFi_6G{
+	background-image: url(/images/New_ui/SDN/rog_theme/Notification/wifi_6g.svg);
+}
+.status_info .conn_type.WiFi_6G_lock{
+	background-image: url(/images/New_ui/SDN/rog_theme/Notification/wifi_6g_lock.svg);
+}
+.status_info .conn_type.WiFi_6G1{
+	background-image: url(/images/New_ui/SDN/rog_theme/Notification/wifi_6g1.svg);
+}
+.status_info .conn_type.WiFi_6G1_lock{
+	background-image: url(/images/New_ui/SDN/rog_theme/Notification/wifi_6g1_lock.svg);
+}
+.status_info .conn_type.WiFi_6G2{
+	background-image: url(/images/New_ui/SDN/rog_theme/Notification/wifi_6g2.svg);
+}
+.status_info .conn_type.WiFi_6G2_lock{
+	background-image: url(/images/New_ui/SDN/rog_theme/Notification/wifi_6g2_lock.svg);
+}
+.status_info .conn_type.WiFi_mlo{
+	background-image: url(/images/New_ui/SDN/rog_theme/Notification/wifi_mlo.svg);
+}
+.status_info .conn_type.WiFi_mlo_lock{
+	background-image: url(/images/New_ui/SDN/rog_theme/Notification/wifi_mlo_lock.svg);
+}
+.status_info .conn_type.LAN{
+	background-color: #EBEBEB;
+}
+.profile_setting.Get_Start{
+	display: flex;
+	flex-direction: column;
+	padding: 0 16px !important;
+}
+.profile_setting.Get_Start > .title,
+.profile_setting.Scenarios > .title{
+	color: #FF3535;
+	margin: 16px 0;
+}
+.profile_setting.Get_Start .wizard_list_bg {
+	margin-top: 0px;
+	width: 100%;
+}
+.profile_setting.Get_Start .wizard_list_bg:last-child {
+	margin-bottom: 0;
+}
+.profile_setting.Scenarios > .title{
+	padding-top: 16px;
+}
+.bandwidth_item > .icon_download{
+	background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20fill%3D%22none%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cg%20id%3D%22Group%22%3E%3Cg%20id%3D%22Content%20%2F%20download%20speed%22%3E%3Cg%20id%3D%22Group%204646%22%3E%3Cg%20id%3D%22Group%203478%22%3E%3Cpath%20id%3D%22Vector_____0_0_HHREMPWSWQ%22%20stroke%3D%22%23EBEBEB%22%20stroke-linecap%3D%22square%22%20stroke-linejoin%3D%22round%22%20stroke-width%3D%221.2%22%20d%3D%22M11.9751%204.02486L12.0002%208.99974%22%2F%3E%3Cpath%20id%3D%22Polygon%204_____0_1_SKZYUOGNXQ%22%20stroke%3D%22%23EBEBEB%22%20stroke-linecap%3D%22round%22%20stroke-width%3D%221.2%22%20d%3D%22M17.3928%209.19613L12.1966%2018.1961L7.0005%209.19613L12.1967%2010.1961L17.3928%209.19613Z%22%2F%3E%3C%2Fg%3E%3Cpath%20id%3D%22Vector_____0_2_EFOXNKSECO%22%20stroke%3D%22%23EBEBEB%22%20stroke-linecap%3D%22square%22%20stroke-linejoin%3D%22round%22%20stroke-width%3D%221.2%22%20d%3D%22M17%2020.9998L7%2020.9998%22%2F%3E%3C%2Fg%3E%3C%2Fg%3E%3C%2Fg%3E%3C%2Fsvg%3E");
+}
+.bandwidth_item > .icon_upload{
+	background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20fill%3D%22none%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cg%20id%3D%22Group%22%3E%3Cg%20id%3D%22Content%20%2F%20upload%20speed%22%3E%3Cg%20id%3D%22Group%204646%22%3E%3Cg%20id%3D%22Group%203478%22%3E%3Cpath%20id%3D%22Vector_____0_3_SSZZJCIATM%22%20stroke%3D%22%23EBEBEB%22%20stroke-linecap%3D%22square%22%20stroke-linejoin%3D%22round%22%20stroke-width%3D%221.2%22%20d%3D%22M11.9177%2018.8183L11.8926%2013.8434%22%2F%3E%3Cpath%20id%3D%22Polygon%204_____0_4_UHPMHNJFHZ%22%20stroke%3D%22%23EBEBEB%22%20stroke-linecap%3D%22round%22%20stroke-width%3D%221.2%22%20d%3D%22M6.50001%2013.647L11.6962%204.64702L16.8923%2013.647L11.6962%2012.647L6.50001%2013.647Z%22%2F%3E%3C%2Fg%3E%3Cpath%20id%3D%22Vector_____0_5_TJZVIQRMTQ%22%20stroke%3D%22%23EBEBEB%22%20stroke-linecap%3D%22square%22%20stroke-linejoin%3D%22round%22%20stroke-width%3D%221.2%22%20d%3D%22M16.9998%2020.9998L6.99978%2020.9998%22%2F%3E%3C%2Fg%3E%3C%2Fg%3E%3C%2Fg%3E%3C%2Fsvg%3E");
+}
+.profile_setting_item.schedule_ui,
+.profile_setting_item.gaming_ui{
+	background: rgba(128,128,128,0.08) !important;
+}
+.setting_subtab_container{
+	display: flex;
+	align-items: stretch;
+	justify-content: space-around;
+	width: 100%;
+	height: auto;
+	height: 60px;
+	font-size: 16px;
+	font-weight: 500;
+	border-bottom: 3px solid rgba(255,255,255,0.15);
+	line-height: 120%;
+	margin-bottom: initial;
+}
+.setting_subtab_container > .subtab_item{
+	color: #999999;
+	justify-content: space-evenly;
+}
+.setting_subtab_container > .subtab_item:not(:first-child):after{
+	border-right: 1px solid rgb(255 255 255 / 0.1);
+}
+.setting_subtab_container > .subtab_item.selected{
+	color: #FFFFFF;
+	background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, #184559 100%);
+	border-radius: 0;
+}
+.setting_subtab_container > .subtab_item.selected:before{
+	border-bottom: 3px solid rgba(0, 255, 209, 1);
+	content: "";
+	position: absolute;
+	left: 0;
+	bottom: -3px;
+	right: 0;
+	width: 100%;
+}
+.category_container {
+	margin-bottom: 1px;
+}
+.node_container{
+	background: rgba(255,255,255,0.08);
+}
+.node_container:before,
+.cb_item_container:before{
+	border-bottom: 1px solid rgba(255,255,255,0.15);
+}
+.node_content_container > .node_info > .node_main_info{
+	color: #EBEBEB;
+}
+.node_content_container  > .node_info > .node_sub_info{
+	color: #999999;
+}
+.node_sub_info span::after {
+	background-color: #999999;
+}
+.node_content_container > .icon_wifi_band{
+	background-image: url(/images/New_ui/amesh/client_control.svg);
+}
+.node_content_container > .icon_location{
+   -webkit-mask-image: url(/images/New_ui/amesh/location_dropdown.svg);
+   -webkit-mask-repeat: no-repeat;
+   background-color: #999999;
+   background-image: none;
+}
+.node_container > .node_hint,
+.profile_group > .profile_hint{
+	color: #999999;
+}
+.dns_list_container .category_title,
+.dns_list_container.ping .dns_title{
+	background: rgba(0, 133, 255, 0.1);
+	color: #EBEBEB;
+}
+.dns_list_container .item_container{
+	color: #B3B3B3;
+}
+.dns_list_container .item_container.dns_content{
+	color: #EBEBEB;
+}
+.dns_list_container.ping .item_container .service span{
+	color: #B3B3B3;
+}
+.dns_list_container .category_title:before,
+.dns_list_container .item_container:before{
+	border-bottom: 1px solid rgba(255,255,255,0.15);
+}
+.dns_ping_text_component .text-loading{
+	color: rgb(100 100 100 / 30%);
+}
+.dns_ping_text_component .text-loading:before{
+	color: #F81726;
+}
+.bg_template_container::-webkit-scrollbar-track,
+.manual_dhcp_list_container::-webkit-scrollbar-track{
+	border: 4px solid #0B0B0B;
+	background-color: rgba(255, 53, 53, 0.5);
+}
+.bg_template_container::-webkit-scrollbar-thumb,
+.manual_dhcp_list_container::-webkit-scrollbar-thumb{
+	background-color: #FF3535;
+	border: 1px solid #0B0B0B;
+}
+.bg_template_container .bg_upload_image{
+	border: 2px dashed #EBEBEB ;
+}
+.bg_template_container .bg_upload_image:before{
+	color: #EBEBEB ;
+}
+.bg_template_container .bg_upload_image:hover{
+	border: 2px dashed #FF3535;
+}
+.bg_template_container .bg_upload_image:hover:before{
+	color: #FF3535;
+}
+.VPN_list_container,
+.macfilter_list_container,
+.manual_dhcp_list_container{
+	background: rgba(255,255,255,0.08);
+}
+.manual_dhcp_list_container .dhcp_rule_container{
+	border: 1px solid #666;
+	border-radius: 0;
+}
+.VPN_list_container:before{
+	border-bottom: 1px solid rgba(255,255,255,0.15);
+}
+.VPN_list_container .profile_group:not(:first-child):before{
+	border-top: 1px solid #DCDCDC;
+}
+.VPN_list_container .title{
+	color: #FF3535;
+}
+.VPN_list_container .profile_container{
+	background: rgba(255,255,255,0.2);
+	color: #ebebeb;
+}
+.VPN_list_container .profile_item:before{
+	border-bottom: 1px solid rgba(255,255,255,0.15);
+}
+.clientlist_container .client_container:before,
+.clientlist_container .no_client_hint:before{
+	border-bottom: 1px solid rgba(255,255,255,0.15);
+}
+.clientlist_container .no_client_hint,
+.macfilter_list_container .no_rule_hint,
+.manual_dhcp_list_container .no_rule_hint{
+	color: #FF40BF;
+}
+.client_container .client_icon_container.default_icon,
+.client_container .client_icon_container.user_icon,
+.client_container .client_icon_container.vender_icon{
+	background-color: #222;
+	box-shadow: 0px 0px 0px 1px #222;
+}
+.manual_dhcp .client_content_container .sub_info > div{
+	color: #EBEBEB;
+}
+.manual_dhcp .client_content_container .sub_info:before{
+	border-top: 1px solid rgba(255, 255, 255, 0.15);
+}
+.client_content_container > .sub_info > div{
+	color: #B3B3B3;
+}
+.client_content_container .sub_info > div:not(:first-child):before{
+	border-left: 1px solid #DCDCDC;
+}
+.client_content_container .client_name{
+	color: #EBEBEB;
+}
+.client_content_container .conn_type.LAN{
+	background-color: #EBEBEB;
+}
+.client_content_container .conn_type.WiFi_2G{
+	background-image: url(/images/New_ui/SDN/rog_theme/Notification/wifi_2g.svg);
+}
+.client_content_container .conn_type.WiFi_5G{
+	background-image: url(/images/New_ui/SDN/rog_theme/Notification/wifi_5g.svg);
+}
+.client_content_container .conn_type.WiFi_6G{
+	background-image: url(/images/New_ui/SDN/rog_theme/Notification/wifi_6g.svg);
+}
+.client_content_container .conn_type.WiFi_MLO{
+	background-image: url(/images/New_ui/SDN/rog_theme/Notification/wifi_mlo.svg);
+}
+.feature_desc_container .title{
+	color: #FF3535;
+}
+.feature_desc_container .desc{
+	color: #ebebeb;
+}
+.feature_desc_container .wizard_list_bg:before{
+	border-bottom: 1px solid rgba(255,255,255,0.15);
+}
+.wifi_share_container .qrcode_container{
+	color: #EBEBEB;
+	border: 1px solid #666;
+	border-radius: 0;
+	background: initial;
+}
+.qrcode_container > .qr_text{
+	color: #EBEBEB;
+}
+.export_btn_container > .export_btn{
+	color: #EBEBEB;
+	border: 1px solid #666;
+	border-radius: 0;
+}
+.export_btn_container > .export_btn:hover{
+	background: linear-gradient(91.54deg, #0E7287 7.08%, #5600E6 54%, #940038 85.11%);
+	border: 1px solid rgba(255, 53, 53, 0.4);
+}
+.profile_setting_title.Scenarios > .title{
+	color: #FF3535;
+}
+.btn_back_container{
+	color: #FF3535;
+}
+.gaming_action_container > div.gaming_btn_cancel{
+	background: rgba(235, 235, 235, 0.2);
+	border: 1px solid #4D4D4D;
+	color: #EBEBEB;
+	border-radius: 0;
+}
+.gaming_action_container > div.gaming_btn_save{
+	border: 1px solid #FF3535;
+	background: #FF3535;
+	border-radius: 0;
+}
+.gaming_profile_list_title{
+	color: #999999;
+}
+.gaming_profile_list_cntr .profile_item_container{
+	background: linear-gradient(0deg, rgba(10, 94, 219, 0.1), rgba(10, 94, 219, 0.1)), linear-gradient(0deg, rgba(25, 53, 255, 0.05), rgba(25, 53, 255, 0.05)), linear-gradient(0deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.08));
+	border: 1px solid transparent;
+	-moz-border-image: -moz-linear-gradient(88.88deg, #0A5EDB 20.22%, #DB0A2C 85.8%);
+	-webkit-border-image: -webkit-linear-gradient(88.88deg, #0A5EDB 20.22%, #DB0A2C 85.8%);
+	border-image: linear-gradient(88.88deg, #0A5EDB 20.22%, #DB0A2C 85.8%);
+	border-image-slice: 2;
+}
+.gaming_profile_list_cntr .profile_info .profile_title,
+.gaming_profile_list_cntr .profile_info .profile_text{
+	color: #999999;
+}
+.gaming_profile_list_cntr .profile_info .profile_text{
+	color: #EBEBEB;
+}
+.profile_setting_item .title span.mlo_band{
+	color: #00ED9E;
+}
+.checkbox_option.mlo_band .option_text:after{
+	color: #00ED9E;
+}
+@media (max-width: 575px) {
+	.popup_container .setting_subtab_container{
+		margin-top: initial;
+	}
+}

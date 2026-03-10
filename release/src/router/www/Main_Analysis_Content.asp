@@ -15,11 +15,11 @@
 	border:1px outset #999;
 	background-color:#576D73;
 	position:absolute;
-	*margin-top:26px;	
+	*margin-top:26px;
 	margin-left:2px;
 	*margin-left:-353px;
 	width:346px;
-	text-align:left;	
+	text-align:left;
 	height:auto;
 	overflow-y:auto;
 	z-index:200;
@@ -41,21 +41,26 @@
 	color:#FFF;
 	font-size:12px;
 	font-family:Arial, Helvetica, sans-serif;
-	text-decoration:none;	
+	text-decoration:none;
 }
 #ClientList_Block_PC div:hover{
 	background-color:#3366FF;
 	color:#FFFFFF;
 	cursor:default;
-}	
+}
 </style>
+<script language="JavaScript" type="text/javascript" src="/js/jquery.js"></script>
 <script language="JavaScript" type="text/javascript" src="/state.js"></script>
 <script language="JavaScript" type="text/javascript" src="/general.js"></script>
 <script language="JavaScript" type="text/javascript" src="/popup.js"></script>
 <script language="JavaScript" type="text/javascript" src="/help.js"></script>
 <script language="JavaScript" type="text/javascript" src="/validator.js"></script>
-<script language="JavaScript" type="text/javascript" src="/js/jquery.js"></script>
+<script type="text/javascript" src="/form.js"></script>
 <script>
+
+var current_page = window.location.pathname.split("/").pop();
+var faq_index_tmp = get_faq_index(FAQ_List, current_page, 1);
+
 function initial(){
 	show_menu();
 	showLANIPList();
@@ -87,7 +92,7 @@ function updateOptions(){
 		document.form.destIP.value = AppListArray[0][1];
 	}
 
-	if(document.form.cmdMethod.value == "ping"){	
+	if(document.form.cmdMethod.value == "ping"){
 		if(document.form.pingCNT.value == ""){
 			document.form.pingCNT.value = 5;
 		}
@@ -149,7 +154,7 @@ function checkCmdRet(){
 			if(response.search("XU6J03M6") != -1){
 				document.getElementById("loadingIcon").style.display = "none";
 				_cmdBtn.disabled = false;
-				_cmdBtn.style.color = "#FFF";
+				_cmdBtn.style.color = "";
 				retArea.value = response.replace("XU6J03M6", " ");
 				retArea.scrollTop = retArea.scrollHeight;
 				return false;
@@ -163,7 +168,7 @@ function checkCmdRet(){
 			if(noChange > 10){
 				document.getElementById("loadingIcon").style.display = "none";
 				_cmdBtn.disabled = false;
-				_cmdBtn.style.color = "#FFF";
+				_cmdBtn.style.color = "";
 				setTimeout("checkCmdRet();", 1000);
 			}
 			else{
@@ -206,14 +211,14 @@ function setClientIP(ipaddr){
 var over_var = 0;
 var isMenuopen = 0;
 function hideClients_Block(){
-	document.getElementById("pull_arrow").src = "/images/arrow-down.gif";
+	document.getElementById("pull_arrow").src = "/images/unfold_more.svg";
 	document.getElementById('ClientList_Block_PC').style.display='none';
 	isMenuopen = 0;
 }
 
 function pullLANIPList(obj){
 	if(isMenuopen == 0){		
-		obj.src = "/images/arrow-top.gif"
+		obj.src = "/images/unfold_less.svg"
 		document.getElementById("ClientList_Block_PC").style.display = 'block';		
 		document.form.destIP.focus();		
 		isMenuopen = 1;
@@ -255,8 +260,11 @@ function pullLANIPList(obj){
 						<table width="760px" border="0" cellpadding="5" cellspacing="0" bordercolor="#6b8fa3"  class="FormTitle" id="FormTitle">		
 							<tr>
 								<td bgcolor="#4D595D" colspan="3" valign="top">
+								<div class="container">
+
 									<div>&nbsp;</div>
 									<div class="formfonttitle"><#Network_Tools#> - <#Network_Analysis#></div>
+									<div class="formfonttitle_help"><i onclick="show_feature_desc(`How to use Network Analysis(Ping, Traceroute, Nsloopup) in ASUS Router?`)" class="icon_help"></i></div>
 									<div style="margin:10px 0 10px 5px;" class="splitLine"></div>
 									<div class="formfontdesc" id="cmdDesc"><#NetworkTools_Ping#></div>
 									<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">
@@ -283,7 +291,7 @@ function pullLANIPList(obj){
 											<th width="20%"><#NetworkTools_target#></th>
 											<td>
 												<input type="text" class="input_32_table" name="destIP" maxlength="100" value="" placeholder="ex: www.google.com" autocorrect="off" autocapitalize="off">
-												<img id="pull_arrow" height="14px;" src="/images/arrow-down.gif" style="position:absolute;*margin-left:-3px;*margin-top:1px;" onclick="pullLANIPList(this);" title="<#select_network_host#>" onmouseover="over_var=1;" onmouseout="over_var=0;">
+												<img id="pull_arrow" height="14px;" src="/images/unfold_more.svg" style="position:absolute;*margin-left:-3px;*margin-top:1px;" onclick="pullLANIPList(this);" title="<#select_network_host#>" onmouseover="over_var=1;" onmouseout="over_var=0;">
 												<div id="ClientList_Block_PC" class="ClientList_Block_PC"></div>
 											</td>
 										</tr>
@@ -296,7 +304,7 @@ function pullLANIPList(obj){
 									</table>
 
 									<div class="apply_gen">
-										<span><input class="button_gen" id="cmdBtn" onClick="onSubmitCtrl(this, ' Refresh ')" type="button" value="<#NetworkTools_Diagnose_btn#>"></span>
+										<span><input class="btn_subusage button_gen" id="cmdBtn" onClick="onSubmitCtrl(this, ' Refresh ')" type="button" value="<#NetworkTools_Diagnose_btn#>"></span>
 										<img id="loadingIcon" style="display:none;" src="/images/InternetScan.gif">
 									</div>
 
@@ -305,6 +313,10 @@ function pullLANIPList(obj){
 											<% nvram_dump("syscmd.log","syscmd.sh"); %>
 										</textarea>
 									</div>
+
+									</div>	<!-- for .container  -->
+									<div class="popup_container popup_element_second"></div>
+
 								</td>
 							</tr>
 						</table>
@@ -319,7 +331,6 @@ function pullLANIPList(obj){
 </form>
 
 <div id="footer"></div>
-</body>
 <script type="text/javascript">
 <!--[if !IE]>-->
 	(function($){
@@ -328,4 +339,5 @@ function pullLANIPList(obj){
 	})(jQuery);
 <!--<![endif]-->
 </script>
+</body>
 </html>

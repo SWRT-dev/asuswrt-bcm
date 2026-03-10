@@ -2,8 +2,8 @@
 #include <netdb.h>
 #include "pc_block.h"
 
-static void config_redirect_pc_block_all(FILE *fp) {
-	char *lan_if = nvram_safe_get("lan_ifname");
+static void config_redirect_pc_block_all(FILE *fp, char *lan_if) {
+	//char *lan_if = nvram_safe_get("lan_ifname");
 	char *lan_ip = nvram_safe_get("lan_ipaddr");
 	char *lan_mask = nvram_safe_get("lan_netmask");
 	char *fftype = "PCREDIRECT";
@@ -15,9 +15,9 @@ static void config_redirect_pc_block_all(FILE *fp) {
 	_dprintf("%s(%d) BLOCK ALL DEVICES\n", __FUNCTION__, __LINE__);
 }
 
-static void config_redirect_pc_block(FILE *fp) {
+static void config_redirect_pc_block(FILE *fp, char *lan_if) {
 	pc_s *pc_list = NULL, *enabled_list = NULL, *follow_pc;
-	char *lan_if = nvram_safe_get("lan_ifname");
+	//char *lan_if = nvram_safe_get("lan_ifname");
 	char *lan_ip = nvram_safe_get("lan_ipaddr");
 	char *lan_mask = nvram_safe_get("lan_netmask");
 	char *fftype = "PCREDIRECT";
@@ -47,17 +47,30 @@ static void config_redirect_pc_block(FILE *fp) {
 		const char *chk_type;
 		char follow_addr[18] = {0};
 #ifdef RTCONFIG_AMAS
-		if (strlen(follow_pc->mac) && amas_lib_device_ip_query(follow_pc->mac, follow_addr)) {
+		if (strlen(follow_pc->mac) && amas_lib_device_ip_query(follow_pc->mac, lan_if, follow_addr)) {
 			chk_type = iptables_chk_ip;
 			if (illegal_ipv4_address(follow_addr))
 				continue;
 		} else
 #endif
 		{
-			chk_type = iptables_chk_mac;
-			snprintf(follow_addr, sizeof(follow_addr), "%s", follow_pc->mac);
-			if (!isValidMacAddress(follow_addr))
-				continue;
+#ifdef RTCONFIG_CAPTIVE_PORTAL
+			if(check_chilli_ip(lan_if)) { // check if get ip from chilli needed
+				if (get_ip_from_chilli(follow_pc->mac, follow_addr, sizeof(follow_addr)) > 0) {
+					chk_type = iptables_chk_ip;
+					if (illegal_ipv4_address(follow_addr))
+						continue;
+				}
+				else
+					continue;
+			} else
+#endif
+			{
+				chk_type = iptables_chk_mac;
+				snprintf(follow_addr, sizeof(follow_addr), "%s", follow_pc->mac);
+				if (!isValidMacAddress(follow_addr))
+					continue;
+			}
 		}
 
 		fprintf(fp, "-A PREROUTING -i %s %s %s -j %s\n", lan_if, chk_type, follow_addr, fftype);
@@ -70,23 +83,23 @@ static void config_redirect_pc_block(FILE *fp) {
 	_dprintf("%s(%d) BLOCK DEVICE\n", __FUNCTION__, __LINE__);
 }
 
-static void config_redirect_pc_time(FILE *fp) {
+static void config_redirect_pc_time(FILE *fp, char *lan_if) {
 	pc_s *pc_list = NULL, *enabled_list = NULL, *follow_pc;
 	pc_event_s *follow_e;
-	char *lan_if = nvram_safe_get("lan_ifname");
+	//char *lan_if = nvram_safe_get("lan_ifname");
 	char *lan_ip = nvram_safe_get("lan_ipaddr");
 	char *lan_mask = nvram_safe_get("lan_netmask");
+	char *pcredirect = "PCREDIRECT";
+	char *pcaccept = "ACCEPT";
 #ifndef RTCONFIG_PC_SCHED_V3
 	char *datestr[] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
 	int i;
 #endif
-	char *fftype;
+	char *fftype = pcredirect;
 	int pc_count;
 
-	fftype = "PCREDIRECT";
-
 	follow_pc = get_all_pc_list(&pc_list);
-	if(follow_pc == NULL){
+	if(follow_pc == NULL || follow_pc->events == NULL){
 		_dprintf("Couldn't get the Parental-control rules correctly!\n");
 		return;
 	}
@@ -100,7 +113,7 @@ static void config_redirect_pc_time(FILE *fp) {
 
 	follow_pc = match_enabled_pc_list(pc_list, &enabled_list, 1);
 	free_pc_list(&pc_list);
-	if(follow_pc == NULL){
+	if(follow_pc == NULL || follow_pc->events == NULL){
 		_dprintf("Couldn't get the enabled rules of Parental-control correctly!\n");
 		return;
 	}
@@ -109,17 +122,30 @@ static void config_redirect_pc_time(FILE *fp) {
 		const char *chk_type;
 		char follow_addr[18] = {0};
 #ifdef RTCONFIG_AMAS
-		if (strlen(follow_pc->mac) && amas_lib_device_ip_query(follow_pc->mac, follow_addr)) {
+		if (strlen(follow_pc->mac) && amas_lib_device_ip_query(follow_pc->mac, lan_if, follow_addr)) {
 			chk_type = iptables_chk_ip;
 			if (illegal_ipv4_address(follow_addr))
 				continue;
 		} else
 #endif
 		{
-			chk_type = iptables_chk_mac;
-			snprintf(follow_addr, sizeof(follow_addr), "%s", follow_pc->mac);
-			if (!isValidMacAddress(follow_addr))
-				continue;
+#ifdef RTCONFIG_CAPTIVE_PORTAL
+			if(check_chilli_ip(lan_if)) { // check if get ip from chilli needed
+				if (get_ip_from_chilli(follow_pc->mac, follow_addr, sizeof(follow_addr)) > 0) {
+					chk_type = iptables_chk_ip;
+					if (illegal_ipv4_address(follow_addr))
+						continue;
+				}
+				else
+					continue;
+			} else
+#endif
+			{
+				chk_type = iptables_chk_mac;
+				snprintf(follow_addr, sizeof(follow_addr), "%s", follow_pc->mac);
+				if (!isValidMacAddress(follow_addr))
+					continue;
+			}
 		}
 
 #ifdef RTCONFIG_PERMISSION_MANAGEMENT
@@ -131,6 +157,10 @@ static void config_redirect_pc_time(FILE *fp) {
 			int s_min = (follow_e->start_hour*60) + follow_e->start_min;
 			int e_min = (follow_e->end_hour*60) + follow_e->end_min;
 			char date_buf[64];
+			if (follow_e->type == SCHED_V2_TYPE_WEEK)
+				fftype = pcredirect;
+			else if (follow_e->type == SCHED_V2_TYPE_WEEK_ONLINE)
+				fftype = pcaccept;
 			if(s_min >= e_min){  // over one day
 				if(!(follow_e->start_hour == 24 && follow_e->start_min == 0)) {
 					fprintf(fp, "-A PREROUTING -i %s -m time", lan_if);
@@ -153,7 +183,10 @@ static void config_redirect_pc_time(FILE *fp) {
 				fprintf(fp, "%s %s %s %s -j %s\n", DAYS_PARAM, get_pc_date_str(follow_e->day_of_week, 0, date_buf, sizeof(date_buf)), chk_type, follow_addr, fftype);
 			}
 		}
+		if (!strcmp(fftype , pcaccept))
+			fprintf(fp, "-A PREROUTING -i %s %s %s -j %s\n", lan_if, chk_type, follow_addr, pcredirect);
 #else
+		fftype = pcredirect;
 		fprintf(fp, "-A PREROUTING -i %s %s %s -j %s\n", lan_if, chk_type, follow_addr, fftype);
 
 		for(follow_e = follow_pc->events; follow_e != NULL; follow_e = follow_e->next){
@@ -211,23 +244,74 @@ static void config_redirect_pc_time(FILE *fp) {
 #endif
 
 		// MAC address in list and not in time period -> Redirect to blocking page.
-		fprintf(fp, "-A %s -i %s ! -d %s/%s -p tcp --dport 80 %s %s -j DNAT --to-destination %s:%s\n", fftype, lan_if,lan_ip, lan_mask, chk_type, follow_addr, lan_ip, DFT_SERV_PORT);
+		fprintf(fp, "-A %s -i %s ! -d %s/%s -p tcp --dport 80 %s %s -j DNAT --to-destination %s:%s\n", pcredirect, lan_if,lan_ip, lan_mask, chk_type, follow_addr, lan_ip, DFT_SERV_PORT);
 	}
 
 	free_pc_list(&enabled_list);
 	_dprintf("%s(%d) TIME SCHEDULING\n", __FUNCTION__, __LINE__);
 }
 
+#ifdef RTCONFIG_MULTILAN_CFG
+#define SDN_PARENTAL_CTRL_REDIRECT_BLOCK_ALL		(1 << 0)
+#define SDN_PARENTAL_CTRL_REDIRECT_BLOCK_INTERNET	(1 << 1)
+#define SDN_PARENTAL_CTRL_REDIRECT_TIME_SCHED		(1 << 2)
+void handle_sdn_config_blocking_redirect(int feature, FILE *fp) {
+
+	MTLAN_T *pmtl = NULL;
+	size_t mtl_sz = 0;
+	int i;
+	int br0_handled = 0;
+
+	if (!fp || !feature)
+		return;
+
+	pmtl = (MTLAN_T *)INIT_MTLAN(sizeof(MTLAN_T));
+	if (pmtl)
+	{
+		get_mtlan(pmtl, &mtl_sz);
+		for (i = 0; i < mtl_sz; ++i)
+		{
+			if (pmtl[i].nw_t.idx >= 0) { // include br0
+				if (pmtl[i].nw_t.idx == 0 && br0_handled)
+					continue;
+				if ((feature & SDN_PARENTAL_CTRL_REDIRECT_BLOCK_ALL) > 0) {
+					config_redirect_pc_block_all(fp, pmtl[i].nw_t.ifname);
+					_dprintf("\n[pc] SDN_PARENTAL_CTRL_REDIRECT_BLOCK_ALL name=[%s], br=[%s], if=[%s], addr=[%s], netmask=[%s], subnet=[%s]\n", pmtl[i].name, pmtl[i].nw_t.br_ifname, pmtl[i].nw_t.ifname, pmtl[i].nw_t.addr, pmtl[i].nw_t.netmask, pmtl[i].nw_t.subnet);
+				}
+				if ((feature & SDN_PARENTAL_CTRL_REDIRECT_BLOCK_INTERNET) > 0) {
+					config_redirect_pc_block(fp, pmtl[i].nw_t.ifname);
+					_dprintf("\n[pc] SDN_PARENTAL_CTRL_REDIRECT_BLOCK_INTERNET name=[%s], br=[%s], if=[%s], addr=[%s], netmask=[%s], subnet=[%s]\n", pmtl[i].name, pmtl[i].nw_t.br_ifname, pmtl[i].nw_t.ifname, pmtl[i].nw_t.addr, pmtl[i].nw_t.netmask, pmtl[i].nw_t.subnet);
+				}
+				if ((feature & SDN_PARENTAL_CTRL_REDIRECT_TIME_SCHED) > 0) {
+					config_redirect_pc_time(fp, pmtl[i].nw_t.ifname);
+					_dprintf("\n[pc] SDN_PARENTAL_CTRL_REDIRECT_TIME_SCHED name=[%s], br=[%s], if=[%s], addr=[%s], netmask=[%s], subnet=[%s]\n", pmtl[i].name, pmtl[i].nw_t.br_ifname, pmtl[i].nw_t.ifname, pmtl[i].nw_t.addr, pmtl[i].nw_t.netmask, pmtl[i].nw_t.subnet);
+				}
+				if (pmtl[i].nw_t.idx == 0)
+					br0_handled = 1;
+			}
+		}
+		FREE_MTLAN((void *)pmtl);
+	}
+}
+#endif
+
 // MAC address in list and not in time period -> redirect to blocking page
-void config_blocking_redirect(FILE *fp){
+void config_blocking_redirect(FILE *fp, char *lan_if){
 	/* pc_block - 20220615
 		1. time-scheduling - BLOCK ALL DEVICES
 		2. time-scheduling - BLOCK
 		3. time-scheduling - TIME
 	*/
-	config_redirect_pc_block_all(fp);
-	config_redirect_pc_block(fp);
-	config_redirect_pc_time(fp);
+#ifdef RTCONFIG_MULTILAN_CFG
+	handle_sdn_config_blocking_redirect(
+		(SDN_PARENTAL_CTRL_REDIRECT_BLOCK_ALL | 
+		SDN_PARENTAL_CTRL_REDIRECT_BLOCK_INTERNET | 
+		SDN_PARENTAL_CTRL_REDIRECT_TIME_SCHED), fp);
+#else //#ifdef RTCONFIG_MULTILAN_CFG
+	config_redirect_pc_block_all(fp, lan_if);
+	config_redirect_pc_block(fp, lan_if);
+	config_redirect_pc_time(fp, lan_if);
+#endif //#ifdef RTCONFIG_MULTILAN_CFG
 }
 
 void pc_block_exit(int signo){
@@ -314,11 +398,11 @@ void handle_req(int sockfd, char *buf, char *mac)
 			"Server: pc_block\r\n"
 			"Date: %s\r\n"
 			"Connection: close\r\n"
-			"Location: %s://%s:%d/blocking.asp?mac=%s\r\n"
+			"Location: %s://%s:%d/blocking.asp\r\n"
 			"Content-Type: text/plain\r\n"
 			"\r\n"
 			"<html></html>\r\n",
-			timebuf, proto, nvram_safe_get("lan_ipaddr"), port, mac);
+			timebuf, proto, nvram_safe_get("lan_ipaddr"), port);
 		write(sockfd, page, strlen(page));
 	}
 
@@ -479,7 +563,7 @@ void op_check_and_add_rules(void *info) {
 
 	struct addrinfo *host_info = info;
 	//int pos = op_find_rule_insert_pos(0);
-	char *lan_if = nvram_safe_get("lan_ifname");
+	//char *lan_if = nvram_safe_get("lan_ifname");
 	FILE *fp = NULL;
 
 	if ((fp=fopen(OP_RULE_SCRIPT_PATH, "w"))==NULL)
@@ -502,17 +586,30 @@ void op_check_and_add_rules(void *info) {
 		struct addrinfo *p;
 #ifdef RTCONFIG_AMAS
 		_dprintf("op_check_and_add_rules\n");
-		if (strlen(follow_pc->mac) && amas_lib_device_ip_query(follow_pc->mac, follow_addr)) {
+		if (strlen(follow_pc->mac) && amas_lib_device_ip_query(follow_pc->mac, lan_if, follow_addr)) {
 			chk_type = iptables_chk_ip;
 			if (illegal_ipv4_address(follow_addr))
 				continue;
 		} else
 #endif
 		{
-			chk_type = iptables_chk_mac;
-			snprintf(follow_addr, sizeof(follow_addr), "%s", follow_pc->mac);
-			if (!isValidMacAddress(follow_addr))
-				continue;
+#ifdef RTCONFIG_CAPTIVE_PORTAL
+			if(check_chilli_ip(lan_if)) { // check if get ip from chilli needed
+				if (get_ip_from_chilli(follow_pc->mac, follow_addr, sizeof(follow_addr)) > 0) {
+					chk_type = iptables_chk_ip;
+					if (illegal_ipv4_address(follow_addr))
+						continue;
+				}
+				else
+					continue;
+			} else
+#endif
+			{
+				chk_type = iptables_chk_mac;
+				snprintf(follow_addr, sizeof(follow_addr), "%s", follow_pc->mac);
+				if (!isValidMacAddress(follow_addr))
+					continue;
+			}
 		}
 		for(p = host_info; p != NULL; p = p->ai_next) {
 			if (p->ai_family == AF_INET) {

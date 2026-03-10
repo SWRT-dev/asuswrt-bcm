@@ -10,17 +10,14 @@ struct pnsInfo
 struct pnsInfo mapPushInfo[] =
 {
 	/* RESERVATION EVENT */
-	{RESERVATION_MAIL_REPORT_EVENT               ,"" ,""},
-	{RESERVATION_MAIL_CONFIRM_EVENT              ,"" ,""},
 	/* ------------------------------
 	   ### System ###
 	---------------------------------*/
 	{SYS_WAN_DISCONN_EVENT                       ,"Unable to connect to the Internet"                       ,"" },
 	{SYS_WAN_BLOCK_EVENT                         ,"WAN Connection is paused"                                ,"" },
-	{SYS_NEW_DEVICE_WIFI_CONNECTED_EVENT         ,"New Device Connected(wifi)"                              ,"webhook_device_connect" },
-	{SYS_NEW_DEVICE_ETH_CONNECTED_EVENT          ,"New Device Connected(eth)"                               ,"webhook_device_connect" },
-	{SYS_FW_NWE_VERSION_AVAILABLE_EVENT          ,"New Firmware Available"                                  ,"" },
-	{SYS_EXISTED_DEVICE_WIFI_CONNECTED_EVENT     ,"Manage Your Wireless Client"                             ,"webhook_device_connect" },
+	{SYS_NEW_DEVICE_WIFI_CONNECTED_EVENT         ,"New Device Connected(wifi)"                              ,"" },
+	{SYS_NEW_DEVICE_ETH_CONNECTED_EVENT          ,"New Device Connected(eth)"                               ,"" },
+	{SYS_EXISTED_DEVICE_WIFI_CONNECTED_EVENT     ,"Manage Your Wireless Client"                             ,"" },
 	{SYS_WAN_CABLE_UNPLUGGED_EVENT               ,"The network cable is unplugged"                          ,"" },
 	{SYS_WAN_PPPOE_AUTH_FAILURE_EVENT            ,"PPPoE Authentication Failure"                            ,"" },
 	{SYS_WAN_USB_MODEM_UNREADY_EVENT             ,"USB modem is not ready."                                 ,"" },
@@ -30,12 +27,26 @@ struct pnsInfo mapPushInfo[] =
 	{SYS_WAN_GOT_PROBLEMS_FROM_ISP_EVENT         ,"Your ISP appears to have problems."                      ,"" },
 	{SYS_WAN_UNPUBLIC_IP_EVENT                   ,"External IP service is unavailable."                     ,"" },
 	{SYS_ALL_WIFI_TURN_OFF_EVENT                 ,"All your WiFi is turned off"                             ,"" },
+	{SYS_SCY_UNCONN_NOTICE_EVENT                 ,"Security Notice"                                         ,"" },
+	{SYS_SCY_CONN_NOTICE_EVENT                   ,"Security Notice"                                         ,"" },
+	{SYS_FW_UPGRADE_OK_EVENT                     ,"Firmware upgrade successed"                              ,"" },
+	{SYS_FW_UPGRADE_NOK_EVENT                    ,"Firmware upgrade failed"                                 ,"" },
+	{SYS_REBOOT_OK_EVENT                         ,"Device reboot successed"                                 ,"" },
+	{SYS_REBOOT_NOK_EVENT                        ,"Device reboot failed"                                    ,"" },
+	{SYS_LAN_PORT_IN_EVENT                       ,"LAN port plug-in"                                        ,"" },
+	{SYS_LAN_PORT_OUT_EVENT                      ,"LAN port plug-out"                                       ,"" },
+	{SYS_AFC_COLD_REBOOT_SILENT_EVENT            ,"AFC Cold reboot in silent"                               ,"" },
+	{SYS_AFC_COLD_REBOOT_EVENT                   ,"AFC Cold reboot"                                         ,"" },
+	{SYS_FW_NEW_VERSION_AVAILABLE_EVENT          ,"New Firmware Available"                                  ,"" },
 	/* ------------------------------
 	   ### Administration ###
 	---------------------------------*/
-	{ADMIN_LOGIN_FAIL_LAN_WEB_EVENT              ,"Unusual Router Sign-In"                                  ,"" },
+	{ADMIN_REMOTE_LOGIN_EVENT                    ,"Login successed"                                         ,"" },
+	{ADMIN_BOUND_DEV_EVENT                       ,"Device Bound"                                            ,"" },
+	{ADMIN_UNBOUND_DEV_EVENT                     ,"Device Unbound"                                          ,"" },
 	{ADMIN_LOGIN_FAIL_SSH_EVENT                  ,"Unusual Router Sign-In"                                  ,"" },
 	{ADMIN_LOGIN_FAIL_TELNET_EVENT               ,"Unusual Router Sign-In"                                  ,"" },
+	{ADMIN_LOGIN_FAIL_LAN_WEB_EVENT              ,"Unusual Router Sign-In"                                  ,"" },
 	/* ------------------------------
 	   ### Security ###
 	---------------------------------*/
@@ -61,6 +72,10 @@ struct pnsInfo mapPushInfo[] =
 	{GENERAL_DEV_ACCESS_CHANGE                   ,"DeviceNetworkAccessChange"                               ,"" },
 	{GENERAL_QOS_UPDATE                          ,"QosModeUpdate"                                           ,"" },
 	{GENERAL_TOGGLE_STATES_UPDATE                ,"ToggleStateUpdate"                                       ,"" },
+	/* ------------------------------
+	    ### AiMesh Event  ###
+	---------------------------------*/
+	{AIMESH_ETH_OB_EVENT                         ,"AiMesh Node Ethenet Auto Setup"                          ,"" },
 	/* The End */
 	{0,0,0,0}
 };

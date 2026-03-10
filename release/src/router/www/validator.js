@@ -115,9 +115,9 @@ var validator = {
 			return true;
 		}
 		else if(nc==190 || nc==32 || nc==110 || nc==46){
-			;
+			//Nothing
 		}else if((nc==37 || nc==8) && s==""){
-			;
+			//Nothing
 		}	
 		else{
 			nc=0;
@@ -349,12 +349,13 @@ var validator = {
 			return "<#Login_Name_Rule#>";
 	},
 
-	samba_name: function(obj){
-		var re = new RegExp(/^[a-z0-9][a-z0-9-_]*$/i);
+	samba_name: function(obj, flag){
+		let re = (flag == "computer_name") ? new RegExp(/^[a-z0-9][a-z0-9-]*$/i) : new RegExp(/^[a-z0-9][a-z0-9-_]*$/i);
+		let hint = (flag == "computer_name") ? `<#JS_valid_host_name_1#> <#JS_valid_host_name_first_char_1#>` : `<#JS_valid_host_name#> <#JS_valid_host_name_first_char#>`;
 		if(re.test(obj.value))
 			return "";
 		else
-			return "<#JS_valid_host_name#> <#JS_valid_host_name_first_char#>";
+			return hint;
 	},
 
 	friendly_name: function(obj){
@@ -859,7 +860,7 @@ var validator = {
 			}
 			return false;
 		}
-	},
+ 	},
 
 	isPortRange: function(o,event){
 		var keyPressed = event.keyCode ? event.keyCode : event.which;
@@ -1097,7 +1098,7 @@ var validator = {
 			}
 			else{
 				if(num < 0 || num > 255 || c != '.'){
-					if(v == 'wl_radius_ipaddr' && typeof(noAlert) != undefined && noAlert == 1){
+					if(v == 'wl_radius_ipaddr' && typeof(noAlert) != 'undefined' && noAlert == 1){
 						return false;
 					}
 					else{
@@ -1124,7 +1125,7 @@ var validator = {
 		}
 		
 		if(pos!=3 || num<0 || num>255){
-			if(v == 'wl_radius_ipaddr' && typeof(noAlert) != undefined && noAlert == 1){
+			if(v == 'wl_radius_ipaddr' && typeof(noAlert) != 'undefined' && noAlert == 1){
 				return false;
 			}
 			else{
@@ -1148,7 +1149,7 @@ var validator = {
 				v == 'dhcp_dns1_x' || v == 'dhcp_gateway_x' || v == 'dhcp_wins_x' ||
 				v == 'sip_server'){
 			if((v!='wan_ipaddr_x')&& (v1==255||v4==255||v1==0||v4==0||v1==127||v1==224)){
-				if(v == 'wl_radius_ipaddr' && typeof(noAlert) != undefined && noAlert == 1){
+				if(v == 'wl_radius_ipaddr' && typeof(noAlert) != 'undefined' && noAlert == 1){
 					return false;
 				}
 				else{
@@ -1657,7 +1658,7 @@ var validator = {
 		}
 
 		if(psk_length != psk_length_trim){
-			alert("<#JS_PSK64Hex_whiteSpace#>");
+			alert(stringSafeGet("<#JS_PSK64Hex_whiteSpace#>"));
 			psk_obj.focus();
 			psk_obj.select();				
 			return false;
@@ -1693,14 +1694,7 @@ var validator = {
 		}
 
 		if(psk_length != psk_length_trim){
-			alert("<#JS_PSK64Hex_whiteSpace#>");
-			psk_obj.focus();
-			psk_obj.select();
-			return false;
-		}
-
-		if(!this.string_KR(psk_obj)){
-			alert("<#JS_PSK64Hex#>");
+			alert(stringSafeGet("<#JS_PSK64Hex_whiteSpace#>"));
 			psk_obj.focus();
 			psk_obj.select();
 			return false;
@@ -1757,6 +1751,12 @@ var validator = {
 	},
 
 	range_s46_ports: function(obj, port) {
+		const wan0_proto = httpApi.nvramGet(["wan0_proto"]).wan0_proto;
+		const get_ipv6_s46_ports = (isSupport("s46") && (wan0_proto == "v6plus" || wan0_proto == "ocnvc" || wan0_proto == "v6opt")) ? httpApi.nvramGet(["ipv6_s46_ports"]).ipv6_s46_ports : '0';
+		let array_ipv6_s46_ports = new Array("");
+		if (get_ipv6_s46_ports != "0" && get_ipv6_s46_ports != "") {
+			array_ipv6_s46_ports = get_ipv6_s46_ports.split(" ");
+		}
 		//e.g. ipv6_s46_ports="6448-6463 10544-10559 14640-14655 18736-18751 22832-22847 26928-26943 31024-31039 35120-35135 39216-39231 43312-43327 47408-47423 51504-51519 55600-55615 59696-59711 63792-63807"
 		var inAvailable=false;
 		var array_each_s46_ports = new Array("");
@@ -1825,7 +1825,7 @@ var validator = {
 	},
 
 	rangeFloat: function(o, _min, _max, def){
-        if(isNaN(o.value) || o.value <= _min || o.value > _max) {
+        if(isNaN(o.value) || o.value < _min || o.value > _max) {
             alert('<#JS_validrange#> ' + _min + ' <#JS_validrange_to#> ' + _max + '.');
 			o.value = def;
 			o.focus();
@@ -1854,7 +1854,6 @@ var validator = {
 			if(flag != "noalert")
 				alert('<#JS_validstr1#> ["]');
 
-			string_obj.value = "";
 			string_obj.focus();
 
 			return false;
@@ -1864,7 +1863,6 @@ var validator = {
 				alert('<#JS_validstr3#> ["]');
 			}
 			
-			string_obj.value = "";
 			string_obj.focus();
 
 			return false;
@@ -1881,7 +1879,6 @@ var validator = {
 				if(flag != "noalert")
 					alert("<#JS_validstr2#> '"+invalid_char+"' !");
 
-				string_obj.value = "";
 				string_obj.focus();
 
 				return false;
@@ -1897,11 +1894,10 @@ var validator = {
 		var string_length = string_obj.value.length;
 		if(!/[A-Za-z]/.test(string_obj.value) || !/[0-9]/.test(string_obj.value) || string_length < 10
 				|| !/[\!\"\#\$\%\&\'\(\)\*\+\,\-\.\/\:\;\<\=\>\?\@\[\\\]\^\_\`\{\|\}\~]/.test(string_obj.value)
-				|| /([A-Za-z0-9\!\"\#\$\%\&\'\(\)\*\+\,\-\.\/\:\;\<\=\>\?\@\[\\\]\^\_\`\{\|\}\~])\1/.test(string_obj.value) 
+//				|| /([A-Za-z0-9\!\"\#\$\%\&\'\(\)\*\+\,\-\.\/\:\;\<\=\>\?\@\[\\\]\^\_\`\{\|\}\~])\1/.test(string_obj.value) 
 		){
 				
-				alert("<#JS_validLoginPWD#>");
-				string_obj.value = "";
+				alert("Password must contain at least 10 characters in length, including 1 letter, 1 special character, and 1 numeric character.");
 				string_obj.focus();
 				return false;
 		}
@@ -1910,7 +1906,6 @@ var validator = {
 			if(flag != "noalert")
 				alert('<#JS_validstr1#> ["]');
 
-			string_obj.value = "";
 			string_obj.focus();
 
 			return false;
@@ -1920,7 +1915,6 @@ var validator = {
 				alert('<#JS_validstr3#> ["]');
 			}
 
-			string_obj.value = "";
 			string_obj.focus();
 
 			return false;
@@ -1938,7 +1932,6 @@ var validator = {
 				alert("<#JS_validstr2#> '"+invalid_char+"' !");
 			}
 
-			string_obj.value = "";
 			string_obj.focus();
 			return false;
 		}
@@ -2059,7 +2052,7 @@ var validator = {
 
 		ssid_obj.parent().children().remove(".hint");
 		len = this.lengthInUtf8(ssid);
-		if(len > 32){
+		if(len >= 32){
 			hintStr = "<#JS_max_ssid#>";
 			showHint = 1;
 		}
@@ -2364,13 +2357,29 @@ var validator = {
 		}
 	},
 
-	domainName_flag: function(_value) {
-		//domin name
-		var domainNameFormat = /^((?:(?:(?:\w[\.\-\+]?)*)\w)+)((?:(?:(?:\w[\.\-\+]?){0,62})\w)+)\.(\w{2,})$/; 
-		if(domainNameFormat.test(_value))
+	safeName: function(obj, flag){
+		if (obj.value.length == 0) return true;
+
+		var re = new RegExp(/^[a-zA-Z0-9:\-_. ]+$/gi);
+		if(re.test(obj.value)){
 			return true;
-		else
+		}else{
+			if (flag != "noalert"){
+				alert("Only letters, numbers, spaces, underscores, periods and dashes are accepted.");
+				obj.focus();
+				obj.select();
+			}
 			return false;
+		}
+	},
+
+        domainName_flag: function(_value) {
+                //domin name
+		var domainNameFormat = /^((?:(?:(?:\w[\.\-\+]?)*)\w)+)((?:(?:(?:\w[\.\-\+]?){0,62})\w)+)\.(\w{2,})$/;
+                if(domainNameFormat.test(_value))
+                        return true;
+                else
+                        return false;
 	},
 
 	dwb_check_wl_setting: function(_jsonPara) {
@@ -2402,5 +2411,13 @@ var validator = {
 			}
 		}
 		return status;
-	}
+	},
+	isMobileNumber: function(_value){
+		var re = /^(\+?[1-9]{1}[0-9]{7,14}|[0-9]{7,14})$/g;
+		if(re.test(_value))
+			return true;
+		else{
+			return false;
+		}
+        }
 };

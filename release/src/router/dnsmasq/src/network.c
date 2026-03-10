@@ -1,4 +1,4 @@
-/* dnsmasq is Copyright (c) 2000-2022 Simon Kelley
+/* dnsmasq is Copyright (c) 2000-2025 Simon Kelley
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -123,7 +123,10 @@ int iface_check(int family, union all_addr *addr, char *name, int *auth)
 
       for (tmp = daemon->if_names; tmp; tmp = tmp->next)
 	if (tmp->name && wildcard_match(tmp->name, name))
-	  ret = tmp->used = 1;
+	  {
+	    tmp->flags |= INAME_USED;
+	    ret = 1;
+	  }
 	        
       if (addr)
 	for (tmp = daemon->if_addrs; tmp; tmp = tmp->next)
@@ -131,11 +134,17 @@ int iface_check(int family, union all_addr *addr, char *name, int *auth)
 	    {
 	      if (family == AF_INET &&
 		  tmp->addr.in.sin_addr.s_addr == addr->addr4.s_addr)
-		ret = match_addr = tmp->used = 1;
+		{
+		  tmp->flags |= INAME_USED;
+		  ret = match_addr = 1;
+		}
 	      else if (family == AF_INET6 &&
 		       IN6_ARE_ADDR_EQUAL(&tmp->addr.in6.sin6_addr, 
 					  &addr->addr6))
-		ret = match_addr = tmp->used = 1;
+		{
+		  tmp->flags |= INAME_USED;
+		  ret = match_addr = 1;
+		}
 	    }          
     }
   
@@ -235,7 +244,8 @@ static int iface_allowed(struct iface_param *param, int if_index, char *label,
   int loopback;
   struct ifreq ifr;
   int tftp_ok = !!option_bool(OPT_TFTP);
-  int dhcp_ok = 1;
+  int dhcp4_ok = 1;
+  int dhcp6_ok = 1;
   int auth_dns = 0;
   int is_label = 0;
 #if defined(HAVE_DHCP) || defined(HAVE_TFTP)
@@ -251,7 +261,7 @@ static int iface_allowed(struct iface_param *param, int if_index, char *label,
   loopback = ifr.ifr_flags & IFF_LOOPBACK;
   
   if (loopback)
-    dhcp_ok = 0;
+    dhcp4_ok = dhcp6_ok = 0;
   
   if (!label)
     label = ifr.ifr_name;
@@ -359,13 +369,8 @@ static int iface_allowed(struct iface_param *param, int if_index, char *label,
 		struct in_addr newaddr = addr->in.sin_addr;
 		
 		if (int_name->flags & INP4)
-		  {
-		    if (netmask.s_addr == 0xffffffff)
-		      continue;
-
-		    newaddr.s_addr = (addr->in.sin_addr.s_addr & netmask.s_addr) |
-		      (int_name->proto4.s_addr & ~netmask.s_addr);
-		  }
+		  newaddr.s_addr = (addr->in.sin_addr.s_addr & netmask.s_addr) |
+		    (int_name->proto4.s_addr & ~netmask.s_addr);
 		
 		/* check for duplicates. */
 		for (lp = int_name->addr; lp; lp = lp->next)
@@ -398,10 +403,6 @@ static int iface_allowed(struct iface_param *param, int if_index, char *label,
 		  {
 		    int i;
 
-		    /* No sense in doing /128. */
-		    if (prefixlen == 128)
-		      continue;
-		    
 		    for (i = 0; i < 16; i++)
 		      {
 			int bits = ((i+1)*8) - prefixlen;
@@ -510,7 +511,7 @@ static int iface_allowed(struct iface_param *param, int if_index, char *label,
 	  if ((lo->name = whine_malloc(strlen(ifr.ifr_name)+1)))
 	    {
 	      strcpy(lo->name, ifr.ifr_name);
-	      lo->used = 1;
+	      lo->flags |= INAME_USED;
 	      lo->next = daemon->if_names;
 	      daemon->if_names = lo;
 	    }
@@ -532,14 +533,17 @@ static int iface_allowed(struct iface_param *param, int if_index, char *label,
   if (auth_dns)
     {
       tftp_ok = 0;
-      dhcp_ok = 0;
+      dhcp4_ok = dhcp6_ok = 0;
     }
   else
     for (tmp = daemon->dhcp_except; tmp; tmp = tmp->next)
       if (tmp->name && wildcard_match(tmp->name, ifr.ifr_name))
 	{
 	  tftp_ok = 0;
-	  dhcp_ok = 0;
+	  if (tmp->flags & INAME_4)
+	    dhcp4_ok = 0;
+	  if (tmp->flags & INAME_6)
+	    dhcp6_ok = 0;
 	}
 #endif
  
@@ -566,7 +570,8 @@ static int iface_allowed(struct iface_param *param, int if_index, char *label,
       iface->addr = *addr;
       iface->netmask = netmask;
       iface->tftp_ok = tftp_ok;
-      iface->dhcp_ok = dhcp_ok;
+      iface->dhcp4_ok = dhcp4_ok;
+      iface->dhcp6_ok = dhcp6_ok;
       iface->dns_auth = auth_dns;
       iface->mtu = mtu;
       iface->dad = !!(iface_flags & IFACE_TENTATIVE);
@@ -591,7 +596,7 @@ static int iface_allowed(struct iface_param *param, int if_index, char *label,
 
 static int iface_allowed_v6(struct in6_addr *local, int prefix, 
 			    int scope, int if_index, int flags, 
-			    int preferred, int valid, void *vparam)
+			    unsigned int preferred, unsigned int valid, void *vparam)
 {
   union mysockaddr addr;
   struct in_addr netmask; /* dummy */
@@ -642,7 +647,7 @@ static int iface_allowed_v4(struct in_addr local, int if_index, char *label,
 /*
  * Clean old interfaces no longer found.
  */
-static void clean_interfaces()
+static void clean_interfaces(void)
 {
   struct irec *iface;
   struct irec **up = &daemon->interfaces;
@@ -828,12 +833,12 @@ again:
 
   param.spare = spare;
   
-  ret = iface_enumerate(AF_INET6, &param, iface_allowed_v6);
+  ret = iface_enumerate(AF_INET6, &param, (callback_t){.af_inet6=iface_allowed_v6});
   if (ret < 0)
     goto again;
   else if (ret)
     {
-      ret = iface_enumerate(AF_INET, &param, iface_allowed_v4);
+      ret = iface_enumerate(AF_INET, &param, (callback_t){.af_inet=iface_allowed_v4});
       if (ret < 0)
 	goto again;
     }
@@ -915,15 +920,24 @@ static int make_sock(union mysockaddr *addr, int type, int dienow)
 	
       errno = errsave;
 
-      if (dienow)
+      /* Failure to bind addresses given by --listen-address at this point
+	 because there's no interface with the address is OK if we're doing bind-dynamic.
+	 If/when an interface is created with the relevant address we'll notice
+	 and attempt to bind it then. This is in the generic error path so we  close the socket,
+	 but EADDRNOTAVAIL is only a possible error from bind() 
+	 
+	 When a new address is created and we call this code again (dienow == 0) there
+	 may still be configured addresses when don't exist, (consider >1 --listen-address,
+	 when the first is created, the second will still be missing) so we suppress
+	 EADDRNOTAVAIL even in that case to avoid confusing log entries.
+      */
+      if (!option_bool(OPT_CLEVERBIND) || errno != EADDRNOTAVAIL)
 	{
-	  /* failure to bind addresses given by --listen-address at this point
-	     is OK if we're doing bind-dynamic */
-	  if (!option_bool(OPT_CLEVERBIND))
+	  if (dienow)
 	    die(s, daemon->addrbuff, EC_BADNET);
+	  else
+	    my_syslog(LOG_WARNING, s, daemon->addrbuff, strerror(errno));
 	}
-      else
-	my_syslog(LOG_WARNING, s, daemon->addrbuff, strerror(errno));
       
       return -1;
     }	
@@ -1207,7 +1221,7 @@ void create_bound_listeners(int dienow)
      (no netmask) and some MTU login the tftp code. */
 
   for (if_tmp = daemon->if_addrs; if_tmp; if_tmp = if_tmp->next)
-    if (!if_tmp->used && 
+    if (!(if_tmp->flags & INAME_USED) && 
 	(new = create_listeners(&if_tmp->addr, !!option_bool(OPT_TFTP), dienow)))
       {
 	new->next = daemon->listeners;
@@ -1295,7 +1309,7 @@ void join_multicast(int dienow)
   struct irec *iface, *tmp;
 
   for (iface = daemon->interfaces; iface; iface = iface->next)
-    if (iface->addr.sa.sa_family == AF_INET6 && iface->dhcp_ok && !iface->multicast_done)
+    if (iface->addr.sa.sa_family == AF_INET6 && iface->dhcp6_ok && !iface->multicast_done)
       {
 	/* There's an irec per address but we only want to join for multicast 
 	   once per interface. Weed out duplicates. */
@@ -1365,7 +1379,7 @@ int local_bind(int fd, union mysockaddr *addr, char *intname, unsigned int ifind
   /* cannot set source _port_ for TCP connections. */
   if (is_tcp)
     port = 0;
-  else if (port == 0 && daemon->max_port != 0)
+  else if (port == 0 && daemon->max_port != 0 && daemon->max_port >= daemon->min_port)
     {
       /* Bind a random port within the range given by min-port and max-port if either
 	 or both are set. Otherwise use the OS's random ephemeral port allocation by
@@ -1554,6 +1568,8 @@ void check_servers(int no_loop_check)
   struct serverfd *sfd, *tmp, **up;
   int port = 0, count;
   int locals = 0;
+
+  (void)no_loop_check;
   
 #ifdef HAVE_LOOP
   if (!no_loop_check)
@@ -1573,37 +1589,6 @@ void check_servers(int no_loop_check)
 
   for (count = 0, serv = daemon->servers; serv; serv = serv->next)
     {
-      /* Init edns_pktsz for newly created server records. */
-      if (serv->edns_pktsz == 0)
-	serv->edns_pktsz = daemon->edns_pktsz;
-      
-#ifdef HAVE_DNSSEC
-      if (option_bool(OPT_DNSSEC_VALID))
-	{ 
-	  if (!(serv->flags & SERV_FOR_NODOTS))
-	    serv->flags |= SERV_DO_DNSSEC;
-	  
-	  /* Disable DNSSEC validation when using server=/domain/.... servers
-	     unless there's a configured trust anchor. */
-	  if (strlen(serv->domain) != 0)
-	    {
-	      struct ds_config *ds;
-	      char *domain = serv->domain;
-	      
-	      /* .example.com is valid */
-	      while (*domain == '.')
-		domain++;
-	      
-	      for (ds = daemon->ds; ds; ds = ds->next)
-		if (ds->name[0] != 0 && hostname_isequal(domain, ds->name))
-		  break;
-	      
-	      if (!ds)
-		serv->flags &= ~SERV_DO_DNSSEC;
-	    }
-	}
-#endif
-      
       port = prettyprint_addr(&serv->addr, daemon->namebuff);
       
       /* 0.0.0.0 is nothing, the stack treats it like 127.0.0.1 */
@@ -1649,10 +1634,6 @@ void check_servers(int no_loop_check)
 	{
 	  char *s1, *s2, *s3 = "", *s4 = "";
 
-#ifdef HAVE_DNSSEC
-	  if (option_bool(OPT_DNSSEC_VALID) && !(serv->flags & SERV_DO_DNSSEC))
-	    s3 = _("(no DNSSEC)");
-#endif
 	  if (serv->flags & SERV_FOR_NODOTS)
 	    s1 = _("unqualified"), s2 = _("names");
 	  else if (strlen(serv->domain) == 0)
@@ -1686,7 +1667,7 @@ void check_servers(int no_loop_check)
 	   if (++locals <= LOCALS_LOGGED)
 	     my_syslog(LOG_INFO, _("using only locally-known addresses for %s"), serv->domain);
 	 }
-       else if (serv->flags & SERV_USE_RESOLV)
+       else if (serv->flags & SERV_USE_RESOLV && serv->domain_len != 0)
 	 my_syslog(LOG_INFO, _("using standard nameservers for %s"), serv->domain);
     }
   
@@ -1796,8 +1777,10 @@ int reload_servers(char *fname)
 /* Called when addresses are added or deleted from an interface */
 void newaddress(time_t now)
 {
+#ifdef HAVE_DHCP
   struct dhcp_relay *relay;
-
+#endif
+  
   (void)now;
   
   if (option_bool(OPT_CLEVERBIND) || option_bool(OPT_LOCAL_SERVICE) ||

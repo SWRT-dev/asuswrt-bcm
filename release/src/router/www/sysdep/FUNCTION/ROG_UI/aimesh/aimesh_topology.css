@@ -9,6 +9,18 @@
 #jstree{
 	display: flex;
 }
+#jstree::-webkit-scrollbar-track{
+	background-color: rgba(255, 255, 255, 0.1);
+	border-radius: 6px;
+}
+#jstree::-webkit-scrollbar{
+	width: 10px;
+	height: 6px;
+}
+#jstree::-webkit-scrollbar-thumb{
+	border-radius: 6px;
+	background-color: #A10000;
+}
 .ui-slider {
 	position: relative;
 	text-align: left;
@@ -287,6 +299,63 @@
 }
 .topology_icon:before{
 	background-image: url('/images/New_ui/amesh/location_topology.svg');
+}
+.topology_icon.cloud_product_icon:before{
+	background-image: initial !important;
+}
+.topology_icon .product_icon_container{
+	width: 74px;
+	height: 74px;
+	position: absolute;
+	margin: auto;
+	top: 0;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	border-radius: 10px;
+	border: 1px solid #262626;
+}
+.jstree-clicked .product_icon_container{
+	background: linear-gradient(0deg, #1C1C1E 0%, #1C1C1E 100%), #D9D9D9;
+	border: 1px solid #248DFF !important;
+	box-shadow: 0px 0px 2px 0px rgba(0,0,0,0.6), 0px 0px 2px 2px rgba(153,202,255,0.4), 0px 0px 4px 0px rgba(0,0,0,0.2);
+}
+.product_icon_container .product_icon{
+	width: 60px;
+	height: 60px;
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	right: 0;
+	left: 0;
+	margin: auto;
+	background-size: contain;
+	background-repeat: no-repeat;
+	background-position: center;
+}
+.product_icon_container.optimize{
+	background: linear-gradient(315deg, rgba(3, 200, 253, 0.00) -2.81%, #03C8FD 42.25%, #133ED4 67.78%, rgba(19, 62, 212, 0.00) 101.56%);
+	background-size: 200% 200%;
+	animation: animation_product_icon_opt 2s ease infinite;
+	border: initial !important;
+	box-shadow: initial !important;
+}
+.cloud_product_icon.jstree-themeicon{
+	background-image: initial !important;
+}
+.cloud_product_icon.jstree-themeicon:after{
+	box-shadow: initial !important;
+}
+@keyframes animation_product_icon_opt{
+	0% {
+		background-position: 0% 50%;
+	}
+	50% {
+		background-position: 100% 50%;
+	}
+	100% {
+		background-position: 0% 50%;
+	}
 }
 .topology_icon.offline:before{
 	background-image: url('/images/New_ui/amesh/location_topology_offline.svg');
@@ -844,7 +913,8 @@
 .connect_type_status_bg .uplink_icon_bg > .uplink_type_icon.wireless.wl_6g.weak{
 	background-position: -816px -204px;
 }
-.connect_type_status_bg .uplink_icon_bg > .uplink_type_icon.wireless.disconnected{
+.connect_type_status_bg .uplink_icon_bg > .uplink_type_icon.wireless.disconnected,
+.connect_type_status_bg .uplink_icon_bg > .uplink_type_icon.mlo.disconnected{
 	background-position: 0px -306px;
 }
 .connect_type_status_bg .uplink_icon_bg > .uplink_type_icon.wired.T{
@@ -1197,7 +1267,9 @@
 	height: 0% !important;
 	float: initial !important;
 }
-.manage_switch_led .switch, .manage_switch_wifi .switch{
+.manage_switch_led .switch,
+.manage_switch_wifi .switch,
+.manage_switch_led_night_mode .switch{
 	box-shadow: inset 0 1px 0 0 rgba(0,0,0,0.10);
 	border-radius: 83px;
 	width: 40px;
@@ -1208,13 +1280,19 @@
 	transition: all 0.6s;
 	cursor: pointer;
 }
-.manage_switch_led .switch.off, .manage_switch_wifi .switch.off{
+.manage_switch_led .switch.off,
+.manage_switch_wifi .switch.off,
+.manage_switch_led_night_mode .switch.off{
 	background: rgb(255 255 255 / 0.3);
 }
-.manage_switch_led .switch.on, .manage_switch_wifi .switch.on{
+.manage_switch_led .switch.on,
+.manage_switch_wifi .switch.on,
+.manage_switch_led_night_mode .switch.on{
 	background: #91071f;
 }
-.manage_switch_led .switch:before, .manage_switch_wifi .switch:before{
+.manage_switch_led .switch:before,
+.manage_switch_wifi .switch:before,
+.manage_switch_led_night_mode .switch:before{
 	border-radius: 83px;
 	display: block;
 	position: absolute;
@@ -1229,12 +1307,14 @@
 	transition-delay: 0.01s;
 	background: #f7f7f7;
 }
-.manage_switch_led .switch.on:before, .manage_switch_wifi .switch.on:before{
+.manage_switch_led .switch.on:before,
+.manage_switch_wifi .switch.on:before,
+.manage_switch_led_night_mode .switch.on:before{
 	-webkit-transform: translateX(16px);
 	-ms-transform: translateX(16px);
 	transform: translateX(16px);
 }
-.manage_switch_led, .manage_remove_node, .manage_slider_led, .manage_reboot_node{
+.manage_switch_led, .manage_remove_node, .manage_slider_led, .manage_reboot_node, .manage_switch_led_night_mode{
 	height: 56px !important
 }
 .manage_common_title{
@@ -1257,6 +1337,16 @@
 .manage_common_separate_bg.right{
 	margin-right: 22px;
 	right: 0;
+}
+.manage_common_separate_bg.right .icon_loading{
+	background-image: url(/images/InternetScan.gif);
+	width: 24px;
+	height: 24px;
+	background-repeat: no-repeat;
+	background-size: contain;
+	position: relative;
+	right: 6px;
+	top: 1px;
 }
 .manage_settings_bg .dropdown_item_bg, .manage_settings_bg .two_text_item_bg{
 	min-height: 92px;
@@ -1289,9 +1379,11 @@
 	height: 42px;
 }
 .manage_settings_bg .two_text_item_bg > div:nth-child(2){
-	height: 30px;
+	min-height: 30px;
+	height: auto;
 	display: flex;
-	align-items: center;
+	flex-wrap: nowrap;
+	align-items: flex-start;
 	margin-bottom: 2px;
 }
 .manage_settings_bg .dropdown_item_bg .dropdown_select{
@@ -1431,6 +1523,8 @@
 	width: 24px;
 	height: 24px;
 	cursor: pointer;
+	min-width: 24px;
+	min-height: 24px;
 }
 .managment_icon.trash_icon{
 	background-position: 3px -151px;
@@ -1448,6 +1542,11 @@
 	color: #A4B7C3;
 	font-size: 12px;
 	margin-left: 6px;
+	margin-right: 20px;
+	min-height: 24px;
+	display: flex;
+	align-items: center;
+	word-break: break-all;
 }
 .arrow_icon{
 	position: relative;
@@ -1526,13 +1625,10 @@
 	color: #A4B7C3;
 	cursor: pointer;
 	position: relative;
-	width: 33%;
+	flex: 1;
 	display: flex;
 	justify-content: center;
 	align-items: center;
-}
-.client_tab_bg div:nth-child(2){
-	width: 34%;
 }
 .client_tab_bg div.clicked{
 	color: #FFFFFF;
@@ -1545,9 +1641,11 @@
 	margin-bottom: 12px;
 }
 .client_list_bg .each_client_bg{
-	position: relative;
-	padding: 8px 0px;
+	display: flex;
+	align-items: center;
+	padding: 8px 0;
 	height: 42px;
+	position: relative;
 }
 .client_list_bg .each_client_bg > div{
 	cursor: pointer;
@@ -1555,17 +1653,21 @@
 .client_list_bg .each_client_bg:before{
 	content: "";
 	position: absolute;
-	left: 5%;
 	bottom: 0;
 	height: 1px;
-	width: 90%;
+	width: auto;
 	border-bottom: 1px solid #740F0F;
+	left: 18px;
+	right: 18px;
+	margin: auto;
 }
 .client_list_bg .client_icon_bg{
 	height: 42px;
 	width: 42px;
 	margin: 0px 10px 0px 18px;
-	float: left;
+	display: flex;
+	align-items: center;
+	justify-content: center;
 	position: relative;
 }
 .client_list_bg .client_icon_bg.default_icon, .client_list_bg .client_icon_bg.user_icon{
@@ -1583,7 +1685,7 @@
 	top: 1px;
 }
 .client_list_bg .client_action_bg{
-	right: 0;
+	right: 18px;
 }
 .client_list_bg .client_action_bg > span{
 	cursor: pointer;
@@ -1618,8 +1720,11 @@
 	margin-left: initial;
 }
 .client_list_bg .client_content_bg{
-	float: left;
-	width: 75%;
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	min-width: 0;
 	height: 100%;
 	position: relative;
 }
@@ -1665,6 +1770,11 @@
 }
 .client_list_bg .client_content_bg .client_content_mac_ip .client_connect_icon.plc{
 	background-position-x: -230px;
+}
+.client_list_bg .client_content_bg .client_content_mac_ip .client_connect_icon.mlo{
+	background-image: url(/images/New_ui/SDN/dark_theme/Notification/wifi_mlo.svg);
+	background-size: 110%;
+	background-position: -1px -2px;
 }
 .client_list_bg .client_content_bg > .client_content_mac_ip{
 	font-size: 13px;
@@ -2117,6 +2227,7 @@
 	-webkit-box-sizing: border-box;
 	box-sizing: border-box;
 }
+/*
 .jstree-default .jstree-wholerow-hovered {
 	background: #300202;
 	box-shadow: 0 2px 0 0 rgba(0,0,0,0.10);
@@ -2124,6 +2235,15 @@
 .jstree-default .jstree-wholerow-clicked {
 	background: #300202;
 	box-shadow: -3px 0 0 0 #A10000, 0 2px 0 0 rgba(0,0,0,0.10);
+}
+*/
+.jstree-default .jstree-wholerow-clicked:before{
+	position: absolute;
+	content: "";
+	width: 3px;
+	height: 80%;
+	background: #A10000;
+	top: 10%;
 }
 .jstree-default .jstree-node {
 	min-height: 0px;
@@ -2267,6 +2387,9 @@
 }
 .jstree-anchor .jstree-icon.jstree-themeicon.offline {
 	background-image: url("/images/New_ui/amesh/topology_circle_offline.svg");
+}
+.jstree-anchor .jstree-icon.cloud_product_icon{
+	background-image: initial !important;
 }
 .jstree-default > .jstree-no-dots .jstree-node:before{
 	content: "";
@@ -2566,6 +2689,19 @@
 	height: auto;
 	margin-left: 12px;
 }
+.aimesh_setup_info{
+	font-family:Arial, Helvetica, sans-serif;
+	font-size:14px;
+	font-weight:bolder;
+	color: #569AC7;
+}
+.aimesh_setup_info:before{
+	content: "";
+	position: absolute;
+	left: 2%;
+	width: 96%;
+	border-top: 1px solid #616E79;
+}
 .connect_type_status_bg.fronthaul .wired_hide{
 	height: auto !important;
 	margin-top: 12px !important;
@@ -2848,6 +2984,7 @@
 	line-height: 100%;
 	font-size: 11px;
 	margin-top: 8px;
+	width: 85%;
 }
 .port_status_icon_desc{
 	display: flex;

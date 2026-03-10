@@ -234,7 +234,7 @@
 	color:#A7D2E2;
 }
 #arrow_down{
-	background: url(/images/arrow-down.gif) no-repeat center center; 
+	background: url(/images/unfold_more.svg) no-repeat center center; 
 	width:10px;
 	height:12px;
 	float:right;
@@ -380,4 +380,10 @@
 	border-radius: 5px;
 	behavior: url(/PIE.htc);
 	min-height: 810px;
+}
+.smartConnDiv{
+	width: 180px;
+}
+#smart_connect_mode_field {
+	width: 100%;
 }

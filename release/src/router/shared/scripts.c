@@ -70,14 +70,21 @@ void run_custom_script(char *name, int timeout, char *arg1, char *arg2)
 			error = NULL;
 
 		if (error) {
+#if defined(RTCONFIG_AUTO_WANPORT) && !defined(RTCONFIG_BCM_MFG)
+			if(!(!strncmp(name, "service-event",13) && strstr((arg2 ? arg2 : ""), "autowan"))) // remove noise of autowan in wanduck
+#endif
 			logmessage("custom_script", "Found %s, but %s", name, error);
 			return;
 		}
 
-		if (arg1)
+		if (arg1) {
+#if defined(RTCONFIG_AUTO_WANPORT) && !defined(RTCONFIG_BCM_MFG)
+			if(!(!strncmp(name, "service-event",13) && strstr((arg2 ? arg2 : ""), "autowan"))) // remove noise of autowan in wanduck
+#endif
 			logmessage("custom_script" ,"Running %s (args: %s%s%s)", script, arg1, (arg2 ? " " : ""), (arg2 ? arg2 : ""));
-		else
+		} else {
 			logmessage("custom_script" ,"Running %s", script);
+		}
 
 		cmd[0] = script;
 		cmd[1] = arg1;
@@ -130,3 +137,9 @@ void append_custom_config(char *config, FILE *fp)
 	}
 }
 
+void setup_jffs_dirs()
+{
+	if (!d_exists("/jffs/scripts/")) mkdir("/jffs/scripts/", 0755);
+	if (!d_exists("/jffs/configs/")) mkdir("/jffs/configs/", 0755);
+	if (!d_exists("/jffs/addons/")) mkdir("/jffs/addons/", 0755);
+}

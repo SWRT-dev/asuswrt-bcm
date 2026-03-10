@@ -11,12 +11,12 @@
 <title><#Web_Title#> - <#menu5_3_5#></title>
 <link rel="stylesheet" type="text/css" href="index_style.css"> 
 <link rel="stylesheet" type="text/css" href="form_style.css">
+<script type="text/javascript" src="/js/jquery.js"></script>
 <script language="JavaScript" type="text/javascript" src="/state.js"></script>
 <script language="JavaScript" type="text/javascript" src="/general.js"></script>
 <script language="JavaScript" type="text/javascript" src="/popup.js"></script>
 <script type="text/javascript" language="JavaScript" src="/help.js"></script>
 <script type="text/javascript" language="JavaScript" src="/validator.js"></script>
-<script type="text/javascript" src="/js/jquery.js"></script>
 <script type="text/javascript" src="/js/httpApi.js"></script>
 <script>
 
@@ -185,8 +185,7 @@ function dmz_on_off(){
 											<li><#IPConnection_BattleNet_sectiondesc2#></li>
 											<script>
 												document.getElementById("addVtsRule_ftp").onclick = function(){
-													/* untranslated */
-													if(confirm("Are you sure you want to add a port forwarding rule on FTP service?")){
+													if(confirm("<#IPConnection_BattleNet_confirm#>")){
 														location.href = "/Advanced_VirtualServer_Content.asp?af=KnownApps&item=ftp";
 													}
 												}

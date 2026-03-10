@@ -99,45 +99,41 @@ mpn_cnd_swap (mp_limb_t cnd, volatile mp_limb_t *ap, volatile mp_limb_t *bp, mp_
     }
 }
 
+/* Copy the k'th element of the table out tn elements, each of size
+   rn. Always read complete table. Similar to gmp's mpn_tabselect. */
+void
+mpn_sec_tabselect (volatile mp_limb_t *rp, volatile const mp_limb_t *table,
+		   mp_size_t rn, unsigned tn, unsigned k)
+{
+  volatile const mp_limb_t *end = table + tn * rn;
+  volatile const mp_limb_t *p;
+  mp_size_t i;
+
+  assert (k < tn);
+  for (p = table; p < end; p += rn, k--)
+    {
+      mp_limb_t mask = - (mp_limb_t) (k == 0);
+      for (i = 0; i < rn; i++)
+	rp[i] = (~mask & rp[i]) | (mask & p[i]);
+    }
+}
+
+
 #endif /* NETTLE_USE_MINI_GMP */
 
-/* Additional convenience functions. */
-
 int
-mpz_limbs_cmp (mpz_srcptr a, const mp_limb_t *bp, mp_size_t bn)
+sec_zero_p (const mp_limb_t *ap, mp_size_t n)
 {
-  mp_size_t an = mpz_size (a);
-  assert (mpz_sgn (a) >= 0);
-  assert (bn >= 0);
+  volatile mp_limb_t w;
+  mp_size_t i;
 
-  if (an < bn)
-    return -1;
-  if (an > bn)
-    return 1;
-  if (an == 0)
-    return 0;
+  for (i = 0, w = 0; i < n; i++)
+    w |= ap[i];
 
-  return mpn_cmp (mpz_limbs_read(a), bp, an);
+  return is_zero_limb (w);
 }
 
-/* Get a pointer to an n limb area, for read-only operation. n must be
-   greater or equal to the current size, and the mpz is zero-padded if
-   needed. */
-const mp_limb_t *
-mpz_limbs_read_n (mpz_ptr x, mp_size_t n)
-{
-  mp_size_t xn = mpz_size (x);
-  mp_ptr xp;
-  
-  assert (xn <= n);
-
-  xp = mpz_limbs_modify (x, n);
-
-  if (xn < n)
-    mpn_zero (xp + xn, n - xn);
-
-  return xp;
-}
+/* Additional convenience functions. */
 
 void
 mpz_limbs_copy (mp_limb_t *xp, mpz_srcptr x, mp_size_t n)

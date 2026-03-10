@@ -145,15 +145,52 @@ function isBrowser(testBrowser){
 	return 0;
 }
 
-function getUrlVars(){
-	var vars = [], hash;
-  	var hashes = window.location.href.slice(window.location.href.indexOf('?') + 1).split('&');
-  	for(var i = 0; i < hashes.length; i++){
-  		hash = hashes[i].split('=');
-    	vars.push(hash[0]);
-    	vars[hash[0]] = encodeSafeString(hash[1]);
-  	}
-  	return vars;
+function encodeSafeString(input){
+    input = input.replace(/&/g, '&amp;');
+    input = input.replace(/<script/g, '<script&lt;');
+    input = input.replace(/script>/g, 'script&gt;');
+    input = input.replace(/%0A/g, '');
+    input = input.replace(/%0D/g, '');
+    return input;
+}
+
+function sanitizeInput(input) {
+    //- Remove or replace common XSS attack characters
+	// < and >
+	// ;
+	// =
+	// '
+	// "
+    return input.replace(/[<>;='"]/g, '');
+}
+
+function isValidKey(key) {
+    // Only letters, numbers and underscores allowed
+    var regex = /^[a-zA-Z0-9_]+$/;
+    return regex.test(key);
+}
+
+function isUnsafeKey(key) {
+    return key === '__proto__' || key === 'constructor' || key === 'prototype';
+}
+
+function getUrlVar(key_name) {
+	var url = new URL(window.location.href); //- Safely parsing URLs using the URL API
+	var query = url.searchParams.toString(); // Get the query string
+	var hashes = query.split('&');
+	var key_value = "";
+
+	for (var i = 0; i < hashes.length; i++) {
+		var hash = hashes[i].split('=');
+		var key = sanitizeInput(decodeURIComponent(hash[0]));
+		var value = sanitizeInput(decodeURIComponent(hash[1] || ''));
+
+		if (isValidKey(key) && !isUnsafeKey(key) && key==key_name) {
+			key_value = encodeSafeString(value);
+		}
+	}
+
+	return key_value;
 }
 
 function parseXml(xml) {
@@ -241,15 +278,6 @@ function myencodeURI(iurl){
 	}
 	
 	return myurl;
-}
-
-function encodeSafeString(input){
-    input = input.replace(/&/g, '&amp;');
-    input = input.replace(/<script/g, '<script&lt;');
-	input = input.replace(/script>/g, 'script&gt;');
-	input = input.replace(/%0A/g, '');
-	input = input.replace(/%0D/g, '');
-    return input;
 }
 
 function isIE(){

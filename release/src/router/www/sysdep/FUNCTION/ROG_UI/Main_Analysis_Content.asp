@@ -16,11 +16,11 @@
 	border:1px outset #999;
 	background-color:#576D73;
 	position:absolute;
-	*margin-top:26px;	
+	*margin-top:26px;
 	margin-left:2px;
 	*margin-left:-353px;
 	width:346px;
-	text-align:left;	
+	text-align:left;
 	height:auto;
 	overflow-y:auto;
 	z-index:200;
@@ -42,21 +42,24 @@
 	color:#FFF;
 	font-size:12px;
 	font-family:Arial, Helvetica, sans-serif;
-	text-decoration:none;	
+	text-decoration:none;
 }
 #ClientList_Block_PC div:hover{
 	background-color:#3366FF;
 	color:#FFFFFF;
 	cursor:default;
-}	
+}
 </style>
+<script language="JavaScript" type="text/javascript" src="/js/jquery.js"></script>
 <script language="JavaScript" type="text/javascript" src="/state.js"></script>
+<script language="JavaSCript" type="text/javascript" src="/js/httpApi.js"></script>
 <script language="JavaScript" type="text/javascript" src="/general.js"></script>
 <script language="JavaScript" type="text/javascript" src="/popup.js"></script>
 <script language="JavaScript" type="text/javascript" src="/help.js"></script>
 <script language="JavaScript" type="text/javascript" src="/validator.js"></script>
-<script language="JavaScript" type="text/javascript" src="/js/jquery.js"></script>
 <script type="text/javascript" language="JavaScript" src="/js/table/table.js"></script>
+<script type="text/javascript" language="JavaScript" src="/client_function.js"></script>
+<script type="text/javascript" src="/form.js"></script>
 <script>
 	//set table Struct
 	var tableStruct = {
@@ -110,10 +113,15 @@
 			]
 		}
 	};
+
+var current_page = window.location.pathname.split("/").pop();
+var faq_index_tmp = get_faq_index(FAQ_List, current_page, 1);
+
 function initial(){
 	show_menu();
 	showLANIPList();
 
+	document.body.addEventListener("click", function(_evt) {control_dropdown_client_block("ClientList_Block_PC", "pull_arrow", _evt);});
 	$("#tableContainer1").empty();
 	tableApi.genTableAPI(tableStruct);
 	hideCNT(1); // default select cmdMethod = 1
@@ -133,6 +141,7 @@ function controlClickEvent(_$this) {
 	targetData[thisTarget].isDoing = true;
 	netoolApi.start({
 		"type": $("#cmdMethod").val(),
+		"ver": ( $("#cmdMethod").val() !=  5 ? document.form.protover.value : ""),
 		"target": thisTarget
 	});
 }
@@ -306,14 +315,22 @@ function hideCNT(_val){
 	if(_val == "3"){
 		document.getElementById("pingCNT_tr").style.display = "";
 		document.getElementById("cmdDesc").innerHTML = "<#NetworkTools_Ping#>";
+		document.getElementById("protover_span").style.display = "";
 	}
 	else if(_val == "4"){
 		document.getElementById("pingCNT_tr").style.display = "none";
 		document.getElementById("cmdDesc").innerHTML = "<#NetworkTools_tr#>";
+		document.getElementById("protover_span").style.display = "";
+	}
+	else if(_val == "1"){
+		document.getElementById("pingCNT_tr").style.display = "none";
+		document.getElementById("cmdDesc").innerHTML = "<#NetworkTools_Ping#>";
+		document.getElementById("protover_span").style.display = "";
 	}
 	else{
 		document.getElementById("pingCNT_tr").style.display = "none";
 		document.getElementById("cmdDesc").innerHTML = "<#NetworkTools_nslookup#>";
+		document.getElementById("protover_span").style.display = "none";
 	}
 
 	if(_val == 1){
@@ -354,19 +371,18 @@ function setClientIP(ipaddr){
 }
 
 var over_var = 0;
-var isMenuopen = 0;
 function hideClients_Block(){
-	document.getElementById("pull_arrow").src = "/images/arrow-down.gif";
+	document.getElementById("pull_arrow").src = "/images/unfold_more.svg";
 	document.getElementById('ClientList_Block_PC').style.display='none';
-	isMenuopen = 0;
 }
 
 function pullLANIPList(obj){
+	var element = document.getElementById('ClientList_Block_PC');
+	var isMenuopen = element.offsetWidth > 0 || element.offsetHeight > 0;
 	if(isMenuopen == 0){		
-		obj.src = "/images/arrow-top.gif"
+		obj.src = "/images/unfold_less.svg"
 		document.getElementById("ClientList_Block_PC").style.display = 'block';		
 		document.form.destIP.focus();		
-		isMenuopen = 1;
 	}
 	else{
 		hideClients_Block();
@@ -398,7 +414,7 @@ validator.targetDomainName = function($o){
 }
 </script>
 </head>
-<body onload="initial();" class="bg">
+<body onload="initial();">
 <div id="TopBanner"></div>
 <div id="Loading" class="popup_bg"></div>
 <iframe name="hidden_frame" id="hidden_frame" src="" width="0" height="0" frameborder="0"></iframe>
@@ -430,8 +446,11 @@ validator.targetDomainName = function($o){
 						<table width="760px" border="0" cellpadding="5" cellspacing="0" bordercolor="#6b8fa3"  class="FormTitle" id="FormTitle">		
 							<tr>
 								<td bgcolor="#4D595D" colspan="3" valign="top">
+								<div class="container">
+
 									<div>&nbsp;</div>
 									<div class="formfonttitle"><#Network_Tools#> - <#Network_Analysis#></div>
+									<div class="formfonttitle_help"><i onclick="show_feature_desc(`How to use Network Analysis(Ping, Traceroute, Nsloopup) in ASUS Router?`)" class="icon_help"></i></div>
 									<div style="margin: 10px 0 10px 5px;" class="splitLine"></div>
 									<div class="formfontdesc" id="cmdDesc"><#NetworkTools_Ping#></div>
 									<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">
@@ -444,13 +463,17 @@ validator.targetDomainName = function($o){
 													<option value="4">Traceroute</option>
 													<option value="5">Nslookup</option>
  												</select>
-											</td>										
+												<span  style="padding-left:20px;" id="protover_span">
+													<input type="radio" id="protover" name="protover" class="input" value="v4" checked>IPv4
+													<input type="radio" id="protover" name="protover" class="input" value="v6">IPv6
+												</span>
+											</td>
 										</tr>
 										<tr>
 											<th width="20%"><#NetworkTools_target#></th>
 											<td>
-												<input type="text" class="input_32_table" id="destIP" name="destIP" maxlength="100" value="" placeholder="ex: www.google.com" autocorrect="off" autocapitalize="off">
-												<img id="pull_arrow" height="14px;" src="/images/arrow-down.gif" style="position:absolute;*margin-left:-3px;*margin-top:1px;" onclick="pullLANIPList(this);" title="<#select_network_host#>" onmouseover="over_var=1;" onmouseout="over_var=0;">
+												<input type="text" class="input_32_table" id="destIP" name="destIP" onClick="hideClients_Block();" maxlength="100" value="" placeholder="ex: www.google.com" autocorrect="off" autocapitalize="off">
+												<img id="pull_arrow" height="14px;" src="/images/unfold_more.svg" style="position:absolute;*margin-left:-3px;*margin-top:1px;" onclick="pullLANIPList(this);" title="<#select_network_host#>" onmouseover="over_var=1;" onmouseout="over_var=0;">
 												<div id="ClientList_Block_PC" class="ClientList_Block_PC"></div>
 												<br/>
 												<span id="alert_block" style="color:#FC0;display:none"></span>
@@ -469,16 +492,20 @@ validator.targetDomainName = function($o){
 										<script>
 											$("#cmdBtn")
 												.click(function(){
-													if(!validator.targetDomainName($("#destIP"))){
-														return false;
+													if(document.form.protover.value == "v6"){
+														if(!validator.isLegal_ipv6($("#destIP")[0],1) && !validator.targetDomainName($("#destIP"))){
+															return false;
+														}
+													} else if(!validator.targetDomainName($("#destIP"))){
+														 return false;
 													}
 
 													var targetObj = {
 														"type": $("#cmdMethod").val(), 
 														"target": $("#destIP").val(),
-														"pcnt": $("#pingCNT").val()
+														"pcnt": $("#pingCNT").val(),
+														"ver": ( $("#cmdMethod").val() !=  5 ? document.form.protover.value : "")
 													}
-
 													if($("#cmdMethod").val() == 1){
 														netoolApi.reset(targetObj);
 														netoolApi.start(targetObj);
@@ -532,6 +559,9 @@ validator.targetDomainName = function($o){
 										<!--<![endif]-->
 										</script>
 									</div>
+
+									</div>  <!-- for .container  -->
+                                    <div class="popup_container popup_element_second"></div>
 
 								</td>
 							</tr>

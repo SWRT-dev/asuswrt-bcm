@@ -22,8 +22,6 @@
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
-#elif defined(_MSC_VER)
-#include "config-msvc.h"
 #endif
 
 #include "syshead.h"
@@ -67,28 +65,25 @@ create_des_keys(const unsigned char *hash, unsigned char *key)
     key[5] = ((hash[4] & 31) << 3) | (hash[5] >> 5);
     key[6] = ((hash[5] & 63) << 2) | (hash[6] >> 6);
     key[7] = ((hash[6] & 127) << 1);
-    key_des_fixup(key, 8, 1);
 }
 
 static void
 gen_md4_hash(const uint8_t *data, int data_len, uint8_t *result)
 {
     /* result is 16 byte md4 hash */
-    const md_kt_t *md4_kt = md_kt_get("MD4");
     uint8_t md[MD4_DIGEST_LENGTH];
 
-    md_full(md4_kt, data, data_len, md);
+    md_full("MD4", data, data_len, md);
     memcpy(result, md, MD4_DIGEST_LENGTH);
 }
 
 static void
-gen_hmac_md5(const uint8_t *data, int data_len, const uint8_t *key, int key_len,
+gen_hmac_md5(const uint8_t *data, int data_len, const uint8_t *key,
              uint8_t *result)
 {
-    const md_kt_t *md5_kt = md_kt_get("MD5");
     hmac_ctx_t *hmac_ctx = hmac_ctx_new();
 
-    hmac_ctx_init(hmac_ctx, key, key_len, md5_kt);
+    hmac_ctx_init(hmac_ctx, key, "MD5");
     hmac_ctx_update(hmac_ctx, data, data_len);
     hmac_ctx_final(hmac_ctx, result);
     hmac_ctx_cleanup(hmac_ctx);
@@ -143,6 +138,19 @@ my_strupr(char *str)
     }
 }
 
+/**
+ * This function expects a null-terminated string in src and will
+ * copy it (including the terminating NUL byte),
+ * alternating it with 0 to dst.
+ *
+ * This basically will transform a ASCII string into valid UTF-16.
+ * Characters that are 8bit in src, will get the same treatment, resulting in
+ * invalid or wrong unicode code points.
+ *
+ * @note the function will blindly assume that dst has double
+ * the space of src.
+ * @return  the length of the number of bytes written to dst
+ */
 static int
 unicodize(char *dst, const char *src)
 {
@@ -159,8 +167,13 @@ unicodize(char *dst, const char *src)
 
 static void
 add_security_buffer(int sb_offset, void *data, int length,
-                    unsigned char *msg_buf, int *msg_bufpos)
+                    unsigned char *msg_buf, int *msg_bufpos, size_t msg_bufsize)
 {
+    if (*msg_bufpos + length > msg_bufsize)
+    {
+        msg(M_WARN, "NTLM: security buffer too big for message buffer");
+        return;
+    }
     /* Adds security buffer data to a message and sets security buffer's
      * offset and length */
     msg_buf[sb_offset] = (unsigned char)length;
@@ -177,7 +190,7 @@ ntlm_phase_1(const struct http_proxy_info *p, struct gc_arena *gc)
     struct buffer out = alloc_buf_gc(96, gc);
     /* try a minimal NTLM handshake
      *
-     * http://davenport.sourceforge.net/ntlm.html
+     * https://davenport.sourceforge.net/ntlm.html
      *
      * This message contains only the NTLMSSP signature,
      * the NTLM message type,
@@ -194,19 +207,18 @@ ntlm_phase_3(const struct http_proxy_info *p, const char *phase_2,
 {
     /* NTLM handshake
      *
-     * http://davenport.sourceforge.net/ntlm.html
+     * https://davenport.sourceforge.net/ntlm.html
      *
      */
 
     char pwbuf[sizeof(p->up.password) * 2]; /* for unicode password */
-    uint8_t buf2[128]; /* decoded reply from proxy */
     uint8_t phase3[464];
 
     uint8_t md4_hash[MD4_DIGEST_LENGTH + 5];
     uint8_t challenge[8], ntlm_response[24];
     int i, ret_val;
 
-    uint8_t ntlmv2_response[144];
+    uint8_t ntlmv2_response[256];
     char userdomain_u[256];     /* for uppercase unicode username and domain */
     char userdomain[128];       /* the same as previous but ascii */
     uint8_t ntlmv2_hash[MD5_DIGEST_LENGTH];
@@ -221,8 +233,6 @@ ntlm_phase_3(const struct http_proxy_info *p, const char *phase_2,
     char *separator;
 
     bool ntlmv2_enabled = (p->auth_method == HTTP_AUTH_NTLM2);
-
-    CLEAR(buf2);
 
     ASSERT(strlen(p->up.username) > 0);
     ASSERT(strlen(p->up.password) > 0);
@@ -256,14 +266,18 @@ ntlm_phase_3(const struct http_proxy_info *p, const char *phase_2,
     /* pad to 21 bytes */
     memset(md4_hash + MD4_DIGEST_LENGTH, 0, 5);
 
+    /* If the decoded challenge is shorter than required by the protocol,
+     * the missing bytes will be NULL, as buf2 is known to be zeroed
+     * when this decode happens.
+     */
+    uint8_t buf2[512]; /* decoded reply from proxy */
+    CLEAR(buf2);
     ret_val = openvpn_base64_decode(phase_2, buf2, -1);
     if (ret_val < 0)
     {
+        msg(M_WARN, "NTLM: base64 decoding of phase 2 response failed");
         return NULL;
     }
-
-    /* we can be sure that phase_2 is less than 128
-     * therefore buf2 needs to be (3/4 * 128) */
 
     /* extract the challenge from bytes 24-31 */
     for (i = 0; i<8; i++)
@@ -284,11 +298,11 @@ ntlm_phase_3(const struct http_proxy_info *p, const char *phase_2,
         }
         else
         {
-            msg(M_INFO, "Warning: Username or domain too long");
+            msg(M_WARN, "NTLM: Username or domain too long");
         }
         unicodize(userdomain_u, userdomain);
         gen_hmac_md5((uint8_t *)userdomain_u, 2 * strlen(userdomain), md4_hash,
-                     MD5_DIGEST_LENGTH, ntlmv2_hash);
+                     ntlmv2_hash);
 
         /* NTLMv2 Blob */
         memset(ntlmv2_blob, 0, 128);                        /* Clear blob buffer */
@@ -314,14 +328,15 @@ ntlm_phase_3(const struct http_proxy_info *p, const char *phase_2,
          * byte order on the wire for the NTLM header is LE.
          */
         const size_t hoff = 0x14;
-        unsigned long flags = buf2[hoff] | (buf2[hoff + 1] << 8) |
-                              (buf2[hoff + 2] << 16) | (buf2[hoff + 3] << 24);
+        unsigned long flags = buf2[hoff] | (buf2[hoff + 1] << 8)
+                              |(buf2[hoff + 2] << 16) | (buf2[hoff + 3] << 24);
         if ((flags & 0x00800000) == 0x00800000)
         {
             tib_len = buf2[0x28];            /* Get Target Information block size */
-            if (tib_len > 96)
+            if (tib_len + 0x1c + 16 > sizeof(ntlmv2_response))
             {
-                tib_len = 96;
+                msg(M_WARN, "NTLM: target information buffer too long for response (len=%d)", tib_len);
+                return NULL;
             }
 
             {
@@ -329,6 +344,7 @@ ntlm_phase_3(const struct http_proxy_info *p, const char *phase_2,
                 uint8_t tib_pos = buf2[0x2c];
                 if (tib_pos + tib_len > sizeof(buf2))
                 {
+                    msg(M_ERR, "NTLM: phase 2 response from server too long (need %d bytes at offset %u)", tib_len, tib_pos);
                     return NULL;
                 }
                 /* Get Target Information block pointer */
@@ -353,7 +369,7 @@ ntlm_phase_3(const struct http_proxy_info *p, const char *phase_2,
 
         /* hmac-md5 */
         gen_hmac_md5(&ntlmv2_response[8], ntlmv2_blob_size + 8, ntlmv2_hash,
-                     MD5_DIGEST_LENGTH, ntlmv2_hmacmd5);
+                     ntlmv2_hmacmd5);
 
         /* Add hmac-md5 result to the blob.
          * Note: This overwrites challenge previously written at
@@ -385,20 +401,20 @@ ntlm_phase_3(const struct http_proxy_info *p, const char *phase_2,
     if (ntlmv2_enabled)      /* NTLMv2 response */
     {
         add_security_buffer(0x14, ntlmv2_response, ntlmv2_blob_size + 16,
-                            phase3, &phase3_bufpos);
+                            phase3, &phase3_bufpos, sizeof(phase3));
     }
     else       /* NTLM response */
     {
-        add_security_buffer(0x14, ntlm_response, 24, phase3, &phase3_bufpos);
+        add_security_buffer(0x14, ntlm_response, 24, phase3, &phase3_bufpos, sizeof(phase3));
     }
 
     /* username in ascii */
     add_security_buffer(0x24, username, strlen(username), phase3,
-                        &phase3_bufpos);
+                        &phase3_bufpos, sizeof(phase3));
 
     /* Set domain. If <domain> is empty, default domain will be used
      * (i.e. proxy's domain) */
-    add_security_buffer(0x1c, domain, strlen(domain), phase3, &phase3_bufpos);
+    add_security_buffer(0x1c, domain, strlen(domain), phase3, &phase3_bufpos, sizeof(phase3));
 
     /* other security buffers will be empty */
     phase3[0x10] = phase3_bufpos;     /* lm not used */
@@ -411,11 +427,5 @@ ntlm_phase_3(const struct http_proxy_info *p, const char *phase_2,
 
     return ((const char *)make_base64_string2((unsigned char *)phase3,
                                               phase3_bufpos, gc));
-}
-
-#else  /* if NTLM */
-static void
-dummy(void)
-{
 }
 #endif /* if NTLM */

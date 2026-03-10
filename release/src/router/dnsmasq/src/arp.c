@@ -1,4 +1,4 @@
-/* dnsmasq is Copyright (c) 2000-2022 Simon Kelley
+/* dnsmasq is Copyright (c) 2000-2025 Simon Kelley
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -35,7 +35,7 @@ struct arp_record {
 static struct arp_record *arps = NULL, *old = NULL, *freelist = NULL;
 static time_t last = 0;
 
-static int filter_mac(int family, char *addrp, char *mac, size_t maclen, void *parmv)
+static int filter_mac(int family, void *addrp, char *mac, size_t maclen, void *parmv)
 {
   struct arp_record *arp;
 
@@ -111,22 +111,26 @@ int find_mac(union mysockaddr *addr, unsigned char *mac, int lazy, time_t now)
 
  again:
   
-  /* If the database is less then INTERVAL old, look in there */
-  if (difftime(now, last) < INTERVAL)
+  /* If the database is less then INTERVAL old, look in there.
+     
+     If we're a child process, we always rely on the existing cache we
+     inherited from the parent, since we don't have a netlink socket.
+  */
+  if (difftime(now, last) < INTERVAL || daemon->pipe_to_parent != -1)
     {
       /* addr == NULL -> just make cache up-to-date */
       if (!addr)
 	return 0;
-
+	
       for (arp = arps; arp; arp = arp->next)
 	{
 	  if (addr->sa.sa_family != arp->family)
 	    continue;
-	    
+	  
 	  if (arp->family == AF_INET &&
 	      arp->addr.addr4.s_addr != addr->in.sin_addr.s_addr)
 	    continue;
-	    
+	  
 	  if (arp->family == AF_INET6 && 
 	      !IN6_ARE_ADDR_EQUAL(&arp->addr.addr6, &addr->in6.sin6_addr))
 	    continue;
@@ -141,6 +145,10 @@ int find_mac(union mysockaddr *addr, unsigned char *mac, int lazy, time_t now)
 	}
     }
 
+  /* Not in cache in child, no go. */
+  if (daemon->pipe_to_parent != -1)
+    return 0;
+  
   /* Not found, try the kernel */
   if (!updated)
      {
@@ -152,7 +160,7 @@ int find_mac(union mysockaddr *addr, unsigned char *mac, int lazy, time_t now)
 	 if (arp->status != ARP_EMPTY)
 	   arp->status = ARP_MARK;
        
-       iface_enumerate(AF_UNSPEC, NULL, filter_mac);
+       iface_enumerate(AF_UNSPEC, NULL, (callback_t){.af_unspec=filter_mac});
        
        /* Remove all unconfirmed entries to old list. */
        for (arp = arps, up = &arps; arp; arp = tmp)

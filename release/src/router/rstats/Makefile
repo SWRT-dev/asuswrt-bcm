@@ -24,6 +24,14 @@ CFLAGS += -I$(TOP)/libqcsapi_client -I$(TOP)/shared/sysdeps/qtn
 LDFLAGS += -L$(TOP)/libqcsapi_client -lqcsapi_client
 endif
 
+ifeq ($(RTCONFIG_TRUSTZONE),y)
+LDFLAGS += -L$(TOP)/ateed/ -latee
+endif
+
+ifeq ($(BUILD_NAME),$(filter $(BUILD_NAME),RT-BE82M GS-BE18000 GS-BE12000 GS7_PRO GT7))
+LDFLAGS += -L$(TOP)/libhostapi -lhostapi
+endif
+
 OBJS = rstats.o
 
 all: rstats
@@ -43,7 +51,6 @@ install: all
 	@echo " [rstats] Installing..."
 	install -D rstats $(INSTALLDIR)/bin/rstats
 	$(STRIP) $(INSTALLDIR)/bin/rstats
-	chmod 0500 $(INSTALLDIR)/bin/rstats
 
 %.o: %.c .%.depend
 	@echo " [rstats] CC $@"

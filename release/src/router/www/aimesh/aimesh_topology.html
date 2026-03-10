@@ -1,4 +1,11 @@
-﻿<script>
+<script>
+function _check_is_merlin_fw(_fw) {
+        var fw_array = _fw.match(/(\d+)\.(\d+)\.(\d+)\.(\d+)\.([^_]+)_(\w+)/);
+        if (fw_array && (fw_array[5].indexOf('.') > 0) )
+                return true;
+        else
+                return false;
+}
 var diagnosticApi = {
 	"db_map": {
 		"backhaul": "STAINFO",
@@ -173,6 +180,8 @@ var diagnosticApi = {
 
 var faq_href1 = "https://nw-dlcdnet.asus.com/support/forward.html?model=&type=Faq&lang="+ui_lang+"&kw=&num=137";
 var faq_href2 = "https://nw-dlcdnet.asus.com/support/forward.html?model=&type=Faq&lang="+ui_lang+"&kw=&num=138";
+var faq_href3 = "https://nw-dlcdnet.asus.com/support/forward.html?model=&type=Faq&lang="+ui_lang+"&kw=&num=125";	//[AiMesh] How to setup
+var current_page = window.location.pathname.split("/").pop();
 
 /* String replace &#39; with ' for dict */
 function stringSafeGet(str){
@@ -201,6 +210,7 @@ $.getJSON("https://nw-dlcdnet.asus.com/plugin/js/extend_model_icon.json", {_: ne
 	}
 );
 var aimesh_node_client_upload_icon = new Array();
+var cloudRouterIconCheckCache = new Array();
 function control_category_block(_category){
 	current_click_tab = _category;
 	$(".category_bg").removeClass("clicked");
@@ -218,6 +228,9 @@ function control_category_block(_category){
 		case "manage" :
 			display_manage_block();
 			break;
+		case "iperf" :
+			display_iperf_block();
+			break;	
 	}
 }
 
@@ -458,23 +471,24 @@ function display_client_block(){
 }
 function client_get_client_date(){
 	aimesh_data.cfg_clientlist = httpApi.hookGet("get_cfg_clientlist", true);
+	update_node_ui_model_name(aimesh_data.cfg_clientlist);
 	originData.fromNetworkmapd[0] = httpApi.hookGet("get_clientlist", true);
 	originData.nmpClient[0] = httpApi.hookGet("get_clientlist_from_json_database", true);
 	genClientList();
 	aimesh_data.sta_binding_list_json = gen_sta_binding_list_json();
 }
 function client_set_tab(_type){
-	current_client_click_type = _type;
+	const specific_node_data = aimesh_data.cfg_clientlist.find(item => item.mac == current_click_mac) || {};
+	const is_no_wifi = specific_node_data.band_num === "0";
+	$("#client_block").find(".client_tab_bg div.wireless").toggle(!is_no_wifi);
+	current_client_click_type = (is_no_wifi && _type === "wireless") ? "all" : _type;
 	$("#client_block").find(".client_tab_bg div").removeClass("clicked");
-	$("#client_block").find(".client_tab_bg div." + _type + "").addClass("clicked");
-	var node_client_list = ciient_get_specific_client_list(_type, current_click_mac);
-	var specific_node_data = aimesh_data.cfg_clientlist.filter(function(item, index, _array){
-		return (item.mac == current_click_mac);
-	})[0];
+	$("#client_block").find(".client_tab_bg div." + current_client_click_type + "").addClass("clicked");
+	var node_client_list = ciient_get_specific_client_list(current_client_click_type, current_click_mac);
 	var $component = client_gen_client_component(node_client_list, specific_node_data);
 	$(".card_block_bg .client_list_bg").empty();
 	$(".card_block_bg .client_list_bg").append($component);
-	if(_type == "all")
+	if(current_client_click_type == "all")
 		online_client = $(".card_block_bg .client_list_bg .each_client_bg").length - node_client_list.offline;
 	else
 		online_client = $(".card_block_bg .client_list_bg .each_client_bg").length;
@@ -594,11 +608,19 @@ function client_gen_client_component(_dataArray, _node_info){
 			}
 			if(userIconBase64 != "NoIcon") {
 				$clientIconBg.addClass("user_icon");
-				$clientIconBg.css("background-image", "url(" + userIconBase64 + ")");
+				if(nodeClientObj.isUserUplaodImg){
+					$clientIconBg.css("background-image", "url(" + userIconBase64 + ")");
+				}else{
+					$clientIconBg.append($('<i>').addClass('type'));
+					$clientIconBg.find('i').get(0).style.setProperty("--svg", "url(" + userIconBase64 + ")")
+				}
 			}
 			else if(nodeClientObj.type != "0" || nodeClientObj.vendor == "") {
 				var icon_type = "type" + nodeClientObj.type;
-				$clientIconBg.addClass("default_icon " + icon_type + "");
+				$clientIconBg.addClass("default_icon");
+				if($clientIconBg.find('i').length==0){
+					$clientIconBg.append($('<i>').addClass(icon_type));
+				}
 				if(nodeClientObj.type == "36"){
 					$flashObj = $("<div>");
 					$flashObj.addClass("flash");
@@ -606,13 +628,15 @@ function client_gen_client_component(_dataArray, _node_info){
 				}
 			}
 			else if(nodeClientObj.vendor != "") {
-				var venderIconClassName = getVenderIconClassName(nodeClientObj.vendor.toLowerCase());
-				if(venderIconClassName != "" && !downsize_4m_support) {
-					$clientIconBg.addClass("vender_icon " + venderIconClassName + "");
+				var vendorIconClassName = getVendorIconClassName(nodeClientObj.vendor.toLowerCase());
+				if(vendorIconClassName != "" && !downsize_4m_support) {
+					$clientIconBg.addClass("default_icon");
+					$clientIconBg.append($('<i>').addClass("vendor-icon " + vendorIconClassName));
 				}
 				else {
 					var icon_type = "type" + nodeClientObj.type;
-					$clientIconBg.addClass("default_icon " + icon_type + "");
+					$clientIconBg.addClass("default_icon");
+					$clientIconBg.append($('<i>').addClass(icon_type));
 				}
 			}
 
@@ -642,22 +666,30 @@ function client_gen_client_component(_dataArray, _node_info){
 			var $clientConnect = $("<div>");
 			if(nodeClientObj.isOnline){
 				$clientConnect.addClass("client_connect_icon");
-				switch(nodeClientObj.isWL){
-					case 0:
-						$clientConnect.addClass("wired");
-						break;
-					case 1:
-						$clientConnect.addClass("wl_2g");
-						break;
-					case 2:
-						$clientConnect.addClass("wl_5g");
-						break;
-					case 3:
-						$clientConnect.addClass("wl_5g_2");
-						break;
-					case 4:
-						$clientConnect.addClass("wl_6g");
-						break;
+				if(isSupport("mlo") && (nodeClientObj.mlo == "1")){
+					$clientConnect.addClass("mlo");
+				}
+				else{
+					switch(nodeClientObj.isWL){
+						case 0:
+							$clientConnect.addClass("wired");
+							break;
+						case 1:
+							$clientConnect.addClass("wl_2g");
+							break;
+						case 2:
+							$clientConnect.addClass("wl_5g");
+							break;
+						case 3:
+							$clientConnect.addClass("wl_5g_2");
+							break;
+						case 4:
+							$clientConnect.addClass("wl_6g");
+							break;
+						case 5:
+							$clientConnect.addClass("wl_6g_2");
+							break;
+					}
 				}
 				$clientConnect.appendTo($clientMACIPBg);
 			}
@@ -711,8 +743,7 @@ function client_gen_client_component(_dataArray, _node_info){
 						})[0];
 						var hint = "";
 						if(specific_node_data != undefined){
-							var node_location_info = transform_location(specific_node_data.mac, specific_node_data);
-							var node_name_location = handle_ui_model_name(specific_node_data.model_name, specific_node_data.ui_model_name) + "(" + node_location_info.location_text + ")";
+							const node_name_location = get_node_name_w_location(specific_node_data);
 							hint += "<#AiMesh_Device_Bound_To_Specific_Node01#>".replace("#MODELNAME", node_name_location);
 							parm_node = specific_node_data;
 						}
@@ -1188,7 +1219,7 @@ function client_bind(parm){
 		if(isSupport("acl96") && rule_status.client_bind_count >= rule_status.client_bind_allow_maximum){
 			$("#aimesh_hint_msg .hint_text").append($("<div>").html("<#AiMesh_Binding_Rule_Maxi#>"));
 			$("#aimesh_hint_msg .hint_text").append($("<div>").html("<#AiMesh_Delete_Unused_Rule#>"));
-			$("#aimesh_hint_msg .hint_text").append($("<div>").addClass("text_emphasize").html("- AiMesh client binding rule"));/* untranslated */
+			$("#aimesh_hint_msg .hint_text").append($("<div>").addClass("text_emphasize").html("- AiMesh <#AiMesh_Binding_Rule_Client#>"));
 			$("#aimesh_hint_msg #action_canacl").hide();
 			$("#aimesh_hint_msg #action_ok").show();
 			$("#aimesh_hint_msg #action_ok").click(function(e){
@@ -1202,7 +1233,7 @@ function client_bind(parm){
 			$("#aimesh_hint_msg .hint_text").append($("<div>").html("<#AiMesh_Binding_Rule_Maxi#>"));
 			$("#aimesh_hint_msg .hint_text").append($("<div>").html("<#AiMesh_Delete_Unused_Rule#>"));
 			if(rule_status.client_bind_count != 0)
-				$("#aimesh_hint_msg .hint_text").append($("<div>").addClass("text_emphasize").html("- AiMesh client binding rule"));
+				$("#aimesh_hint_msg .hint_text").append($("<div>").addClass("text_emphasize").html("- AiMesh <#AiMesh_Binding_Rule_Client#>"));
 			if(rule_status.acl_max_count != 0)
 				$("#aimesh_hint_msg .hint_text").append($("<div>").addClass("text_emphasize").html("- <#FirewallConfig_MFList_groupitemname#>"));
 			$("#aimesh_hint_msg #action_canacl").hide();
@@ -1306,12 +1337,24 @@ function display_network_block(){
 						$port_status_content.html("<div class='manage_disconnected'><#IPConnection_VSList_Norule#></div>");
 					else{
 						var show_notice = false;
-						var $port_status_bg = $("<div>").addClass("port_status_bg").appendTo($port_status_content);
+						var $port_status_bg = $("<div>").addClass("port_status_bg aimesh_page").appendTo($port_status_content);
 						var $label_W_bg = $("<div>").addClass("label_W_bg").appendTo($port_status_bg);
 						var $label_L_bg = $("<div>").addClass("label_L_bg").appendTo($port_status_bg);
 						var error_port_list = [];
 						$.each(port_info, function(label, label_array){
 							$.each(port_info[label], function(index, port_item){
+								const { cap_support } = port_item;
+								if (cap_support.INTRAMODULE) return true;
+
+								let allCapFalse = true;
+								$.each(cap_support, function(key, value) {
+									if (value) {
+										allCapFalse = false;
+										return false;
+									}
+								});
+								if (allCapFalse) return true;
+
 								var $port_bg = $("<div>").attr({"title":port_item.link_rate_text});
 								if(label == "WAN")
 									$port_bg.appendTo($label_W_bg);
@@ -1327,7 +1370,7 @@ function display_network_block(){
 										$port_icon.addClass("warn");
 								}
 								else if(port_item.is_on == "0"){
-									if(port_item.cap_support.USB){
+									if(cap_support.USB){
 										if(port_item.hasOwnProperty("devices")){
 											$port_icon.addClass("conn");
 										}
@@ -1338,12 +1381,21 @@ function display_network_block(){
 										$port_icon.addClass("unplug");
 								}
 
-								if(port_item.cap_support.WAN){
+								if(cap_support.WAN || cap_support.WANAUTO){
 									$("<div>").addClass("wan_icon").appendTo($port_icon);
-									if(port_item.special_port_name != "")
-										$("<span>").addClass("port_text").html(htmlEnDeCode.htmlEncode(port_item.special_port_name)).appendTo($port_bg);
+									let port_text = "";
+									if(port_item.ui_display != undefined && port_item.ui_display != ""){
+										port_text = port_item.ui_display;
+									}
+									else{
+										if(port_item.special_port_name != ""){
+											port_text = port_item.special_port_name;
+										}
+									}
+									if(port_text != "")
+										$("<span>").addClass("port_text").html(htmlEnDeCode.htmlEncode(port_text)).appendTo($port_bg);
 								}
-								else if(port_item.cap_support.LAN){
+								else if(cap_support.LAN){
 									let port_text = "";
 									let port_idx = "";
 									if(port_item.ui_display != undefined && port_item.ui_display != ""){
@@ -1360,15 +1412,29 @@ function display_network_block(){
 									if(port_idx != "")
 										$("<div>").addClass("lan_idx").html(htmlEnDeCode.htmlEncode(port_idx)).appendTo($port_icon);
 								}
-								else if(port_item.cap_support.USB){
+								else if(cap_support.USB){
 									$port_icon.addClass("USB");
-									if(port_item.special_port_name != "")
-										$("<span>").addClass("port_text").html(htmlEnDeCode.htmlEncode(port_item.special_port_name)).appendTo($port_bg);
+									let port_text = "";
+									if(port_item.ui_display != undefined && port_item.ui_display != ""){
+										port_text = port_item.ui_display;
+									}
+									else{
+										if(port_item.special_port_name != ""){
+											port_text = port_item.special_port_name;
+										}
+									}
+									if(port_text != "")
+										$("<span>").addClass("port_text").html(htmlEnDeCode.htmlEncode(port_text)).appendTo($port_bg);
 								}
-								else if(port_item.cap_support.MOCA){
+								else if(cap_support.MOCA){
 									$port_icon.addClass("MoCA");
 									if(port_item.special_port_name != "")
 										$("<span>").addClass("port_text").html(htmlEnDeCode.htmlEncode(port_item.special_port_name)).appendTo($port_bg);
+								}
+								else {
+									let port_text = port_item.ui_display || "";
+									if(port_text)
+										$("<span>").addClass("port_text").html(htmlEnDeCode.htmlEncode(port_text)).appendTo($port_bg);
 								}
 
 								if(port_item.link_rate_status != "1"){
@@ -1399,8 +1465,14 @@ function display_network_block(){
 								$hint_text_bg.append("<div class='height_space'></div>");
 								var $error_port_list = $("<div>").appendTo($hint_text_bg);
 								$.each(error_port_list, function(index, port_item){
-									var display_name = ((port_item.special_port_name == "") ? port_item.label_port_name : port_item.special_port_name);
-									var $port_item = $("<div>").addClass("port_status_notice_item warn").html(htmlEnDeCode.htmlEncode(display_name)).appendTo($error_port_list);
+									let port_text = "";
+									if(port_item.ui_display != undefined && port_item.ui_display != ""){
+										port_text = port_item.ui_display;
+									}
+									else{
+										port_text = port_item.special_port_name + " (" + port_item.label_port_name + ")";
+									}
+									$("<div>").addClass("port_status_notice_item warn").html(htmlEnDeCode.htmlEncode(port_text)).appendTo($error_port_list);
 								});
 								$("<div>").css({"background":"rgb(255 255 255 / 20%)", "height":"1px", "margin":"10px 0"}).appendTo($hint_text_bg);
 								$hint_text_bg.append($("<div>").css({"margin":"12px 0px 6px 0px"}).html("<#Things_To_Check#> :"));
@@ -1441,8 +1513,7 @@ function display_network_block(){
 								return (item.mac == mac);
 							})[0];
 							if(specific_node_data != undefined){
-								var node_location_info = transform_location(specific_node_data.mac, specific_node_data);
-								AiMesh_node.name = handle_ui_model_name(specific_node_data.model_name, specific_node_data.ui_model_name) + " (" + node_location_info.location_text + ")";
+								AiMesh_node.name = get_node_name_w_location(specific_node_data);
 							}
 							$.each(port_info, function(index, data){
 								var label = index.substr(0,1);
@@ -1913,7 +1984,7 @@ function network_set_backhaul_info(_node_info, _signal_quality){
 		backhaul_parm.css = "wl_6g";
 		backhaul_parm.band_text = "<#menu5_1#> - 6GHz";
 		var papObj = aimesh_data.cfg_clientlist.filter(function(item, index, array){
-				return (item.ap6g == _node_info.pap6g);
+				return (item.ap6g == _node_info.pap6g || item.ap6g1 == _node_info.pap6g);
 			})[0];
 		if(papObj != undefined)
 			backhaul_parm.mac = papObj.mac;
@@ -1957,8 +2028,12 @@ function network_set_backhaul_info(_node_info, _signal_quality){
 			_obj.find("#backhaul_mac_title").html("<#MAC_Address#>");
 		}
 		else{
-			_obj.find(".wired_hide").show();
-			_obj.find("#backhaul_mac_title").html("MAC (BSSID)");
+			if(backhaul_parm.band == "MLO")
+				_obj.find(".wired_hide").hide();
+			else
+				_obj.find(".wired_hide").show();
+			const bh_mac_title = (backhaul_parm.band == "MLO") ? `<#MAC_Address#>` : `MAC (BSSID)`;
+			_obj.find("#backhaul_mac_title").html(bh_mac_title);
 			if(backhaul_parm.ssid != ""){
 				_obj.find("#backhaul_ssid").html(htmlEnDeCode.htmlEncode(backhaul_parm.ssid));
 				_obj.find(".bubble_icon").hide();
@@ -2075,7 +2150,7 @@ function network_set_fronthaul_info(_node_info){
 		$("#network_block .fronthaul_content").append($fronthaulBg);
 	}
 
-	var cfg_clientlist_ap_list = ["ap2g", "ap5g", "ap5g1", "ap6g"];
+	var cfg_clientlist_ap_list = ["ap2g", "ap5g", "ap5g1", "ap6g", "ap6g1"];
 	var ap_info_list = [];
 	var ap_list_idx = 0;
 	var isReNode = (_node_info.mac != cap_mac) ? true : false;
@@ -2092,8 +2167,6 @@ function network_set_fronthaul_info(_node_info){
 					item.ap_name = "ap2g";
 					break;
 				case "1":
-					item.ap_name = "ap5g";
-					break;
 				case "2":
 					item.ap_name = "ap5g";
 					break;
@@ -2101,7 +2174,11 @@ function network_set_fronthaul_info(_node_info){
 					item.ap_name = "ap5g1";
 					break;
 				case "4":
+				case "5":
 					item.ap_name = "ap6g";
+					break;
+				case "6":
+					item.ap_name = "ap6g1";
 					break;
 			}
 		});
@@ -2119,7 +2196,7 @@ function network_set_fronthaul_info(_node_info){
 		if(specific_data == "" || specific_data == undefined)
 			$("#network_block .fronthaul_content").find("#fronthaul_wl_" + item + "").remove();
 		else{
-			var ap_info = {"name":"", "mac":"", "ssid":"", "type":"", "is_dwb":false, "radio_on":false};
+			var ap_info = {"name":"", "mac":"", "ssid":"", "type":"", "is_dwb":false, "dwb_band":"-1", "radio_on":false};
 			ap_info["name"] = item;
 			ap_info["mac"] = function(){
 				var mac = "";
@@ -2141,6 +2218,8 @@ function network_set_fronthaul_info(_node_info){
 			ap_info["is_dwb"] = function(){
 				var result = false;
 				if(dwb_info.mode == "1"){
+					const dwb_band = (_node_info.dwb_band == undefined) ? dwb_info.band : _node_info.dwb_band;
+					ap_info["dwb_band"] = dwb_band;
 					var cur_ap_unit = "";
 					$.each(band_info, function(band_idx, band_item){
 						if(band_item.ap_name == item){
@@ -2151,8 +2230,8 @@ function network_set_fronthaul_info(_node_info){
 					if(cur_ap_unit === ""){
 						cur_ap_unit = ap_list_idx;
 					}
-					if(cur_ap_unit == dwb_info.band){
-						var wl_closed = httpApi.nvramGet(["wl" + dwb_info.band + "_closed"])["wl" + dwb_info.band + "_closed"];
+					if(cur_ap_unit == dwb_band){
+						var wl_closed = httpApi.nvramGet(["wl" + dwb_band + "_closed"])["wl" + dwb_band + "_closed"];
 						if(isSupport("amas_fronthaul_network")){
 							var fh_ap_enabled = httpApi.nvramGet(["fh_ap_enabled"]).fh_ap_enabled;
 							if(fh_ap_enabled == "0"){
@@ -2215,12 +2294,12 @@ function network_set_fronthaul_info(_node_info){
 			if(_ap_info.is_dwb){
 				_obj.find("#bh_info").show();
 				_obj.find("#fh_info").hide();
-				var dwb_hint = "* "+ band_text + ' <#AiMesh_backhaul_band_5GHz-2_desc1#> <#AiMesh_backhaul_band_5GHz-2_desc2#>';
+				const dwb_hint = `* ${band_text} <#AiMesh_backhaul_band_5GHz-2_desc1#> ${(isReNode) ? "" : `<#AiMesh_backhaul_band_5GHz-2_desc2#>`}`;
 				_obj.find("#bh_info #dwb_hint").html(dwb_hint);
 				_obj.find("#bh_info #dwb_hint").find(".faq-link").removeAttr("onclick").click(function(e){
 					e = e || event;
 					e.stopPropagation();
-					change_wl_unit_status(dwb_info.band);
+					change_wl_unit_status(_ap_info.dwb_band);
 				});
 			}
 			else{
@@ -2416,11 +2495,38 @@ function display_manage_block(){
 					if($conn_priority_select_obj.val() == null)//avoiding some value do not exist at select option
 						$conn_priority_select_obj.val(3);
 
-					$conn_priority_select_obj.unbind("change");
-					$conn_priority_select_obj.change(function() {
-						var data = new Object();
-						data.amas_ethernet = $conn_priority_select_obj.val();
-						manage_set_config(data, specific_node_data.mac);
+					let prev_conn_priority = $conn_priority_select_obj.val();
+					$conn_priority_select_obj.unbind("change").change(function() {
+						let new_conn_priority = $conn_priority_select_obj.val();
+						if (new_conn_priority === prev_conn_priority) return;
+						$conn_priority_select_obj.val(prev_conn_priority);
+						setTimeout(()=>{
+							let $aimesh_hint_msg = $("#aimesh_hint_msg");
+							$aimesh_hint_msg
+								.empty()
+								.append(popup_hint_api.get_component_text())
+								.append(popup_hint_api.get_component_action());
+							const node_name_location = get_node_name_w_location(specific_node_data);
+							const hint = `<#AiMesh_PB_Lose_Conn_Hint#> <#AiMesh_PB_Apply_Rule01#>`.replace(/%@/g, node_name_location);
+							$aimesh_hint_msg.find(".hint_text").append($("<div>").html(hint));
+							$aimesh_hint_msg.find("#action_canacl").show().unbind("click").click(function(e){
+								e = e || event;
+								e.stopPropagation();
+								$aimesh_hint_msg.hide();
+							});
+							$aimesh_hint_msg.find("#action_ok").show().unbind("click").click(function(e){
+								e = e || event;
+								e.stopPropagation();
+								$aimesh_hint_msg.hide();
+								$conn_priority_select_obj.val(new_conn_priority);
+								prev_conn_priority = new_conn_priority;
+								let data = new Object();
+								data.amas_ethernet = new_conn_priority;
+								manage_set_config(data, specific_node_data.mac);
+							});
+							$aimesh_hint_msg.show();
+							adjust_panel_block_top("aimesh_hint_msg", 100);
+						}, 0);
 					});
 					if(!select_node_capability.wans_cap_wan){
 						$conn_priority_select_obj.children("option[conn_type='eth']").remove();
@@ -2522,6 +2628,11 @@ function display_manage_block(){
 						"text": "<#NAT_lacp_note#>",
 						"css": "lacp_icon"
 					};
+
+					const bonding_port_settings = get_bonding_ports(specific_node_data.product_id);
+					if(bonding_port_settings.length == 2)
+						hint_parm.text = hint_parm.text.replace(/LAN2/g, bonding_port_settings[1].text).replace(/LAN1/g, bonding_port_settings[0].text);
+
 					$("#manage_block").find(".manage_lacp #lacp_icon").removeClass("hover_pop_hint").addClass("hover_pop_hint");
 					$("#manage_block").find(".manage_lacp #lacp_icon").after(gen_hint_component(hint_parm));
 					if(lacp.value == "1")
@@ -2655,36 +2766,150 @@ function display_manage_block(){
 						$("#manage_block").find(".manage_switch_led .switch").removeClass().addClass("switch");
 						$("#manage_block").find(".manage_switch_led .switch").addClass(led_status);
 						$("#manage_block").find(".manage_switch_led .switch").unbind("click");
-						$("#manage_block").find(".manage_switch_led .switch").click(function(){
-							$("#manage_block").find(".manage_switch_led .switch").toggleClass('off  on');
-							var switch_status = $("#manage_block").find(".manage_switch_led .switch").hasClass("on");
-							if(switch_status){
-								var data = new Object();
-								if(led_control.support == "lp55xx_led"){
-									data.lp55xx_lp5523_user_enable = 0;
-									data.lp55xx_lp5523_user_col = 0;
-									data.lp55xx_lp5523_user_beh = 0;
+						$("#manage_block").find(".manage_switch_led .switch").click(function(e){
+							closeAllPopup();
+							e = e || event;
+							e.stopPropagation();
+							const $switch = $(this);
+							const postData = {};
+							const switchStatus = $switch.hasClass("on") ? "0" : "1" // on->off
+							if (led_control.support === "lp55xx_led") {
+								if (switchStatus === "1") {
+									Object.assign(postData, {
+										lp55xx_lp5523_user_enable: 0,
+										lp55xx_lp5523_user_col: 0,
+										lp55xx_lp5523_user_beh: 0
+									});
+								} else {
+									Object.assign(postData, {
+										lp55xx_lp5523_user_enable: 1,
+										lp55xx_lp5523_user_col: 101,
+										lp55xx_lp5523_user_beh: 300
+									});
 								}
-								else if(led_control.support == "ctrl_led")
-									data.led_val = 1;
-
-								manage_set_config(data, specific_node_data.mac);
+								manage_set_config(postData, specific_node_data.mac);
 							}
-							else{
-								var data = new Object();
-								if(led_control.support == "lp55xx_led"){
-									data.lp55xx_lp5523_user_enable = 1;
-									data.lp55xx_lp5523_user_col = 101;
-									data.lp55xx_lp5523_user_beh = 300;
+							else if (led_control.support === "ctrl_led") {
+								const led_night_mode_control = manage_get_led_night_mode(specific_node_data, select_node_capability);
+								postData.led_val = switchStatus;
+								if (support_system_settings.led) {
+									handleLedSupport(postData, $switch);
+								} else {
+									applyRule(postData, $switch);
 								}
-								else if(led_control.support == "ctrl_led")
-									data.led_val = 0;
 
-								manage_set_config(data, specific_node_data.mac);
+								function handleLedSupport(postData, $switch) {
+									const nodeLedCount = get_node_led_count();
+									if ((nodeLedCount.led_on === 0 && postData.led_val === "1") ||
+									(nodeLedCount.led_on === 1 && postData.led_val === "0")) {
+										showHintMsg(() => applyRule(postData, $switch));
+									} else {
+										applyRule(postData, $switch);
+									}
+								}
+								function showHintMsg(onConfirm) {
+									$("#aimesh_hint_msg").empty().show()
+										.append(popup_hint_api.get_component_text())
+										.append(popup_hint_api.get_component_action());
+									let hintText = led_night_mode_control.support ? `<#AiMesh_System_LED_NM_Hint#>` : `The main switch System LED control will also be toggled.`;/* untranslated */
+									hintText += `<br><#Setting_factorydefault_hint2#>`;
+									$("#aimesh_hint_msg .hint_text").html(hintText);
+									$("#aimesh_hint_msg #action_canacl").show().unbind("click").click(function(e) {
+										e = e || event;
+										e.stopPropagation();
+										$("#aimesh_hint_msg").hide();
+									});
+									$("#aimesh_hint_msg #action_ok").show().unbind("click").click(function(e) {
+										e = e || event;
+										e.stopPropagation();
+										onConfirm();
+										$("#aimesh_hint_msg").hide();
+									});
+									adjust_panel_block_top("aimesh_hint_msg", 100);
+								}
+								function applyRule(postData, $switch) {
+									$switch.hide().toggleClass('off on').after(`<div class='icon_loading'></div>`);
+									setTimeout(function() {
+										$switch.show().next('.icon_loading').remove();
+									}, 1000);
+									manage_set_config(postData, specific_node_data.mac);
+									if (support_system_settings.led_night_mode) {
+										const $manage_switch_led_night_mode = $("#manage_block").find(".manage_switch_led_night_mode");
+										if ($manage_switch_led_night_mode.attr("support_led_night_mode") === "true") {
+											$manage_switch_led_night_mode.toggle(postData.led_val.toString() === "1");
+											if (postData.led_val.toString() === "0" && $manage_switch_led_night_mode.find(".switch").hasClass("on")) {
+												setTimeout(function(){
+													manage_set_config({single_led_night_mode: "0"}, specific_node_data.mac);
+												}, 500);
+											}
+										}
+									}
+								}
 							}
 						});
 						$("#manage_block").find(".manage_switch_led").show();
 						break;
+				}
+
+				const $manage_switch_led_night_mode = $("#manage_block").find(".manage_switch_led_night_mode").hide().removeAttr("support_led_night_mode");
+				if(led_control.support === "ctrl_led"){
+					const led_night_mode_control = manage_get_led_night_mode(specific_node_data, select_node_capability);
+					if(led_night_mode_control.support){
+						const switchClass = led_night_mode_control.value === "1" ? "on" : "off";
+						$manage_switch_led_night_mode.attr({"support_led_night_mode": "true"}).find(".switch").removeClass().addClass(`switch ${switchClass}`)
+							.unbind("click").click(function(e){
+								closeAllPopup();
+								e = e || event;
+								e.stopPropagation();
+								const $switch = $(this);
+								const postData = {
+									single_led_night_mode: $switch.hasClass("on") ? "0" : "1" // on->off
+								};
+								if (support_system_settings.led_night_mode) {
+									handleLedNightModeSupport(postData, $switch);
+								} else {
+									applyRule(postData, $switch);
+								}
+							});
+						if(led_control.value.toString() === "1"){
+							$manage_switch_led_night_mode.show();
+						}
+
+						function handleLedNightModeSupport(postData, $switch) {
+							const nodeLedCount = get_node_led_count();
+							if ((nodeLedCount.led_night_mode_on === 0 && postData.single_led_night_mode === "1") ||
+								(nodeLedCount.led_night_mode_on === 1 && postData.single_led_night_mode === "0")) {
+								showHintMsg(() => applyRule(postData, $switch));
+							} else {
+								applyRule(postData, $switch);
+							}
+						}
+						function showHintMsg(onConfirm) {
+							$("#aimesh_hint_msg").empty().show()
+								.append(popup_hint_api.get_component_text())
+								.append(popup_hint_api.get_component_action());
+							$("#aimesh_hint_msg .hint_text").html(`<#AiMesh_System_LED_NM_Hint#><br><#Setting_factorydefault_hint2#>`);
+							$("#aimesh_hint_msg #action_canacl").show().unbind("click").click(function(e) {
+								e = e || event;
+								e.stopPropagation();
+								$("#aimesh_hint_msg").hide();
+							});
+							$("#aimesh_hint_msg #action_ok").show().unbind("click").click(function(e) {
+								e = e || event;
+								e.stopPropagation();
+								onConfirm();
+								$("#aimesh_hint_msg").hide();
+							});
+							adjust_panel_block_top("aimesh_hint_msg", 100);
+						}
+						function applyRule(postData, $switch) {
+							$switch.hide().toggleClass('off on').after(`<div class='icon_loading'></div>`);
+							setTimeout(function() {
+								$switch.show().next('.icon_loading').remove();
+							}, 1000);
+							manage_set_config(postData, specific_node_data.mac);
+						}
+					}
 				}
 
 				var wifi_radio_control = manage_get_wifi_radio_control(specific_node_data, select_node_capability);
@@ -2780,21 +3005,151 @@ function display_manage_block(){
 		}
 		else{
 			$("#manage_block").find(".manage_disconnected, .manage_function_item").hide();
-			if(isSupport("led_ctrl_cap")){
-				$("#manage_block").find(".manage_switch_led").show();
-				var led_status = (httpApi.nvramGet(["led_val"]).led_val == 1) ? "on" : "off";
-				$("#manage_block").find(".manage_switch_led .switch").removeClass().addClass("switch " + led_status + "")
-					.unbind("click").click(function(){
-						$("#manage_block").find(".manage_switch_led .switch").toggleClass('off  on');
-						var switch_status = ($(this).hasClass("on")) ? "1" : "0";
-						httpApi.nvramSet({
-							"led_val": switch_status,
-							"rc_service": "ctrl_led",
-							"action_mode": "apply"
-						}, function(){
+			const led_control = manage_get_led_control(specific_node_data, select_node_capability);
+			const $manage_switch_led = $("#manage_block").find(".manage_switch_led").hide();
+			if(led_control.support === "ctrl_led"){
+				const led_night_mode_control = manage_get_led_night_mode(specific_node_data, select_node_capability);
+				const switchClass = led_control.value === "1" ? "on" : "off";
+				$manage_switch_led.show().find(".switch").removeClass().addClass(`switch ${switchClass}`)
+					.unbind("click").click(function(e) {
+						closeAllPopup();
+						e = e || event;
+						e.stopPropagation();
+						const $switch = $(this);
+						const postData = {
+							led_val: $switch.hasClass("on") ? "0" : "1" // on->off
+						};
+						if (support_system_settings.led) {
+							handleLedSupport(postData, $switch);
+						} else {
+							applyRule(postData, $switch);
+						}
+					});
+
+				function handleLedSupport(postData, $switch) {
+					const nodeLedCount = get_node_led_count();
+					if ((nodeLedCount.led_on === 0 && postData.led_val === "1") ||
+					(nodeLedCount.led_on === 1 && postData.led_val === "0")) {
+						showHintMsg(() => applyRule(postData, $switch));
+					} else {
+						applyRule(postData, $switch);
+					}
+				}
+				function showHintMsg(onConfirm) {
+					$("#aimesh_hint_msg").empty().show()
+						.append(popup_hint_api.get_component_text())
+						.append(popup_hint_api.get_component_action());
+					let hintText = led_night_mode_control.support ? `<#AiMesh_System_LED_NM_Hint#>` : `The main switch System LED control will also be toggled.`;/* untranslated */
+					hintText += `<br><#Setting_factorydefault_hint2#>`;
+					$("#aimesh_hint_msg .hint_text").html(hintText);
+					$("#aimesh_hint_msg #action_canacl").show().unbind("click").click(function(e) {
+						e = e || event;
+						e.stopPropagation();
+						$("#aimesh_hint_msg").hide();
+					});
+					$("#aimesh_hint_msg #action_ok").show().unbind("click").click(function(e) {
+						e = e || event;
+						e.stopPropagation();
+						onConfirm();
+						$("#aimesh_hint_msg").hide();
+					});
+					adjust_panel_block_top("aimesh_hint_msg", 100);
+				}
+				function applyRule(postData, $switch) {
+					$switch.hide().toggleClass('off on').after(`<div class='icon_loading'></div>`);
+					setTimeout(function() {
+						$switch.show().next('.icon_loading').remove();
+					}, 1000);
+					if (support_system_settings.led) {
+						manage_set_config(postData, specific_node_data.mac);
+					} else {
+						postData.rc_service = "ctrl_led";
+						postData.action_mode = "apply";
+						httpApi.nvramSet(postData, function() {
 							httpApi.nvramGet(["led_val"], true);
 						});
-				});
+					}
+					if (support_system_settings.led_night_mode) {
+						const $manage_switch_led_night_mode = $("#manage_block").find(".manage_switch_led_night_mode");
+						if ($manage_switch_led_night_mode.attr("support_led_night_mode") === "true") {
+							$manage_switch_led_night_mode.toggle(postData.led_val.toString() === "1");
+							if (postData.led_val.toString() === "0" && $manage_switch_led_night_mode.find(".switch").hasClass("on")) {
+								setTimeout(function(){
+									manage_set_config({single_led_night_mode: "0"}, specific_node_data.mac);
+								}, 500);
+							}
+						}
+					}
+				}
+			}
+
+			const $manage_switch_led_night_mode = $("#manage_block").find(".manage_switch_led_night_mode").hide().removeAttr("support_led_night_mode");
+			if(led_control.support === "ctrl_led"){
+				const led_night_mode_control = manage_get_led_night_mode(specific_node_data, select_node_capability);
+				if(led_night_mode_control.support){
+					const switchClass = led_night_mode_control.value === "1" ? "on" : "off";
+					$manage_switch_led_night_mode.attr({"support_led_night_mode": "true"}).find(".switch").removeClass().addClass(`switch ${switchClass}`)
+						.unbind("click").click(function(e) {
+							closeAllPopup();
+							e = e || event;
+							e.stopPropagation();
+							const $switch = $(this);
+							const postData = {
+								single_led_night_mode: $switch.hasClass("on") ? "0" : "1" // on->off
+							};
+							if (support_system_settings.led_night_mode) {
+								handleLedNightModeSupport(postData, $switch);
+							} else {
+								applyRule(postData, $switch);
+							}
+						});
+					if(led_control.value.toString() === "1"){
+						$manage_switch_led_night_mode.show();
+					}
+
+					function handleLedNightModeSupport(postData, $switch) {
+						const nodeLedCount = get_node_led_count();
+						if ((nodeLedCount.led_night_mode_on === 0 && postData.single_led_night_mode === "1") ||
+							(nodeLedCount.led_night_mode_on === 1 && postData.single_led_night_mode === "0")) {
+							showHintMsg(() => applyRule(postData, $switch));
+						} else {
+							applyRule(postData, $switch);
+						}
+					}
+					function showHintMsg(onConfirm) {
+						$("#aimesh_hint_msg").empty().show()
+							.append(popup_hint_api.get_component_text())
+							.append(popup_hint_api.get_component_action());
+						$("#aimesh_hint_msg .hint_text").html(`<#AiMesh_System_LED_NM_Hint#><br><#Setting_factorydefault_hint2#>`);
+						$("#aimesh_hint_msg #action_canacl").show().unbind("click").click(function(e) {
+							e = e || event;
+							e.stopPropagation();
+							$("#aimesh_hint_msg").hide();
+						});
+						$("#aimesh_hint_msg #action_ok").show().unbind("click").click(function(e) {
+							e = e || event;
+							e.stopPropagation();
+							onConfirm();
+							$("#aimesh_hint_msg").hide();
+						});
+						adjust_panel_block_top("aimesh_hint_msg", 100);
+					}
+					function applyRule(postData, $switch) {
+						$switch.hide().toggleClass('off on').after(`<div class='icon_loading'></div>`);
+						setTimeout(function() {
+							$switch.show().next('.icon_loading').remove();
+						}, 1000);
+
+						if (support_system_settings.led) {
+							manage_set_config(postData, specific_node_data.mac);
+						} else {
+							postData.action_mode = "apply";
+							httpApi.nvramSet(postData, function() {
+								httpApi.nvramGet(["single_led_night_mode"], true);
+							});
+						}
+					}
+				}
 			}
 		}
 	}
@@ -2802,33 +3157,68 @@ function display_manage_block(){
 		$("#manage_block").hide();
 }
 function manage_get_led_control(_node_info, _node_capability){
-	var result = {"support": 0, "value": 0};
-	if(_node_capability.central_led) {
-		result.support = "central_led";
-		if("config" in _node_info) {//led value
-			if("central_led" in _node_info.config) {
-				if("bc_ledLv" in _node_info.config.central_led)
-					result.value = parseInt(_node_info.config.central_led.bc_ledLv);
+	const isReNode = (current_click_mac != cap_mac) ? true : false;
+	let result = {"support": "0", "value": "0"};
+	if(isReNode){
+		if(_node_capability.central_led) {
+			result.support = "central_led";
+			if("config" in _node_info) {//led value
+				if("central_led" in _node_info.config) {
+					if("bc_ledLv" in _node_info.config.central_led)
+						result.value = parseInt(_node_info.config.central_led.bc_ledLv);
+				}
+			}
+		}
+		else if(_node_capability.lp55xx_led) {
+			result.support = "lp55xx_led";
+			if("lp55xx_led" in _node_info.config) {
+				if("lp55xx_lp5523_user_enable" in _node_info.config.lp55xx_led)
+					result.value = parseInt(_node_info.config.lp55xx_led.lp55xx_lp5523_user_enable);
+			}
+		}
+		else if(_node_capability.led_on_off) {
+			result.support = "ctrl_led";
+			if("ctrl_led" in _node_info.config) {
+				if("led_val" in _node_info.config.ctrl_led)
+					result.value = parseInt(_node_info.config.ctrl_led.led_val);
 			}
 		}
 	}
-	else if(_node_capability.lp55xx_led) {
-		result.support = "lp55xx_led";
-		if("lp55xx_led" in _node_info.config) {
-			if("lp55xx_lp5523_user_enable" in _node_info.config.lp55xx_led)
-				result.value = parseInt(_node_info.config.lp55xx_led.lp55xx_lp5523_user_enable);
+	else{
+		if(isSupport("led_ctrl_cap")){
+			result.support = "ctrl_led";
+			if(support_system_settings.led){
+				result.value = _node_info.config.ctrl_led.led_val;
+			}
+			else{
+				result.value = httpApi.nvramGet(["led_val"]).led_val;
+			}
 		}
 	}
-	else if(_node_capability.led_on_off) {
-		result.support = "ctrl_led";
-		if("ctrl_led" in _node_info.config) {
-			if("led_val" in _node_info.config.ctrl_led)
-				result.value = parseInt(_node_info.config.ctrl_led.led_val);
+	result.value = result.value === "" || isNaN(result.value) ? "0" : result.value;
+	return result;
+}
+function manage_get_led_night_mode(_node_info, _node_capability){
+	const isReNode = (current_click_mac != cap_mac) ? true : false;
+	let result = {"support": false, "value": "0"};
+	if(isReNode){
+		if(_node_capability.led_night_mode && _node_info.config?.misc?.single_led_night_mode){
+			result.support = true;
+			result.value = _node_info.config.misc.single_led_night_mode;
 		}
 	}
-	if(isNaN(result.value))
-		result.value = 0;
-
+	else{
+		if(isSupport("led_night_mode")){
+			result.support = true;
+			if(support_system_settings.led_night_mode){
+				result.value = _node_info.config.misc.single_led_night_mode;
+			}
+			else{
+				result.value = httpApi.nvramGet(["single_led_night_mode"]).single_led_night_mode;
+			}
+		}
+	}
+	result.value = result.value === "" || isNaN(result.value) ? "0" : result.value;
 	return result;
 }
 function manage_get_connection_priority(_node_info){
@@ -2864,13 +3254,9 @@ function manage_get_wifi_radio_control(_node_info, _node_capability){
 					ap_name = "ap2g";
 					break;
 				case "1":
-					wifi_radio_ctl_idx = "1";
-					wl_band_text = "5 GHz";
-					ap_name = "ap5g";
-					break;
 				case "2":
 					wifi_radio_ctl_idx = "1";
-					wl_band_text = "5 GHz-1";
+					wl_band_text = (index == "1") ? "5 GHz" : "5 GHz-1";
 					ap_name = "ap5g";
 					break;
 				case "3":
@@ -2879,9 +3265,15 @@ function manage_get_wifi_radio_control(_node_info, _node_capability){
 					ap_name = "ap5g1";
 					break;
 				case "4":
+				case "5":
 					wifi_radio_ctl_idx = "3";
-					wl_band_text = "6 GHz";
+					wl_band_text = (index == "4") ? "6 GHz" : "6 GHz-1";
 					ap_name = "ap6g";
+					break;
+				case "6":
+					wifi_radio_ctl_idx = "4";
+					wl_band_text = "6 GHz-2";
+					ap_name = "ap6g1";
 					break;
 			}
 			if(_node_capability["wifi_radio_" + wifi_radio_ctl_idx + ""]) {
@@ -2902,8 +3294,8 @@ function manage_get_wifi_radio_control(_node_info, _node_capability){
 		});
 	}
 	else{
-		var cfg_clientlist_ap_list = ["ap2g", "ap5g", "ap5g1", "ap6g"];
-		var wl_if = [0, 1, 2, 3];
+		var cfg_clientlist_ap_list = ["ap2g", "ap5g", "ap5g1", "ap6g", "ap6g1"];
+		var wl_if = [0, 1, 2, 3, 4];
 		if(_node_capability.wifi_radio) {
 			var set_wl_if_obj = function(_wl_if){
 				if(_node_capability["wifi_radio_" + _wl_if + ""]) {
@@ -3023,8 +3415,7 @@ function manage_set_reconnect_control(_node_info){
 	}
 
 	if(show_eth_backhaul_hint){
-		var hint = "Currently your AiMesh system is built with hardwired connection. This function helps to optimize your network only when using a wireless connection.";/* untranslated */
-		show_hint(hint);
+		show_hint(`<#AiMesh_Ethernet_Backhaul_Connect_Hint#>`);
 		re_reconnect_flag = "";
 		return false;
 	}
@@ -3070,10 +3461,16 @@ function manage_set_reconnect_control(_node_info){
 								}
 							});
 							var $node_icon_comp = $("#" + id + " .jstree-icon");
-							if($node_icon_comp.find(".cssload-bellContainer").length == 0){
-								$node_icon_comp.append(popup_hint_api.get_component_loading())
-									.find(".cssload-bellContainer").addClass("topology_node")
-									.find(".cssload-bell").addClass("topology_node");
+							if($node_icon_comp.hasClass('cloud_product_icon')){
+								$node_icon_comp.find(".cssload-bellContainer").empty();
+								$node_icon_comp.find('.product_icon_container').addClass('optimize');
+							}
+							else{
+								if($node_icon_comp.find(".cssload-bellContainer").length == 0){
+									$node_icon_comp.append(popup_hint_api.get_component_loading())
+										.find(".cssload-bellContainer").addClass("topology_node")
+										.find(".cssload-bell").addClass("topology_node");
+								}
 							}
 						}
 						else{
@@ -3191,7 +3588,7 @@ function manage_get_preferable_backhaul(_node_info){
 					return (item.mac == result.pref_mac);
 				})[0];
 				if(specific_node_data != undefined){
-					result.text = handle_ui_model_name(specific_node_data.model_name, specific_node_data.ui_model_name);
+					result.text = get_node_name_w_location(specific_node_data);
 					result.pref_node_exist = true;
 				}
 			}
@@ -3205,8 +3602,7 @@ function manage_set_preferable_backhaul(_node_info, _pref_info){
 	$("#aimesh_hint_msg").append(popup_hint_api.get_component_text());
 	$("#aimesh_hint_msg").append(popup_hint_api.get_component_action());
 
-	var node_location_info = transform_location(_node_info.mac, _node_info);
-	var node_name_location = handle_ui_model_name(_node_info.model_name, _node_info.ui_model_name) + " (" + node_location_info.location_text + ")";
+	const node_name_location = get_node_name_w_location(_node_info);
 
 	if(isSupport("amas_eap")){
 		var amas_eap_bhmode = httpApi.nvramGet(["amas_eap_bhmode"]).amas_eap_bhmode;
@@ -3359,9 +3755,8 @@ function manage_set_preferable_backhaul(_node_info, _pref_info){
 			if(target_mac == "")
 				$("#aimesh_hint_msg .hint_text").append($("<div>").html("<#AiMesh_PB_AP_Auto#>"));
 			else{
-				var re = /#MODELNAME/g;
-				var str = "Your #MODELNAME and its end devices will lose connection temporarily. <#AiMesh_PB_Apply_Rule01#> <#AiMesh_PB_Apply_Rule02#>";/* untranslated */
-				var hint = str.replace(re, node_name_location);
+				const node_name_location = get_node_name_w_location(_node_info);
+				const hint = `<#AiMesh_PB_Lose_Conn_Hint#> <#AiMesh_PB_Apply_Rule01#> <#AiMesh_PB_Apply_Rule02#>`.replace(/%@/g, node_name_location).replace(/#MODELNAME/g, node_name_location);
 				$("#aimesh_hint_msg .hint_text").append($("<div>").html(hint));
 			}
 			$("#aimesh_hint_msg #action_canacl").hide();
@@ -3378,7 +3773,6 @@ function manage_set_preferable_backhaul(_node_info, _pref_info){
 	$("#aimesh_hint_msg").show();
 	adjust_panel_block_top("aimesh_hint_msg", 100);
 }
-var cloudRouterIconCheckCache = new Array();
 function cloud_router_icon_set(_image_url){
 	$(".primary_info_bg").find(".model_icon").removeClass("web");
 	if(_image_url != ""){
@@ -3408,18 +3802,27 @@ function cloud_router_icon_get(_model_info) {
 			}
 		);
 	}
+	else{
+		cloud_router_icon_set(cloudRouterIconCheckCache[cloudModelName]);
+	}
 }
 
+var iperf_server = '';
 function set_primary_info(_node_info){
 	var model_name = _node_info.model_name;
 	var ui_model_name = _node_info.ui_model_name;
 	var mac = _node_info.mac;
 	var node_location_text = "Home";
 	var fwver = _node_info.fwver;
+	if (_check_is_merlin_fw(fwver))
+		fwver = fwver.replace(/^(\d+)\.(\d+)\.(\d+).(\d+)\./, "$1$2$3$4.").replace("_0","");
 	var newfwver = _node_info.newfwver;
+	if (_check_is_merlin_fw(newfwver))
+		newfwver = newfwver.replace(/^(\d+)\.(\d+)\.(\d+).(\d+)\./, "$1$2$3$4.").replace("_0","");
 	var re_path = _node_info.re_path;
 	var alias = _node_info.alias;
 	var tcode = _node_info.tcode;
+	iperf_server = _node_info.mac;
 	$(".primary_info_bg").find("#model_name").empty().append($("<span>").html(handle_ui_model_name(model_name, ui_model_name)));
 	if(node_not_support_feature[mac].length > 0) {
 		var $node_feature_notice = $("<span>").addClass("node_feature_notice hover_pop_hint").appendTo($(".primary_info_bg").find("#model_name"));
@@ -3651,7 +4054,7 @@ function update_model_icon(_node_info){
 	set_change_model_icon(_node_info);
 }
 var transform_band_index = function(_bandNum){
-	return ((Math.pow(2,_bandNum)) - 1).toString();
+	return "15";
 }
 var transform_sta_bind_json_to_string = function(_sta_bind_json){
 	var result = "";
@@ -3669,7 +4072,7 @@ var transform_sta_bind_json_to_string = function(_sta_bind_json){
 					result += "|";
 				result += client;
 				result += ",";
-				result += client_bind_list[client]["band_index"];
+				result += "15";
 				count++;
 			}
 		}
@@ -3738,7 +4141,7 @@ function get_topology_data(){
 				parent = cap_mac;
 
 			if(parent != "#")
-				parent = "topo_" + parent.replace(/:/g, '-');;
+				parent = "topo_" + parent.replace(/:/g, '-');
 
 			var node_data = { "id" : id, "parent" : parent };
 			treeTopology.push(node_data);
@@ -3749,22 +4152,39 @@ function get_topology_data(){
 function change_node(_node_info){
 	var isReNode = (_node_info.mac != cap_mac) ? true : false;
 	var hide_manage = true;
+	var hide_iperf = !isSupport("cd_iperf");
+
 	if(isReNode || isSupport("led_ctrl_cap"))
 		hide_manage = false;
 
-	if(hide_manage){
+	if(hide_manage && hide_iperf){
 		$("#manage").hide();
+		$("#iperf").hide();
 		$(".category_bg").css({"width": "50%"});
+	}
+	else if(!hide_manage && hide_iperf){
+		$("#manage").show();
+		$("#iperf").hide();
+		$(".category_bg").css({"width": "33.3%"});
+	}
+	else if(hide_manage && !hide_iperf){
+		$("#manage").hide();
+		$("#iperf").show();
+		$(".category_bg").css({"width": "33.3%"});
 	}
 	else{
 		$("#manage").show();
-		$(".category_bg").css({"width": "33.3%"});
+		$("#iperf").show();
+		$(".category_bg").css({"width": "25%"});
 	}
 
 	select_node_capability = httpApi.aimesh_get_node_capability(_node_info);
 	set_primary_info(_node_info);
-	if(hide_manage && (current_click_tab == "manage"))
+	if(hide_manage && (current_click_tab == "manage")
+	|| hide_iperf && (current_click_tab == "iperf")){
 		current_click_tab = "client";
+	}
+		
 	control_category_block(current_click_tab);
 }
 function jstree_re_draw_connect_line(){
@@ -3795,11 +4215,12 @@ function jstree_refresh(){
 	$("#jstree").jstree("open_all");
 	jstree_re_draw_connect_line();
 	aimesh_introduction_control();
+	$('#jstree').css("overflow-x", jstree_show_scroll() ? "auto" : "initial");
 }
 function jstree_select_cap(_reset_mac){
 	var count = 0;
 	var interval_check = setInterval(function(){
-		var get_cfg_clientlist = httpApi.hookGet("get_cfg_clientlist", true);
+		var get_cfg_clientlist = httpApi.hookGet("get_cfg_clientlist");
 		var specific_node_data = get_cfg_clientlist.filter(function(item, index, _array){
 			return (item.mac == _reset_mac);
 		})[0];
@@ -3816,6 +4237,24 @@ function jstree_select_cap(_reset_mac){
 		}
 	}, 1000);
 }
+function jstree_show_scroll(){
+	const $jstree = $('#jstree').find("*");
+	const level_greater_3 = $jstree.filter(function() {
+		return parseInt($(this).attr('aria-level'), 10) > 3;
+	}).length > 0;
+
+	let model_name_is_long = false;
+	const level_is_3 = $jstree.filter(function() {
+		return parseInt($(this).attr('aria-level'), 10) == 3;
+	});
+	level_is_3.each(function(){
+		if($(this).find("[data-component='model_name']").html().length > 18){
+			model_name_is_long = true;
+			return false;
+		}
+	});
+	return level_greater_3 || model_name_is_long;
+}
 var interval_tree_update = false;
 var interval_tree_update_time = 1000*10;
 var interval_tree_update_count = 0;
@@ -3828,16 +4267,86 @@ var select_node_capability = {};
 var node_not_support_feature = [];
 var all_node_is_eth_backhaul = true;
 var jstree_load_ready = false;
+const support_system_settings = {"led": false, "led_night_mode": false};
+let uiModelNameCloud = (()=>{
+	const storedData = window.localStorage.getItem('uiModelNameJson');
+	if (storedData) {
+		return JSON.parse(storedData);
+	}
+	else {
+		return {};
+	}
+})();
+function update_node_ui_model_name(nodeList){
+	if (!Array.isArray(nodeList)) return;
+	let lang = httpApi.nvramGet(["preferred_lang"]).preferred_lang;
+	for (let node of nodeList){
+		let model_name = node["model_name"];
+		let cobrand = httpApi.aimesh_get_misc_info(node).cobrand;
+		const uiModelName = findUIModelName({
+			"model": model_name,
+			"lang": lang,
+			"coBrand": cobrand,
+		});
+		if (uiModelName) {
+			node["ui_model_name"] = uiModelName;
+		}
+	}
 
+	function findUIModelName(params) {
+		if (!params) {
+			return "";
+		}
+		const { model, lang, coBrand } = params;
+		if (!model) {
+			return "";
+		}
+		if (!uiModelNameCloud[model]) return "";
+
+		let defaultLang = null;
+		let defaultCoBrand = null;
+
+		for (let item of uiModelNameCloud[model]) {
+			if (item.lang === lang && item.CoBrand === coBrand) {
+				return item.uiModelName;
+			}
+			if (item.lang === "*" && item.CoBrand === coBrand) {
+				defaultLang = item.uiModelName;
+			}
+			if (item.lang === lang && item.CoBrand === "*") {
+				defaultCoBrand = item.uiModelName;
+			}
+			if (item.lang === "*" && item.CoBrand === "*") {
+				defaultLang = item.uiModelName;
+			}
+		}
+
+		if (defaultCoBrand) {
+			return defaultCoBrand;
+		}
+
+		if (defaultLang) {
+			return defaultLang;
+		}
+
+		return "";
+	}
+}
 function initial_AiMesh(){
 	$("#opt_ADS_status_container").hide();
 	clearInterval(interval_tree_update);
 	aimesh_data.cfg_clientlist = httpApi.hookGet("get_cfg_clientlist");
+	update_node_ui_model_name(aimesh_data.cfg_clientlist);
 	var cap_obj = aimesh_data.cfg_clientlist[0];//cap
 	if(cap_obj != undefined){
 		gen_custom_select("Home");
 		current_click_mac = cap_obj.mac;
 		cap_mac = cap_obj.mac;
+		const node_capability = httpApi.aimesh_get_node_capability(cap_obj);
+		if(node_capability?.central_led_on_off){
+			support_system_settings.led = cap_obj?.config?.ctrl_led?.led_val !== undefined;
+			support_system_settings.led_night_mode = cap_obj?.config?.misc?.single_led_night_mode !== undefined;
+		}
 	}
 	else
 		$(".aimesh_bg").hide();
@@ -3940,16 +4449,45 @@ function initial_AiMesh(){
 
 				var node_location_info = transform_location(node_mac, specific_node_data);
 				$node_icon.addClass("topology_icon");
+				if(top.webWrapper){
+					let model_info = {
+						"model_name": specific_node_data.model_name,
+						"tcode": specific_node_data.tcode,
+						"cobrand": httpApi.aimesh_get_misc_info(specific_node_data).cobrand,
+						"icon_model_name": (()=>{
+							if(specific_node_data.icon_model_name != undefined && specific_node_data.icon_model_name != "")
+								return specific_node_data.icon_model_name;
+							else
+								return "";
+						})()
+					};
+					model_info.cloud_model_name = httpApi.transformCloudModelName(model_info);
+					if(cloudRouterIconCheckCache[model_info.cloud_model_name] == undefined)
+						cloudRouterIconCheckCache[model_info.cloud_model_name] = false;
+
+					const model_image_src = cloudRouterIconCheckCache[model_info.cloud_model_name];
+					if(!model_image_src){
+						httpApi.checkCloudModelIcon(
+							model_info,
+							function(src){
+								cloudRouterIconCheckCache[model_info.cloud_model_name] = src;
+								$node_icon.addClass('cloud_product_icon');
+								let $product_icon_cntr = $('<div>').addClass('product_icon_container').appendTo($node_icon);
+								$('<div>').addClass('product_icon').css({'background-image': 'url(' + src + ')'}).appendTo($product_icon_cntr);
+								update_optimize_status();
+							}
+						);
+					}
+					else{
+						$node_icon.addClass('cloud_product_icon');
+						let $product_icon_cntr = $('<div>').addClass('product_icon_container').appendTo($node_icon);
+						$('<div>').addClass('product_icon').css({'background-image': 'url(' + model_image_src + ')'}).appendTo($product_icon_cntr);
+					}
+				}
 
 				$node_icon.addClass(node_location_info.location_active_css);//node location icon
-				if(node.parent != "#" && re_reconnect_flag != "" && node_online == "0" && (re_reconnect_flag == "all" || re_reconnect_flag == node_mac)){
-					$node_icon.append(popup_hint_api.get_component_loading());
-					$node_icon.find(".cssload-bellContainer").addClass("topology_node");
-					$node_icon.find(".cssload-bell").addClass("topology_node");
-				}
-				else
-					$node_icon.find(".cssload-bellContainer").empty();
-				
+				update_optimize_status();
+
 				$node_connect_type.css("margin-left", ( (($(el).find("[aria-level]").attr("aria-level")-1)*60) + "px") );//node margin-left
 				
 				$(el).addClass("level_" + $(el).find("[aria-level]").attr("aria-level") + "");
@@ -3964,7 +4502,7 @@ function initial_AiMesh(){
 				$node_info_bg.addClass("topology_node_info");
 				var $model_name_bg = $("<div>");
 				$model_name_bg.appendTo($node_info_bg);
-				var $model_name = $("<span>");
+				var $model_name = $("<span>").attr({"data-component":"model_name"});
 				$model_name.appendTo($model_name_bg);
 				$model_name.html(handle_ui_model_name(specific_node_data.model_name, specific_node_data.ui_model_name));
 
@@ -3989,7 +4527,11 @@ function initial_AiMesh(){
 					var amas_eap_bhmode = httpApi.nvramGet(["amas_eap_bhmode"]).amas_eap_bhmode;
 					if(amas_eap_bhmode != "0" && amas_eap_bhmode != "") {
 						var node_capability = httpApi.aimesh_get_node_capability(specific_node_data);
-						if(!node_capability.ethernet_backhaul_mode) {
+						const support_eap = (()=>{
+							const is_no_wifi = (specific_node_data.band_num != undefined) ? (specific_node_data.band_num == "0" ? true : false) : false;
+							return (node_capability.ethernet_backhaul_mode || is_no_wifi);
+						})();
+						if(!support_eap) {
 							node_not_support_feature[node_mac].push("<#AiMesh_Ethernet_Backhaul_Mode#>");
 							$model_name.addClass("node_feature_notice");
 						}
@@ -4014,10 +4556,28 @@ function initial_AiMesh(){
 					$client_num.addClass("bind_notice");
 				$client_num.appendTo($client_num_bg);
 				$node_icon.after($node_info_bg);
+
+				function update_optimize_status(){
+					if(node.parent != "#" && re_reconnect_flag != "" && node_online == "0" && (re_reconnect_flag == "all" || re_reconnect_flag == node_mac)){
+						if($node_icon.hasClass('cloud_product_icon')){
+							$node_icon.find(".cssload-bellContainer").empty();
+							$node_icon.find('.product_icon_container').addClass('optimize');
+						}
+						else{
+							$node_icon.append(popup_hint_api.get_component_loading());
+							$node_icon.find(".cssload-bellContainer").addClass("topology_node");
+							$node_icon.find(".cssload-bell").addClass("topology_node");
+						}
+					}
+					else{
+						$node_icon.find('.product_icon_container').removeClass('optimize');
+						$node_icon.find(".cssload-bellContainer").empty();
+					}
+				}
 			}
 		}
 	});
-	$('#jstree').on("select_node.jstree", function (e, data) {
+	$('#jstree').on("select_node.jstree", function (e, data) {		
 		var node_mac = data.node.id.replace("topo_", "").replace(/-/g, ':');
 		current_click_mac = node_mac;
 		var specific_node_data = aimesh_data.cfg_clientlist.filter(function(item, index, _array){
@@ -4036,6 +4596,7 @@ function initial_AiMesh(){
 		aimesh_introduction_control();
 		jstree_load_ready = true;
 		$('#jstree').jstree('select_node', "topo_" + current_click_mac.replace(/:/g, '-'));
+		$('#jstree').css("overflow-x", jstree_show_scroll() ? "auto" : "initial");
 		setTimeout(function() {
 			client_get_client_date();
 			$('#jstree').jstree().refresh();
@@ -4047,8 +4608,11 @@ function initial_AiMesh(){
 		}, 5000);
 	});
 
-	$(".connect_line_info_icon").unbind("click");
-	$(".connect_line_info_icon").click(function(e){
+	$(".faq_info_icon").unbind("click");
+	if(top.webWrapper){
+		$(".faq_info_icon").addClass("business");
+	}
+	$(".faq_info_icon").click(function(e){
 		closeAllSelect();
 		e = e || event;
 		e.stopPropagation();
@@ -4069,21 +4633,36 @@ function initial_AiMesh(){
 		$connect_line_info_bg.append(gen_line_info("wired", "weak", "<#AiMesh_Topology_Line_Wired_Normal#>"));
 		$connect_line_info_bg.append(gen_line_info("wireless", "great", "<#AiMesh_Topology_Line_WiFi_Great#>"));
 		$connect_line_info_bg.append(gen_line_info("wireless", "weak", "<#AiMesh_Topology_Line_WiFi_Weak#>"));
-		$connect_line_info_bg.append(gen_line_info("plc", "great", "<#AiMesh_Topology_PowerLine_Great#>"));
-		$connect_line_info_bg.append(gen_line_info("plc", "weak", "<#AiMesh_Topology_PowerLine_Weak#>"));
-		$connect_line_info_bg.append(gen_line_info("moca", "great", "MoCA connection with good signal quality"));/* untranslated */
-		$connect_line_info_bg.append(gen_line_info("moca", "weak", "MoCA connection with weak signal quality"));/* untranslated */
+		$connect_line_info_bg.append(gen_line_info("plc", "great", stringSafeGet("<#AiMesh_Topology_PowerLine_Great#>")));
+		$connect_line_info_bg.append(gen_line_info("plc", "weak", stringSafeGet("<#AiMesh_Topology_PowerLine_Weak#>")));
+		$connect_line_info_bg.append(gen_line_info("moca", "great", stringSafeGet("<#AiMesh_Topology_Moca_Great#>")));
+		$connect_line_info_bg.append(gen_line_info("moca", "weak", stringSafeGet("<#AiMesh_Topology_Moca_Weak#>")));
 		$connect_line_info_bg.append(gen_line_info("", "disconnected", "<#Disconnected#>"));
-		var $faq = $("<div>");
-		$faq.addClass("faq_bg");
-		var faq_text = "<#AiMesh_Topology_FAQ#>";
-		faq_text += "<br>";
-		faq_text += "<a id='connect_line_info_faq' href='' target='_blank' class='text_link'>FAQ.</a>";
+		const $faq = $("<div>").addClass("faq_bg");
+		const faq_text = `
+			<#AiMesh_Topology_FAQ#>
+			<br>
+			For instructions on setting up the AiMesh system, please refer to this <a id='connect_line_info_faq'>FAQ</a>.
+		`;
 		$faq.html(faq_text);
 		$connect_line_info_bg.append($faq);
-		$("#aimesh_hint_msg").empty().append(popup_hint_api.get_component_text()).append(popup_hint_api.get_component_action());
+		$("#aimesh_hint_msg").empty().append(popup_hint_api.get_component_title()).append(popup_hint_api.get_component_text()).append(popup_hint_api.get_component_action());
+		$("#aimesh_hint_msg .hint_title").html(`<#NewFeatureAbout#>`);
 		$("#aimesh_hint_msg .hint_text").html($connect_line_info_bg).promise().done(function(){
-			$("#aimesh_hint_msg .hint_text #connect_line_info_faq").attr("href", faq_href2);
+			$("#Intro_AiMesh, #connect_line_info_faq").each(function(){
+				this.style.setProperty("color", "#006ce1", "important");
+				this.style.setProperty("text-decoration", "underline", "important");
+				this.setAttribute("rel", "noopener noreferrer");
+				this.setAttribute("target", "_blank");
+			});
+			$("#Intro_AiMesh").attr({
+				"href": faq_href2,
+				"aria-label": `<#AiMesh_Topology_FAQ_old#>`
+			})
+			$("#aimesh_hint_msg .hint_text #connect_line_info_faq").attr({
+				"href": faq_href3,
+				"aria-label": `For instructions on setting up the AiMesh system, please refer to this FAQ.`
+			});
 		});
 		$("#aimesh_hint_msg #action_canacl").hide();
 		$("#aimesh_hint_msg #action_ok").show().unbind("click").click(function(e){
@@ -4143,9 +4722,15 @@ function add_node(){
 			if(based_modelid == "DSL-AC68U" || based_modelid == "DSL-AX82U")
 				location.href = "/cfg_onboarding.cgi?flag=AMesh";
 			else{
-				pop_win = window.open("/QIS_wizard.htm?flag=amas_addNode", "_new", "toolbar=no,location=no,menubar=no,status=no,scrollbars=yes,resizable=yes");
-				pop_win.moveTo(0, 0);
-				pop_win.resizeTo(screen.width, screen.height);
+				const isSiteManager = (navigator.userAgent.match(/ASUSMultiSiteManager/) || navigator.userAgent.match(/ASUSExpertSiteManager/)) ? true : false;
+				if (isSiteManager) {
+					top.location.href = '/QIS_wizard.htm?flag=amas_addNode';
+				}
+				else {
+					pop_win = window.open("/QIS_wizard.htm?flag=amas_addNode", "_new", "toolbar=no,location=no,menubar=no,status=no,scrollbars=yes,resizable=yes");
+					pop_win.moveTo(0, 0);
+					pop_win.resizeTo(screen.width, screen.height);
+				}
 			}
 		}
 	};
@@ -4158,9 +4743,17 @@ function add_node(){
 
 	popup_onboarding();
 }
-function child_window_callback(){
+function child_window_callback(_mode){
+	const mode = _mode || "refresh";
+	switch(mode){
+		case "refresh":
+			jstree_refresh();
+			break;
+		case "feedback":
+			top.location.href = "/Advanced_Feedback.asp?origPage=AiMesh";
+			break;
+	}
 	pop_win.close();
-	jstree_refresh();
 }
 function gen_hint_component(_parm){
 	var $hint_bg = $("<div>");
@@ -4168,6 +4761,10 @@ function gen_hint_component(_parm){
 	$hint_bg.addClass(_parm.css);
 	$hint_bg.html(_parm.text);
 	return $hint_bg ;
+}
+function get_node_name_w_location(_node_info){
+	const location_info = transform_location(_node_info.mac, _node_info);
+	return handle_ui_model_name(_node_info.model_name, _node_info.ui_model_name) + " (" + location_info.location_text + ")";
 }
 function handle_ui_model_name(_model_name, _ui_model_name){
 	var result = "";
@@ -4372,6 +4969,9 @@ function handle_re_path(_re_path){
 	return ((isNaN(result)) ? 0 : result);
 }
 var popup_hint_api = {
+	"get_component_title": function(){
+		return $("<div>").addClass("hint_title");
+	},
 	"get_component_text": function(){
 		return $("<div>").addClass("hint_text");
 	},
@@ -4396,6 +4996,143 @@ var popup_hint_api = {
 		return $("<div>").addClass("mask_bg");
 	}
 };
+
+var iperf_data = {};
+function display_iperf_block(){
+	var specific_node_data = aimesh_data.cfg_clientlist.filter(function(item, index, _array){
+		return (item.mac == current_click_mac);
+	})[0];
+
+	if(specific_node_data != undefined){
+		$("#iperf_block").show();
+		iperf_data[current_click_mac] = {};
+		for(let item of aimesh_data.cfg_clientlist){
+			if(item.mac === current_click_mac){
+				continue
+			}
+
+			array = httpApi.iperf.getResult({ serverMac: current_click_mac, nodeMac: item.mac})			
+			iperf_data[current_click_mac][item.mac] = array.sort(function(a,b){ return b[1] - a[1]});
+		}
+
+		genIperfFeild();
+	}
+	else
+		$("#iperf_block").hide();
+}
+
+function genIperfFeild(){
+	var code = '';
+	var MAX_LENGTH = 5;
+	code +=`
+		<div class="iperf_control_all">
+			<div class="iperf_GO" onclick="iperfRun('${current_click_mac}', 'all')">RUN ALL</div>
+		</div>
+	`;
+	for([target_mac, value] of Object.entries(iperf_data[current_click_mac])){
+		var specific_target_data = aimesh_data.cfg_clientlist.filter(function(item, index, _array){
+				return (item.mac == target_mac);
+			})[0];
+		var model_name = handle_ui_model_name(specific_target_data.model_name, specific_target_data.ui_model_name);
+
+		code += `			
+			<div class="card_block_bg connect_type_status_bg uplink">
+				<div class="iperf_title_field">
+					<div class="iperf_title">${model_name}</div>
+				    <div class="iperf_testing" id="${current_click_mac}_${target_mac}" style="display:none">Testing...</div>
+					<div class="iperf_GO" onclick="iperfRun('${current_click_mac}', '${target_mac}')">GO</div>
+				</div>
+			`;
+
+		for(i=0;i<value.length;i++){
+			if(i === MAX_LENGTH) break;
+
+			var item = value[i];
+			var rate = item[0];
+			var timestamp = new Date(item[1]*1000);
+			var date_1 = (function(){
+				var year = timestamp.getFullYear();
+				var month = timestamp.getMonth() + 1;
+				var date = (timestamp.getDate() < 10 ? "0" + timestamp.getDate() : timestamp.getDate());
+		
+				return year + "/" + month + "/" + date;
+			})();
+			var date_2 = (function(){
+				var hour = (timestamp.getHours() < 10 ? "0" + timestamp.getHours() : timestamp.getHours());
+				var min = (timestamp.getMinutes() < 10 ? "0" + timestamp.getMinutes() : timestamp.getMinutes());
+				var sec = (timestamp.getSeconds() < 10 ? "0" + timestamp.getSeconds() : timestamp.getSeconds());
+
+				return hour + ":" + min + ":" + sec;
+			})();
+			code += `
+				<div class="iperf_content_field">
+					<div class="uplink_type_mode_title">							
+						<div>${date_1}</div>
+						<div class="iperf_time">${date_2}</div>
+					</div>
+					<div class="uplink_type_title iperf_value">${rate} Mbps</div>
+				</div>			
+			`;		
+		}
+
+		code += "</div>";
+	}
+
+	document.getElementById("iperf_content_block").innerHTML = code;
+	if(iperf_ready === '1'){
+		for(item of document.querySelectorAll('.iperf_GO')){
+			item.style.display = 'none';
+		}
+
+		if(run_target == 'all'){
+			for(item of document.querySelectorAll('.iperf_testing')){
+				item.style.display = '';
+			}
+		}
+		else if(run_target != ''){
+			document.getElementById(run_target).style.display = '';
+		}
+	}	
+}
+
+var run_target = '';
+function iperfRun(serverMac, clientMac){
+	for(item of document.querySelectorAll('.iperf_GO')){
+		item.style.display = 'none';
+	}
+
+	if(clientMac == 'all'){
+		run_target = 'all';
+		for(item of document.querySelectorAll('.iperf_testing')){
+			item.style.display = '';
+		}
+	}
+	else{
+		run_target = serverMac + '_' + clientMac;
+		document.getElementById(serverMac + '_' + clientMac).style.display = '';
+	}
+
+	httpApi.iperf.start({caller:'iperf', serverMac: serverMac, nodeMac: clientMac}, function(){
+		setTimeout(function() {
+			checkIperfReady();
+		}, 3000);		
+	})
+}
+
+var iperf_ready = httpApi.nvramGet(["iperf_test_data_ready"], true)["iperf_test_data_ready"];
+function checkIperfReady(){
+	iperf_ready = httpApi.nvramGet(["iperf_test_data_ready"], true)["iperf_test_data_ready"];
+	if(iperf_ready === '1'){
+		setTimeout(function() {
+			checkIperfReady();
+			
+		}, 3000);
+	}
+	else{
+		genIperfFeild();
+	}
+
+}
 function get_opt_status(){
 	var get_opt_status = httpApi.hookGet("get_opt_status", true);
 	var result = {"stage": "", "text": "", "opt_follow": "0", "ads_pair": []};
@@ -4439,7 +5176,34 @@ function get_opt_status(){
 	}
 	return result;
 }
+function get_node_led_count(){
+	let result = {"led_on": 0, "led_off": 0, "led_night_mode_on": 0, "led_night_mode_off": 0};
+	aimesh_data.cfg_clientlist.forEach(node => {
+		if(node.config?.ctrl_led?.led_val !== undefined){
+			if(node.config.ctrl_led.led_val === "1")
+				result.led_on++;
+			else
+				result.led_off++;
+		}
+		if(node.config?.misc?.single_led_night_mode !== undefined){
+			if(node.config.misc.single_led_night_mode === "1")
+				result.led_night_mode_on++;
+			else
+				result.led_night_mode_off++;
+		}
+	});
+	return result;
+}
 $(document).ready(initial_AiMesh);
+</script>
+<script type="module">
+	import { initializeUIModelName, uiModelNameJson } from '/js/uiModelName.module.js';
+	if (Object.keys(uiModelNameCloud).length === 0) {
+		(async () => {
+			const data = await initializeUIModelName();
+			uiModelNameCloud = data;
+		})();
+	}
 </script>
 <div class="aimesh_bg info_left">
 	<div class="node_btn_control">
@@ -4457,7 +5221,7 @@ $(document).ready(initial_AiMesh);
 	</div>
 	<div id="jstree"></div>
 	<div class="connect_info_bg">
-		<div class="connect_line_info_icon"></div>
+		<div class="faq_info_icon"></div>
 		<div class="aimesh_introduction">
 			<div class="aimesh_intro_text">
 				<div>ASUS AiMesh WiFi System</div>
@@ -4517,6 +5281,10 @@ $(document).ready(initial_AiMesh);
 			<div id="manage" class="category_bg" onclick="control_category_block('manage')">
 				<div class="manage"></div>
 				<div><#AiMesh_Management#></div>
+			</div>
+			<div id="iperf" class="category_bg" onclick="control_category_block('iperf')">
+				<div class="iperf"></div>
+				<div>IPERF</div>
 			</div>
 		</div>
 	</div>
@@ -4638,7 +5406,7 @@ $(document).ready(initial_AiMesh);
 		<div class="port_status_info">
 			<div class="separation_line">
 				<i></i>
-				<p>PORT INFORMATION</p><!-- untranslated -->
+				<p><#Port_Info#></p>
 			</div>
 			<div class="card_block_bg connect_type_status_bg port_status">
 				<div>
@@ -4686,6 +5454,13 @@ $(document).ready(initial_AiMesh);
 					</div>
 				</div>
 
+				<div class="manage_switch_led_night_mode horizontal_line manage_function_item">
+					<div class="manage_common_title manage_common_separate_bg left">LED <#BoostKey_Aura_NightMode#></div>
+					<div class="manage_common_separate_bg right">
+						<div class="switch"></div>
+					</div>
+				</div>
+
 				<div class="manage_slider_led horizontal_line manage_function_item">
 					<div class="manage_common_title manage_common_separate_bg left"><#LED_Brightness#></div>
 					<div class="manage_common_separate_bg right">
@@ -4713,7 +5488,7 @@ $(document).ready(initial_AiMesh);
 					</div>
 					<div>
 						<div class="managment_icon preferable_backhaul_icon"></div>
-						<span class="preferable_backhaul_text"><#Auto#></span>
+						<div class="preferable_backhaul_text"><#Auto#></div>
 					</div>
 				</div>
 
@@ -4774,6 +5549,17 @@ $(document).ready(initial_AiMesh);
 
 			</div>
 		</div>
+	</div>
+
+	<div id="iperf_block" class="category_block">
+		<div class="uplink_info">
+			<div class="separation_line">
+				<i></i>
+				<p>RESULTS</p>
+			</div>
+			<div id="iperf_content_block"></div> 
+		</div>
+
 	</div>
 </div>
 

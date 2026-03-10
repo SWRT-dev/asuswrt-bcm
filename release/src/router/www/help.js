@@ -9,6 +9,7 @@
 
 var rc_support = '<% nvram_get("rc_support"); %>';
 var gobi_support = (rc_support.search("gobi") == -1) ? false : true;
+var secure_default = (rc_support.search("secure_default") == -1) ? false : true;
 
 /* convert some special character for shown string */
 function handle_show_str(show_str)
@@ -29,7 +30,7 @@ function show_str_ssid(show_ssid)
 
 
 function isMobile_help(){
-	return false; //disable mobile QIS temporary, Jieming added at 2013.08.12
+	if (1) return false; //disable mobile QIS temporary, Jieming added at 2013.08.12
 	
 	if(screen.width < 640 || screen.height < 640){
 		return true;
@@ -162,6 +163,16 @@ function gotoDSL_log(){
 	top.location.href = "/Main_AdslStatus_Content.asp";
 }
 
+function low_channel(a, b)
+{
+        return a < b ? a : b;
+}
+
+function high_channel(a, b)
+{
+        return a > b ? a : b;
+}
+
 function gotoModem(){
 	if(dualWAN_support){
 		document.titleForm.wan_unit.disabled = false;
@@ -284,7 +295,7 @@ function overHint(itemNum){
 			statusmenu += "<div class='StatusHint'><#Mobile_no_signal#></div>";
 		}
 		else if(usb_state == 2 && usb_sbstate == 0 && usb_auxstate != 1){
-			statusmenu += "<div class='StatusHint'><#Connected#> <#HSDPAConfig_ISP_itemname#>: </div><span>" + modem_act_provider + "</span>";
+			statusmenu += "<div class='StatusHint'><#Connected#> <#HSDPAConfig_ISP_itemname#>: </div><span>" + decodeURIComponent(modem_act_provider) + "</span>";
 		}
 		else{
 			statusmenu += "<div class='StatusHint'><#Disconnected#></div>";
@@ -458,51 +469,52 @@ function overHint(itemNum){
 		}
 					
 		statusmenu += "<span>" + lineDesc + "</span>";		
+
 	}
+
 	// wifi hw switch
 	if(itemNum == 8){
-		statusmenu = "<div class='StatusHint'>WiFi :</div>";
-		
-		if(wl_info.band5g_2_support){
-				if(wlan0_radio_flag == "0")
-						wifiDesc = "<b>2.4GHz -</b> <#btn_Disabled#>";
-				else
-						wifiDesc = "<b>2.4GHz -</b> <#btn_Enabled#>";
-				
-				if(wlan1_radio_flag == "0")
-						wifiDesc += "<br><br><b>5GHz-1 -</b> <#btn_Disabled#>";
-				else		
-						wifiDesc += "<br><br><b>5GHz-1 -</b> <#btn_Enabled#>";
-				
-				if(wlan2_radio_flag == "0")
-						wifiDesc += "<br><br><b>5GHz-2 -</b> <#btn_Disabled#>";
-				else		
-						wifiDesc += "<br><br><b>5GHz-2 -</b> <#btn_Enabled#>";						
-			
-				statusmenu += "<span>" + wifiDesc + "</span>";	
+		var control_chan_arr = <% wl_control_channel(); %>;
+		var extent_chan_arr = <% wl_extent_channel(); %>;
+		var wifiDesc = "";
+
+		if (based_modelid == "GT-AXE16000" || based_modelid == "GT-BE98_PRO" || based_modelid == "GT-BE98" || based_modelid == "BQ16") {
+			band_unit = [ 3, 0, 1, 2];
+			radio_state = ["<% nvram_get("wl3_radio"); %>", wlan0_radio_flag, wlan1_radio_flag, wlan2_radio_flag ];
+		} else {
+			band_unit = [ 0, 1, 2];
+			radio_state = [ wlan0_radio_flag, wlan1_radio_flag, wlan2_radio_flag];
 		}
-		else if(wl_info.band5g_support){
-				if(wlan0_radio_flag == "0" && wlan1_radio_flag == "0")
-						wifiDesc = "<b>2.4GHz -</b><br><#btn_Disabled#><br><br><b>5 GHz -</b><br><#btn_Disabled#>";
-				else if(wlan0_radio_flag == "1" && wlan1_radio_flag == "0")
-						wifiDesc = "<b>2.4GHz -</b><br><#btn_Enabled#><br><br><b>5 GHz -</b><br><#btn_Disabled#>";
-				else if(wlan0_radio_flag == "0" && wlan1_radio_flag == "1")
-						wifiDesc = "<b>2.4GHz -</b><br><#btn_Disabled#><br><br><b>5 GHz -</b><br><#btn_Enabled#>";
-				else
-						wifiDesc = "<b>2.4GHz -</b><br><#btn_Enabled#><br><br><b>5 GHz -</b><br><#btn_Enabled#>";
-			
-				statusmenu += "<span>" + wifiDesc + "</span>";	
+
+		statusmenu = "<div class='StatusHint'>WiFi Channels:</div><br>";
+
+		for (unit = 0; unit < band_unit.length; unit++) {
+			if (wl_nband_title[unit] == undefined)
+				break;
+
+			wifiDesc += "<div style='display:grid; grid-template-columns: 9ch 1fr; margin-bottom: 5px;'><b><span>" + wl_nband_title[band_unit[unit]] + ":</b></span>";
+			if ( radio_state[unit] == 1) {
+				if ((extent_chan_arr[band_unit[unit]] == 0) || (extent_chan_arr[band_unit[unit]] == undefined) || (extent_chan_arr[band_unit[unit]] == control_chan_arr[band_unit[unit]]))
+					wifiDesc += "<span>" + control_chan_arr[band_unit[unit]] + "</span>";
+					else {
+						if (wl_nband_title[band_unit[unit]].substring(0,1) == "2") {
+							wifiDesc += "<span>"+ low_channel(control_chan_arr[band_unit[unit]],extent_chan_arr[band_unit[unit]]) + "+" + high_channel(control_chan_arr[band_unit[unit]],extent_chan_arr[band_unit[unit]]) + "</span>";
+						} else if (wl_nband_title[band_unit[unit]].substring(0, 1) == "6") {
+							wifiDesc += "<span>6g"+ control_chan_arr[band_unit[unit]] + "/" + extent_chan_arr[band_unit[unit]] + "</span>";
+						} else if (wl_nband_title[band_unit[unit]].substring(0, 1) == "5") {
+							wifiDesc += "<span>"+ control_chan_arr[band_unit[unit]] + "/" + extent_chan_arr[band_unit[unit]] + "</span>";
+						} else {
+								wifiDesc += "<span>unknown</span>";
+						}
+					}
+				} else {
+					wifiDesc += "<span><#btn_Disabled#></span>";
+			}
+			wifiDesc += "</div>";
 		}
-		else{
-				if(wlan0_radio_flag == "0")
-						wifiDesc = "<#btn_Disabled#>";
-				else
-						wifiDesc = "<#btn_Enabled#>";
-			
-				statusmenu += "<span>" + wifiDesc + "</span>";			
-		}
+		statusmenu += "<div>" + wifiDesc + "</div";
 	}
-	
+
 	// cooler
 	if(itemNum == 7){
 		statusmenu = "<div class='StatusHint'>Cooler:</div>";
@@ -1441,7 +1453,7 @@ function nd(time) {
 	if (olLoaded && !isExclusive()) {
 		hideDelay(time);  // delay popup close if time specified
 
-		if (o3_removecounter >= 1) { o3_showingsticky = 0 };
+		if (o3_removecounter >= 1) { o3_showingsticky = 0 }
 		
 		if (o3_showingsticky == 0) {
 			o3_allowmove = 0;
@@ -2646,7 +2658,7 @@ function chkPass(pwd, flag, obj, id) {
 		oScore =$(obj).find(".strength_text")[0];
 	}
 
-	if(flag == "http_passwd" && (isSku("KR") || isSku("SG") || isSku("AA"))){
+	if(flag == "http_passwd" && (isSku("KR") || isSku("SG") || isSku("AA") || secure_default)){
 		oScorebar.style.display = "none";
 		return;
 	}

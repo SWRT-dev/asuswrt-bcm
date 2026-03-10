@@ -1,8 +1,7 @@
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <meta http-equiv="X-UA-Compatible" content="ie=edge">
 <link rel="stylesheet" type="text/css" href="/index_style.css">
-<link rel="stylesheet" type="text/css" href="/form_style.css">
 <link rel="stylesheet" type="text/css" href="/other.css">
 <link rel="stylesheet" type="text/css" href="/VPN/vpnc.css">
 <link rel="stylesheet" type="text/css" href="/device-map/device-map.css">
@@ -12,6 +11,7 @@
 <script type="text/javascript" src="/popup.js"></script>
 <script type="text/javascript" src="/general.js"></script>
 <script type="text/javascript" src="/client_function.js"></script>
+<script type="text/javascript" src="/js/asus_policy.js?v=4"></script>
 <script>
 if ( !Element.prototype.scrollIntoViewIfNeeded ) {
 	Element.prototype.scrollIntoViewIfNeeded = function ( centerIfNeeded = true ) {
@@ -43,24 +43,28 @@ var getUrlParameter = function getUrlParameter(param){
 	}
 	return "";
 };
-var app_lang = getUrlParameter("current_lang").toLocaleUpperCase();
+var app_lang = getUrlParameter("current_lang").toUpperCase();
 $(function () {
 	$('link[group="extend_css"]').remove();
-	var theme = getUrlParameter("current_theme").toLocaleUpperCase();
-	if(theme == "WHITE" || theme == "GT" || theme == "TUF"){
+	var theme = getUrlParameter("current_theme").toUpperCase();
+	if(theme == "WHITE" || rog_support || tuf_support){
 		$('link').last().after('<link group="extend_css" rel="stylesheet" type="text/css" href="/VPN/vpnc' + theme + '.css">');
 	}
 	else{
 		var productid = httpApi.nvramGet(["productid"]).productid;
-		if(productid.substr(0,2) == "GT"){
+		if(isSupport("ROG_UI")){
 			$('link').last().after('<link group="extend_css" rel="stylesheet" type="text/css" href="/VPN/vpncGT.css">');
 		}
-		else if(productid.substr(0,3) == "TUF"){
+		else if(isSupport("TUF_UI")){
 			$('link').last().after('<link group="extend_css" rel="stylesheet" type="text/css" href="/VPN/vpncTUF.css">');
 		}
 	}
+
+	if(isSupport("TS_UI"))
+		$('link').last().after('<link group="extend_css" rel="stylesheet" type="text/css" href="/css/difference.css">');
 });
 var surfshark_href = "https://nw-dlcdnet.asus.com/support/forward.html?model=&type=sskVPN&lang="+ui_lang+"&kw=&num=&tcode="+ttc;
+var Nord_href = "https://nw-dlcdnet.asus.com/support/forward.html?model=&type=NordVPN&lang="+ui_lang+"&kw=&num=&tcode="+ttc;
 var faq_href = "https://nw-dlcdnet.asus.com/support/forward.html?model=&type=Faq&lang="+ui_lang+"&kw=&num=167";
 var switch_time = 0;
 var selected_profile_idx = "";
@@ -68,13 +72,14 @@ var client_upload_icon = new Array();
 var interval_profile = false;
 var vpnc_activate_maximum = ((isSupport("MaxRule_VPN_FUSION_Conn") == "0") ? 2 : parseInt(isSupport("MaxRule_VPN_FUSION_Conn")));
 var vpnc_maximum = 10;
-if(isSupport("vpn_fusion"))
+if(isSupport("real_vpn_fusion"))
 	vpnc_maximum = 16;
 var dhcp_staticlist_maximum = 64;
 var openvpnc_max = 5;
 var vpnc_openvpn_unit_edit = 5;
-var vpnc_conn_maxi_general_note = stringSafeGet("<#vpnc_conn_maxi_general#>");
+var vpnc_conn_maxi_general_note = stringSafeGet("<#vpnc_conn_maxi_general#>").replace("#MAXNUM", vpnc_activate_maximum);
 var vpnc_conn_maxi_ssk_note = stringSafeGet("<#vpnc_conn_maxi_ssk#>");
+var vpnc_conn_maxi_nord_note = vpnc_conn_maxi_ssk_note.replaceAll("Surfshark", "NordVPN");
 var vpnc_first_note = stringSafeGet("<#vpnc_first#>");
 var str_vpnc_ip_allowed = stringSafeGet("<#vpnc_ip_allowed#>");
 var str_vpnc_keepalive = stringSafeGet("<#vpnc_keepalive#>");
@@ -82,45 +87,22 @@ var str_vpnc_profile_assignDevice = stringSafeGet("<#vpnc_profile_assignDevice#>
 var str_vpnc_profile_assignALL = stringSafeGet("<#vpnc_profile_assignALL#>");
 var str_vpnc_profile_select_suggest = stringSafeGet("<#vpnc_profile_select_suggest#>");
 var str_vpn_WiFi_in_use = stringSafeGet("<#vpn_WiFi_in_use#>");
-var support_WG = (isSupport("vpn_fusion") && isSupport("wireguard"));
+//var support_WG = (isSupport("vpn_fusion") && isSupport("wireguard"));
+var support_WG = false;
 //var support_Surfshark = (isSupport("vpn_fusion") && isSupport("surfshark"));
-var support_Surfshark = (!is_CN && support_WG);
-if(support_WG || support_Surfshark){
+//var support_Surfshark = (!is_CN && support_WG);
+var support_Surfshark = false;
+//var support_Nord = (!is_CN && support_WG);
+var support_Nord = false;
+if(support_WG || support_Surfshark || support_Nord){
 	var wg_max = 5;
 	var wg_unit_edit = 5;
-	//Surfshark_w625_Default.png
-	//Surfshark_w728_Default.png
-	if(is_CN){
-		var UrlPromote = "https://nw-dlcdnet.asus.com/plugin/vpn/Surfshark_w625_CN.png";
-		var UrlBanner = "https://nw-dlcdnet.asus.com/plugin/vpn/Surfshark_w728_CN.png";
-	}
-	else if(!app_lang){
-		var UrlPromote = "https://nw-dlcdnet.asus.com/plugin/vpn/Surfshark_w625_"+ ui_lang +".png";
-		var UrlBanner = "https://nw-dlcdnet.asus.com/plugin/vpn/Surfshark_w728_"+ ui_lang +".png";
-	}
-	else{
-		var UrlPromote = "https://nw-dlcdnet.asus.com/plugin/vpn/Surfshark_w625_"+ app_lang +".png";
-		var UrlBanner = "https://nw-dlcdnet.asus.com/plugin/vpn/Surfshark_w728_"+ app_lang +".png";
-	}
-	var UrlPromoteDefault = "https://nw-dlcdnet.asus.com/plugin/vpn/Surfshark_w625_Default.png";
-	var UrlBannerDefault = "https://nw-dlcdnet.asus.com/plugin/vpn/Surfshark_w728_Default.png";
-
-	if(is_CN){
-		var UrlPromoteMobile = "https://nw-dlcdnet.asus.com/plugin/vpn/Surfshark_375x160_CN_mobile.png";
-		var UrlBannerMobile = "https://nw-dlcdnet.asus.com/plugin/vpn/Surfshark_375x72_CN_mobile.png";
-	}
-	else if(!app_lang){
-		var UrlPromoteMobile = "https://nw-dlcdnet.asus.com/plugin/vpn/Surfshark_375x160_"+ ui_lang +"_mobile.png";
-		var UrlBannerMobile = "https://nw-dlcdnet.asus.com/plugin/vpn/Surfshark_375x72_"+ ui_lang +"_mobile.png";
-	}
-	else{
-		var UrlPromoteMobile = "https://nw-dlcdnet.asus.com/plugin/vpn/Surfshark_375x160_"+ app_lang +"_mobile.png";
-		var UrlBannerMobile = "https://nw-dlcdnet.asus.com/plugin/vpn/Surfshark_375x72_"+ app_lang +"_mobile.png";
-	}
-	var UrlPromoteMobileDefault = "https://nw-dlcdnet.asus.com/plugin/vpn/Surfshark_375x160_Default_mobile.png";
-	var UrlBannerMobileDefault = "https://nw-dlcdnet.asus.com/plugin/vpn/Surfshark_375x72_Default_mobile.png";
-
+	var $ssk_promote_img = $("<img>").css({"cursor":"pointer"}).attr({"id":"ssk_promote_img", "data-img-ready":"false"});
+	var $nord_promote_img = $("<img>").css({"cursor":"pointer"}).attr({"id":"nord_promote_img", "data-img-ready":"false"});
 }
+//const support_Cyberghost = (!is_CN);
+const support_Cyberghost = false;
+let $cyberghost_promote_img = $("<img>").css({"cursor":"pointer"}).attr({"id":"cyberghost_promote_img", "data-img-ready":"false"})
 var support_ig_s2s = (!isSupport("mtlancfg") && isSupport("ig_site2site"));
 var vpnc_clientlist_json = [];
 var vpnc_dev_policy_list_json = [];
@@ -230,7 +212,7 @@ function show_popup(_type){
 	$(".popup_container.popup_element").empty();
 	if(_type == "feature_desc"){
 		$(".popup_container.popup_element").append(Get_Component_Feature_Desc());
-		if(isSupport("vpn_fusion")){
+		if(isSupport("real_vpn_fusion")){
 			//https://www.asus.com/support/FAQ/1033909
 			$(".popup_container.popup_element").find("#faq1").attr("href", faq_href);//this id is include in string : #VPN_Fusion_FAQ#
 			$(".popup_container.popup_element").find("#faq1").css("color", "#FC0");
@@ -351,7 +333,7 @@ function Get_Component_Svr_Item(_profile_data){
 	var $svr_item_container = $("<div>").addClass("svr_item_container").attr("profile_id", specific_data.idx);
 	if((specific_data.idx).toString() == selected_profile_idx)
 		$svr_item_container.addClass("selected");
-	if(isSupport("vpn_fusion")){
+	if(isSupport("real_vpn_fusion")){
 		var $item_tag_cntr = $("<div>").addClass("item_tag_container").appendTo($svr_item_container);
 		if(_profile_data.default_wan_selected == true){
 			$svr_item_container.addClass("default_wan_selected");
@@ -418,7 +400,7 @@ function Get_Component_Svr_Item(_profile_data){
 		else
 			switch_time = current_time;
 
-		if(isSupport("vpn_fusion")){
+		if(isSupport("real_vpn_fusion")){
 			var activate_count = 0;
 			vpnc_clientlist_json.forEach(function(item){
 				if(item.activate)
@@ -448,7 +430,7 @@ function Get_Component_Svr_Item(_profile_data){
 
 		$this_switch_icon.toggleClass("off on").promise().done(function(){
 			var $parent_obj = $this_switch_icon.closest(".svr_item_container");
-			if(isSupport("vpn_fusion")){
+			if(isSupport("real_vpn_fusion")){
 				var nvramSet_obj = {"action_mode": "apply", "rc_service": "restart_vpnc", "vpnc_unit": ""};
 				var current_proto = specific_data.proto.toLowerCase();
 				if(support_Surfshark && current_proto=="surfshark"){
@@ -461,6 +443,20 @@ function Get_Component_Svr_Item(_profile_data){
 
 					if(active_ssk_count >= 1){
 						show_customize_alert(vpnc_conn_maxi_ssk_note);
+						return false;
+					}
+				}
+
+				if(support_Nord && current_proto=="nordvpn"){
+					var active_nord_count=0;
+					vpnc_clientlist_json.forEach(function(item){
+						if(item.proto=="NordVPN" && item.activate==true && _profile_data.idx != item.idx){
+							active_nord_count++;
+						}
+					});
+
+					if(active_nord_count >= 1){
+						show_customize_alert(vpnc_conn_maxi_nord_note);
 						return false;
 					}
 				}
@@ -538,7 +534,7 @@ function Get_Component_Svr_Item(_profile_data){
 					nvramSet_obj.vpnc_pppoe_passwd = "";
 					nvramSet_obj.vpnc_auto_conn = "1";
 				}
-				else if(current_proto == "openvpn"){
+				else if(current_proto == "openvpn" || current_proto == "cyberghost"){
 					nvramSet_obj.vpn_client_unit = specific_data.server;
 					nvramSet_obj.vpn_clientx_eas = "";
 					nvramSet_obj["vpn_client" + specific_data.server + "_username"] = "";
@@ -589,7 +585,7 @@ function Get_Component_Svr_Item(_profile_data){
 								nvramSet_obj.vpnc_pptp_options_x = "";
 						}
 					}
-					else if(current_proto == "openvpn"){
+					else if(current_proto == "openvpn" || current_proto == "cyberghost"){
 						nvramSet_obj.vpn_client_unit = specific_data.server;
 						nvramSet_obj.vpn_clientx_eas = specific_data.server + ",";
 						nvramSet_obj["vpn_client" + specific_data.server + "_username"] = specific_data.username;
@@ -626,7 +622,7 @@ function Get_Component_Svr_Item(_profile_data){
 		});
 	});
 
-	if(isSupport("vpn_fusion")){
+	if(isSupport("real_vpn_fusion")){
 		if(specific_data.activate == true){
 			$switch_icon.addClass("on");
 			$svr_item_container.addClass("active");
@@ -637,10 +633,10 @@ function Get_Component_Svr_Item(_profile_data){
 		}
 	}
 	else{
-		if(specific_data.proto == "OpenVPN"){
+		if(specific_data.proto == "OpenVPN" || specific_data.proto == "CyberGhost"){
 			var vpnc_status = httpApi.nvramGet(["vpnc_proto", "vpn_clientx_eas"]);
 			var connect_idx = (vpnc_status.vpn_clientx_eas).replace(",", "");
-			if(("openvpn" == vpnc_status.vpnc_proto) && connect_idx == specific_data.server){
+			if(("openvpn" == vpnc_status.vpnc_proto || "cyberghost" == vpnc_status.vpnc_proto) && connect_idx == specific_data.server){
 				$switch_icon.addClass("on");
 				$svr_item_container.addClass("active");
 				specific_data.activate = true;
@@ -674,7 +670,7 @@ function Get_Component_Internet_Item(){
 	$svr_item_container.addClass(wanInfo.status);
 	if("-1" == selected_profile_idx)
 		$svr_item_container.addClass("selected");
-	if(isSupport("vpn_fusion")){
+	if(isSupport("real_vpn_fusion")){
 		var $item_tag_cntr = $("<div>").addClass("item_tag_container").appendTo($svr_item_container);
 		var vpnc_default_wan = httpApi.nvramGet(["vpnc_default_wan"]).vpnc_default_wan;
 		if(vpnc_default_wan == "0"){
@@ -790,7 +786,7 @@ function Get_Component_Feature_Desc(){
 	$("<div>").addClass("step_text select").html("<#vpnc_step2#>").appendTo($step_text_container);
 	$("<div>").addClass("step_text edit").html("<#vpnc_step3#>").appendTo($step_text_container);
 
-	if(isSupport("vpn_fusion")){
+	if(isSupport("real_vpn_fusion")){
 		$("<div>").addClass("faq").html('<#VPN_Fusion_FAQ#>').appendTo($feature_desc);
 	}
 
@@ -897,7 +893,7 @@ function Get_Component_Internet_Info(_type){
 		$content_container.append(Get_Component_WAN_Status(connect_info));
 	}
 
-	if(isSupport("vpn_fusion")){
+	if(isSupport("real_vpn_fusion")){
 		var vpnc_default_wan = httpApi.nvramGet(["vpnc_default_wan"]).vpnc_default_wan;
 		$content_container.append(Get_Component_Default_Connection());
 		$content_container.find("#vpnc_default_wan").removeClass("off on").addClass((function(){
@@ -1010,7 +1006,7 @@ function Get_Component_Get_Start(){
 	var $main_info_container = $("<div>").addClass("main_info_container").appendTo($container);
 	$("<div>").addClass("title").html("<#IFTTT_start1#>").appendTo($main_info_container);
 	$("<div>").addClass("desc").html(vpnc_first_note).appendTo($main_info_container);
-	$("<div>").addClass("add_btn").html("<#vpnc_step1#>").appendTo($main_info_container).unbind("click").click(function(e){
+	$("<div>").addClass("add_btn_vpnc").addClass("add_btn").html("<#vpnc_step1#>").appendTo($main_info_container).unbind("click").click(function(e){
 		e = e || event;
 		e.stopPropagation();
 		var rule_num = vpnc_clientlist_json.length;
@@ -1056,71 +1052,67 @@ function Get_Component_Setting_Profile(_type){
 
 	//SurfShark promote
 	if(support_Surfshark){
-		
-		$content_container.append($("<div>").append( $("<img>").attr({"id":"ssk_promote_img"})));
-
-		if(ww > 500){
-
-			$content_container.find("#ssk_promote_img").on("click", function(event){
-				window.open(surfshark_href);
-				event.preventDefault();
-                        }).attr('src', UrlPromote).on('load', function() {
-	 			// image loaded successfully
-				$content_container.find("#ssk_promote_img").css({"height":"185px","margin-left":"15px","cursor":"pointer"});
-			}).on('error', function() {
-	  			// image failed to load
-	  			$(this).attr('src', UrlPromoteDefault).on('load', function() {
-	 				// image loaded successfully
-					$content_container.find("#ssk_promote_img").css({"height":"185px","margin-left":"15px","cursor":"pointer"});
-				}).on('error', function() {
-					// image failed to load
-	  				$(this).unbind('error').hide();
-	  			});
-			});
-
-		}
-		else{
-			$content_container.find("#ssk_promote_img").on("click", function(event){
-				window.open(surfshark_href);
-				event.preventDefault();
-			}).attr('src', UrlPromoteMobile).on('load', function() {
-	 			// image loaded successfully
-				$content_container.find("#ssk_promote_img").css({"width":"375px","margin-left":"15px","cursor":"pointer"});
-			}).on('error', function() {
-	  			// image failed to load
-	  			$(this).attr('src', UrlPromoteMobileDefault).on('load', function() {
-	 				// image loaded successfully
-					$content_container.find("#ssk_promote_img").css({"width":"375px","margin-left":"15px","cursor":"pointer"});
-				}).on('error', function() {
-	  				// image failed to load
-	  				$(this).unbind('error').hide();
-	  			});
-			});
-		}
-
-		if(_type != "popup"){
-			$content_container.find("#ssk_promote_img").addClass("ssk_promote");
-			$content_container.find("#ssk_promote_img").hide();
+		if($ssk_promote_img.attr("data-img-ready") == "true"){
+			let $img_comp = $ssk_promote_img.clone().click(
+				$._data($ssk_promote_img.get(0), "events").click[0].handler
+			);
+			let ssk_promote_img_parm = {"img_component":$img_comp, "show_item":["surfshark"]};
+			Get_Component_Promote_Img(ssk_promote_img_parm).appendTo($content_container);
 		}
 	}
 
+	//NordVPN promote
+	if(support_Nord){
+		if($nord_promote_img.attr("data-img-ready") == "true"){
+			let $img_comp = $nord_promote_img.clone().click(
+				$._data($nord_promote_img.get(0), "events").click[0].handler
+			);
+			let nord_promote_img_parm = {"img_component":$img_comp, "show_item":["nordvpn"]};
+			Get_Component_Promote_Img(nord_promote_img_parm).appendTo($content_container);
+		}
+	}
+
+	//CyberGhost promote
+	if($cyberghost_promote_img.attr("data-img-ready") == "true"){
+		let $img_comp = $cyberghost_promote_img.clone().click(
+			$._data($cyberghost_promote_img.get(0), "events").click[0].handler
+		);
+		let cyberghost_promote_img_parm = {"img_component":$img_comp, "show_item":["cyberghost"]};
+		$content_container.append(Get_Component_Promote_Img(cyberghost_promote_img_parm));
+	}
+
 	var vpn_type_items = [];
-	if(support_Surfshark)
-		vpn_type_items.push({"text":"Surfshark", "value":"surfshark"});
+// 	if(support_Surfshark)
+// 		vpn_type_items.push({"text":"Surfshark", "value":"surfshark"});
+//	if(support_Nord)
+//		vpn_type_items.push({"text":"NordVPN", "value":"nordvpn"});
 	if(support_WG)
 		vpn_type_items.push({"text":"WireGuard", "value":"wireguard"});
-	vpn_type_items.push({"text":"OpenVPN", "value":"openvpn"});
+//	vpn_type_items.push({"text":"OpenVPN", "value":"openvpn"});
+//	if(support_Cyberghost)
+//		vpn_type_items.push({"text":`CyberGhost`, "value":"cyberghost"});
 	vpn_type_items.push({"text":"PPTP", "value":"pptp"});
 	vpn_type_items.push({"text":"L2TP", "value":"l2tp"});
 
 	var vpn_type_parm = {"title": "<#QIS_internet_vpn_type#>", "id": "vpn_type", "options": vpn_type_items, "set_value": vpn_type_items[0].value}
 	$content_container.append(Get_Component_Custom_Select(vpn_type_parm));
 
-	var import_ovpn_parm = {"title":"<#vpn_openvpnc_importovpn#>", "type":"import_ovpn", "show_item":["openvpn"]};
+	let help_parm = {"title":`<#HOWTOSETUP#>`, "show_item":["cyberghost"]};
+	Get_Component_Help(help_parm).appendTo($content_container)
+		.find(".vpnc_help_icon").unbind("click").click(function(e){
+			e = e || event;
+			e.stopPropagation();
+			window.open(`https://asus.click/CyberGhost`);
+		});
+
+	let import_ovpn_parm = {"title":"<#vpn_openvpnc_importovpn#>", "type":"import_ovpn", "show_item":["openvpn", "cyberghost"]};
 	$content_container.append(Get_Component_Import_Ovpn_File(import_ovpn_parm));
 
-	var creat_ssk_account_parm = {"title":"<#create_an_acc#>", "type":"ssk_account", "show_item":["surfshark"]};
-	$content_container.append(Get_Component_Create_ssk_Account(creat_ssk_account_parm));
+//	var creat_ssk_account_parm = {"title":"<#create_an_acc#>", "type":"ssk_account", "show_item":["surfshark"]};
+//	$content_container.append(Get_Component_Create_ssk_Account(creat_ssk_account_parm));
+
+//	var creat_nord_account_parm = {"title":"<#create_an_acc#>", "type":"nord_account", "show_item":["nordvpn"]};
+//	$content_container.append(Get_Component_Create_nord_Account(creat_nord_account_parm));
 
 	var pptp_options = [{"text":"<#Auto#>","value":"auto"},{"text":"<#No_Encryp#>","value":"-mppc"},
 		{"text":"MPPE 40","value":"+mppe-40"},{"text":"MPPE 128","value":"+mppe-128"}];
@@ -1130,19 +1122,25 @@ function Get_Component_Setting_Profile(_type){
 	var vpn_server_parm = {"title":"<#BOP_isp_heart_item#>", "type":"text", "id":"vpnc_svr_edit", "need_check":true, "show_item":["pptp", "l2tp"]};
 	$content_container.append(Get_Component_Input(vpn_server_parm));
 
-	var username_parm = {"title":"<#Username#>", "type":"text", "id":"vpnc_account_edit", "need_check":true, "show_item":["pptp", "l2tp", "openvpn"]};
+	let username_parm = {"title":"<#Username#>", "type":"text", "id":"vpnc_account_edit", "need_check":true, "show_item":["pptp", "l2tp", "openvpn", "cyberghost"]};
 	$content_container.append(Get_Component_Input(username_parm));
 
-	var password_parm = {"title":"<#HSDPAConfig_Password_itemname#>", "type":"password", "id":"vpnc_pwd_edit", "need_check":true, "show_item":["pptp", "l2tp", "openvpn"], "maxlength":128};
+	let password_parm = {"title":"<#HSDPAConfig_Password_itemname#>", "type":"password", "id":"vpnc_pwd_edit", "need_check":true, "show_item":["pptp", "l2tp", "openvpn", "cyberghost"], "maxlength":128};
 	$content_container.append(Get_Component_Input(password_parm));
 
-	var openvpnc_manual_title_parm = {"title":"<#vpn_openvpnc_manual#>", "id":"openvpnc_manual_title", "show_item":["openvpn"], "slide_target":"openvpnc_manual"};
+	let openvpnc_manual_title_parm = {"title":"<#vpn_openvpnc_manual#>", "id":"openvpnc_manual_title", "show_item":["openvpn", "cyberghost"], "slide_target":"openvpnc_manual"};
 	$content_container.append(Get_Component_Slide_Title(openvpnc_manual_title_parm));
 
-	var $openvpnc_manual_content_container = $("<div>").attr({"show_item": "openvpn", "slide_target":"openvpnc_manual"}).appendTo($content_container);
+	let $openvpnc_manual_content_container = $("<div>").attr({"show_item": ["openvpn", "cyberghost"], "slide_target":"openvpnc_manual"}).appendTo($content_container);
 
-	var import_ca_parm = {"title":"<#vpn_openvpnc_importCA#>", "type":"import_ca", "show_item":["openvpn"]};
+	let import_ca_parm = {"title":"<#vpn_openvpnc_importCA#>", "type":"import_ca", "show_item":["openvpn", "cyberghost"]};
 	$openvpnc_manual_content_container.append(Get_Component_Import_Ovpn_File(import_ca_parm));
+
+	let import_cert_parm = {"title":`<#vpn_openvpnc_importCA#>`.replace(`CA`, `<#vpnc_Client_Cert#>`), "type":"import_cert", "show_item":["cyberghost"]};
+	$openvpnc_manual_content_container.append(Get_Component_Import_Ovpn_File(import_cert_parm));
+
+	let import_key_parm = {"title":`<#vpn_openvpnc_importCA#>`.replace(`CA`, `<#vpnc_Client_Key#>`), "type":"import_key", "show_item":["cyberghost"]};
+	$openvpnc_manual_content_container.append(Get_Component_Import_Ovpn_File(import_key_parm));
 
 	var openvpn_keys_parm = {"title":"<#vpn_openvpn_ModifyKeys#>"};
 	Get_Component_Edit_Keys(openvpn_keys_parm)
@@ -1209,8 +1207,16 @@ function Get_Component_Setting_Profile(_type){
 		var ssk_priv_parm = {"title":"<#DDNS_https_cert_PrivateKey#>", "type":"text", "id":"ssk_wgc_priv", "need_check":true, "show_item":["surfshark"], "maxlength":63};
 		$content_container.append(Get_Component_Input(ssk_priv_parm));
 	}
+	if(support_Nord){
+		let default_value = (nord_country_options[0] != undefined) ? nord_country_options[0].value : "";
+		var nord_country_option_parm = {"title": "<#Manual_Setting_contry#>", "id": "nord_country_options", "options": nord_country_options, "set_value": default_value, "show_item":["nordvpn"]};
+		$content_container.append(Get_Component_Custom_Select(nord_country_option_parm));
 
-	if(isSupport("vpn_fusion")){
+		var nord_token_parm = {"title":"Token", "type":"text", "id":"nord_wgc_token", "need_check":true, "show_item":["nordvpn"], "maxlength":64};	// Untranslated
+		$content_container.append(Get_Component_Input(nord_token_parm));
+	}
+
+	if(isSupport("real_vpn_fusion")){
 		if(support_ig_s2s){
 			var wl_gn_2g = "wl" +  get_wl_unit_by_band("2G") + ".1_ssid";
 			var wl_gn_5g = "wl" +  get_wl_unit_by_band("5G") + ".1_ssid";
@@ -1238,6 +1244,17 @@ function Get_Component_Setting_Profile(_type){
 		$content_container.append(Get_Component_Client_List_Title());
 		$content_container.append($("<div>").addClass("client_list_content_container"));
 	}
+
+	if(support_Surfshark){
+		let ssk_policy_parm = {"thirdparty":`Surfshark`, "title":`Surfshark`, "text_content":`Surfshark B.V.`, "show_item":["surfshark"]};
+		$content_container.append(Get_Component_Thirdparty_Policy(ssk_policy_parm));
+	}
+	if(support_Nord){
+		let nord_policy_parm = {"thirdparty":`NordVPN`, "title":`NordVPN`, "text_content":`Nordvpn S.A.`, "show_item":["nordvpn"]};
+		$content_container.append(Get_Component_Thirdparty_Policy(nord_policy_parm));
+	}
+	let cyberghost_policy_parm = {"thirdparty":`CyberGhost`, "title":`CyberGhost`, "text_content":`CyberGhost S.R.L.`, "show_item":["cyberghost"]};
+	$content_container.append(Get_Component_Thirdparty_Policy(cyberghost_policy_parm));
 
 	var $action_container = $("<div>").addClass("action_container").appendTo($content_container);
 	var $btn_container_delete_mobile = $("<div>").addClass("btn_container delete mobile").appendTo($action_container).html("<#CTL_del#>");
@@ -1289,26 +1306,32 @@ function Get_Component_Client_List_Item(_client_data, _edit_mode){
 			userIconBase64 = client_upload_icon[clientMac];
 	}
 	if(userIconBase64 != "NoIcon") {
-		$clientIcon.addClass("user_icon");
-		$clientIcon.css("background-image", "url(" + userIconBase64 + ")");
+		if(clientObj.isUserUplaodImg) {
+			$clientIcon.addClass("user_icon").css("background-image", "url(" + userIconBase64 + ")");
+		}else {
+			$clientIcon.addClass("user_icon").append($('<i>').addClass('type').attr('style','--svg:url(' + userIconBase64 + ')'));
+		}
 	}
 	else if(clientObj.type != "0" || clientObj.vendor == "") {
 		var icon_type = "type" + clientObj.type;
-		$clientIcon.addClass("default_icon " + icon_type + "");
+		$clientIcon.addClass("default_icon");
+		if($clientIcon.find('i').length==0){
+			$clientIcon.append($('<i>').addClass(icon_type));
+		}
 		if(clientObj.type == "36"){
-			$flashObj = $("<div>");
-			$flashObj.addClass("flash");
-			$flashObj.appendTo($clientIcon);
+			$("<div>").addClass("flash").appendTo($clientIcon);
 		}
 	}
 	else if(clientObj.vendor != "") {
-		var venderIconClassName = getVenderIconClassName(clientObj.vendor.toLowerCase());
-		if(venderIconClassName != "" && !isSupport("sfp4m")) {
-			$clientIcon.addClass("vender_icon " + venderIconClassName + "");
+		var vendorIconClassName = getVendorIconClassName(clientObj.vendor.toLowerCase());
+		if(vendorIconClassName != "" && !isSupport("sfp4m")) {
+			$clientIcon.addClass("default_icon");
+			$clientIcon.append($('<i>').addClass("vendor-icon " + vendorIconClassName));
 		}
 		else {
 			var icon_type = "type" + clientObj.type;
-			$clientIcon.addClass("default_icon " + icon_type + "");
+			$clientIcon.addClass("default_icon");
+			$clientIcon.append($('<i>').addClass(icon_type));
 		}
 	}
 
@@ -1560,15 +1583,6 @@ function Get_Component_Input(_parm){
 		$container.attr("show_item", _parm.show_item);
 	}
 	$container.append($("<div>").addClass("title").html(htmlEnDeCode.htmlEncode(_parm.title)));
-	if(_parm.id == "ssk_wgc_priv"){
-		$container.append($("<div>").attr("id", "help_icon").addClass("setup_help_icon")
-			.on("click", function(event){
-            	window.open("https://asus.click/Surfshark");
-
-            	event.preventDefault();
-			})
-		);
-	}
 
 	var $input_container = $("<div>").addClass("input_container").appendTo($container);
 	var $input = $("<input/>").attr("id", _parm.id).appendTo($input_container).addClass("textInput")
@@ -1594,6 +1608,24 @@ function Get_Component_Input(_parm){
 			$(this).toggleClass("close open");
 			$("#"+$(this).attr("for")).prop("type", (function(){return targetObj.hasClass("icon_eye close") ? "password" : "text";}()));
 		}).appendTo($input_container);
+	}
+
+	if(_parm.id == "ssk_wgc_priv"){
+		$input_container.addClass("two_component").append($("<div>").attr("id", "help_icon").addClass("vpn_icon_all_collect vpnc_help_icon")
+			.on("click", function(event){
+				window.open("https://asus.click/Surfshark");
+				event.preventDefault();
+			})
+		);
+	}
+
+	if(_parm.id == "nord_wgc_token"){
+		$input_container.addClass("two_component").append($("<div>").attr("id", "help_icon").addClass("vpn_icon_all_collect vpnc_help_icon")
+			.on("click", function(event){
+            	window.open("https://asus.click/NordVPN");
+            	event.preventDefault();
+			})
+		);
 	}
 
 	return $container;
@@ -1667,7 +1699,8 @@ function Get_Component_Custom_Select(_parm){
 		})[0];
 	}
 
-	var $selected_text = $("<div>").attr("id", _parm.id).appendTo($custom_select_container).html(htmlEnDeCode.htmlEncode(specific_option.text));
+	let option_text = (specific_option != undefined) ? specific_option.text : "";
+	var $selected_text = $("<div>").attr("id", _parm.id).appendTo($custom_select_container).html(htmlEnDeCode.htmlEncode(option_text));
 	// space
 	$("<div>").css("height", "3px").appendTo($custom_select_container);
 	// select options
@@ -1683,7 +1716,7 @@ function Get_Component_Custom_Select(_parm){
 			e.stopPropagation();
 			var option_value = $(this).attr("value");
 			if(_parm.id == "vpn_type"){
-				if(vpnc_openvpn_unit_edit == 0 && (option_value == "openvpn"))
+				if(vpnc_openvpn_unit_edit == 0 && (option_value == "openvpn" || option_value == "cyberghost"))
 					return false;
 				if(support_WG){
 					if(wg_unit_edit == 0 && option_value == "wireguard")
@@ -1691,6 +1724,10 @@ function Get_Component_Custom_Select(_parm){
 				}
 				if(support_Surfshark){
 					if(wg_unit_edit == 0 && option_value == "surfshark")
+						return false;
+				}
+				if(support_Nord){
+					if(wg_unit_edit == 0 && option_value == "nordvpn")
 						return false;
 				}
 			}
@@ -1775,7 +1812,7 @@ function Get_Component_Import_Ovpn_File(_parm){
 		$btn_container.unbind("click").click(function(e){
 			e = e || event;
 			e.stopPropagation();
-			if(isSupport("vpn_fusion")){
+			if(isSupport("real_vpn_fusion")){
 				if(check_profile_is_activate($(this))){
 					show_customize_alert("<#VPN_Fusion_Deactivate_Editor_Alert#>");
 					return;
@@ -1785,10 +1822,10 @@ function Get_Component_Import_Ovpn_File(_parm){
 				$(this).closest(".btn_item").find("#import_ovpn").click();
 		});
 	}
-	else if(_parm.type == "import_ca"){
+	else if(_parm.type == "import_ca" || _parm.type == "import_cert" || _parm.type == "import_key"){
 		$text.addClass("import_file");
 		$("<div>").addClass("status_text").appendTo($btn_item).hide();
-		$("<input/>").attr({"id":"import_ca", "type":"file", "accept":".crt, .key"}).hide().appendTo($btn_item)
+		$("<input/>").attr({"id":_parm.type, "type":"file", "accept":".crt, .key"}).hide().appendTo($btn_item)
 			.on("change", function(){
 				$(this).closest(".btn_item").find(".text.import_file").removeClass("loadingicon");
 				$(this).closest(".btn_item").find(".status_text").html("").hide();
@@ -1810,7 +1847,7 @@ function Get_Component_Import_Ovpn_File(_parm){
 
 				var postData = {
 					"vpn_upload_unit": $(this).attr("import_ovpn_unit"),
-					"vpn_upload_type": "ca",
+					"vpn_upload_type": _parm.type.replace(`import_`, ``),
 					"file": $(this).prop('files')[0]
 				};
 
@@ -1836,14 +1873,14 @@ function Get_Component_Import_Ovpn_File(_parm){
 		$btn_container.unbind("click").click(function(e){
 			e = e || event;
 			e.stopPropagation();
-			if(isSupport("vpn_fusion")){
+			if(isSupport("real_vpn_fusion")){
 				if(check_profile_is_activate($(this))){
 					show_customize_alert("<#VPN_Fusion_Deactivate_Editor_Alert#>");
 					return;
 				}
 			}
 			if(!$(this).closest(".btn_item").find(".text.import_file").hasClass("loadingicon"))
-				$(this).closest(".btn_item").find("#import_ca").click();
+				$(this).closest(".btn_item").find(`#${_parm.type}`).click();
 		});
 	}
 
@@ -1927,7 +1964,7 @@ function Get_Component_Import_WGC_File(_parm){
 		$btn_container.unbind("click").click(function(e){
 			e = e || event;
 			e.stopPropagation();
-			if(isSupport("vpn_fusion")){
+			if(isSupport("real_vpn_fusion")){
 				if(check_profile_is_activate($(this))){
 					show_customize_alert("<#VPN_Fusion_Deactivate_Editor_Alert#>");
 					return;
@@ -1939,6 +1976,36 @@ function Get_Component_Import_WGC_File(_parm){
 	}
 
 	return $container;
+}
+
+function Get_Component_Create_nord_Account(_parm){
+    var $container = $("<div>").addClass("profile_setting_item btn_item");
+    if(_parm.show_item != undefined){
+        $container.attr("show_item", _parm.show_item);
+    }
+
+    var $btn_item =  $("<div>").appendTo($container);
+    var $btn_container = $("<div>").addClass("btn_container").appendTo($btn_item);
+    var $text = $("<div>").addClass("text").html(htmlEnDeCode.htmlEncode(_parm.title)).appendTo($btn_container);
+    if(_parm.type == "nord_account"){
+        $text.addClass("create_nord_account");
+        $("<div>").addClass("status_text").appendTo($btn_item).hide();
+
+        $text.on("click", function(event){
+            window.open(Nord_href);
+
+            event.preventDefault();
+        });
+
+        $btn_container.unbind("click").click(function(e){
+            e = e || event;
+            e.stopPropagation();
+
+
+        });
+    }
+
+    return $container;
 }
 
 function Get_Component_Create_ssk_Account(_parm){
@@ -1967,6 +2034,43 @@ function Get_Component_Create_ssk_Account(_parm){
 			
 		});
 	}
+
+	return $container;
+}
+function Get_Component_Promote_Img(_parm){
+	let $container = $("<div>").addClass("profile_setting_item promote_img");
+	if(_parm.show_item != undefined){
+		$container.attr("show_item", _parm.show_item);
+	}
+
+	let $img_container = $("<div>").addClass("promote_img_container").appendTo($container);
+	if(_parm.img_component != undefined){
+		_parm.img_component.addClass("img_comp").appendTo($img_container);
+	}
+
+	return $container;
+}
+function Get_Component_Thirdparty_Policy(_parm){
+	let $container = $("<div>").addClass("profile_setting_item policy");
+	if(_parm.show_item != undefined){
+		$container.attr("show_item", _parm.show_item);
+	}
+	const text_content = `<#Thirdparty_PP_Desc1#>`
+		.replace("%1$@", _parm.title)
+		.replace("[aa]%2$@[/aa]", `<a onclick="showThirdPartyPolicy('${_parm.thirdparty}')">${_parm.text_content} PRIVACY POLICY</a>`);
+
+	$("<div>").addClass("text_content").html(text_content).appendTo($container);
+	return $container;
+}
+function Get_Component_Help(_parm){
+	var $container = $("<div>").addClass("profile_setting_item nowrap help_item");
+	if(_parm.show_item != undefined){
+		$container.attr("show_item", _parm.show_item);
+	}
+	$container.append($("<div>").addClass("title").html(htmlEnDeCode.htmlEncode(_parm.title)));
+
+	var $input_container = $("<div>").addClass("input_container").appendTo($container);
+	$("<div>").addClass("vpn_icon_all_collect vpnc_help_icon").appendTo($input_container);
 
 	return $container;
 }
@@ -2004,6 +2108,42 @@ function Update_ssk_region(flag){
 			var valeu_tmp = item.connectionName;
 			var pubKey_tmp = item.pubKey;
 			ssk_country_options.push({"text":text_tmp, "value":valeu_tmp, "pubKey":pubKey_tmp});
+	});
+}
+
+var nord_region = new Object;
+function updateNordVPNRegionListOnline(){
+	$.getJSON("/VPN/countries.json", function(local_data){
+		nord_region = Object.keys(local_data).map(function(e){
+			return local_data[e];
+		});
+		Update_nord_region("fw");
+		if(httpApi.isConnected(0) || httpApi.isConnected(1)){
+
+			setTimeout(function(){
+				$.getJSON("https://nw-dlcdnet.asus.com/plugin/vpn/countries.json").done(
+					function(cloud_data){
+						if(JSON.stringify(local_data) != JSON.stringify(cloud_data)){
+							if(Object.keys(cloud_data).length > 0){
+								nord_region = Object.keys(cloud_data).map(function(e){
+									return cloud_data[e];
+								});
+								Update_nord_region("api");
+							}
+						}
+					}
+				);
+			}, 500);
+		}
+	});
+}
+var nord_country_options = [];
+function Update_nord_region(flag){
+	nord_country_options = [];
+	nord_region.forEach(function(item){
+		var text_tmp = item.name;
+		var value_tmp = item.id;
+		nord_country_options.push({"text":text_tmp, "value":value_tmp, "pubKey":value_tmp});
 	});
 }
 
@@ -2141,7 +2281,7 @@ function vpn_type_change_control(_obj, _value){
 	if(_value == "openvpn"){
 		$(_obj).find("#vpnc_account_edit").closest(".profile_setting_item").find(".title").html("<#Username#> (option)");
 		$(_obj).find("#vpnc_pwd_edit").closest(".profile_setting_item").find(".title").html("<#HSDPAConfig_Password_itemname#> (option)");
-		$(_obj).find("#openvpnc_manual_title").removeClass("arrow_up");
+		$(_obj).find("#openvpnc_manual_title").removeClass("arrow_up").find(".title").html(`<#vpn_openvpnc_manual#>`);
 		$(_obj).find("[slide_target='openvpnc_manual']").hide();
 	}
 	else{
@@ -2149,26 +2289,17 @@ function vpn_type_change_control(_obj, _value){
 		$(_obj).find("#vpnc_pwd_edit").closest(".profile_setting_item").find(".title").html("<#HSDPAConfig_Password_itemname#>");
 	}
 
+	if(_value == "cyberghost"){
+		$(_obj).find("#openvpnc_manual_title").addClass("arrow_up").find(".title").html(`<#PPPConnection_Authentication_itemname#>`);
+		$(_obj).find("[slide_target='openvpnc_manual']").show();
+	}
+
 	$(_obj).find("#vpnc_des_edit").keyup();//change vpn type, then check input field
-
-	if($.find(".no_popup_content_container").length > 0){	//edit
-		$(_obj).find("#help_icon").css("margin-left","320px");
-	}
-	else{
-		$(_obj).find("#help_icon").css("margin-left","400px");
-	}
-
-	if(_value == "surfshark"){
-		$(_obj).find("#ssk_promote_img").show();
-	}
-	else{
-		$(_obj).find("#ssk_promote_img").hide();
-	}
 
 	resize_iframe_height();
 }
 function check_profile_status(){
-	if(isSupport("vpn_fusion")){
+	if(isSupport("real_vpn_fusion")){
 		var get_vpnc_status = httpApi.hookGet("get_vpnc_status", true);
 		var vpnc_status_json = [];
 		var each_profile = decodeURIComponent(get_vpnc_status).split('<');
@@ -2251,7 +2382,7 @@ function check_profile_status(){
 		vpnc_clientlist_json.forEach(function(item){
 			item.activate = false;
 		});
-		if(connect_vpnc_proto == "openvpn"){
+		if(connect_vpnc_proto == "openvpn" || connect_vpnc_proto == "cyberghost"){
 			var connect_idx = httpApi.nvramGet(["vpn_clientx_eas"])["vpn_clientx_eas"].replace(",", "");
 			var connect_status = httpApi.nvramGet(["vpn_client"+ connect_idx +"_state"], true)["vpn_client"+ connect_idx +"_state"];
 			var connect_errno = httpApi.nvramGet(["vpn_client"+ connect_idx +"_errno"], true)["vpn_client"+ connect_idx +"_errno"];
@@ -2414,7 +2545,7 @@ function show_vpnc_clientlist(){
 			$("#srv_profile_list").append(Get_Component_Svr_Item(item));
 		});
 	}
-	if(isSupport("vpn_fusion")){
+	if(isSupport("real_vpn_fusion")){
 		$("#srv_profile_list").append($("<div>").addClass("svr_item_horizontal_line"));
 		$("#srv_profile_list").append(Get_Component_Internet_Item());
 	}
@@ -2428,6 +2559,8 @@ function set_profile_data(_obj, _data){
 	var $vpn_password = $(_obj).find("#vpnc_pwd_edit");
 	var $import_ovpn = $(_obj).find("#import_ovpn");
 	var $import_ca = $(_obj).find("#import_ca");
+	let $import_cert = $(_obj).find("#import_cert");
+	let $import_key = $(_obj).find("#import_key");
 	var vpn_proto = "";
 	var vpn_pptp_options = "";
 	if(support_WG){
@@ -2448,14 +2581,24 @@ function set_profile_data(_obj, _data){
 		var $ssk_wgc_priv = $(_obj).find("#ssk_wgc_priv");
 		var $ssk_country_options = $(_obj).find("#ssk_country_options");
 		var $select_ssk_country_options = $(_obj).find("#select_ssk_country_options");
+		var ssk_country_value_tmp = $select_ssk_country_options.children(".selected").attr("value");
+	}
+	if(support_Nord){
+		var $nord_wgc_token = $(_obj).find("#nord_wgc_token");
+		var $nord_country_options = $(_obj).find("#nord_country_options");
+		var $select_nord_country_options = $(_obj).find("#select_nord_country_options");
+		var nord_country_value_tmp = $select_nord_country_options.children(".selected").attr("value");
 	}
 	if(_data != "new"){//edit mode
+		$(_obj).find(".popup_title_container .title, .profile_setting_title .title").html(_data.proto);
 		$conn_name.val(htmlEnDeCode.htmlEncode(_data.desc));
 		$vpn_svr.val(htmlEnDeCode.htmlEncode(_data.server));
 		$vpn_username.val(htmlEnDeCode.htmlEncode(_data.username));
 		$vpn_password.val(htmlEnDeCode.htmlEncode(_data.passwd));
 		$import_ovpn.attr("import_ovpn_unit", _data.server);
 		$import_ca.attr("import_ovpn_unit", _data.server);
+		$import_cert.attr("import_ovpn_unit", _data.server);
+		$import_key.attr("import_ovpn_unit", _data.server);
 
 		vpn_proto = _data.proto.toLowerCase();
 		vpn_pptp_options = _data.pptp_options;
@@ -2463,7 +2606,7 @@ function set_profile_data(_obj, _data){
 			.addClass("no_arrow").unbind("click")
 			.find("*").each(function(){$(this).unbind("click");});
 
-		if(isSupport("vpn_fusion")){
+		if(isSupport("real_vpn_fusion")){
 			if(_data.default_wan_support == true){
 				if(_data.default_wan_selected == true){
 					$(_obj).find("#vpnc_default_wan").removeClass("off on").addClass("on");
@@ -2481,30 +2624,57 @@ function set_profile_data(_obj, _data){
 				});
 			}
 		}
-		if(support_WG){
+		if(support_WG && vpn_proto == "wireguard"){
 			var wgc_unit = _data.server;
+			let wgc_settings = httpApi.nvramGet([
+					"wgc"+wgc_unit+"_nat",
+					"wgc"+wgc_unit+"_priv",
+					"wgc"+wgc_unit+"_addr",
+					"wgc"+wgc_unit+"_dns",
+					"wgc"+wgc_unit+"_mtu",
+					"wgc"+wgc_unit+"_ppub",
+					"wgc"+wgc_unit+"_psk",
+					"wgc"+wgc_unit+"_aips",
+					"wgc"+wgc_unit+"_ep_addr",
+					"wgc"+wgc_unit+"_ep_port",
+					"wgc"+wgc_unit+"_alive"
+			], true);
 			$wgc_nat = $(_obj).find("#wgc_nat").removeClass("on off");
-			if(httpApi.nvramGet(["wgc"+wgc_unit+"_nat"], true)["wgc"+wgc_unit+"_nat"] == "1")
+			if(wgc_settings["wgc"+wgc_unit+"_nat"] == "1")
 				$wgc_nat.addClass("on");
 			else
 				$wgc_nat.addClass("off");
-			$wgc_priv.val(htmlEnDeCode.htmlEncode(httpApi.nvramGet(["wgc"+wgc_unit+"_priv"], true)["wgc"+wgc_unit+"_priv"]));
-			$wgc_addr.val(htmlEnDeCode.htmlEncode(httpApi.nvramGet(["wgc"+wgc_unit+"_addr"], true)["wgc"+wgc_unit+"_addr"]));
-			$wgc_dns.val(htmlEnDeCode.htmlEncode(httpApi.nvramGet(["wgc"+wgc_unit+"_dns"], true)["wgc"+wgc_unit+"_dns"]));
-			$wgc_mtu.val(htmlEnDeCode.htmlEncode(httpApi.nvramGet(["wgc"+wgc_unit+"_mtu"], true)["wgc"+wgc_unit+"_mtu"]));
-			$wgc_ppub.val(htmlEnDeCode.htmlEncode(httpApi.nvramGet(["wgc"+wgc_unit+"_ppub"], true)["wgc"+wgc_unit+"_ppub"]));
-			$wgc_psk.val(htmlEnDeCode.htmlEncode(httpApi.nvramGet(["wgc"+wgc_unit+"_psk"], true)["wgc"+wgc_unit+"_psk"]));
-			$wgc_aips.val(htmlEnDeCode.htmlEncode(httpApi.nvramGet(["wgc"+wgc_unit+"_aips"], true)["wgc"+wgc_unit+"_aips"]));
-			$wgc_ep_addr.val(htmlEnDeCode.htmlEncode(httpApi.nvramGet(["wgc"+wgc_unit+"_ep_addr"], true)["wgc"+wgc_unit+"_ep_addr"]));
-			$wgc_ep_port.val(htmlEnDeCode.htmlEncode(httpApi.nvramGet(["wgc"+wgc_unit+"_ep_port"], true)["wgc"+wgc_unit+"_ep_port"]));
-			$wgc_alive.val(htmlEnDeCode.htmlEncode(httpApi.nvramGet(["wgc"+wgc_unit+"_alive"], true)["wgc"+wgc_unit+"_alive"]));
+
+			$wgc_priv.val(htmlEnDeCode.htmlEncode(wgc_settings["wgc"+wgc_unit+"_priv"]));
+			$wgc_addr.val(htmlEnDeCode.htmlEncode(wgc_settings["wgc"+wgc_unit+"_addr"]));
+			$wgc_dns.val(htmlEnDeCode.htmlEncode(wgc_settings["wgc"+wgc_unit+"_dns"]));
+			$wgc_mtu.val(htmlEnDeCode.htmlEncode(wgc_settings["wgc"+wgc_unit+"_mtu"]));
+			$wgc_ppub.val(htmlEnDeCode.htmlEncode(wgc_settings["wgc"+wgc_unit+"_ppub"]));
+			$wgc_psk.val(htmlEnDeCode.htmlEncode(wgc_settings["wgc"+wgc_unit+"_psk"]));
+			$wgc_aips.val(htmlEnDeCode.htmlEncode(wgc_settings["wgc"+wgc_unit+"_aips"]));
+			$wgc_ep_addr.val(htmlEnDeCode.htmlEncode(wgc_settings["wgc"+wgc_unit+"_ep_addr"]));
+			$wgc_ep_port.val(htmlEnDeCode.htmlEncode(wgc_settings["wgc"+wgc_unit+"_ep_port"]));
+			$wgc_alive.val(htmlEnDeCode.htmlEncode(wgc_settings["wgc"+wgc_unit+"_alive"]));
 			$import_wgc.attr("import_wgc_unit", wgc_unit);
 		}
-		if(support_Surfshark){
+		if(support_Surfshark && vpn_proto == "surfshark"){
 			var wgc_unit = _data.server;
-			$ssk_wgc_priv.val(htmlEnDeCode.htmlEncode(httpApi.nvramGet(["wgc"+wgc_unit+"_priv"], true)["wgc"+wgc_unit+"_priv"]));
-			var ssk_country_value_tmp = httpApi.nvramGet(["wgc"+wgc_unit+"_ep_addr"], true)["wgc"+wgc_unit+"_ep_addr"];
+			let ssk_settings = httpApi.nvramGet([
+					"wgc"+wgc_unit+"_priv",
+					"wgc"+wgc_unit+"_ep_addr",
+			], true);
+			$ssk_wgc_priv.val(htmlEnDeCode.htmlEncode(ssk_settings["wgc"+wgc_unit+"_priv"]));
+			ssk_country_value_tmp = ssk_settings["wgc"+wgc_unit+"_ep_addr"];
 		}
+
+		if(support_Nord && vpn_proto == "nordvpn"){
+			var wgc_unit = _data.server;
+			let nord_settings = httpApi.nvramGet(["nordvpn_token"], true);
+			$nord_wgc_token.val(htmlEnDeCode.htmlEncode(nord_settings["nordvpn_token"]));
+			nord_country_value_tmp = htmlEnDeCode.htmlEncode(_data.region);
+		}
+
+		$(_obj).find(".profile_setting_item.promote_img, .profile_setting_item.policy").remove();
 	}
 	else{
 		vpn_proto = $select_vpn_type.children(".selected").html().toLowerCase();
@@ -2512,41 +2682,59 @@ function set_profile_data(_obj, _data){
 
 		$import_ovpn.attr("import_ovpn_unit", vpnc_openvpn_unit_edit);
 		$import_ca.attr("import_ovpn_unit", vpnc_openvpn_unit_edit);
+		$import_cert.attr("import_ovpn_unit", vpnc_openvpn_unit_edit);
+		$import_key.attr("import_ovpn_unit", vpnc_openvpn_unit_edit);
 		if(vpnc_openvpn_unit_edit == 0){
-			$select_vpn_type.children("[value='openvpn']").html("OpenVPN (<#List_limit#> " + openvpnc_max + ")").css("color", "rgba(164, 183, 195, 0.6)");
+			$select_vpn_type
+				.children("[value='openvpn'],[value='cyberghost']")
+				.css("color", "rgba(164, 183, 195, 0.6)")
+				.html(`OpenVPN + CyberGhost (<#List_limit#> ${openvpnc_max})`)
+				.filter("[value='cyberghost']").hide();
 		}
 
 		if(support_WG){
 			if(wg_unit_edit == 0){
 				vpn_proto = (vpnc_openvpn_unit_edit == 0)?"pptp":"openvpn";
 
-				if(support_Surfshark){
-					$select_vpn_type.children("[value='wireguard']").html("WireGuard & Surfshark (<#List_limit#> " + openvpnc_max + ")").css("color", "rgba(164, 183, 195, 0.6)");
+				if(support_Surfshark || support_Nord){
+					$select_vpn_type.children("[value='wireguard']").html("WireGuard & Surfshark & NordVPN (<#List_limit#> " + openvpnc_max + ")").css("color", "rgba(164, 183, 195, 0.6)");
 					$select_vpn_type.children("[value='surfshark']").hide();
+					$select_vpn_type.children("[value='nordvpn']").hide();
 				}
 				else{
 					$select_vpn_type.children("[value='wireguard']").html("WireGuard (<#List_limit#> " + openvpnc_max + ")").css("color", "rgba(164, 183, 195, 0.6)");
 				}
 			}
-			$wgc_nat = $(_obj).find("#wgc_nat").removeClass("on off");
-			if(httpApi.nvramDefaultGet(["wgc_nat"]).wgc_nat == "1")
-				$wgc_nat.addClass("on");
-			else
-				$wgc_nat.addClass("off");
-			$wgc_priv.val(htmlEnDeCode.htmlEncode(httpApi.nvramDefaultGet(["wgc_priv"]).wgc_priv));
-			$wgc_addr.val(htmlEnDeCode.htmlEncode(httpApi.nvramDefaultGet(["wgc_addr"]).wgc_addr));
-			$wgc_dns.val(htmlEnDeCode.htmlEncode(httpApi.nvramDefaultGet(["wgc_dns"]).wgc_dns));
-			$wgc_mtu.val(htmlEnDeCode.htmlEncode(httpApi.nvramDefaultGet(["wgc_mtu"]).wgc_mtu));
-			$wgc_ppub.val(htmlEnDeCode.htmlEncode(httpApi.nvramDefaultGet(["wgc_ppub"]).wgc_ppub));
-			$wgc_psk.val(htmlEnDeCode.htmlEncode(httpApi.nvramDefaultGet(["wgc_psk"]).wgc_psk));
-			$wgc_aips.val(htmlEnDeCode.htmlEncode(httpApi.nvramDefaultGet(["wgc_aips"]).wgc_aips));
-			$wgc_ep_addr.val(htmlEnDeCode.htmlEncode(httpApi.nvramDefaultGet(["wgc_ep_addr"]).wgc_ep_addr));
-			$wgc_ep_port.val(htmlEnDeCode.htmlEncode(httpApi.nvramDefaultGet(["wgc_ep_port"]).wgc_ep_port));
-			$wgc_alive.val(htmlEnDeCode.htmlEncode(httpApi.nvramDefaultGet(["wgc_alive"]).wgc_alive));
+			let wgc_default_settings = httpApi.nvramDefaultGet([
+					"wgc_nat",
+					"wgc_priv",
+					"wgc_addr",
+					"wgc_dns",
+					"wgc_mtu",
+					"wgc_ppub",
+					"wgc_psk",
+					"wgc_aips",
+					"wgc_ep_addr",
+					"wgc_ep_port",
+					"wgc_alive"
+			], true);
+			$wgc_nat = $(_obj).find("#wgc_nat").removeClass("on off").addClass(()=>{
+				return (wgc_default_settings.wgc_nat == "1") ? "on" : "off"
+			});
+			$wgc_priv.val(htmlEnDeCode.htmlEncode(wgc_default_settings.wgc_priv));
+			$wgc_addr.val(htmlEnDeCode.htmlEncode(wgc_default_settings.wgc_addr));
+			$wgc_dns.val(htmlEnDeCode.htmlEncode(wgc_default_settings.wgc_dns));
+			$wgc_mtu.val(htmlEnDeCode.htmlEncode(wgc_default_settings.wgc_mtu));
+			$wgc_ppub.val(htmlEnDeCode.htmlEncode(wgc_default_settings.wgc_ppub));
+			$wgc_psk.val(htmlEnDeCode.htmlEncode(wgc_default_settings.wgc_psk));
+			$wgc_aips.val(htmlEnDeCode.htmlEncode(wgc_default_settings.wgc_aips));
+			$wgc_ep_addr.val(htmlEnDeCode.htmlEncode(wgc_default_settings.wgc_ep_addr));
+			$wgc_ep_port.val(htmlEnDeCode.htmlEncode(wgc_default_settings.wgc_ep_port));
+			$wgc_alive.val(htmlEnDeCode.htmlEncode(wgc_default_settings.wgc_alive));
 			$import_wgc.attr("import_wgc_unit", wg_unit_edit);
 		}
 
-		if(isSupport("vpn_fusion"))
+		if(isSupport("real_vpn_fusion"))
 			$(_obj).find("#vpnc_default_wan").closest(".profile_setting_item").remove();
 	}
 
@@ -2555,11 +2743,14 @@ function set_profile_data(_obj, _data){
 	if(support_Surfshark && vpn_proto == "surfshark"){
 		set_value_Custom_Select(_obj, "ssk_country_options", ssk_country_value_tmp);
 	}
+	if(support_Nord && vpn_proto == "nordvpn"){
+		set_value_Custom_Select(_obj, "nord_country_options", nord_country_value_tmp);
+	}
 
 	vpn_type_change_control(_obj.find(".profile_setting"), vpn_proto);
 
 	//client_list_content_container
-	if(isSupport("vpn_fusion")){
+	if(isSupport("real_vpn_fusion")){
 		update_vpnc_dev_policy_list_json();
 		var vpnc_idx = "";
 		if(_data != "new"){
@@ -2629,16 +2820,20 @@ function set_profile_data(_obj, _data){
 function set_apply_btn_status(_obj, _data){
 	var activate_count = 0;
 	var activate_ssk_count=0;
+	var activate_nord_count=0;
 	vpnc_clientlist_json.forEach(function(item){
 		if(item.activate)
 			activate_count++;
 		if(item.proto=="Surfshark" && item.activate==true){
 			activate_ssk_count++;
 		}
+		if(item.proto=="NordVPN" && item.activate==true){
+			activate_nord_count++;
+		}
 	});
-	var auto_enable = ((isSupport("vpn_fusion") && _data == "new" && activate_count < vpnc_activate_maximum) ? true : false);
+	var auto_enable = ((isSupport("real_vpn_fusion") && _data == "new" && activate_count < vpnc_activate_maximum) ? true : false);
 	var apply_data = function(){
-		if(isSupport("vpn_fusion")){
+		if(isSupport("real_vpn_fusion")){
 			if(_data != "new"){
 				var specific_data = vpnc_clientlist_json.filter(function(item, index, array){
 					return (item.idx == _data.idx);
@@ -2658,7 +2853,11 @@ function set_apply_btn_status(_obj, _data){
 		var pptp_option = $(_obj).find("#select_pptp_options").children(".selected").attr("value");
 		var vpnc_idx = "0";
 
-		if((vpn_proto == "OpenVPN") && _data == "new")
+		if(support_Nord){
+			var nord_region = $(_obj).find("#select_nord_country_options").children(".selected").attr("value");
+		}
+
+		if((vpn_proto == "OpenVPN" || vpn_proto == "CyberGhost") && _data == "new")
 			$valid_server.val(vpnc_openvpn_unit_edit);
 		if(vpn_proto == "WireGuard" && _data == "new")
 			$valid_server.val(wg_unit_edit);
@@ -2666,6 +2865,13 @@ function set_apply_btn_status(_obj, _data){
 			$valid_server.val(wg_unit_edit);
 
 			if(activate_ssk_count >= 1){
+				auto_enable = false;
+			}
+		}
+		if(vpn_proto == "NordVPN" && _data == "new"){
+			$valid_server.val(wg_unit_edit);
+
+			if(activate_nord_count >= 1){
 				auto_enable = false;
 			}
 		}
@@ -2698,12 +2904,15 @@ function set_apply_btn_status(_obj, _data){
 						vpnc_profile.pptp_options = pptp_option;
 
 					vpnc_profile.idx = vpnc_clientlist_json.length;
-					if(isSupport("vpn_fusion")){
+					if(isSupport("real_vpn_fusion")){
 						if(auto_enable)
 							vpnc_profile.activate = "1";
 						else
 							vpnc_profile.activate = "0";
 						vpnc_profile.vpnc_idx = httpApi.hookGet("get_new_vpnc_index", true);
+					}
+					if(vpn_proto == "NordVPN"){
+						vpnc_profile.region = nord_region;
 					}
 					vpnc_idx = vpnc_profile.vpnc_idx;
 					vpnc_clientlist_json.push(JSON.parse(JSON.stringify(vpnc_profile)));
@@ -2717,6 +2926,9 @@ function set_apply_btn_status(_obj, _data){
 					specific_data.server = $valid_server.val();
 					specific_data.username = $valid_username.val();
 					specific_data.passwd = $valid_password.val();
+					if(vpn_proto == "NordVPN"){
+						specific_data.region = nord_region;
+					}
 					if(vpn_proto != "PPTP")
 						specific_data.pptp_options = "auto";
 					else
@@ -2731,7 +2943,7 @@ function set_apply_btn_status(_obj, _data){
 							nvramSet_obj.vpnc_pppoe_username = $valid_username.val();
 							nvramSet_obj.vpnc_pppoe_passwd = $valid_password.val();
 						}
-						else if(nvramSet_obj.vpnc_proto == "openvpn"){
+						else if(nvramSet_obj.vpnc_proto == "openvpn" || nvramSet_obj.vpnc_proto == "cyberghost"){
 							nvramSet_obj["vpn_client" + specific_data.server + "_username"] = $valid_username.val();
 							nvramSet_obj["vpn_client" + specific_data.server + "_password"] = $valid_password.val();
 						}
@@ -2750,7 +2962,7 @@ function set_apply_btn_status(_obj, _data){
 				nvramSet_obj.vpnc_clientlist = vpnc_str.vpnc_clientlist;
 				nvramSet_obj.vpnc_pptp_options_x_list = vpnc_str.vpnc_pptp_options_x_list;
 
-				if(isSupport("vpn_fusion")){
+				if(isSupport("real_vpn_fusion")){
 
 					var rc_service = "";
 					var dhcp_staticlist_current = "";
@@ -2886,6 +3098,15 @@ function set_apply_btn_status(_obj, _data){
 						nvramSet_obj["wgc_ep_port"] = "51820";
 						nvramSet_obj["wgc_alive"] = "25";	
 					}
+
+					if(support_Nord && vpn_proto == "NordVPN"){
+						var wg_idx = $valid_server.val();
+						var nord_token = $(_obj).find("#nord_wgc_token").val();
+						var nord_region_id = $(_obj).find("#select_nord_country_options").children(".selected").attr("value");
+
+						nvramSet_obj["wgc_unit"] = wg_idx;
+						nvramSet_obj["nordvpn_token"] = nord_token;
+					}
 				}
 
 				var showLoading_flag = false;
@@ -2948,13 +3169,13 @@ function set_apply_btn_status(_obj, _data){
 				}());
 
 				function update_vpnc_status(){
-					if(!isSupport("vpn_fusion")){
+					if(!isSupport("real_vpn_fusion")){
 						httpApi.nvramGet(["vpnc_proto", "vpnc_pppoe_username", "vpnc_pppoe_passwd", "vpnc_heartbeat_x", "vpn_clientx_eas"],true);
 					}
 					update_vpnc_clientlist_json();
 					show_vpnc_clientlist();
 					check_profile_status();
-					if(isSupport("vpn_fusion")){
+					if(isSupport("real_vpn_fusion")){
 						update_vpnc_dev_policy_list_json();
 					}
 					resize_iframe_height();
@@ -3010,7 +3231,7 @@ function parse_ssk_ppub_from_api(_value){
 function set_del_btn(_obj, _data){
 	var check_activate = function(){
 		var status = false;
-		if(isSupport("vpn_fusion")){
+		if(isSupport("real_vpn_fusion")){
 			var specific_data = vpnc_clientlist_json.filter(function(item, index, array){
 				return (item.idx == _data.idx);
 			})[0];
@@ -3023,7 +3244,7 @@ function set_del_btn(_obj, _data){
 	};
 	var check_vpnc_dev_policy_exist = function(){
 		var status = false;
-		if(isSupport("vpn_fusion")){
+		if(isSupport("real_vpn_fusion")){
 			var vpnc_idx = _data.vpnc_idx;
 			var exist_flag = vpnc_dev_policy_list_json.filter(function(item, index, array){
 				return (item.vpnc_idx == vpnc_idx);
@@ -3070,7 +3291,7 @@ function set_del_profile(_obj, _data){
 		if(del_idx !== ""){
 			var del_vpnc_profile = vpnc_clientlist_json.splice(del_idx, 1);
 			var nvramSet_obj = {"vpnc_clientlist": "", "vpnc_pptp_options_x_list": "", "action_mode": "apply"};
-			if(isSupport("vpn_fusion")){
+			if(isSupport("real_vpn_fusion")){
 				var vpnc_default_wan = httpApi.nvramGet(["vpnc_default_wan"]).vpnc_default_wan;
 				if(vpnc_default_wan == del_vpnc_profile[0].vpnc_idx){
 					httpApi.nvramSet({
@@ -3095,7 +3316,8 @@ function set_del_profile(_obj, _data){
 					nvramSet_obj.vpnc_dev_policy_list_tmp = vpnc_dev_policy_ori_data.vpnc_dev_policy_list;
 				}
 				if((support_WG && del_vpnc_profile[0].proto == "WireGuard") || 
-					(support_Surfshark && del_vpnc_profile[0].proto == "Surfshark")
+					(support_Surfshark && del_vpnc_profile[0].proto == "Surfshark") ||
+					(support_Nord && del_vpnc_profile[0].proto == "NordVPN")
 				){
 					var wg_idx = del_vpnc_profile[0].server;
 					nvramSet_obj["wgc_unit"] = wg_idx;
@@ -3117,14 +3339,14 @@ function set_del_profile(_obj, _data){
 				if(_data.activate){
 					nvramSet_obj.rc_service = "restart_vpncall";
 					nvramSet_obj.vpnc_proto = "disable";
-					if(_data.proto.toLowerCase() == "openvpn"){
+					if(_data.proto.toLowerCase() == "openvpn" || _data.proto.toLowerCase() == "cyberghost"){
 						nvramSet_obj.vpn_clientx_eas = "";
 						nvramSet_obj.vpn_client_unit = _data.server;
 					}
 				}
 			}
 
-			if(_data.proto.toLowerCase() == "openvpn"){
+			if(_data.proto.toLowerCase() == "openvpn" || _data.proto.toLowerCase() == "cyberghost"){
 				nvramSet_obj["vpn_crt_client"+_data.server+"_ca"] = "";
 				nvramSet_obj["vpn_crt_client"+_data.server+"_crt"] = "";
 				nvramSet_obj["vpn_crt_client"+_data.server+"_key"] = "";
@@ -3138,6 +3360,7 @@ function set_del_profile(_obj, _data){
 			clearInterval(interval_profile);
 			$("#srv_profile_list").find("[profile_id='"+del_idx+"']").remove();
 			show_get_start();
+			showLoading(3);
 			httpApi.nvramSet(nvramSet_obj, function(){
 				close_popup_second();
 				if($(".popup_container.popup_element").css("display") == "flex")
@@ -3147,7 +3370,7 @@ function set_del_profile(_obj, _data){
 					update_vpnc_clientlist_json();
 					show_vpnc_clientlist();
 					check_profile_status();
-					if(isSupport("vpn_fusion")){
+					if(isSupport("real_vpn_fusion")){
 						update_vpnc_dev_policy_list_json();
 					}
 					interval_profile = setInterval(function(){
@@ -3161,7 +3384,7 @@ function set_del_profile(_obj, _data){
 function update_vpnc_clientlist_json(){
 	var get_vpnc_support_default_wan = function(){
 		var result = {"prof_list":[], "default_wan":"0"};
-		if(isSupport("vpn_fusion")){
+		if(isSupport("real_vpn_fusion")){
 			var vpnc_nondef_wan_prof_list = httpApi.hookGet("get_vpnc_nondef_wan_prof_list", true);
 			var each_array = vpnc_nondef_wan_prof_list.split("<");
 			$.each(each_array, function(index, value){
@@ -3195,11 +3418,13 @@ function update_vpnc_clientlist_json(){
 			else
 				vpnc_profile.pptp_options = "auto";
 			vpnc_profile.idx = profile_count;
-			if(isSupport("vpn_fusion")){
+			if(isSupport("real_vpn_fusion")){
 				vpnc_profile.activate = (profile_data[5] == "1") ? true : false;
 				vpnc_profile.vpnc_idx = profile_data[6];
 				vpnc_profile.default_wan_support = vpnc_default_wan_parm["prof_list"][vpnc_profile.vpnc_idx];
 				vpnc_profile.default_wan_selected = ((vpnc_profile.vpnc_idx == vpnc_default_wan_parm["default_wan"]) ? true : false);
+
+				vpnc_profile.region = profile_data[7];
 			}
 			vpnc_profile.tunnel = ((profile_data[9] == undefined) ? 0 : profile_data[9]);
 			vpnc_profile.wan_idx = ((profile_data[10] == undefined) ? 0 : profile_data[10]);
@@ -3265,12 +3490,12 @@ function update_vpnc_profile_unit(){
 	}
 
 	vpnc_clientlist_json.forEach(function(item){
-		if(item.proto == "OpenVPN"){
+		if(item.proto == "OpenVPN" || item.proto == "CyberGhost"){
 			var vpnc_openvpn_idx = item.server;
 			delete vpnc_openvpn_unit_array["unit_" + vpnc_openvpn_idx];
 		}
-		if(support_WG || support_Surfshark){
-			if(item.proto == "WireGuard" || item.proto == "Surfshark"){
+		if(support_WG || support_Surfshark || support_Nord){
+			if(item.proto == "WireGuard" || item.proto == "Surfshark" || item.proto == "NordVPN"){
 				var wg_idx = item.server;
 				delete wg_unit_array["unit_" + wg_idx];
 			}
@@ -3293,7 +3518,7 @@ function update_vpnc_profile_unit(){
 	else
 		vpnc_openvpn_unit_edit = 0;
 
-	if(support_WG || support_Surfshark){
+	if(support_WG || support_Surfshark || support_Nord){
 		var wgsortArray = [];
 		for(var key in wg_unit_array) {
 			if(wg_unit_array.hasOwnProperty(key))
@@ -3324,16 +3549,18 @@ function parse_JSONToStr_vpnc_clientlist(){
 		vpnc_clientlist += ">";
 		vpnc_clientlist += item.passwd;
 		vpnc_clientlist += ">";
-		if(isSupport("vpn_fusion"))
+		if(isSupport("real_vpn_fusion"))
 			vpnc_clientlist += (item.activate == true) ? "1" : "0";
 		else
 			vpnc_clientlist += "";
 		vpnc_clientlist += ">";
-		if(isSupport("vpn_fusion"))
+		if(isSupport("real_vpn_fusion"))
 			vpnc_clientlist += item.vpnc_idx;
 		else
 			vpnc_clientlist += "";
-		vpnc_clientlist += ">>";
+		vpnc_clientlist += ">";
+		vpnc_clientlist += item.region;
+		vpnc_clientlist += ">";
 		vpnc_clientlist += ">" + ((item.tunnel == undefined) ? "0" : item.tunnel);
 		vpnc_clientlist += ">" + ((item.wan_idx == undefined) ? "0" : item.wan_idx);
 		vpnc_clientlist += ">" + ((item.caller == undefined) ? "Web" : item.caller);
@@ -3378,7 +3605,7 @@ function validate_blank(_obj){
 		if($valid_server.val() == "")
 			return false;
 	}
-	if(vpn_type == "PPTP" || vpn_type == "L2TP"){
+	if(vpn_type == "PPTP" || vpn_type == "L2TP" || vpn_type == "CyberGhost"){
 		if($valid_username.val() == "")
 			return false;
 		if($valid_password.val() == "")
@@ -3925,50 +4152,44 @@ function adjust_popup_container_top(_obj, _offsetHeight){
 	}
 }
 function get_wl_unit_by_band(_band){
-	if(_band == undefined)
-		return "";
+	if(_band == undefined) return "";
 
 	_band = (_band).toString().toUpperCase();
-	var wl_nband = "";
-	switch(_band){
-		case "2G":
-			wl_nband = "2";
-			break;
-		case "5G":
-		case "5G1":
-		case "5G2":
-			wl_nband = "1";
-			break;
-		case "6G":
-			wl_nband = "4";
-			break;
-		case "60G":
-			wl_nband = "6";
-			break;
-	}
-	if(wl_nband == "")
-		return "";
+	const wlnband_list = `<% nvram_get("wlnband_list"); %>`.toUpperCase().split("&#60");
 
-	var wl_unit = "";
-	var suffix_num = _band.substr(_band.indexOf("G") + 1);
-	var ordinal_num = (suffix_num == "") ? 1 : parseInt(suffix_num);
-	var count = 1;
-	var wl_nband_array = httpApi.hookGet("wl_nband_info");
-	$.each(wl_nband_array, function(wlx, value){
-		if(value == wl_nband){
-			if(count == ordinal_num){
-				wl_unit = wlx;
-				return false;
-			}
-			else{
-				count+=1;
-			}
-		}
-	});
-	return wl_unit.toString();
+	const bandMap = {
+		"2G": "2G1",
+		"5G": "5G1",
+		"6G": "6G1"
+	};
+
+	_band = bandMap[_band] || _band;
+
+	return findWLUnit(wlnband_list, _band).toString();
+
+	function findWLUnit(array, band) {
+		const idx = $.inArray(band, array);
+		return idx !== -1 ? idx : '';
+	}
 }
 function initial(){
 	show_loading_obj();
+
+	var vpn_client_array = {"OpenVPN" : ["OpenVPN", "/Advanced_OpenVPNClient_Content.asp"], "PPTP" : ["PPTP/L2TP", "/Advanced_VPNClient_Content.asp"], "Wireguard" : ["Wireguard", "/Advanced_WireguardClient_Content.asp"]};
+
+	if(!wireguard_support) {
+		delete vpn_client_array.Wireguard;
+	}
+	if(!vpnc_support) {
+		delete vpn_client_array.PPTP;
+	}
+	if(!openvpnd_support) {
+		delete vpn_client_array.OpenVPN;
+	}
+
+	$('#divSwitchMenu').html(gen_switch_menu(vpn_client_array, "PPTP"));
+
+
 	$(".svr_list_add_icon").unbind("click").click(function(e){
 		e = e || event;
 		e.stopPropagation();
@@ -3990,7 +4211,8 @@ function initial(){
 		e.stopPropagation();
 		show_popup("feature_desc");
 	});
-	$(".function_desc_container .title").html(((isSupport("vpn_fusion")) ? "<#VPN_Fusion#>" : "<#vpnc_title#>"));
+	$(".function_desc_container .title").html(((isSupport("real_vpn_fusion")) ? "<#VPN_Fusion#>" : "<#vpnc_title#>"));
+/*
 	if(support_Surfshark){
 		if(httpApi.isConnected(0) || httpApi.isConnected(1)){
 			$(".banner_surfshark").append($("<div>").append( $("<img>").attr({"id":"ssk_banner_promote_img"})));
@@ -4031,8 +4253,9 @@ function initial(){
 			});
 		}
 	}
+*/
 	update_vpnc_clientlist_json();
-	if(isSupport("vpn_fusion")){
+	if(isSupport("real_vpn_fusion")){
 		update_vpnc_dev_policy_list_json();
 		vpnc_dev_policy_list_json.forEach(function(item, index, array){
 			var clientMac = item.mac;
@@ -4066,6 +4289,9 @@ function initial(){
 	if(support_Surfshark){
 		updateRegionListOnline();
 	}
+	if(support_Nord){
+		updateNordVPNRegionListOnline();
+	}
 
 	show_vpnc_clientlist();
 	show_get_start();
@@ -4075,7 +4301,7 @@ function initial(){
 		check_profile_status();
 	}, 1000*5);
 
-	var referer = getUrlParameter("referer").toLocaleLowerCase();
+	var referer = getUrlParameter("referer").toLowerCase();
 	if(referer != "" && referer == "vpn_wifi"){
 		var specific_vpnc_policy_data = vpnc_dev_policy_list_json.filter(function(item, index, array){
 			return (item.brifname == "br1" || item.brifname == "br2");
@@ -4097,6 +4323,152 @@ function initial(){
 		LoadingTime(seconds, flag);
 	});
 	resize_iframe_height();
+
+	if(support_Surfshark){
+		//Surfshark_w625_Default.png
+		//Surfshark_w728_Default.png
+		if(is_CN){
+			var UrlPromote_Nord = "https://nw-dlcdnet.asus.com/plugin/vpn/NordVPN_w625_CN.png";
+			var UrlBanner_Nord = "https://nw-dlcdnet.asus.com/plugin/vpn/NordVPN_w728_CN.png";
+			var UrlPromote = "https://nw-dlcdnet.asus.com/plugin/vpn/Surfshark_w625_CN.png";
+			var UrlBanner = "https://nw-dlcdnet.asus.com/plugin/vpn/Surfshark_w728_CN.png";
+		}
+		else if(!app_lang){
+			var UrlPromote_Nord = "https://nw-dlcdnet.asus.com/plugin/vpn/NordVPN_w625_"+ ui_lang +".png";
+			var UrlBanner_Nord = "https://nw-dlcdnet.asus.com/plugin/vpn/NordVPN_w728_"+ ui_lang +".png";
+			var UrlPromote = "https://nw-dlcdnet.asus.com/plugin/vpn/Surfshark_w625_"+ ui_lang +".png";
+			var UrlBanner = "https://nw-dlcdnet.asus.com/plugin/vpn/Surfshark_w728_"+ ui_lang +".png";
+		}
+		else{
+			var UrlPromote_Nord = "https://nw-dlcdnet.asus.com/plugin/vpn/NordVPN_w625_"+ app_lang +".png";
+			var UrlBanner_Nord = "https://nw-dlcdnet.asus.com/plugin/vpn/NordVPN_w728_"+ app_lang +".png";
+			var UrlPromote = "https://nw-dlcdnet.asus.com/plugin/vpn/Surfshark_w625_"+ app_lang +".png";
+			var UrlBanner = "https://nw-dlcdnet.asus.com/plugin/vpn/Surfshark_w728_"+ app_lang +".png";
+		}
+
+		var UrlPromoteDefault_Nord = "https://nw-dlcdnet.asus.com/plugin/vpn/NordVPN_w625_Default.png";
+		var UrlBannerDefault_Nord = "https://nw-dlcdnet.asus.com/plugin/vpn/NordVPN_w728_Default.png";
+		var UrlPromoteDefault = "https://nw-dlcdnet.asus.com/plugin/vpn/Surfshark_w625_Default.png";
+		var UrlBannerDefault = "https://nw-dlcdnet.asus.com/plugin/vpn/Surfshark_w728_Default.png";
+
+		if(is_CN){
+			var UrlPromoteMobile_Nord = "https://nw-dlcdnet.asus.com/plugin/vpn/NordVPN_375x160_CN_mobile.png";
+			var UrlBannerMobile_Nord = "https://nw-dlcdnet.asus.com/plugin/vpn/NordVPN_375x72_CN_mobile.png";
+			var UrlPromoteMobile = "https://nw-dlcdnet.asus.com/plugin/vpn/Surfshark_375x160_CN_mobile.png";
+			var UrlBannerMobile = "https://nw-dlcdnet.asus.com/plugin/vpn/Surfshark_375x72_CN_mobile.png";
+		}
+		else if(!app_lang){
+			var UrlPromoteMobile_Nord = "https://nw-dlcdnet.asus.com/plugin/vpn/NordVPN_375x160_"+ ui_lang +"_mobile.png";
+			var UrlBannerMobile_Nord = "https://nw-dlcdnet.asus.com/plugin/vpn/NordVPN_375x72_"+ ui_lang +"_mobile.png";
+			var UrlPromoteMobile = "https://nw-dlcdnet.asus.com/plugin/vpn/Surfshark_375x160_"+ ui_lang +"_mobile.png";
+			var UrlBannerMobile = "https://nw-dlcdnet.asus.com/plugin/vpn/Surfshark_375x72_"+ ui_lang +"_mobile.png";
+		}
+		else{
+			var UrlPromoteMobile_Nord = "https://nw-dlcdnet.asus.com/plugin/vpn/NordVPN_375x160_"+ app_lang +"_mobile.png";
+			var UrlBannerMobile_Nord = "https://nw-dlcdnet.asus.com/plugin/vpn/NordVPN_375x72_"+ app_lang +"_mobile.png";
+			var UrlPromoteMobile = "https://nw-dlcdnet.asus.com/plugin/vpn/Surfshark_375x160_"+ app_lang +"_mobile.png";
+			var UrlBannerMobile = "https://nw-dlcdnet.asus.com/plugin/vpn/Surfshark_375x72_"+ app_lang +"_mobile.png";
+		}
+
+		var UrlPromoteMobileDefault_Nord = "https://nw-dlcdnet.asus.com/plugin/vpn/NordVPN_375x160_Default_mobile.png";
+		var UrlBannerMobileDefault_nord = "https://nw-dlcdnet.asus.com/plugin/vpn/NordVPN_375x72_Default_mobile.png";
+		var UrlPromoteMobileDefault = "https://nw-dlcdnet.asus.com/plugin/vpn/Surfshark_375x160_Default_mobile.png";
+		var UrlBannerMobileDefault = "https://nw-dlcdnet.asus.com/plugin/vpn/Surfshark_375x72_Default_mobile.png";
+
+		const current_promote_url = (ww > 500) ? UrlPromote : UrlPromoteMobile;
+		const default_promote_url = (ww > 500) ? UrlPromoteDefault : UrlPromoteMobileDefault;
+		$ssk_promote_img.attr('src', current_promote_url)
+			.on('load', function() {
+				// image loaded successfully
+				$(this).attr({'data-img-ready':"true"});
+			})
+			.on('error', function() {
+				// image failed to load
+				$(this).attr('src', default_promote_url)
+				.on('load', function() {
+					// image loaded successfully
+					$(this).attr('data-img-ready', "true");
+				})
+				.on('error', function() {
+					// image failed to load
+					$(this).unbind('error').unbind("click");
+				});
+			})
+			.on('click', function(e) {
+				e = e || event;
+				e.stopPropagation();
+				window.open(surfshark_href);
+			});
+
+		const current_promote_url_Nord = (ww > 500) ? UrlPromote_Nord : UrlPromoteMobile_Nord;
+		const default_promote_url_Nord = (ww > 500) ? UrlPromoteDefault_Nord : UrlPromoteMobileDefault_Nord;
+		$nord_promote_img.attr('src', current_promote_url_Nord)
+			.on('load', function() {
+				// image loaded successfully
+				$(this).attr({'data-img-ready':"true"});
+			})
+			.on('error', function() {
+				// image failed to load
+				$(this).attr('src', default_promote_url_Nord)
+				.on('load', function() {
+					// image loaded successfully
+					$(this).attr('data-img-ready', "true");
+				})
+				.on('error', function() {
+					// image failed to load
+					$(this).unbind('error').unbind("click");
+				});
+			})
+			.on('click', function(e) {
+				e = e || event;
+				e.stopPropagation();
+				window.open(Nord_href);
+			});
+
+	}
+	(()=>{
+		let current_lang = "EN";
+		if(is_CN){
+			current_lang = "CN";
+		}
+		else if(!app_lang){
+			current_lang = ui_lang;
+		}
+		else{
+			current_lang = app_lang;
+		}
+		const current_promote_url = `https://nw-dlcdnet.asus.com/plugin/CyberGhost/CyberGhost_${current_lang}.png`;
+		const default_promote_url = "https://nw-dlcdnet.asus.com/plugin/CyberGhost/CyberGhost_Default.png";
+		$cyberghost_promote_img.attr('src', current_promote_url)
+			.on('load', function() {
+				// image loaded successfully
+				$(this).attr({'data-img-ready':"true"});
+			})
+			.on('error', function() {
+				// image failed to load
+				$(this).attr('src', default_promote_url)
+				.on('load', function() {
+					// image loaded successfully
+					$(this).attr('data-img-ready', "true");
+				})
+				.on('error', function() {
+					// image failed to load
+					$(this).unbind('error').unbind("click");
+				});
+			})
+			.on('click', function(e) {
+				e = e || event;
+				e.stopPropagation();
+				window.open(`https://www.cyberghostvpn.com/en_US/offer/bestasus?coupon=2Y5Mb&brand=asus&noForceCondition=true&aff_id=19933`);
+			});
+	})();
+}
+function showThirdPartyPolicy(party) {
+	const thirdPartyPolicyModal = new ThirdPartyPolicyModalComponent({
+		policy: 'THIRDPARTY_PP',
+		party: party
+	});
+	thirdPartyPolicyModal.show();
 }
 $(document).ready(initial);
 </script>
@@ -4107,11 +4479,12 @@ $(document).ready(initial);
 <div class="popup_container popup_element_second"></div>
 <div class="hidden_mask popup_customize_alert"></div>
 <div class="popup_container popup_customize_alert"></div>
-<div class="bg">
+<div id="vpnc_bg" class="bg">
 	<div class="container no_highlights">
 		<div class="function_desc_container">
 			<div class="title"><#vpnc_title#></div>
 			<div class="vpn_icon_all_collect vpnc_help_icon"></div>
+			<div id="divSwitchMenu" style="float:right;"></div>
 		</div>
 		<div class="banner_surfshark"></div>
 		<div class="content_container">

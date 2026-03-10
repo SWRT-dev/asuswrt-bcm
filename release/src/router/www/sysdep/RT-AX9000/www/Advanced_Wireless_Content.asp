@@ -446,20 +446,20 @@ function initial(){
 		if (band0_channel == '0') {
 			$('#band0_autoChannel').show();
 			if(odmpid === 'GT6'){
-				$('#band0_autoChannel').html('Current Control Channel: ' + cur_control_channel[2]);
+				$('#band0_autoChannel').html('<#wireless_control_channel#>: ' + cur_control_channel[2]);
 			}
 			else{
-				$('#band0_autoChannel').html('Current Control Channel: ' + cur_control_channel[0]);
+				$('#band0_autoChannel').html('<#wireless_control_channel#>: ' + cur_control_channel[0]);
 			}			
 		}
 
 		if (band1_channel == '0') {
 			$('#band1_autoChannel').show();
 			if(odmpid === 'GT6'){
-				$('#band1_autoChannel').html('Current Control Channel: ' + cur_control_channel[0]);
+				$('#band1_autoChannel').html('<#wireless_control_channel#>: ' + cur_control_channel[0]);
 			}
 			else{
-				$('#band1_autoChannel').html('Current Control Channel: ' + cur_control_channel[1]);
+				$('#band1_autoChannel').html('<#wireless_control_channel#>: ' + cur_control_channel[1]);
 			}				
 		}
 
@@ -468,10 +468,10 @@ function initial(){
 			if (band2_channel == '0') {
 				$('#band2_autoChannel').show();
 				if(odmpid === 'GT6'){
-					$('#band2_autoChannel').html('Current Control Channel: ' + cur_control_channel[1]);
+					$('#band2_autoChannel').html('<#wireless_control_channel#>: ' + cur_control_channel[1]);
 				}
 				else{
-					$('#band2_autoChannel').html('Current Control Channel: ' + cur_control_channel[2]);
+					$('#band2_autoChannel').html('<#wireless_control_channel#>: ' + cur_control_channel[2]);
 				}				
 			}
 		}		
@@ -492,10 +492,10 @@ function initial(){
 			if (band1_channel == '0') {
 				$('#band1_autoChannel').show();
 				if(odmpid === 'GT6'){
-					$('#band1_autoChannel').html('Current Control Channel: ' + cur_control_channel[0]);
+					$('#band1_autoChannel').html('<#wireless_control_channel#>: ' + cur_control_channel[0]);
 				}
 				else{
-					$('#band1_autoChannel').html('Current Control Channel: ' + cur_control_channel[1]);
+					$('#band1_autoChannel').html('<#wireless_control_channel#>: ' + cur_control_channel[1]);
 				}				
 			}
 
@@ -504,10 +504,10 @@ function initial(){
 				if (band2_channel == '0') {
 					$('#band2_autoChannel').show();
 					if(odmpid === 'GT6'){
-						$('#band2_autoChannel').html('Current Control Channel: ' + cur_control_channel[1]);
+						$('#band2_autoChannel').html('<#wireless_control_channel#>: ' + cur_control_channel[1]);
 					}
 					else{
-						$('#band2_autoChannel').html('Current Control Channel: ' + cur_control_channel[2]);
+						$('#band2_autoChannel').html('<#wireless_control_channel#>: ' + cur_control_channel[2]);
 					}					
 				}
 			}
@@ -1591,7 +1591,7 @@ function validForm(){
 			ssid_array.push(httpApi.nvramGet(["wl2_ssid"]).wl2_ssid);
 		jsonPara["current_ssid"] = ssid_array;
 		if(!validator.dwb_check_wl_setting(jsonPara)) {
-			alert("The fronthaul SSID is the same as the backhaul SSID.");/* untranslated */
+			alert(`<#wireless_JS_dup_SSID#>`);
 			return false;
 		}
 	}
@@ -2004,12 +2004,12 @@ function enableSmartCon(val, isInitial){
 
 			if (band0_channel == '0') {
 				$('#band0_autoChannel').show();
-				$('#band0_autoChannel').html('Current Control Channel: ' + cur_control_channel[2]);
+				$('#band0_autoChannel').html('<#wireless_control_channel#>: ' + cur_control_channel[2]);
 			}
 
 			if (band1_channel == '0') {
 				$('#band1_autoChannel').show();
-				$('#band1_autoChannel').html('Current Control Channel: ' + cur_control_channel[0]);
+				$('#band1_autoChannel').html('<#wireless_control_channel#>: ' + cur_control_channel[0]);
 			}
 
 			if (wl_info.band5g_2_support || wl_info.band6g_support) {
@@ -2020,7 +2020,7 @@ function enableSmartCon(val, isInitial){
 
 				if (band2_channel == '0') {
 					$('#band2_autoChannel').show();
-					$('#band2_autoChannel').html('Current Control Channel: ' + cur_control_channel[1]);
+					$('#band2_autoChannel').html('<#wireless_control_channel#>: ' + cur_control_channel[1]);
 				}
 			}
 
@@ -2110,7 +2110,7 @@ function enableSmartCon(val, isInitial){
 
 				if (band1_channel == '0') {
 					$('#band1_autoChannel').show();
-					$('#band1_autoChannel').html('Current Control Channel: ' + cur_control_channel[0]);
+					$('#band1_autoChannel').html('<#wireless_control_channel#>: ' + cur_control_channel[0]);
 				}
 
 				if (wl_info.band5g_2_support || wl_info.band6g_support) {
@@ -2122,7 +2122,7 @@ function enableSmartCon(val, isInitial){
 
 					if (band2_channel == '0') {
 						$('#band2_autoChannel').show();
-						$('#band2_autoChannel').html('Current Control Channel: ' + cur_control_channel[1]);
+						$('#band2_autoChannel').html('<#wireless_control_channel#>: ' + cur_control_channel[1]);
 					}
 				}
 
@@ -2250,7 +2250,13 @@ function he_frame_mode(obj) {
 	}
 }
 
-var band1_enable_bw_160 = '<% nvram_get("wl0_bw_160"); %>';
+var band1_enable_bw_160 = (function(){
+	if(!wl_info['1'].bw_160_support){
+		return '0';
+	}
+	
+	return '<% nvram_get("wl0_bw_160"); %>'
+})();
 var band2_enable_bw_160 = '<% nvram_get("wl1_bw_160"); %>';
 function separateGenBWTable(unit){
 	var bws = new Array();
@@ -2321,7 +2327,14 @@ function separateGenBWTable(unit){
 }
 function separateEnable_160MHz(obj){
 	if(obj.id == 'band1_160'){
-		band1_enable_bw_160 = obj.checked ? 1 : 0;
+		band1_enable_bw_160 = (function(){
+			if(!wl_info['1'].bw_160_support){
+				return '0';
+
+			}
+
+			return obj.checked ? 1 : 0;
+		})();
 		separateGenBWTable('0');
 	}
 	else if(obj.id == 'band2_160'){
@@ -2543,7 +2556,7 @@ function separateGenChannel(unit, channel, bandwidth){
 				for (i = 0; i < channel_5g_1.length; i++) {
 					var _cur_channel = parseInt(channel_5g_1[i]);
 					_wl_channel.push(_cur_channel.toString());
-					channel_5g_1_val.push(_cur_channel);;
+					channel_5g_1_val.push(_cur_channel);
 				}
 			}			
 		}
@@ -3530,8 +3543,8 @@ function gen_fronthaul_ap(_value){
 								<option value="1" <% nvram_match("wl_mfp", "1", "selected"); %>><#WLANConfig11b_x_mfp_opt1#></option>
 								<option value="2" <% nvram_match("wl_mfp", "2", "selected"); %>><#WLANConfig11b_x_mfp_opt2#></option>
 						  </select>
-						  <span id="mbo_notice_wpa3" style="display:none">*If the Authentication Method is WPA3-Personal, the Protected Management Frames will be Required.</span>
-						  <span id="mbo_notice_combo" style="display:none">*If the Authentication Method is WPA2/WPA3-Personal, the Protected Management Frames will be Capable.</span>
+						  <span id="mbo_notice_wpa3" style="display:none"><#WLANConfig11b_AgileMultiband_note_wpa3#></span>
+						  <span id="mbo_notice_combo" style="display:none"><#WLANConfig11b_AgileMultiband_note_combo#></span>
 						  <span id="mbo_notice_combo_legacy" style="display:none">*If the Authentication Method is WPA/WPA2-Personal, the Protected Management Frames will be Capable.</span>
 						  <span id="mbo_notice" style="display:none"><#WLANConfig11b_AgileMultiband_note#></span>
 					</td>
@@ -3559,7 +3572,7 @@ function gen_fronthaul_ap(_value){
 					<th><#WLANConfig11b_Channel_itemname#></th>
 					<td>
 						<select name="band0_channel" class="input_option" onChange="separateChannelHandler('0', this.value);"></select>
-						<span id="band0_autoChannel" style="display:none;margin-left:10px;">Current Control Channel</span><br>
+						<span id="band0_autoChannel" style="display:none;margin-left:10px;"><#wireless_control_channel#></span><br>
 						<span id="band0_acs_ch13"><input id="band0_acs_ch13_checkbox" type="checkbox" <%
 							 nvram_match("acs_ch13", "1" , "checked" ); %>><#WLANConfig11b_EChannel_acs_ch13#></span>
 					</td>
@@ -3594,7 +3607,7 @@ function gen_fronthaul_ap(_value){
 					<th><#WLANConfig11b_Channel_itemname#></th>
 					<td>
 						<select name="band1_channel" class="input_option" onChange="separateChannelHandler('1', this.value);"></select>
-						<span id="band1_autoChannel" style="display:none;margin-left:10px;">Current Control Channel</span><br>
+						<span id="band1_autoChannel" style="display:none;margin-left:10px;"><#wireless_control_channel#></span><br>
 						<span id="band1_acsDFS"><input id="band1_acsDFS_checkbox" type="checkbox" <%
 							 nvram_match("acs_dfs", "1" , "checked" ); %>><#WLANConfig11b_EChannel_dfs#></span>
 					</td>
@@ -3631,7 +3644,7 @@ function gen_fronthaul_ap(_value){
 					<th><#WLANConfig11b_Channel_itemname#></th>
 					<td>
 						<select name="band2_channel" class="input_option" onChange="separateChannelHandler('2', this.value);"></select>
-						<span id="band2_autoChannel" style="display:none;margin-left:10px;">Current Control Channel</span><br>
+						<span id="band2_autoChannel" style="display:none;margin-left:10px;"><#wireless_control_channel#></span><br>
 						<span id="band2_acsDFS"><input id="band2_acsDFS_checkbox" type="checkbox" <% nvram_match("acs_band3", "1" , "checked" ); %>><#WLANConfig11b_EChannel_dfs#></span>
 						<span id="band2_psc6g" style="display:none"><input id="band2_psc6g_checkbox" type="checkbox" onclick="separateGenChannel('2', document.form.band2_channel.value, document.form.band2_bw.value);" <% nvram_match("psc6g", "1" , "checked" ); %>><#Enable_PSC_Hint#> <#PSC_Faq#></span>
 						<span id="band2_acs_unii4_field" style="display:none;"><br><input id="band2_acs_unii4_checkbox" type="checkbox" onClick="handleUNII4Hint(this.checked)" <% nvram_match("acs_unii4", "1", "checked"); %>><#WLANConfig11b_EChannel_U-NII-4#></span>

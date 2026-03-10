@@ -12,7 +12,8 @@
 <link rel="stylesheet" type="text/css" href="/index_style.css">
 <link rel="stylesheet" type="text/css" href="/form_style.css">
 <link rel="stylesheet" type="text/css" href="/device-map/device-map.css" />
-<link rel="stylesheet" type="text/css" href="/aimesh/aimesh_topology.css" />
+<link rel="stylesheet" type="text/css" href='/aimesh/aimesh_topology.css?v=<% nvram_char_to_ascii("", "extendno"); %>' />
+<link rel="stylesheet" type="text/css" href="/css/asus_faq.css">
 <script type="text/javascript" src="/js/jquery.js"></script>
 <script type="text/javascript" src="/calendar/jquery-ui.js"></script>
 <script type="text/javascript" src="/js/jstree/jstree.min.js"></script>
@@ -21,6 +22,8 @@
 <script type="text/javascript" src="/state.js"></script>
 <script type="text/javascript" src="/js/httpApi.js"></script>
 <script type="text/javascript" src="/client_function.js"></script>
+<script type="text/javascript" src="/form.js"></script>
+<script type="text/javascript" src="/js/collected_FAQ.js"></script>
 <script>
 var getUrlParameter = function getUrlParameter(param){
 	var url_parm = window.location.search.substring(1);
@@ -37,13 +40,17 @@ var getUrlParameter = function getUrlParameter(param){
 };
 var theme = getUrlParameter("current_theme").toLocaleUpperCase();
 if(theme == "WHITE"){
-	$('link').filter("[href='/aimesh/aimesh_topology.css']").after('<link rel="stylesheet" type="text/css" href="/aimesh/aimesh_topology_' + theme + '.css">');
+	$('link').filter("[href*='/aimesh/aimesh_topology.css']").after('<link rel="stylesheet" type="text/css" href="/aimesh/aimesh_topology_' + theme + '.css">');
 }
+
+if(isSupport("TS_UI"))
+	$('link').last().after('<link rel="stylesheet" type="text/css" href="css/difference.css">');
+
 function initial(){
 	show_menu();
 	$("#AiMesh_Topology").load("/aimesh/aimesh_topology.html", function(){
 		setTimeout(function(){
-			$('link').filter("[href='/aimesh/aimesh_topology.css']").after('<link rel="stylesheet" type="text/css" href="/aimesh/aimesh_system_settings.css">');
+			$('link').filter("[href*='/aimesh/aimesh_topology.css']").after('<link rel="stylesheet" type="text/css" href="/aimesh/aimesh_system_settings.css">');
 			if(theme == "WHITE"){
 				$('link').filter("[href='/aimesh/aimesh_system_settings.css']").after('<link rel="stylesheet" type="text/css" href="/aimesh/aimesh_system_settings_' + theme + '.css">');
 			}
@@ -62,7 +69,10 @@ function change_tab(_index){
 	$(".aimesh_tab span").removeClass("clicked");
 	$(".aimesh_tab span").eq(_index - 1).addClass("clicked");
 	$(".aimesh_tab_content").hide();
-	$(".aimesh_tab_content.idx" + _index + "").show();
+	$(".aimesh_tab_content.idx" + _index + "").css("display", "block");
+	if(_index.toString() === "2"){
+		initial_system_settings();
+	}
 }
 </script>
 </head>

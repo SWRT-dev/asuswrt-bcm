@@ -12,7 +12,6 @@
 #include <nt_db.h>
 #include <nt_common.h>
 #include <linklist.h>
-#include <hashtable.h>
 
 #ifndef __libnt_h__
 #define __libnt_h__
@@ -36,6 +35,7 @@ extern int eInfo_get_idx_by_evalue(int e);
 extern char *eInfo_get_eName(int e);
 extern int eInfo_get_eAppsid(int e);
 extern int eInfo_get_eType(int e);
+extern int eInfo_get_eIspush(int e);
 extern int eInfo_get_ePri(int e);
 extern int GetDebugValue(char *path);
 extern void SEND_NT_EVENT(int event, const char *msg);
@@ -63,6 +63,7 @@ extern size_t filesize(const char *file);
 extern void rmEndhar(char *str);
 extern int _xvstrsep(char *buf, const char *sep, ...);
 extern int x_get_mac(unsigned char *mac_address);
+extern size_t safe_strlen(const char *str);
 
 /* nt_db_stat.c */
 

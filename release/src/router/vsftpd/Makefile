@@ -21,7 +21,7 @@ LINK	=
 
 CFLAGS	+=	-I../shared
 ifeq ($(RTCONFIG_FTP_SSL),y)
-LIBS	=	-lnsl
+LIBS	=	-lnsl -pthread
 OPENSSLDIR = ../openssl
 OPENSSLINC = $(OPENSSLDIR)/include
 LIBS	+=	-L$(OPENSSLDIR)/ -lssl -lcrypto

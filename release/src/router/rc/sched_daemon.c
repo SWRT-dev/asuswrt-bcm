@@ -17,22 +17,31 @@
 #include <json.h>
 #include "time_quota.h"
 #endif
+#ifdef RTCONFIG_MULTIWAN_PROFILE
+#include "multi_wan.h"
+#endif
+#ifdef RTCONFIG_CFGSYNC
+#include <cfg_event.h>
+#endif
 
 #define USE_TIMERUTIL 1
 #ifdef USE_TIMERUTIL
 #include <timer_utils.h>
 #endif
 
+#define PID_SCHED_DAEMON "/var/run/sched_daemon.pid"
+
 #define PERIOD_NORMAL			5*TIMER_HZ      /* minisecond */
 #define PERIOD_10_SEC			10*TIMER_HZ
 #define PERIOD_30_SEC			30*TIMER_HZ
+#define PERIOD_120_SEC			120*TIMER_HZ
 #define PERIOD_86400_SEC		86400*TIMER_HZ
 
 #define SCHED_DAEMON_DEBUG		"/tmp/SCHED_DAEMON_DEBUG"
 
+extern char *__progname;
 #ifdef RTCONFIG_LIBASUSLOG
 #define SCHED_DAEMON_DBG_LOG	"sched_daemon.log"
-extern char *__progname;
 #define SCHED_DAEMON_DBG_SYSLOG(fmt,args...) \
 	if (nvram_get_int("sched_daemon_syslog")) { \
 		asusdebuglog(LOG_INFO, SCHED_DAEMON_DBG_LOG, LOG_CUSTOM, LOG_SHOWTIME, 0, "[%s][%d]][%s:(%d)] "fmt, __progname, getpid(), __FUNCTION__, __LINE__, ##args); \
@@ -43,10 +52,14 @@ extern char *__progname;
 
 #define SCHED_DAEMON_DBG(fmt,args...) do { \
 	if(f_exists(SCHED_DAEMON_DEBUG) > 0) { \
-		_dprintf("[SCHED_DAEMON][%s:(%d)]"fmt"\n", __FUNCTION__, __LINE__, ##args); \
+		_dprintf("[%s][%d][%s:(%d)]"fmt"\n", __progname, getpid(), __FUNCTION__, __LINE__, ##args); \
 	} \
 	SCHED_DAEMON_DBG_SYSLOG(fmt,##args) \
 } while(0)
+
+#ifndef RTCONFIG_AVOID_TZ_ENV
+static char time_zone_t[32]={0};
+#endif
 
 
 #ifdef USE_TIMERUTIL
@@ -62,10 +75,27 @@ static void task_pc_reward_cleaner(struct timer_entry *timer, void *data);
 #ifdef RTCONFIG_TIME_QUOTA
 static void task_pc_time_quota(struct timer_entry *timer, void *data);
 #endif
+#ifdef RTCONFIG_MULTIWAN_PROFILE
+static void task_mtwan_schedule(struct timer_entry *timer, void *data);
+#endif
+#ifndef RTCONFIG_AVOID_TZ_ENV
+static void task_timezone_checking(struct timer_entry *timer, void *data);
+#endif
+#ifdef RTCONFIG_REBOOT_SCHEDULE
+static void task_reboot_schedule(struct timer_entry *timer, void *data);
+#endif
+#ifdef RTCONFIG_HNS
+static void task_hns_history(struct timer_entry *timer, void *data);
+static void task_hns_protection(struct timer_entry *timer, void *data);
+static void task_hns_signature(struct timer_entry *timer, void *data);
+static void task_hns_event_cc(struct timer_entry *timer, void *data);
+static void task_hns_alive(struct timer_entry *timer, void *data);
+#endif
 ///////////////////////////////////// task prototype /////////////////////////////////////
 
 ///////////////////////////////////// signal handler prototype /////////////////////////////////////
 static void sched_daemon_sigusr1(struct timer_entry *timer, void *data);
+static void sched_daemon_sigusr2(struct timer_entry *timer, void *data);
 static void sched_daemon_exit(struct timer_entry *timer, void *data);
 static void sched_daemon_reap(struct timer_entry *timer, void *data);
 ///////////////////////////////////// signal handler prototype /////////////////////////////////////
@@ -82,7 +112,24 @@ static struct task_table sd_task_t[] =
 #ifdef RTCONFIG_TIME_QUOTA
         {SIGALRM, 0, task_pc_time_quota, 0, TIME_QUOTA_INTERVAL},
 #endif
+#ifdef RTCONFIG_MULTIWAN_PROFILE
+        {SIGALRM, 0, task_mtwan_schedule, 0, PERIOD_30_SEC},
+#endif
+#ifndef RTCONFIG_AVOID_TZ_ENV
+        {SIGALRM, 0, task_timezone_checking, 0, PERIOD_10_SEC},
+#endif
+#ifdef RTCONFIG_REBOOT_SCHEDULE
+		{SIGALRM, 0, task_reboot_schedule, 0, PERIOD_30_SEC},
+#endif
+#ifdef RTCONFIG_HNS
+        {SIGALRM, 0, task_hns_history, 0, PERIOD_120_SEC},
+        {SIGALRM, 0, task_hns_protection, 0, PERIOD_120_SEC},
+        {SIGALRM, 0, task_hns_signature, 0, PERIOD_86400_SEC},
+        {SIGALRM, 0, task_hns_event_cc, 0, PERIOD_10_SEC},
+        {SIGALRM, 0, task_hns_alive, 0, PERIOD_30_SEC},
+#endif
         {SIGUSR1, 0, sched_daemon_sigusr1, 0, 0},
+        {SIGUSR2, 0, sched_daemon_sigusr2, 0, 0},
         {SIGTERM, 0, sched_daemon_exit, 0, 0},
         {SIGCHLD, 0, sched_daemon_reap, 0, 0},
         {0, 0, 0, 0, 0}
@@ -99,6 +146,7 @@ static struct itimerval itv;
 static int period_time_quota_sec = 0;
 #endif
 static int period_30_sec = 0;
+static int period_120_sec = 0;
 static int period_3600_sec = 0;
 static int period_86400_sec = 0;
 ///////////////////////////////////// task prototype /////////////////////////////////////
@@ -113,10 +161,27 @@ static void task_pc_reward_cleaner(void);
 #ifdef RTCONFIG_TIME_QUOTA
 static void task_pc_time_quota(void);
 #endif
+#ifdef RTCONFIG_MULTIWAN_PROFILE
+static void task_mtwan_schedule(void);
+#endif
+#ifndef RTCONFIG_AVOID_TZ_ENV
+static void task_timezone_checking(void);
+#endif
+#ifdef RTCONFIG_REBOOT_SCHEDULE
+static void task_reboot_schedule(void);
+#endif
+#ifdef RTCONFIG_HNS
+static void task_hns_history(void);
+static void task_hns_protection(void);
+static void task_hns_signature(void);
+static void task_hns_event_cc(void);
+static void task_hns_alive(void);
+#endif
 ///////////////////////////////////// task prototype /////////////////////////////////////
 
 ///////////////////////////////////// signal handler prototype /////////////////////////////////////
 static void sched_daemon_sigusr1(int sig);
+static void sched_daemon_sigusr2(int sig);
 static void sched_daemon_exit(int sig);
 static void sched_daemon_reap(int sig);
 static void sched_daemon(int sig);
@@ -183,7 +248,7 @@ void install_sig()
 
 	fn_acts[SIGCHLD] = sched_daemon_reap;
 	fn_acts[SIGUSR1] = sched_daemon_sigusr1;
-	//fn_acts[SIGUSR2] = catch_sig;
+	fn_acts[SIGUSR2] = sched_daemon_sigusr2;
 	//fn_acts[SIGTSTP] = catch_sig;
 	fn_acts[SIGTERM] = sched_daemon_exit;
 	fn_acts[SIGALRM] = sched_daemon;
@@ -209,7 +274,9 @@ alarmtimer(unsigned long sec, unsigned long usec)
 static void sched_daemon(int sig)
 {
 	//SCHED_DAEMON_DBG("sig=(%d)", sig);
+	period_10_sec = (period_10_sec + 1) % 10;
 	period_30_sec = (period_30_sec + 1) % 30;
+	period_120_sec = (period_120_sec + 1) % 120;
 	period_3600_sec = (period_3600_sec + 1) % 3600;
 	period_86400_sec = (period_86400_sec + 1) % 86400;
 
@@ -222,11 +289,41 @@ static void sched_daemon(int sig)
 	task_pc_time_quota();
 #endif
 
+/*======== The following is for period 10 seconds ========*/
+	if (period_10_sec)
+		return;
+
+#ifndef RTCONFIG_AVOID_TZ_ENV
+	task_timezone_checking();
+#endif
+#ifdef RTCONFIG_HNS
+	task_hns_event_cc();
+#endif
+
+#ifndef RTCONFIG_REBOOT_SCHEDULE
+	task_reboot_schedule();
+#endif
+
 /*======== The following is for period 30 seconds ========*/
 	if (period_30_sec)
 		return;
 
 	task_wireless_schedule();
+#ifdef RTCONFIG_MULTIWAN_PROFILE
+	task_mtwan_schedule();
+#endif
+#ifdef RTCONFIG_HNS
+	task_hns_alive();
+#endif
+
+/*======== The following is for period 120 seconds ========*/
+	if (period_120_sec)
+		return;
+
+#ifdef RTCONFIG_HNS
+	task_hns_history();
+	task_hns_protection();
+#endif
 
 /*======== The following is for period 1 hour ========*/
 	if (period_3600_sec)
@@ -243,10 +340,41 @@ static void sched_daemon(int sig)
 #ifdef RTCONFIG_PC_REWARD
 	task_pc_reward_cleaner();
 #endif
+#ifdef RTCONFIG_HNS
+	task_hns_signature();
+#endif
 }
 #endif
 
+// the svcStatus and vif_svcstatus is used to save previous radio state.
 static int svcStatus[12] = { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
+static int vif_svcStatus[12][32];
+static void reset_svc_status() {
+	int unit = 0, subunit;
+	char word[256], *next;
+#if defined(RTCONFIG_MULTILAN_CFG)
+	char word2[256], *next2;
+	char nv[81];
+#endif
+
+	foreach (word, nvram_safe_get("wl_ifnames"), next) {
+		SKIP_ABSENT_BAND_AND_INC_UNIT(unit);
+		svcStatus[unit] = -1;
+
+#if defined(RTCONFIG_MULTILAN_CFG)
+		subunit = 1;
+		memset(nv, 0, sizeof(nv));
+		snprintf(nv, sizeof(nv), "wl%d_vifnames", unit);
+		foreach (word2, nvram_safe_get(nv), next2) {
+			vif_svcStatus[unit][subunit] = -1;
+			subunit++;
+		}
+#endif
+
+		unit++;
+	}
+}
+
 #ifndef RTCONFIG_WL_SCHED_V2
 extern int timecheck_item(char *activeTime);
 void wl_sched_v1(void)
@@ -273,15 +401,7 @@ void wl_sched_v1(void)
 	{
 		nvram_set("reload_svc_radio", "0");
 
-		foreach (word, nvram_safe_get("wl_ifnames"), next) {
-			SKIP_ABSENT_BAND_AND_INC_UNIT(unit);
-			svcStatus[item] = -1;
-			item++;
-			unit++;
-		}
-
-		item = 0;
-		unit = 0;
+		reset_svc_status();
 	}
 
 	// radio on/off
@@ -339,11 +459,11 @@ void wl_sched_v1(void)
 #endif
 
 			if (activeNow == 0) {
-				eval("radio", "off", tmp);
+				set_wlan_service_status(safe_atoi(tmp), -1, 0);
 				SCHED_DAEMON_DBG(" Turn radio [band_index=%s] off", tmp);
 				logmessage("wifi scheduler", "Turn radio [band_index=%s] off.", tmp);
 			} else {
-				eval("radio", "on", tmp);
+				set_wlan_service_status(safe_atoi(tmp), -1, 1);
 				SCHED_DAEMON_DBG(" Turn radio [band_index=%s] on", tmp);
 				logmessage("wifi scheduler", "Turn radio [band_index=%s] on.", tmp);
 			}
@@ -354,6 +474,13 @@ void wl_sched_v1(void)
 	}
 }
 #else
+#if defined(RTCONFIG_MULTILAN_CFG)
+extern wifi_band_cap_st band_cap[MAX_BAND_CAP_LIST_SIZE];
+extern int band_cap_total;
+extern int is_reserved_if(int unit, int subunit, int filter_main);
+extern int check_wlX_sched(int unit);
+#endif
+
 void wl_sched_v2(void)
 {
 	int activeNow;
@@ -364,6 +491,24 @@ void wl_sched_v2(void)
 #if defined(RTCONFIG_AMAS) && defined(RTCONFIG_QCA)
 	char sctmp[20];
 #endif
+
+#ifdef RTCONFIG_MULTILAN_CFG
+	int activeNow2;
+	int expireNow;
+	int timesched;
+	char schedTime2[2048];
+	char expireTime[2048];
+	char prefix2[]="wlXXXXXX_";
+	char word2[256], *next2;
+	char nv[81];
+	int subunit = 0;
+#if defined(RTCONFIG_AMAS) && defined(RTCONFIG_QCA)
+	char sctmp2[32];
+#endif
+	int wlX_activeNow = -1;
+#endif
+	int bss_status;
+	int radio_status;
 
 	// Check whether conversion needed.
 	convert_wl_sched_v1_to_sched_v2();
@@ -377,21 +522,157 @@ void wl_sched_v2(void)
 	{
 		nvram_set("reload_svc_radio", "0");
 
-		foreach (word, nvram_safe_get("wl_ifnames"), next) {
-			SKIP_ABSENT_BAND_AND_INC_UNIT(unit);
-			svcStatus[item] = -1;
-			item++;
-			unit++;
-		}
-
-		item = 0;
-		unit = 0;
+		reset_svc_status();
 	}
+
+#ifdef RTCONFIG_MULTILAN_CFG
+	band_cap_total = 0;
+	memset(band_cap, 0, (sizeof(wifi_band_cap_st)*MAX_BAND_CAP_LIST_SIZE));
+	get_wifi_band_cap(band_cap, MAX_BAND_CAP_LIST_SIZE, &band_cap_total);
+#endif
 
 	// radio on/off
 	if (nvram_match("svc_ready", "1") && nvram_match("wlready", "1"))
 	foreach (word, nvram_safe_get("wl_ifnames"), next) {
 		SKIP_ABSENT_BAND_AND_INC_UNIT(unit);
+
+#if defined(RTCONFIG_MULTILAN_CFG)
+		wlX_activeNow = check_wlX_sched(unit);
+		subunit = 1;
+		snprintf(nv, sizeof(nv), "wl%d_vifnames", unit);
+		foreach (word2, nvram_safe_get(nv), next2) {
+			memset(prefix2, 0, sizeof(prefix2));
+			snprintf(prefix2, sizeof(prefix2), "wl%d.%d_", unit, subunit);
+#if defined(RTCONFIG_AMAS) && defined(RTCONFIG_QCA)
+			snprintf(sctmp2, sizeof(sctmp2), "wl%d.%d_qca_sched", unit, subunit);
+#endif
+			timesched = nvram_get_int(strcat_r(prefix2, "timesched", tmp2));
+			if ((nvram_get_int(strcat_r(prefix2, "radio", tmp)) == 0) ||
+				(nvram_get_int(strcat_r(prefix2, "bss_enabled", tmp2)) == 0)/* || 
+				(timesched == 0)*/) {
+				subunit++;
+				continue;
+			}
+
+			// if wlX_activeNow is equal -1, its represents the scheuler of main wifi is not set. We shoudld not control main interface.
+			if (is_reserved_if(unit, subunit, (wlX_activeNow == -1))) {
+				SCHED_DAEMON_DBG("[wifi-scheduler] [wl%d.%d] is reserved interface. bypass it.\n", unit, subunit);
+				subunit++;
+				continue;
+			}
+
+			// On RE node, the amas_lanctl should be the radio controler if RE is disconnected from CAP.
+			if (nvram_get_int("re_mode") == 1 && nvram_get_int("cfg_alive") ==0 ) {
+				subunit++;
+				continue;
+			}
+
+			/*transfer wl_sched NULL value to "" value, because
+			of old version firmware with wrong default value*/
+			if (!nvram_get(strcat_r(prefix2, "sched_v2", tmp)))
+			{
+				nvram_set(strcat_r(prefix2, "sched_v2", tmp), "");
+			}
+
+			memset(schedTime2, 0, sizeof(schedTime2));
+			if (wlX_activeNow >= 0) {
+				activeNow2 = wlX_activeNow;
+			} else {
+				if ((timesched & TIMESCHED_ACCESSTIME) > 0) {
+					snprintf(expireTime, sizeof(expireTime), "%s", nvram_safe_get(strcat_r(prefix2, "expiretime", tmp)));
+					expireNow = check_expire_on_off(expireTime);
+					if (expireNow < 0) { // not in expire time period
+						// if access time is enabled and not in expire time preiod, 
+						// we need to check if schedule is enabled too (consider both of access time and schedule are enabled).
+						if ((timesched & TIMESCHED_SCHEDULE) > 0) {
+							snprintf(schedTime2, sizeof(schedTime2), "%s", nvram_safe_get(strcat_r(prefix2, "sched_v2", tmp)));
+							activeNow2 = check_sched_v2_on_off(schedTime2);
+						} else {
+							activeNow2 = (expireNow == -2) ? 0 : 1;
+						}
+					} else { // in expire time period
+						activeNow2 = expireNow;
+					}
+				} else if ((timesched & TIMESCHED_SCHEDULE) > 0) {
+					snprintf(schedTime2, sizeof(schedTime2), "%s", nvram_safe_get(strcat_r(prefix2, "sched_v2", tmp)));
+					activeNow2 = check_sched_v2_on_off(schedTime2);
+				} else {
+					activeNow2 = 1;  // both of access time and schedule are not enabled, default is radio on.
+				}
+			}
+
+			memset(tmp2, 0, sizeof(tmp2));
+			snprintf(tmp2, sizeof(tmp2), "%d", subunit);
+
+			memset(tmp, 0, sizeof(tmp));
+#if defined(RTCONFIG_LYRA_5G_SWAP)
+			snprintf(tmp, sizeof(tmp), "%d", swap_5g_band(unit));
+#else
+			snprintf(tmp, sizeof(tmp), "%d", unit);
+#endif
+			SCHED_DAEMON_DBG("[wifi-scheduler] 3 uschedTime=%s, unit=%d, subunit=%d, activeNow2=%d, wlX_activeNow=%d\n", schedTime2, unit, subunit, activeNow2, wlX_activeNow);
+
+			if (vif_svcStatus[item][subunit] != activeNow2) {
+#ifdef RTCONFIG_QCA
+#if defined(RTCONFIG_AMAS)
+				nvram_set_int(sctmp,activeNow2);
+#endif
+
+#if defined(RTCONFIG_LYRA_5G_SWAP)
+				if (match_radio_status(swap_5g_band(unit), activeNow2)) {
+#else
+				if (match_radio_status(unit, activeNow2)) {
+#endif
+					vif_svcStatus[item][subunit] = activeNow2;
+					subunit++;
+					continue;
+				}
+#else
+				vif_svcStatus[item][subunit] = activeNow2;
+#endif
+
+				if (activeNow2 == 0) {
+					bss_status = get_wlan_service_status(safe_atoi(tmp), safe_atoi(tmp2));
+					if (bss_status == 1) { // radio is on
+						set_wlan_service_status(safe_atoi(tmp), safe_atoi(tmp2), 0);
+						SCHED_DAEMON_DBG("[wifi-scheduler] Turn radio [band_index=%s, subunit=%s] off\n", tmp, tmp2);
+						logmessage("wifi scheduler", "Turn radio [band_index=%s, subunit=%s] off.", tmp, tmp2);
+					} else {
+						if (bss_status == 0) {
+							SCHED_DAEMON_DBG("[wifi-scheduler] Turn radio [band_index=%s, subunit=%s] off. Already off, no need to set it again.\n", tmp, tmp2);
+							//logmessage("wifi-scheduler", "Turn radio [band_index=%s, subunit=%s] off. Already off, no need to set it again.\n", tmp, tmp2);
+						} else
+							SCHED_DAEMON_DBG("[wifi-scheduler] Turn radio [band_index=%s, subunit=%s] off. Error occur(%d).\n", tmp, tmp2, bss_status);
+					}
+				} else {
+					// We must check if radio is on, otherwsie the set set_wlan_service_status will failed.
+					if (wlX_activeNow == 1) {
+						radio_status = get_radio(safe_atoi(tmp), -1);
+						if (radio_status == 0) {
+							set_radio(1, safe_atoi(tmp), -1);
+							SCHED_DAEMON_DBG(" Turn radio [band_index=%s] on", tmp);
+							logmessage("wifi scheduler", "Turn radio [band_index=%s] on.", tmp);
+						}
+					}
+					bss_status = get_wlan_service_status(safe_atoi(tmp), safe_atoi(tmp2));
+					if (bss_status == 0) { // radio is off
+						set_wlan_service_status(safe_atoi(tmp), safe_atoi(tmp2), 1);
+						SCHED_DAEMON_DBG("[wifi-scheduler] Turn radio [band_index=%s, subunit=%s] on\n", tmp, tmp2);
+						logmessage("wifi scheduler", "Turn radio [band_index=%s, subunit=%s] on.", tmp, tmp2);
+					} else {
+						if (bss_status == 1) {
+							SCHED_DAEMON_DBG("[wifi-scheduler] Turn radio [band_index=%s, subunit=%s] on. Already on, no need to set it again.\n", tmp, tmp2);
+							//logmessage("wifi scheduler", "Turn radio [band_index=%s, subunit=%s] on. Already on, no need to set it again.\n", tmp, tmp2);
+						} else
+							SCHED_DAEMON_DBG("[wifi-scheduler] Turn radio [band_index=%s, subunit=%s] on. Error occur(%d).\n", tmp, tmp2, bss_status);
+					}
+				}	
+			}
+		
+			subunit++;
+		}
+#endif	
+		
 		snprintf(prefix, sizeof(prefix), "wl%d_", unit);
 #if defined(RTCONFIG_AMAS) && defined(RTCONFIG_QCA)
 		snprintf(sctmp, sizeof(sctmp), "wl%d_qca_sched", unit);
@@ -444,13 +725,31 @@ void wl_sched_v2(void)
 #endif
 
 			if (activeNow == 0) {
-				eval("radio", "off", tmp);
-				SCHED_DAEMON_DBG(" Turn radio [band_index=%s] off", tmp);
-				logmessage("wifi scheduler", "Turn radio [band_index=%s] off.", tmp);
+				radio_status = get_radio(safe_atoi(tmp), -1);
+				if (radio_status == 1) { // radio is on
+					set_radio(0, safe_atoi(tmp), -1);
+					SCHED_DAEMON_DBG(" Turn radio [band_index=%s] off", tmp);
+					logmessage("wifi scheduler", "Turn radio [band_index=%s] off.", tmp);
+				} else {
+					if (radio_status == 0) {
+						SCHED_DAEMON_DBG("[wifi-scheduler] Turn radio [band_index=%s] off. Already off, no need to set it again.\n", tmp);
+						//logmessage("wifi scheduler", "Turn radio [band_index=%s, subunit=%s] off. Already off, no need to set it again.\n", tmp, tmp2);
+					} else
+						SCHED_DAEMON_DBG("[wifi-scheduler] Turn radio [band_index=%s] off. Error occur(%d).\n", tmp, radio_status);
+				}
 			} else {
-				eval("radio", "on", tmp);
-				SCHED_DAEMON_DBG(" Turn radio [band_index=%s] on", tmp);
-				logmessage("wifi scheduler", "Turn radio [band_index=%s] on.", tmp);
+				radio_status = get_radio(safe_atoi(tmp), -1);
+				if (radio_status == 0) { // radio is off
+					set_radio(1, safe_atoi(tmp), -1);
+					SCHED_DAEMON_DBG(" Turn radio [band_index=%s] on", tmp);
+					logmessage("wifi scheduler", "Turn radio [band_index=%s] on.", tmp);
+				} else {
+					if (radio_status == 1) {
+						SCHED_DAEMON_DBG("[wifi-scheduler] Turn radio [band_index=%s] on. Already on, no need to set it again.\n", tmp);
+						//logmessage("wifi scheduler", "Turn radio [band_index=%s, subunit=%s] on. Already on, no need to set it again.\n", tmp, tmp2);
+					} else
+						SCHED_DAEMON_DBG("[wifi-scheduler] Turn radio [band_index=%s] on. Error occur(%d).\n", tmp, radio_status);
+				}
 			}
 		}
 		item++;
@@ -474,6 +773,7 @@ void get_ps_mem_list(ps_mem_list_t **ps_mem_list)
 	snprintf(ps_mem_limit_str, sizeof(ps_mem_limit_str), "%s", nvram_safe_get("mem_limit_setting"));
 	foreach_62_keep_empty_string(count1, word1, ps_mem_limit_str, next_word1) {
 		*tmp_pmem = (ps_mem_list_t *)malloc(sizeof(ps_mem_list_t));
+		memset((void *)(*tmp_pmem), 0, sizeof(ps_mem_list_t));
 		(*tmp_pmem)->curr_exceed = 0;
 		foreach_60_keep_empty_string(count2, word2, word1, next_word2) {
 			if (count2 == 3)
@@ -650,6 +950,209 @@ static void task_pc_time_quota(void)
 }
 #endif
 
+#ifdef RTCONFIG_MULTIWAN_PROFILE
+#ifdef USE_TIMERUTIL
+static void task_mtwan_schedule(struct timer_entry *timer, void *data)
+#else
+static void task_mtwan_schedule(void)
+#endif
+{
+	char mtwan_prefix[16] = {0};
+	int mtwan_idx;
+	int mtwan_group, to_group;
+
+	SCHED_DAEMON_DBG("Start Multi-WAN time check...");
+
+	if (!nvram_get_int("svc_ready"))
+	{
+#ifdef USE_TIMERUTIL
+		mod_timer(timer, PERIOD_30_SEC);
+#endif
+		return;
+	}
+
+	for (mtwan_idx = MAX_MTWAN_PROFILE_NUM; mtwan_idx > 0; mtwan_idx--) {
+		snprintf(mtwan_prefix, sizeof(mtwan_prefix), "mtwan%d_", mtwan_idx);
+		if (!nvram_pf_get_int(mtwan_prefix, "enable"))
+			continue;
+		if (nvram_pf_get_int(mtwan_prefix, "mode") != MTWAN_MODE_TIME)
+			continue;
+
+		mtwan_group = nvram_pf_get_int(mtwan_prefix, "group");
+		if (check_sched_v2_on_off(nvram_pf_safe_get(mtwan_prefix, "sched"))) {
+			to_group = mtwan_get_first_group(mtwan_idx);
+		}
+		else {
+			to_group = mtwan_get_second_group(mtwan_idx);
+		}
+
+		if (mtwan_group != to_group) {
+			SCHED_DAEMON_DBG("[mtwan-scheduler] Change to group %d\n", to_group);
+			mtwan_init_profile();
+			mtwan_handle_group_change(mtwan_idx, to_group);
+		}
+	}
+
+#ifdef USE_TIMERUTIL
+	mod_timer(timer, PERIOD_30_SEC);
+#endif
+}
+#endif //RTCONFIG_MULTIWAN_PROFILE
+
+#ifndef RTCONFIG_AVOID_TZ_ENV
+#ifdef USE_TIMERUTIL
+static void task_timezone_checking(struct timer_entry *timer, void *data)
+#else
+static void task_timezone_checking(void)
+#endif
+{
+	if(strcmp(nvram_safe_get("time_zone_x"), time_zone_t)){
+		SCHED_DAEMON_DBG("update time zone from %s to %s\n", time_zone_t, nvram_safe_get("time_zone_x"));
+		//logmessage("sched_daemon", "update time zone from %s to %s", time_zone_t, nvram_safe_get("time_zone_x"));
+		strlcpy(time_zone_t, nvram_safe_get("time_zone_x"), sizeof(time_zone_t));
+		setenv("TZ", nvram_safe_get("time_zone_x"), 1);
+		tzset();
+	}
+
+#ifdef USE_TIMERUTIL
+	mod_timer(timer, PERIOD_10_SEC);
+#endif
+}
+#endif	/* RTCONFIG_AVOID_TZ_ENV */
+
+#ifdef RTCONFIG_REBOOT_SCHEDULE
+extern int timecheck_reboot(int sched_type, char *activeSchedule);
+#ifdef USE_TIMERUTIL
+static void task_reboot_schedule(struct timer_entry *timer, void *data)
+#else
+static void task_reboot_schedule(void)
+#endif
+{
+	/* Reboot Schedule */
+	char reboot_schedule[PATH_MAX];
+	int reboot_schedule_type = 0;
+	SCHED_DAEMON_DBG("[reboot-scheduler] checking...\n");
+	// don't need to check reboot schedule when the system is booting up.
+	if (uptime() > 300 && nvram_match("reboot_schedule_enable", "1"))
+	{
+		if (nvram_match("ntp_ready", "1"))
+		{
+			//SMTWTFSHHMM
+			//XXXXXXXXXXX
+#ifdef RTCONFIG_REBOOT_SCHEDULE_V2
+			reboot_schedule_type = nvram_get_int("reboot_schedule_type");
+#endif
+			if (reboot_schedule_type == REBOOT_SCHED_TYPE_WEEKLY)
+				snprintf(reboot_schedule, sizeof(reboot_schedule), "%s", nvram_safe_get("reboot_schedule"));
+#ifdef RTCONFIG_REBOOT_SCHEDULE_V2
+			else if (reboot_schedule_type == REBOOT_SCHED_TYPE_MONTHLY)
+				snprintf(reboot_schedule, sizeof(reboot_schedule), "%s", nvram_safe_get("reboot_schedule_month"));
+#endif
+			SCHED_DAEMON_DBG("[reboot-scheduler] reboot_schedule_type=%d, reboot_schedule=%s\n", reboot_schedule_type, reboot_schedule);
+			if (strlen(reboot_schedule) == 11 
+#ifdef RTCONFIG_REBOOT_SCHEDULE_V2
+					|| reboot_schedule_type == REBOOT_SCHED_TYPE_MONTHLY
+#endif
+				)
+			{
+				if (timecheck_reboot(reboot_schedule_type, reboot_schedule))
+				{
+					char reboot[sizeof("255")];
+					char upgrade[sizeof("255")];
+
+					memset(reboot, 0, sizeof("255"));
+					memset(upgrade, 0, sizeof("255"));
+					f_read_string("/tmp/reboot", reboot, sizeof(reboot));
+					f_read_string("/tmp/upgrade", upgrade, sizeof(upgrade));
+
+					if (atoi(reboot) || atoi(upgrade))
+						return;
+
+					nvram_set("sys_reboot_reason", "rbt_scheduler");
+					logmessage("reboot scheduler", "[%s] The system is going down for reboot\n", __FUNCTION__);
+					kill(1, SIGTERM);
+				}
+			}
+		}
+		else
+			logmessage("reboot scheduler", "[%s] NTP sync error\n", __FUNCTION__);
+	}
+
+#ifdef USE_TIMERUTIL
+	mod_timer(timer, PERIOD_30_SEC);
+#endif
+}
+#endif // #ifdef RTCONFIG_REBOOT_SCHEDULE
+
+#ifdef RTCONFIG_HNS
+#ifdef USE_TIMERUTIL
+static void task_hns_history(struct timer_entry *timer, void *data)
+#else
+static void task_hns_history(void)
+#endif
+{
+	exe_hns_history();
+
+#ifdef USE_TIMERUTIL
+	mod_timer(timer, PERIOD_120_SEC);
+#endif
+}
+
+#ifdef USE_TIMERUTIL
+static void task_hns_protection(struct timer_entry *timer, void *data)
+#else
+static void task_hns_protection(void)
+#endif
+{
+	exe_hns_protection();
+
+#ifdef USE_TIMERUTIL
+	mod_timer(timer, PERIOD_120_SEC);
+#endif
+}
+
+#ifdef USE_TIMERUTIL
+static void task_hns_signature(struct timer_entry *timer, void *data)
+#else
+static void task_hns_signature(void)
+#endif
+{
+	hns_sig_update_flow();
+
+#ifdef USE_TIMERUTIL
+	mod_timer(timer, PERIOD_86400_SEC);
+#endif
+}
+
+#ifdef USE_TIMERUTIL
+static void task_hns_event_cc(struct timer_entry *timer, void *data)
+#else
+static void task_hns_event_cc(void)
+#endif
+{
+#ifdef RTCONFIG_NOTIFICATION_CENTER
+	hns_protect_event_cc();
+#endif
+
+#ifdef USE_TIMERUTIL
+	mod_timer(timer, PERIOD_10_SEC);
+#endif
+}
+
+#ifdef USE_TIMERUTIL
+static void task_hns_alive(struct timer_entry *timer, void *data)
+#else
+static void task_hns_alive(void)
+#endif
+{
+	check_hns_alive_service();
+
+#ifdef USE_TIMERUTIL
+	mod_timer(timer, PERIOD_30_SEC);
+#endif
+}
+#endif
+
 #ifdef USE_TIMERUTIL
 static void sched_daemon_sigusr1(struct timer_entry *timer, void *data)
 #else
@@ -660,6 +1163,16 @@ static void sched_daemon_sigusr1(int sig)
 #ifdef RTCONFIG_TIME_QUOTA
 	apply_tq_rules_for_restart_firewall(rule_persist_list);
 #endif
+}
+
+#ifdef USE_TIMERUTIL
+static void sched_daemon_sigusr2(struct timer_entry *timer, void *data)
+#else
+static void sched_daemon_sigusr2(int sig)
+#endif
+{
+	SCHED_DAEMON_DBG("SIGUSR2 got!!!");
+	reset_svc_status();
 }
 
 #ifdef USE_TIMERUTIL
@@ -696,6 +1209,17 @@ static void sched_daemon_reap(int sig)
 
 int sched_daemon_main(int argc, char *argv[])
 {
+	FILE *fp;
+	int pid = 0;
+
+	/* write pid */
+	if ((fp = fopen(PID_SCHED_DAEMON, "w")) != NULL)
+	{
+		pid = getpid();
+		fprintf(fp, "%d", pid);
+		fclose(fp);
+	}
+
 	setenv("TZ", nvram_safe_get("time_zone_x"), 1);
 
 	_dprintf("TZ sched_daemon\n");

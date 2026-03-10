@@ -1,4 +1,4 @@
-/* dnsmasq is Copyright (c) 2000-2022 Simon Kelley
+/* dnsmasq is Copyright (c) 2000-2025 Simon Kelley
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -128,22 +128,41 @@ struct dhcp_netid *run_tag_if(struct dhcp_netid *tags)
   return tags;
 }
 
+/* pxemode == 0 -> don't include dhcp-option-pxe options.
+   pxemode == 1 -> do include dhcp-option-pxe options.
+   pxemode == 2 -> include ONLY dhcp-option-pxe options. */
+int pxe_ok(struct dhcp_opt *opt, int pxemode)
+{
+  if (opt->flags & DHOPT_PXE_OPT)
+    {
+      if (pxemode != 0)
+	return 1;
+    }
+  else
+    {
+      if (pxemode != 2)
+	return 1;
+    }
+  
+  return 0;
+}
 
-struct dhcp_netid *option_filter(struct dhcp_netid *tags, struct dhcp_netid *context_tags, struct dhcp_opt *opts)
+struct dhcp_netid *option_filter(struct dhcp_netid *tags, struct dhcp_netid *context_tags, struct dhcp_opt *opts, int pxemode)
 {
   struct dhcp_netid *tagif = run_tag_if(tags);
   struct dhcp_opt *opt;
   struct dhcp_opt *tmp;  
-
+  
   /* flag options which are valid with the current tag set (sans context tags) */
   for (opt = opts; opt; opt = opt->next)
     {
       opt->flags &= ~DHOPT_TAGOK;
       if (!(opt->flags & (DHOPT_ENCAPSULATE | DHOPT_VENDOR | DHOPT_RFC3925)) &&
-	  match_netid(opt->netid, tagif, 0))
+	  match_netid(opt->netid, tagif, 0) &&
+	  pxe_ok(opt, pxemode))
 	opt->flags |= DHOPT_TAGOK;
     }
-
+  
   /* now flag options which are valid, including the context tags,
      otherwise valid options are inhibited if we found a higher priority one above */
   if (context_tags)
@@ -163,7 +182,8 @@ struct dhcp_netid *option_filter(struct dhcp_netid *tags, struct dhcp_netid *con
 
       for (opt = opts; opt; opt = opt->next)
 	if (!(opt->flags & (DHOPT_ENCAPSULATE | DHOPT_VENDOR | DHOPT_RFC3925 | DHOPT_TAGOK)) &&
-	    match_netid(opt->netid, tagif, 0))
+	    match_netid(opt->netid, tagif, 0) &&
+	    pxe_ok(opt, pxemode))
 	  {
 	    struct dhcp_opt *tmp;  
 	    for (tmp = opts; tmp; tmp = tmp->next) 
@@ -176,7 +196,9 @@ struct dhcp_netid *option_filter(struct dhcp_netid *tags, struct dhcp_netid *con
   
   /* now flag untagged options which are not overridden by tagged ones */
   for (opt = opts; opt; opt = opt->next)
-    if (!(opt->flags & (DHOPT_ENCAPSULATE | DHOPT_VENDOR | DHOPT_RFC3925 | DHOPT_TAGOK)) && !opt->netid)
+    if (!(opt->flags & (DHOPT_ENCAPSULATE | DHOPT_VENDOR | DHOPT_RFC3925 | DHOPT_TAGOK)) &&
+	!opt->netid &&
+	pxe_ok(opt, pxemode))
       {
 	for (tmp = opts; tmp; tmp = tmp->next) 
 	  if (tmp->opt == opt->opt && (tmp->flags & DHOPT_TAGOK))
@@ -186,7 +208,7 @@ struct dhcp_netid *option_filter(struct dhcp_netid *tags, struct dhcp_netid *con
 	else if (!tmp->netid)
 	  my_syslog(MS_DHCP | LOG_WARNING, _("Ignoring duplicate dhcp-option %d"), tmp->opt); 
       }
-
+  
   /* Finally, eliminate duplicate options later in the chain, and therefore earlier in the config file. */
   for (opt = opts; opt; opt = opt->next)
     if (opt->flags & DHOPT_TAGOK)
@@ -553,11 +575,11 @@ char *whichdevice(void)
     return NULL;
   
   for (if_tmp = daemon->if_names; if_tmp; if_tmp = if_tmp->next)
-    if (if_tmp->name && (!if_tmp->used || strchr(if_tmp->name, '*')))
+    if (if_tmp->name && (!(if_tmp->flags & INAME_USED) || strchr(if_tmp->name, '*')))
       return NULL;
 
   for (found = NULL, iface = daemon->interfaces; iface; iface = iface->next)
-    if (iface->dhcp_ok)
+    if (iface->dhcp4_ok || iface->dhcp6_ok)
       {
 	if (!found)
 	  found = iface;
@@ -679,13 +701,16 @@ static const struct opttab_t {
   { "user-class", 77, 0 },
   { "rapid-commit", 80, 0 },
   { "FQDN", 81, OT_INTERNAL },
-  { "agent-id", 82, OT_INTERNAL },
+  { "agent-info", 82, OT_INTERNAL },
+  { "last-transaction", 91, 4 | OT_TIME },
+  { "associated-ip", 92, OT_ADDR_LIST },
   { "client-arch", 93, 2 | OT_DEC },
   { "client-interface-id", 94, 0 },
   { "client-machine-id", 97, 0 },
   { "posix-timezone", 100, OT_NAME }, /* RFC 4833, Sec. 2 */
   { "tzdb-timezone", 101, OT_NAME }, /* RFC 4833, Sec. 2 */
-  { "ipv6-only", 108, 4 | OT_DEC },  /* RFC 8925 */ 
+  { "ipv6-only", 108, 4 | OT_DEC },  /* RFC 8925 */
+  { "captive-portal", 114, OT_NAME },  /* RFC 8910 */
   { "subnet-select", 118, OT_INTERNAL },
   { "domain-search", 119, OT_RFC1035_NAME },
   { "sip-server", 120, 0 },
@@ -727,6 +752,7 @@ static const struct opttab_t opttab6[] = {
   { "ntp-server", 56, 0 /* OT_ADDR_LIST | OT_RFC1035_NAME */ },
   { "bootfile-url", 59, OT_NAME },
   { "bootfile-param", 60, OT_CSTRING },
+  { "captive-portal", 103, OT_NAME },  /* RFC 8910 */
   { NULL, 0, 0 }
 };
 #endif
@@ -838,7 +864,7 @@ char *option_string(int prot, unsigned int opt, unsigned char *val, int opt_len,
 		for (i = 0, j = 0; i < opt_len && j < buf_len ; i++)
 		  {
 		    char c = val[i];
-		    if (isprint((int)c))
+		    if (isprint((unsigned char)c))
 		      buf[j++] = c;
 		  }
 #ifdef HAVE_DHCP6
@@ -852,7 +878,7 @@ char *option_string(int prot, unsigned int opt, unsigned char *val, int opt_len,
 		    for (k = i + 1; k < opt_len && k < l && j < buf_len ; k++)
 		     {
 		       char c = val[k];
-		       if (isprint((int)c))
+		       if (isprint((unsigned char)c))
 			 buf[j++] = c;
 		     }
 		    i = l;
@@ -873,7 +899,7 @@ char *option_string(int prot, unsigned int opt, unsigned char *val, int opt_len,
 		    for (k = 0; k < len && j < buf_len; k++)
 		      {
 		       char c = *p++;
-		       if (isprint((int)c))
+		       if (isprint((unsigned char)c))
 			 buf[j++] = c;
 		     }
 		    i += len +2;
@@ -1043,10 +1069,12 @@ void log_relay(int family, struct dhcp_relay *relay)
     {
       if (broadcast)
 	my_syslog(MS_DHCP | LOG_INFO, _("DHCP relay from %s via %s"), daemon->addrbuff, relay->interface);
+      else if (relay->split_mode)
+	my_syslog(MS_DHCP | LOG_INFO, _("DHCP split-relay from %s to %s via %s"), daemon->addrbuff, daemon->namebuff, relay->interface);
       else
 	my_syslog(MS_DHCP | LOG_INFO, _("DHCP relay from %s to %s via %s"), daemon->addrbuff, daemon->namebuff, relay->interface);
     }
-  else
+  else 
     my_syslog(MS_DHCP | LOG_INFO, _("DHCP relay from %s to %s"), daemon->addrbuff, daemon->namebuff);
 }
    

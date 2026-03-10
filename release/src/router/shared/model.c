@@ -86,6 +86,7 @@ static const struct model_s model_list[] = {
 	{ "TUF-AX6000",		MODEL_TUFAX6000		},
 	{ "RT-AX59U",		MODEL_RTAX59U		},
 	{ "PRT-AX57_GO",	MODEL_PRTAX57GO		},
+	{ "RT-AX52",		MODEL_RTAX52		},
 #elif defined(RTCONFIG_QCA)
 	{ "RT-AC55U",		MODEL_RTAC55U		},
 	{ "RT-AC55UHP",		MODEL_RTAC55UHP		},
@@ -154,8 +155,8 @@ static const struct model_s model_list[] = {
 	{ "ET8PRO",		MODEL_ET8PRO		},
 	{ "RT-AX56_XD4",	MODEL_RTAX56_XD4	},
 	{ "XD4PRO",	MODEL_XD4PRO	},
-	{ "EBA63",		MODEL_EBA63	},
         { "XC5",     		MODEL_XC5    		},
+	{ "EBA63",		MODEL_EBA63	},
 	{ "CT-AX56_XD4",	MODEL_CTAX56_XD4	},
 	{ "RT-AX58U",		MODEL_RTAX58U		},
 	{ "TUF-AX3000",		MODEL_RTAX58U		},
@@ -177,6 +178,7 @@ static const struct model_s model_list[] = {
 	{ "RT-AX56U",		MODEL_RTAX56U		},
 	{ "RP-AX56",            MODEL_RPAX56            },
 	{ "RP-AX58",            MODEL_RPAX58            },
+	{ "RP-BE58",            MODEL_RPBE58            },
 	{ "RT-AX55",		MODEL_RTAX55		},
 	{ "RT-AX1800",		MODEL_RTAX55		},
 	{ "RT-AX86U",		MODEL_RTAX86U		},
@@ -229,6 +231,30 @@ static const struct model_s model_list[] = {
 	{ "GT-BE98_PRO",	MODEL_GTBE98_PRO	},
 	{ "BT12",		MODEL_BT12		},
 	{ "BQ16",		MODEL_BQ16		},
+	{ "GT-BE96",		MODEL_GTBE96		},
+	{ "BQ16_PRO",		MODEL_BQ16_PRO		},
+	{ "RT-BE88U",           MODEL_RTBE88U           },
+	{ "RT-BE86U",		MODEL_RTBE86U		},
+	{ "RT-BE58U",		MODEL_RTBE58U		},
+	{ "TUF-BE3600",		MODEL_RTBE58U		},
+	{ "GT-BE19000",		MODEL_GTBE19000		},
+	{ "BT10",		MODEL_BT10		},
+	{ "RT-BE92U",		MODEL_RTBE92U		},
+	{ "RT-BE95U",		MODEL_RTBE95U		},
+	{ "RT-BE82U",		MODEL_RTBE82U		},
+	{ "TUF-BE82",		MODEL_RTBE82U		},
+	{ "RT-BE82M",		MODEL_RTBE82M		},
+	{ "RT-BE58U_PRO",	MODEL_RTBE58U_PRO	},
+	{ "RT-BE58_GO",		MODEL_RTBE58_GO	},
+	{ "GT-BE19000AI",       MODEL_GTBE19000AI	},
+	{ "GS-BE18000",		MODEL_GSBE18000		},
+	{ "GS-BE12000",		MODEL_GSBE18000		},
+	{ "GS7_PRO",		MODEL_GSBE18000         },
+	{ "GT7",		MODEL_GT7		},
+	{ "GT-BE96_AI",         MODEL_GTBE96_AI   	},
+	{ "RT-BE58U_V2",	MODEL_RTBE58U_V2	},
+	{ "TUF-BE3600_V2",	MODEL_RTBE58U_V2	},
+	{ "RT-BE55",		MODEL_RTBE58U_V2	},
 #endif	/* !RTCONFIG_RALINK */
 	{ NULL, 0 },
 };
@@ -407,6 +433,10 @@ static const struct model_s modelname_list[] = {
 	{ "XMCR660X", 	SWRT_MODEL_XMCR660X },
 	{ "JCGQ20", 	SWRT_MODEL_JCGQ20 },
 	{ "RAX80", 		SWRT_MODEL_RAX80 },
+	{ "360T7", 		SWRT_MODEL_SWRT360T7 },
+	{ "JDCBE6500", 	SWRT_MODEL_JDCBE6500 },
+	{ "CMCCA9", 	SWRT_MODEL_CMCCA9 },
+	{ "XMAX3600", 	SWRT_MODEL_XMAX3600 },
 	{ NULL, 0 },
 };
 
@@ -560,8 +590,9 @@ void dump_cfid_from_modellist()
 
 	_dprintf("%s:", __func__);
         for (p = &model_list[0]; p->pid; ++p) {
-		_dprintf("[%d].[%s]-[%d]:cfid=%d\n", i, p->pid, p->model, get_cf_id(p->model, p->pid));
+		printf("[%d].[%s]-[%d]:cfid=%d\n", i, p->pid, p->model, get_cf_id(p->model, p->pid));
 		i++;
+		fflush(stdout);
         }
 
 	_dprintf("\n");

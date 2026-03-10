@@ -12,12 +12,11 @@
 <link rel="stylesheet" type="text/css" href="index_style.css"> 
 <link rel="stylesheet" type="text/css" href="form_style.css">
 <link rel="stylesheet" type="text/css" href="other.css">
-
+<script type="text/javascript" src="/js/jquery.js"></script>
 <script type="text/javascript" src="/state.js"></script>
 <script type="text/javascript" src="/help.js"></script>
 <script type="text/javascript" src="/general.js"></script>
 <script type="text/javascript" src="/popup.js"></script>
-<script language="JavaScript" type="text/javascript" src="/js/jquery.js"></script>
 <script>
 
 var varload = 0;
@@ -35,22 +34,29 @@ function initial(){
 	else
 		document.getElementById("transfer_ddns_field").style.display = "none";
 
+	if ('<% nvram_get("jffs2_on"); %>' != '1') {
+		document.getElementById("jffsrestore").style.display = "none";
+		document.getElementById("jffsbackup").style.display = "none";
+	}
+
 	document.form.file.onchange = function() {
 		uploadSetting();
 	};
 
-	if(!bwdpi_support){
+	/*
+	if(!bwdpi_support && !isSupport("dpi_mals") && !isSupport("dpi_cc") && !isSupport("dpi_vp")){
 		$("#factorydefault_hint").attr("onclick", "").unbind("click");
 		$("#factorydefault_hint").attr("onclick", "openHint(19, 1);");
 		$("#restoreInit_div").css("display", "none");
 		$("#restoreInit").attr("disabled", "disabled");
 		$("#restoreInit").prop("checked", false);
 	}
+	*/
 }
 
 function restoreRule(_flag){
 	var alert_string = "<#Setting_factorydefault_hint1#>";
-	if($('#restoreInit').prop("checked") && bwdpi_support)
+	if($('#restoreInit').prop("checked") && (bwdpi_support || isSupport("dpi_mals") || isSupport("dpi_cc") || isSupport("dpi_vp")))
 		alert_string = "<#Setting_initialize_hint1#>";
 
 	if(lan_ipaddr != '<% nvram_default_get("lan_ipaddr"); %>')
@@ -59,14 +65,16 @@ function restoreRule(_flag){
 	alert_string += "<#Setting_factorydefault_hint2#>";
 	if(confirm(alert_string)){
 		document.form.action1.blur();
-		if($('#restoreInit').prop("checked") && bwdpi_support)
+		if($('#restoreInit').prop("checked") && (bwdpi_support || isSupport("dpi_mals") || isSupport("dpi_cc") || isSupport("dpi_vp")))
 			document.restoreform.action_mode.value = "restore_erase";
 		else
 			document.restoreform.action_mode.value = "Restore";
 		showtext(document.getElementById("loading_block2"), "<#SAVE_restart_desc#>");
 		document.getElementById('loading_block3').style.display = "none";
-		showLoading();
-		document.restoreform.submit();
+		if(!isSupport("demoui")){
+			showLoading();
+			document.restoreform.submit();
+		}
 	}
 	else
 		return false;
@@ -109,8 +117,34 @@ function uploadSetting(){
 		disableCheckChangedStatus();
 		showtext(document.getElementById("loading_block2"), "<#SET_ok_desc#>");
 		document.getElementById('loading_block3').style.display = "none";
-		document.form.submit();
+		if(!isSupport("demoui"))
+			document.form.submit();
 	}	
+}
+
+function saveJFFS(){
+	location.href='backup_jffs_'+productid+'.tar';
+}
+
+function uploadJFFS(){
+	var file_obj = document.form.file2;
+
+	if(file_obj.value == ""){
+		alert("<#JS_fieldblank#>");
+		file_obj.focus();
+	}
+	else if(file_obj.value.length < 6 ||
+			file_obj.value.lastIndexOf(".tar")  < 0 ||
+			file_obj.value.lastIndexOf(".tar") != (file_obj.value.length)-4){
+		alert("Invalid file!  Make sure you select a valid JFFS backup.");
+		file_obj.focus();
+	}
+	else{
+		document.getElementById('jffsfile').style.display = "none";
+		document.getElementById('jffsstatus').style.display = "";
+		document.form.action = "jffsupload.cgi";
+		document.form.submit();
+	}
 }
 
 var dead = 0;
@@ -220,17 +254,22 @@ function selectSetting() {
 										<div style="margin:10px 0 10px 5px;" class="splitLine"></div>
 										<div class="formfontdesc"><#Setting_save_upload_desc#></div>
 										<table width="100%" border="1" align="center" cellpadding="6" cellspacing="0" bordercolor="#6b8fa3"  class="FormTable">
+										<thead>
+										<tr>
+											<td colspan=2>Router settings</td>
+										</tr>
+										</thead>
 	          								<tr>
 	            								<th width="25%" align="right">
 											<a id="factorydefault_hint" class="hintstyle"  href="javascript:void(0);" onclick="openHint(19,4)"><#Setting_factorydefault_itemname#></a>
 	            								</th>
 	            								<td colspan = "4">
 													<div style="float:left;">
-														<input class="button_gen" onclick="restoreRule('restore');" type="button" value="<#CTL_restore#>" name="action1" />
+														<input class="btn_subusage button_gen" onclick="restoreRule('restore');" type="button" value="<#CTL_restore#>" name="action1" />
 													</div>
 													<div id="restoreInit_div">
 														<div style="float:left;margin-left:5px;">
-															<input type="checkbox" id="restoreInit">
+															<input type="checkbox" id="restoreInit" checked>
 														</div>
 														<div style="float:left;width:65%;">
 															<span><label for="restoreInit"><#Setting_initialize_desc#></label></span>
@@ -245,7 +284,7 @@ function selectSetting() {
 												</th>
 												<td>
 													<div style="float:left;display:table-cell">
-														<input class="button_gen" onclick="saveSetting('Router');" type="button" value="<#Setting_save_itemname#>" name="action2" />
+														<input class="btn_subusage button_gen" onclick="saveSetting('Router');" type="button" value="<#Setting_save_itemname#>" name="action2" />
 													</div>
 													<div style="display:table-cell">
 														<div id="remove_passwd_field" style="display:table-row">
@@ -276,10 +315,45 @@ function selectSetting() {
 														<table>
 															<tr>
 																<td style="border:0px">
-																	<input type="button" class="button_gen" onclick="selectSetting();" value="<#CTL_upload#>"/>
+																	<input type="button" class="btn_subusage button_gen" onclick="selectSetting();" value="<#CTL_upload#>"/>
 																</td>
 																<td style="display:none;">
-																	<input type="file" name="file" class="input" style="color:#FFCC00;"/>
+																	<input type="file" name="file" class="input"  accept=".CFG" style="color:#FFCC00;"/>
+																</td>
+															</tr>
+														</table>
+													</div>
+												</td>
+											</tr>
+											</table>
+											<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3"  class="FormTable" style="margin-top:8px;">
+											<thead>
+											<tr>
+												<td colspan="2">JFFS Partition</td>
+											</tr>
+											</thead>
+											<tr id="jffsbackup">
+												<th align="right"><a class="hintstyle" href="javascript:void(0);" onClick="openHint(50,13);">
+													Backup JFFS partition
+												</th>
+												<td>
+													<input class="button_gen" onclick="saveJFFS();" type="button" value="<#CTL_onlysave#>" name="action10" />
+												</td>
+											</tr>
+											<tr id="jffsrestore">
+												<th align="right">
+													Restore JFFS partition
+												</th>
+												<td>
+													<div style="margin-left:-10px;">
+														<table>
+															<tr>
+																<td style="border:0px">
+																	<input type="button" class="button_gen" onclick="uploadJFFS();" value="<#CTL_upload#>"/>
+																</td>
+																<td style="border:0px">
+																	<input id="jffsfile" type="file" name="file2" class="input"  accept=".tar" style="color:#FFCC00;"/>
+																	<span id="jffsstatus" style="display:none;"><img id="LoadingIcon" style="margin-left:5px;margin-right:5px;" src="/images/InternetScan.gif">Uploading, please wait...</span>
 																</td>
 															</tr>
 														</table>

@@ -1,4 +1,4 @@
-/* dnsmasq is Copyright (c) 2000-2022 Simon Kelley
+/* dnsmasq is Copyright (c) 2000-2025 Simon Kelley
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -86,6 +86,7 @@
 #define EDNS0_OPTION_UMBRELLA       20292 /* Cisco Umbrella temporary assignment */
 
 /* RFC-8914 extended errors, negative values are our definitions */
+#define EDE_US_SERVFAIL    -2  /* SERVFAIL from usptream */
 #define EDE_UNSET          -1  /* No extended DNS error available */
 #define EDE_OTHER           0  /* Other */
 #define EDE_USUPDNSKEY      1  /* Unsupported DNSKEY algo */
@@ -112,8 +113,11 @@
 #define EDE_NO_AUTH        22  /* No Reachable Authority */
 #define EDE_NETERR         23  /* Network error */
 #define EDE_INVALID_DATA   24  /* Invalid Data */
-
-
+#define EDE_SIG_E_B_V      25  /* Signature Expired before Valid */
+#define EDE_TOO_EARLY      26  /* To Early */
+#define EDE_UNS_NS3_ITER   27  /* Unsupported NSEC3 Iterations Value */
+#define EDE_UNABLE_POLICY  28  /* Unable to conform to policy */
+#define EDE_SYNTHESIZED    29  /* Synthesized */
 
 
 struct dns_header {
@@ -139,15 +143,15 @@ struct dns_header {
 #define RCODE(x)           ((x)->hb4 & HB4_RCODE)
 #define SET_RCODE(x, code) (x)->hb4 = ((x)->hb4 & ~HB4_RCODE) | code
   
-#define GETSHORT(s, cp) { \
+#define GETSHORT(s, cp) do { \
 	unsigned char *t_cp = (unsigned char *)(cp); \
 	(s) = ((u16)t_cp[0] << 8) \
 	    | ((u16)t_cp[1]) \
 	    ; \
 	(cp) += 2; \
-}
+  } while(0)
 
-#define GETLONG(l, cp) { \
+#define GETLONG(l, cp) do { \
 	unsigned char *t_cp = (unsigned char *)(cp); \
 	(l) = ((u32)t_cp[0] << 24) \
 	    | ((u32)t_cp[1] << 16) \
@@ -155,17 +159,17 @@ struct dns_header {
 	    | ((u32)t_cp[3]) \
 	    ; \
 	(cp) += 4; \
-}
+  } while (0)
 
-#define PUTSHORT(s, cp) { \
+#define PUTSHORT(s, cp) do { \
 	u16 t_s = (u16)(s); \
 	unsigned char *t_cp = (unsigned char *)(cp); \
 	*t_cp++ = t_s >> 8; \
 	*t_cp   = t_s; \
 	(cp) += 2; \
-}
+  } while(0)
 
-#define PUTLONG(l, cp) { \
+#define PUTLONG(l, cp) do { \
 	u32 t_l = (u32)(l); \
 	unsigned char *t_cp = (unsigned char *)(cp); \
 	*t_cp++ = t_l >> 24; \
@@ -173,7 +177,7 @@ struct dns_header {
 	*t_cp++ = t_l >> 8; \
 	*t_cp   = t_l; \
 	(cp) += 4; \
-}
+  } while (0)
 
 #define CHECK_LEN(header, pp, plen, len) \
     ((size_t)((pp) - (unsigned char *)(header) + (len)) <= (plen))

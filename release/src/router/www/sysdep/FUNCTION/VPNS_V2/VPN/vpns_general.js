@@ -38,6 +38,22 @@ var ip_RegExp = {
 	"IPv6" : "^((([0-9A-Fa-f]{1,4}:){7}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){6}:[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){5}:([0-9A-Fa-f]{1,4}:)?[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){4}:([0-9A-Fa-f]{1,4}:){0,2}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){3}:([0-9A-Fa-f]{1,4}:){0,3}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){2}:([0-9A-Fa-f]{1,4}:){0,4}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){6}((\\b((25[0-5])|(1\\d{2})|(2[0-4]\\d)|(\\d{1,2}))\\b)\\.){3}(\\b((25[0-5])|(1\\d{2})|(2[0-4]\\d)|(\\d{1,2}))\\b))|(([0-9A-Fa-f]{1,4}:){0,5}:((\\b((25[0-5])|(1\\d{2})|(2[0-4]\\d)|(\\d{1,2}))\\b)\\.){3}(\\b((25[0-5])|(1\\d{2})|(2[0-4]\\d)|(\\d{1,2}))\\b))|(::([0-9A-Fa-f]{1,4}:){0,5}((\\b((25[0-5])|(1\\d{2})|(2[0-4]\\d)|(\\d{1,2}))\\b)\\.){3}(\\b((25[0-5])|(1\\d{2})|(2[0-4]\\d)|(\\d{1,2}))\\b))|([0-9A-Fa-f]{1,4}::([0-9A-Fa-f]{1,4}:){0,5}[0-9A-Fa-f]{1,4})|(::([0-9A-Fa-f]{1,4}:){0,6}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){1,7}:))$",
 	"IPv6_CIDR" : "^((([0-9A-Fa-f]{1,4}:){7}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){6}:[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){5}:([0-9A-Fa-f]{1,4}:)?[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){4}:([0-9A-Fa-f]{1,4}:){0,2}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){3}:([0-9A-Fa-f]{1,4}:){0,3}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){2}:([0-9A-Fa-f]{1,4}:){0,4}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){6}((\\b((25[0-5])|(1\\d{2})|(2[0-4]\\d)|(\\d{1,2}))\\b)\\.){3}(\\b((25[0-5])|(1\\d{2})|(2[0-4]\\d)|(\\d{1,2}))\\b))|(([0-9A-Fa-f]{1,4}:){0,5}:((\\b((25[0-5])|(1\\d{2})|(2[0-4]\\d)|(\\d{1,2}))\\b)\\.){3}(\\b((25[0-5])|(1\\d{2})|(2[0-4]\\d)|(\\d{1,2}))\\b))|(::([0-9A-Fa-f]{1,4}:){0,5}((\\b((25[0-5])|(1\\d{2})|(2[0-4]\\d)|(\\d{1,2}))\\b)\\.){3}(\\b((25[0-5])|(1\\d{2})|(2[0-4]\\d)|(\\d{1,2}))\\b))|([0-9A-Fa-f]{1,4}::([0-9A-Fa-f]{1,4}:){0,5}[0-9A-Fa-f]{1,4})|(::([0-9A-Fa-f]{1,4}:){0,6}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){1,7}:))(\/([0-9]|[1-9][0-9]|1[01][0-9]|12[0-8]))$"
 };
+if ( !Element.prototype.scrollIntoViewIfNeeded ) {
+	Element.prototype.scrollIntoViewIfNeeded = function ( centerIfNeeded = true ) {
+		const el = this;
+		new IntersectionObserver( function( [entry] ) {
+			const ratio = entry.intersectionRatio;
+			if (ratio < 1) {
+				let place = ratio <= 0 && centerIfNeeded ? 'center' : 'nearest';
+				el.scrollIntoView( {
+					block: place,
+					inline: place,
+				} );
+			}
+			this.disconnect();
+		} ).observe(this);
+	};
+}
 function Get_Component_Customize_Alert(_text){
 	var $popup_content_container = $("<div>").addClass("popup_content_container");
 
@@ -71,7 +87,7 @@ function Get_Component_Popup_Profile_Title(_text){
 }
 function Get_Component_Profile_Title(_text){
 	var $title_container = $("<div>").addClass("profile_setting_title");
-	$("<div>").addClass("title").html(htmlEnDeCode.htmlEncode(_text)).appendTo($title_container);;
+	$("<div>").addClass("title").html(htmlEnDeCode.htmlEncode(_text)).appendTo($title_container);
 	return $title_container;
 }
 function Get_Component_Pure_Text(_parm){
@@ -499,11 +515,13 @@ function resize_iframe_height(_preheight){
 		$(parent.document).find(".rwd_iframe").css("height", (Math.max(menu_height, container_height, pop_height) + margin_bottom));
 	}
 }
-function showLoading(seconds, flag){
-	$("#Loading").css({"width":"", "height":""});
-	progress = 100/seconds;
-	y = 0;
-	LoadingTime(seconds, flag);
+if(!isSupport("UI4")) {
+	function showLoading(seconds, flag) {
+		$("#Loading").css({"width": "", "height": ""});
+		progress = 100 / seconds;
+		y = 0;
+		LoadingTime(seconds, flag);
+	}
 }
 function show_customize_alert(_text){
 	$(".popup_customize_alert").css("display", "flex");

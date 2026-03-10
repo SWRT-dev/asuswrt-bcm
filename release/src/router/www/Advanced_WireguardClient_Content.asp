@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html>
 <head>
 <meta http-equiv="X-UA-Compatible" content="IE=Edge"/>
@@ -10,13 +10,12 @@
 <title><#Web_Title#> - WireGuard Client</title>
 <link rel="stylesheet" href="index_style.css">
 <link rel="stylesheet" href="form_style.css">
-
+<script type="text/javascript" src="/js/jquery.js"></script>
 <script src="/state.js"></script>
 <script src="/general.js"></script>
 <script src="/help.js"></script>
 <script src="/popup.js"></script>
 <script src="/validator.js"></script>
-<script src="/js/jquery.js"></script>
 
 <script>
 
@@ -235,3 +234,4 @@ function change_wgc_unit(unit){
 <div id="footer"></div>
 </body>
 </html>
+

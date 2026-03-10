@@ -1,1 +1,0 @@
-../../../DSL-AC68U/www/device-map/DSL_dashboard.asp

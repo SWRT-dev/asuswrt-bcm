@@ -13,14 +13,19 @@
 <link rel="stylesheet" type="text/css" href="form_style.css">
 <link rel="stylesheet" type="text/css" href="device-map/device-map.css">
 <script type="text/javascript" src="/js/jquery.js"></script>
+<script type="text/javascript" src="/js/httpApi.js"></script>
 <script language="JavaScript" type="text/javascript" src="/state.js"></script>
 <script language="JavaScript" type="text/javascript" src="/general.js"></script>
 <script language="JavaScript" type="text/javascript" src="/popup.js"></script>
 <script type="text/javascript" language="JavaScript" src="/help.js"></script>
 <script type="text/javascript" language="JavaScript" src="/validator.js"></script>
 <script language="JavaScript" type="text/javascript" src="/client_function.js"></script>
+<script type="text/javascript" src="/form.js"></script>
 <script>
 var sr_rulelist_array = '<% nvram_get("sr_rulelist"); %>';
+
+var current_page = window.location.pathname.split("/").pop();
+var faq_index_tmp = get_faq_index(FAQ_List, current_page, 1);
 
 function initial(){
 	show_menu();
@@ -235,8 +240,9 @@ function setClientIP(ipaddr){
 	hideClients_Block();
 }
 
+
 function hideClients_Block(){
-	document.getElementById("pull_arrow").src = "/images/arrow-down.gif";
+	document.getElementById("pull_arrow").src = "/images/unfold_more.svg";
 	document.getElementById('ClientList_Block_PC').style.display='none';
 }
 
@@ -244,7 +250,7 @@ function pullLANIPList(obj){
 	var element = document.getElementById('ClientList_Block_PC');
 	var isMenuopen = element.offsetWidth > 0 || element.offsetHeight > 0;
 	if(isMenuopen == 0){		
-		obj.src = "/images/arrow-top.gif"
+		obj.src = "/images/unfold_less.svg"
 		element.style.display = 'block';		
 		document.form.sr_gateway_x_0.focus();
 	}
@@ -300,9 +306,12 @@ function Ctrl_LANIPList(obj){
 	  <table width="760px" border="0" cellpadding="4" cellspacing="0" class="FormTitle" id="FormTitle">
 		<tbody>
 		<tr>
-		  <td bgcolor="#4D595D" valign="top"  >
+		  <td bgcolor="#4D595D" valign="top">
+		  <div class="container">
+
 		  <div>&nbsp;</div>
 		  <div class="formfonttitle"><#menu5_2#> - <#menu5_2_3#></div>
+		  <div class="formfonttitle_help"><i onclick="show_feature_desc(`<#HOWTOSETUP#>`)" class="icon_help"></i></div>
 		  <div style="margin:10px 0 10px 5px;" class="splitLine"></div>
       <div class="formfontdesc"><#RouterConfig_GWStaticEnable_sectiondesc#></div>
 		  
@@ -325,7 +334,7 @@ function Ctrl_LANIPList(obj){
 			<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" class="FormTable_table">
 			<thead>
 			  	<tr>
-					<td colspan="6" id="GWStatic"><#RouterConfig_GWStatic_groupitemdesc#>&nbsp;(<#List_limit#>&nbsp;32)</td>
+					<td colspan="6" id="GWStatic"><#RouterConfig_GWStatic_groupitemdesc#>&nbsp;(<#List_limit#>&nbsp;64)</td>
 			  	</tr>
 			</thead>			
 				<tr>
@@ -343,7 +352,7 @@ function Ctrl_LANIPList(obj){
 						<input type="text" class="input_15_table" maxlength="15" name="sr_ipaddr_x_0" onKeyPress="return validator.isIPAddr(this, event)" autocorrect="off" autocapitalize="off">
 					<td width="20%"><input type="text" maxlength="15" class="input_15_table" name="sr_netmask_x_0" onKeyPress="return validator.isIPAddr(this, event)" autocorrect="off" autocapitalize="off"></td>
 					<td width="28%"><input type="text" class="input_15_table" maxlength="15" name="sr_gateway_x_0" style="margin-left:-22px;width:160px;" onKeyPress="return validator.isIPAddr(this, event)"  onClick="hideClients_Block();" autocorrect="off" autocapitalize="off">
-					<img id="pull_arrow" height="14px;" src="/images/arrow-down.gif" style="position:absolute;" onclick="pullLANIPList(this);" title="<#select_IP#>">
+					<img id="pull_arrow" height="14px;" src="/images/unfold_more.svg" style="position:absolute;" onclick="pullLANIPList(this);" title="<#select_IP#>">
 					<div id="ClientList_Block_PC" class="clientlist_dropdown" style="margin-left:7px;"></div>
 					</td>
 					<td width="8%"><input type="text" maxlength="3" class="input_3_table" name="sr_matric_x_0"  onKeyPress="return validator.isNumber(this, event);" autocorrect="off" autocapitalize="off"></td>
@@ -352,12 +361,13 @@ function Ctrl_LANIPList(obj){
 							<option value="LAN">LAN</option>
 							<option value="MAN">MAN</option>
 							<option value="WAN">WAN</option>
+							<option value="VPN">VPN</option>
 						</select>
 					</td>
 				
 					<td width="12%">
 						<div> 
-							<input type="button" class="add_btn" onClick="addRow_Group(32);" value="">
+							<input type="button" class="add_btn" onClick="addRow_Group(64);" value="">
 						</div>
 					</td>
 			  </tr>
@@ -368,6 +378,9 @@ function Ctrl_LANIPList(obj){
 				<div class="apply_gen">
 					<input name="button" type="button" class="button_gen" onclick="applyRule();" value="<#CTL_apply#>"/>
 				</div>
+
+				</div>	<!-- for .container  -->
+				<div class="popup_container popup_element_second"></div>
 			
 		  </td>
 		</tr>
@@ -378,7 +391,7 @@ function Ctrl_LANIPList(obj){
 </form>
 
   </tr>
-</table>				
+</table>
 <!--===================================Ending of Main Content===========================================-->		
 	</td>
 		

@@ -14,12 +14,14 @@
 <link rel="stylesheet" type="text/css" href="/device-map/device-map.css">
 <script type="text/javascript" src="/js/jquery.js"></script>
 <script type="text/javascript" src="/calendar/jquery-ui.js"></script> 
+<script type="text/javascript" src="/js/httpApi.js"></script>
 <script type="text/javascript" src="/state.js"></script>
 <script type="text/javascript" src="/general.js"></script>
 <script type="text/javascript" src="/help.js"></script>
 <script type="text/javascript" src="/popup.js"></script>
 <script type="text/javascript" src="/validator.js"></script>
-<script language="JavaScript" type="text/javascript" src="/client_function.js"></script>
+<script type="text/javascript" src="/client_function.js"></script>
+<script type="text/javascript" src="/js/asus_clientlist.js"></script>
 <style>
 .ui-slider {
 	position: relative;
@@ -303,6 +305,14 @@ var bsd_if_qualify_policy_bin = [reverse_bin(createBinaryString(parseInt(bsd_if_
 var bsd_bounce_detect = '<% nvram_get("bsd_bounce_detect"); %>'.split(" ");	//[windows time in sec, counts, dwell time in sec]
 }
 
+var smart_connect_selif_x = '<% nvram_get("smart_connect_selif_x"); %>';
+if(smart_connect_v2_support && smart_connect_selif_x == '3') {
+	if(wl_info.wl_if_total > 2){
+		wl_info.wl_if_total--;
+	}
+	
+}
+
 function initial(){
 	show_menu();
 	gen_bsd_steering_div();
@@ -381,7 +391,8 @@ function gen_bsd_steering_div(flag){
 			code +='<td width="40%" align="center" >5GHz-1</td><td width="40%" align="center" >5GHz-2</td>';
 		}
 	}
-	else if(!wl_info.band5g_2_support && !wl_info.band6g_support)
+	else if(!wl_info.band5g_2_support && !wl_info.band6g_support
+	 || (smart_connect_v2_support && smart_connect_selif_x == '3'))
 		code +='<td width="40%" align="center" >2.4GHz</td><td width="40%" align="center" >5GHz</td>';
 	else{
 		if(band6g_support){
@@ -549,92 +560,92 @@ function gen_bsd_if_select_div(){
 	code +="<thead><tr><td colspan=\"4\"><#smart_connect_ISQP#></td></tr></thead>";
 
 	code +='<tr id="target_band_text"><th width="20%"><#Interface_target#></th>';
-     if('<% nvram_get("smart_connect_x"); %>' != 2 && (wl_info.band5g_2_support || wl_info.band6g_support)){
-	for(i = start_band_idx; i < wl_info.wl_if_total; i++){
-		code +='<td width="27%" style="padding:0px 0px 0px 0px;"><div><table><tr>';
-		code +='<td style="border:0px; padding:0px 0px 0px 3px;">1:</td>';
-		code +='<td style="border:0px; padding:0px 0px 0px 1px;">';
-		code +='<select class="input_option" name="wl'+i+'_bsd_if_select_policy_first" onChange="change_bsd_if_select(this);">';
-		code +='<option selected="" value="0" class="content_input_fd">';
-		if(i == 0){
-			if(band6g_support){
-				code +='5 GHz';
+    if('<% nvram_get("smart_connect_x"); %>' != 2){
+		for(i = start_band_idx; i < wl_info.wl_if_total; i++){
+			code +='<td width="27%" style="padding:0px 0px 0px 0px;"><div><table><tr>';
+			code +='<td style="border:0px; padding:0px 0px 0px 3px;">1:</td>';
+			code +='<td style="border:0px; padding:0px 0px 0px 1px;">';
+			code +='<select class="input_option" name="wl'+i+'_bsd_if_select_policy_first" onChange="change_bsd_if_select(this);">';
+			code +='<option selected="" value="0" class="content_input_fd">';
+			if(i == 0){
+				if(band6g_support){
+					code +='5 GHz';
+				}
+				else{
+					code +='5GHz-1';
+				}		
+			}else if(i == 1){
+				if(band6g_support){
+					code +='6 GHz';
+				}
+				else{
+					code +='5GHz-2';
+				}
+			}else{
+				if(band6g_support){
+					code +='5 GHz';
+				}
+				else{
+					code +='5GHz-1';
+				}
 			}
-			else{
-				code +='5GHz-1';
+			code +='</option><option value="1" class="content_input_fd">';
+			if(i == 0){
+				if(band6g_support){
+					code +='6 GHz';
+				}
+				else{
+					code +='5GHz-2';
+				}
+			}else if(i == 1){
+				code +='2.4GHz';
+			}else{
+				code +='2.4GHz';
 			}		
-		}else if(i == 1){
-			if(band6g_support){
-				code +='6 GHz';
-			}
-			else{
-				code +='5GHz-2';
-			}
-		}else{
-			if(band6g_support){
-				code +='5 GHz';
-			}
-			else{
-				code +='5GHz-1';
-			}
+			code +='</option>';
+			code +='</select></td>';
+			code +='<td style="border:0px; padding:0px 0px 0px 7px;">2:</td>';
+			code +='<td style="border:0px; padding:0px 0px 0px 1px;">';
+			code +='<select class="input_option" name="wl'+i+'_bsd_if_select_policy_second" onChange="change_bsd_if_select(this);">';
+			code +='<option selected="" value="0" class="content_input_fd">';
+			if(i == 0){
+				if(band6g_support){
+					code +='5 GHz';
+				}
+				else{
+					code +='5GHz-1';
+				}
+			}else if(i == 1){
+				code +='2.4GHz';
+			}else{
+				if(band6g_support){
+					code +='5 GHz';
+				}
+				else{
+					code +='5GHz-1';
+				}
+			}	
+			code +='</option>';
+			code +='<option value="1" class="content_input_fd">';
+			if(i == 0){
+				if(band6g_support){
+					code +='6 GHz';
+				}
+				else{
+					code +='5GHz-2';
+				}
+			}else if(i == 1){
+				code +='2.4GHz';
+			}else{
+				code +='2.4GHz';
+			}		
+			code +='</option>';
+			code +='<option value="2" class="content_input_fd">';
+			code +='none';		
+			code +='</option>';
+			code +='</select></td></tr></table></div></td>';
 		}
-		code +='</option><option value="1" class="content_input_fd">';
-		if(i == 0){
-			if(band6g_support){
-				code +='6 GHz';
-			}
-			else{
-				code +='5GHz-2';
-			}
-		}else if(i == 1){
-			code +='2.4GHz';
-		}else{
-			code +='2.4GHz';
-		}		
-		code +='</option>';
-		code +='</select></td>';
-		code +='<td style="border:0px; padding:0px 0px 0px 7px;">2:</td>';
-		code +='<td style="border:0px; padding:0px 0px 0px 1px;">';
-		code +='<select class="input_option" name="wl'+i+'_bsd_if_select_policy_second" onChange="change_bsd_if_select(this);">';
-		code +='<option selected="" value="0" class="content_input_fd">';
-		if(i == 0){
-			if(band6g_support){
-				code +='5 GHz';
-			}
-			else{
-				code +='5GHz-1';
-			}
-		}else if(i == 1){
-			code +='2.4GHz';
-		}else{
-			if(band6g_support){
-				code +='5 GHz';
-			}
-			else{
-				code +='5GHz-1';
-			}
-		}	
-		code +='</option>';
-		code +='<option value="1" class="content_input_fd">';
-		if(i == 0){
-			if(band6g_support){
-				code +='6 GHz';
-			}
-			else{
-				code +='5GHz-2';
-			}
-		}else if(i == 1){
-			code +='2.4GHz';
-		}else{
-			code +='2.4GHz';
-		}		
-		code +='</option>';
-		code +='<option value="2" class="content_input_fd">';
-		code +='none';		
-		code +='</option>';
-		code +='</select></td></tr></table></div></td>';
-	}
-     }else if(!wl_info.band5g_2_support && !wl_info.band6g_support){
+    }else if(!wl_info.band5g_2_support && !wl_info.band6g_support){
 		code +='<td width="40%">5GHz</td><td width="40%">2.4GHz</td>'
 	}else{
 		if(band6g_support){
@@ -677,6 +688,26 @@ function gen_bsd_if_select_div(){
 			$(this).children('td').css("width", "40%");
 		});
 	}
+
+	if(smart_connect_v2_support){
+		if(smart_connect_selif_x == '11'){
+			setTimeout(function(){
+				document.form.wl1_bsd_if_select_policy_first.remove(0)
+				document.form.wl1_bsd_if_select_policy_second.remove(0);
+				document.form.wl2_bsd_if_select_policy_first.remove(0);
+				document.form.wl2_bsd_if_select_policy_second.remove(0);
+			},10);
+		}
+		else if(smart_connect_selif_x == '3'){
+			setTimeout(function(){
+				document.form.wl0_bsd_if_select_policy_first.remove(1)
+				document.form.wl0_bsd_if_select_policy_second.remove(0);
+				document.form.wl1_bsd_if_select_policy_first.remove(0);
+				document.form.wl1_bsd_if_select_policy_second.remove(0);
+			},10);
+		}
+	}
+
 }
 
 function check_vht(obj,idx){
@@ -966,7 +997,6 @@ function restoreRule(){
 }
 
 function register_event(){
-	$(function() {
 		$( "#slider_wl0_bsd_steering_bandutil" ).slider({
 			orientation: "horizontal",
 			range: "min",
@@ -1021,7 +1051,7 @@ function register_event(){
 				based_modelid == "GT-AX11000" ||
 				based_modelid == "RT-AX92U" ||
 				based_modelid == "RT-AX95Q" ||
-				based_modelid == "XT8PRO" ||
+				based_modelid == "XT8PRO" || based_modelid == "BT12" || based_modelid == "BT10" || based_modelid == "BQ16" || based_modelid == "BQ16_PRO" ||
 				based_modelid == "BM68" ||
 				based_modelid == "XT8_V2" ||
 				based_modelid == "RT-AXE95Q" ||
@@ -1052,8 +1082,9 @@ function register_event(){
 				based_modelid == "GT-AXE11000" ||
 				based_modelid == "GT-AX6000" ||
 				based_modelid == "GT-AX11000_PRO" || based_modelid == "ET12" || based_modelid == "XT12" || 
-				based_modelid == "GT-AXE16000" ||
-				based_modelid == "RT-AX88U_PRO"
+				based_modelid == "GT-AXE16000" || based_modelid == "GT-BE98" || based_modelid == "GT-BE98_PRO" ||
+				based_modelid == "RT-AX88U_PRO" || based_modelid == "RT-BE96U" || based_modelid == "GT-BE96" || based_modelid == "RT-BE88U" || based_modelid == "RT-BE86U" ||
+				based_modelid == "RT-BE58U" || based_modelid == "TUF-BE3600" || based_modelid == "GT-BE19000" || based_modelid == "RT-BE92U" || based_modelid == "RT-BE95U" || based_modelid == "RT-BE82U" || based_modelid == "RT-BE58U_PRO" || based_modelid == "GT-BE19000_AI"
 				)?1000:600,
 			value:1,
 			slide:function(event, ui){
@@ -1078,7 +1109,7 @@ function register_event(){
 				based_modelid == "GT-AX11000" ||
 				based_modelid == "RT-AX92U" ||
 				based_modelid == "RT-AX95Q" ||
-				based_modelid == "XT8PRO" ||
+				based_modelid == "XT8PRO" || based_modelid == "BT12" || based_modelid == "BT10" || based_modelid == "BQ16" || based_modelid == "BQ16_PRO" ||
 				based_modelid == "BM68" ||
 				based_modelid == "XT8_V2" ||
 				based_modelid == "RT-AXE95Q" ||
@@ -1104,13 +1135,14 @@ function register_event(){
 				based_modelid == "RT-AX56U" ||
 				based_modelid == "GS-AX3000" || based_modelid == "GS-AX5400" ||
 				based_modelid == "RT-AX86U" || based_modelid == "RT-AX68U" || based_modelid == "RT-AC68U_V4" ||
-				based_modelid == "RT-AX86U_PRO" ||
 				based_modelid == "RT-AXE7800" || based_modelid == "GT10" || based_modelid == "RT-AX9000" ||
+				based_modelid == "RT-AX86U_PRO" ||
 				based_modelid == "GT-AXE11000" ||
 				based_modelid == "GT-AX6000" ||
 				based_modelid == "GT-AX11000_PRO" || based_modelid == "ET12" || based_modelid == "XT12" || 
-				based_modelid == "GT-AXE16000" ||
-				based_modelid == "RT-AX88U_PRO"
+				based_modelid == "GT-AXE16000" || based_modelid == "GT-BE98" || based_modelid == "GT-BE98_PRO" ||
+				based_modelid == "RT-AX88U_PRO" || based_modelid == "RT-BE96U" || based_modelid == "GT-BE96" || based_modelid == "RT-BE88U" || based_modelid == "RT-BE86U" ||
+				based_modelid == "RT-BE58U" || based_modelid == "TUF-BE3600" || based_modelid == "GT-BE19000" || based_modelid == "RT-BE92U" || based_modelid == "RT-BE95U" || based_modelid == "RT-BE82U" || based_modelid == "RT-BE58U_PRO" || based_modelid == "GT-BE19000_AI"
 				)?1000:600,
 			value:1,
 			slide:function(event, ui){
@@ -1135,7 +1167,7 @@ function register_event(){
 				based_modelid == "GT-AX11000" ||
 				based_modelid == "RT-AX92U" ||
 				based_modelid == "RT-AX95Q" ||
-				based_modelid == "XT8PRO" ||
+				based_modelid == "XT8PRO" || based_modelid == "BT12" || based_modelid == "BT10" || based_modelid == "BQ16" || based_modelid == "BQ16_PRO" ||
 				based_modelid == "BM68" ||
 				based_modelid == "XT8_V2" ||
 				based_modelid == "RT-AXE95Q" ||
@@ -1161,13 +1193,14 @@ function register_event(){
 				based_modelid == "RT-AX56U"	||
 				based_modelid == "GS-AX3000" || based_modelid == "GS-AX5400" ||
 				based_modelid == "RT-AX86U" || based_modelid == "RT-AX68U" || based_modelid == "RT-AC68U_V4" ||
-				based_modelid == "RT-AX86U_PRO" ||
 				based_modelid == "RT-AXE7800" || based_modelid == "GT10" || based_modelid == "RT-AX9000" ||
+				based_modelid == "RT-AX86U_PRO" ||
 				based_modelid == "GT-AXE11000" ||
 				based_modelid == "GT-AX6000" ||
 				based_modelid == "GT-AX11000_PRO" || based_modelid == "ET12" || based_modelid == "XT12" || 
-				based_modelid == "GT-AXE16000" ||
-				based_modelid == "RT-AX88U_PRO"
+				based_modelid == "GT-AXE16000" || based_modelid == "GT-BE98" || based_modelid == "GT-BE98_PRO" ||
+				based_modelid == "RT-AX88U_PRO" || based_modelid == "RT-BE96U" || based_modelid == "GT-BE96" || based_modelid == "RT-BE88U" || based_modelid == "RT-BE86U" ||
+				based_modelid == "RT-BE58U" || based_modelid == "TUF-BE3600" || based_modelid == "GT-BE19000" || based_modelid == "RT-BE92U" || based_modelid == "RT-BE95U" || based_modelid == "RT-BE82U" || based_modelid == "RT-BE58U_PRO" || based_modelid == "GT-BE19000_AI"
 				)?2167:1300,
 			value:1,
 			slide:function(event, ui){
@@ -1192,7 +1225,7 @@ function register_event(){
 				based_modelid == "GT-AX11000" ||
 				based_modelid == "RT-AX92U" ||
 				based_modelid == "RT-AX95Q" ||
-				based_modelid == "XT8PRO" ||
+				based_modelid == "XT8PRO" || based_modelid == "BT12" || based_modelid == "BT10" || based_modelid == "BQ16" || based_modelid == "BQ16_PRO" ||
 				based_modelid == "BM68" ||
 				based_modelid == "XT8_V2" ||
 				based_modelid == "RT-AXE95Q" ||
@@ -1218,13 +1251,14 @@ function register_event(){
 				based_modelid == "RT-AX56U"	||
 				based_modelid == "GS-AX3000" || based_modelid == "GS-AX5400" ||
 				based_modelid == "RT-AX86U" || based_modelid == "RT-AX68U" || based_modelid == "RT-AC68U_V4" ||
-				based_modelid == "RT-AX86U_PRO" ||
 				based_modelid == "RT-AXE7800" || based_modelid == "GT10" || based_modelid == "RT-AX9000" ||
+				based_modelid == "RT-AX86U_PRO" ||
 				based_modelid == "GT-AXE11000" ||
 				based_modelid == "GT-AX6000" ||
 				based_modelid == "GT-AX11000_PRO" || based_modelid == "ET12" || based_modelid == "XT12" || 
-				based_modelid == "GT-AXE16000" ||
-				based_modelid == "RT-AX88U_PRO"
+				based_modelid == "GT-AXE16000" || based_modelid == "GT-BE98" || based_modelid == "GT-BE98_PRO" ||
+				based_modelid == "RT-AX88U_PRO" || based_modelid == "RT-BE96U" || based_modelid == "GT-BE96" || based_modelid == "RT-BE88U" || based_modelid == "RT-BE86U" ||
+				based_modelid == "RT-BE58U" || based_modelid == "TUF-BE3600" || based_modelid == "GT-BE19000" || based_modelid == "RT-BE92U" || based_modelid == "RT-BE95U" || based_modelid == "RT-BE82U" || based_modelid == "RT-BE58U_PRO" || based_modelid == "GT-BE19000_AI"
 				)?2167:1300,
 			value:1,
 			slide:function(event, ui){
@@ -1248,12 +1282,12 @@ function register_event(){
 				based_modelid == "RT-AC3100" ||
 				based_modelid == "GT-AX11000" ||
 				based_modelid == "RT-AX92U" ||
-				based_modelid == "RT-AX95Q" || based_modelid == "XT8PRO" || based_modelid == "BM68" || based_modelid == "XT8_V2" || based_modelid == "RT-AXE95Q" || based_modelid == "ET8PRO" || based_modelid == "ET8_V2"
+				based_modelid == "RT-AX95Q" || based_modelid == "XT8PRO" || based_modelid == "BT12" || based_modelid == "BT10" || based_modelid == "BQ16" || based_modelid == "BQ16_PRO" || based_modelid == "BM68" || based_modelid == "XT8_V2" || based_modelid == "RT-AXE95Q" || based_modelid == "ET8PRO" || based_modelid == "ET8_V2"
 				|| based_modelid == "RT-AX86U" || based_modelid == "RT-AX68U" || based_modelid == "RT-AC68U_V4" ||
 				based_modelid == "RT-AXE7800" || based_modelid == "GT10" || based_modelid == "RT-AX9000" ||
 				based_modelid == "GT-AXE11000" ||
 				based_modelid == "GT-AX6000" ||
-				based_modelid == "GT-AX11000_PRO" || based_modelid == "ET12" || based_modelid == "XT12" || based_modelid == "GT-AXE16000"
+				based_modelid == "GT-AX11000_PRO" || based_modelid == "ET12" || based_modelid == "XT12" || based_modelid == "GT-AXE16000" || based_modelid == "GT-BE98" || based_modelid == "GT-BE98_PRO" || based_modelid == "RT-BE96U" || based_modelid == "GT-BE96" || based_modelid == "GT-BE19000" || based_modelid == "GT-BE19000_AI"
 				)?2167:1300,
 			value:1,
 			slide:function(event, ui){
@@ -1277,12 +1311,12 @@ function register_event(){
 				based_modelid == "RT-AC3100" ||
 				based_modelid == "GT-AX11000" ||
 				based_modelid == "RT-AX92U" ||
-				based_modelid == "RT-AX95Q" || based_modelid == "XT8PRO" || based_modelid == "BM68" || based_modelid == "XT8_V2" || based_modelid == "RT-AXE95Q" || based_modelid == "ET8PRO" || based_modelid == "ET8_V2"
+				based_modelid == "RT-AX95Q" || based_modelid == "XT8PRO" || based_modelid == "BT12" || based_modelid == "BT10" || based_modelid == "BQ16" || based_modelid == "BQ16_PRO" || based_modelid == "BM68" || based_modelid == "XT8_V2" || based_modelid == "RT-AXE95Q" || based_modelid == "ET8PRO" || based_modelid == "ET8_V2"
 				|| based_modelid == "RT-AX86U" || based_modelid == "RT-AX68U" || based_modelid == "RT-AC68U_V4" ||
 				based_modelid == "RT-AXE7800" || based_modelid == "GT10" || based_modelid == "RT-AX9000" ||
 				based_modelid == "GT-AXE11000" ||
 				based_modelid == "GT-AX6000" ||
-				based_modelid == "GT-AX11000_PRO" || based_modelid == "ET12" || based_modelid == "XT12" || based_modelid == "GT-AXE16000"
+				based_modelid == "GT-AX11000_PRO" || based_modelid == "ET12" || based_modelid == "XT12" || based_modelid == "GT-AXE16000" || based_modelid == "GT-BE98" || based_modelid == "GT-BE98_PRO" || based_modelid == "RT-BE96U" || based_modelid == "GT-BE96" || based_modelid == "GT-BE19000" || based_modelid == "GT-BE19000_AI"
 				)?2167:1300,
 			value:1,
 			slide:function(event, ui){
@@ -1307,7 +1341,7 @@ function register_event(){
 				based_modelid == "GT-AX11000" ||
 				based_modelid == "RT-AX92U" ||
 				based_modelid == "RT-AX95Q" ||
-				based_modelid == "XT8PRO" ||
+				based_modelid == "XT8PRO" || based_modelid == "BT12" || based_modelid == "BT10" || based_modelid == "BQ16" || based_modelid == "BQ16_PRO" ||
 				based_modelid == "BM68" ||
 				based_modelid == "XT8_V2" ||
 				based_modelid == "RT-AXE95Q" ||
@@ -1333,13 +1367,14 @@ function register_event(){
 				based_modelid == "RT-AX56U"	||
 				based_modelid == "GS-AX3000" || based_modelid == "GS-AX5400" ||
 				based_modelid == "RT-AX86U" || based_modelid == "RT-AX68U" || based_modelid == "RT-AC68U_V4" ||
-				based_modelid == "RT-AX86U_PRO" ||
 				based_modelid == "RT-AXE7800" || based_modelid == "GT10" || based_modelid == "RT-AX9000" ||
+				based_modelid == "RT-AX86U_PRO" ||
 				based_modelid == "GT-AXE11000" ||
 				based_modelid == "GT-AX6000" ||
 				based_modelid == "GT-AX11000_PRO" || based_modelid == "ET12" || based_modelid == "XT12" || 
-				based_modelid == "GT-AXE16000" ||
-				based_modelid == "RT-AX88U_PRO"
+				based_modelid == "GT-AXE16000" || based_modelid == "GT-BE98" || based_modelid == "GT-BE98_PRO" ||
+				based_modelid == "RT-AX88U_PRO" || based_modelid == "RT-BE96U" || based_modelid == "GT-BE96" || based_modelid == "RT-BE88U" || based_modelid == "RT-BE86U" ||
+				based_modelid == "RT-BE58U" || based_modelid == "TUF-BE3600" || based_modelid == "GT-BE19000" || based_modelid == "RT-E92U" || based_modelid == "RT-BE95U" || based_modelid == "RT-BE82U" || based_modelid == "RT-BE58U_PRO" || based_modelid == "GT-BE19000_AI"
 				)?1000:600,
 			value:1,
 			slide:function(event, ui){
@@ -1364,7 +1399,7 @@ function register_event(){
 				based_modelid == "GT-AX11000" ||
 				based_modelid == "RT-AX92U" ||
 				based_modelid == "RT-AX95Q" ||
-				based_modelid == "XT8PRO" ||
+				based_modelid == "XT8PRO" || based_modelid == "BT12" || based_modelid == "BT10" || based_modelid == "BQ16" || based_modelid == "BQ16_PRO" ||
 				based_modelid == "BM68" ||
 				based_modelid == "XT8_V2" ||
 				based_modelid == "RT-AXE95Q" ||
@@ -1390,13 +1425,14 @@ function register_event(){
 				based_modelid == "RT-AX56U"	||
 				based_modelid == "GS-AX3000" || based_modelid == "GS-AX5400" ||
 				based_modelid == "RT-AX86U" || based_modelid == "RT-AX68U" || based_modelid == "RT-AC68U_V4" ||
-				based_modelid == "RT-AX86U_PRO" ||
 				based_modelid == "RT-AXE7800" || based_modelid == "GT10" || based_modelid == "RT-AX9000" ||
+				based_modelid == "RT-AX86U_PRO" ||
 				based_modelid == "GT-AXE11000" ||
 				based_modelid == "GT-AX6000" ||
 				based_modelid == "GT-AX11000_PRO" || based_modelid == "ET12" || based_modelid == "XT12" || 
-				based_modelid == "GT-AXE16000" ||
-				based_modelid == "RT-AX88U_PRO"
+				based_modelid == "GT-AXE16000" || based_modelid == "GT-BE98" || based_modelid == "GT-BE98_PRO" ||
+				based_modelid == "RT-AX88U_PRO" || based_modelid == "RT-BE96U" || based_modelid == "GT-BE96" || based_modelid == "RT-BE88U" || based_modelid == "RT-BE86U" ||
+				based_modelid == "RT-BE58U" || based_modelid == "TUF-BE3600" || based_modelid == "GT-BE19000" || based_modelid == "RT-BE92U" || based_modelid == "RT-BE95U" || based_modelid == "RT-BE82U" || based_modelid == "RT-BE58U_PRO" || based_modelid == "GT-BE19000_AI"
 				)?1000:600,
 			value:1,
 			slide:function(event, ui){
@@ -1421,7 +1457,7 @@ function register_event(){
 				based_modelid == "GT-AX11000" ||
 				based_modelid == "RT-AX92U" ||
 				based_modelid == "RT-AX95Q" ||
-				based_modelid == "XT8PRO" ||
+				based_modelid == "XT8PRO" || based_modelid == "BT12" || based_modelid == "BT10" || based_modelid == "BQ16" || based_modelid == "BQ16_PRO" ||
 				based_modelid == "BM68" ||
 				based_modelid == "XT8_V2" ||
 				based_modelid == "RT-AXE95Q" ||
@@ -1447,13 +1483,14 @@ function register_event(){
 				based_modelid == "RT-AX56U"	||
 				based_modelid == "GS-AX3000" || based_modelid == "GS-AX5400" ||
 				based_modelid == "RT-AX86U" || based_modelid == "RT-AX68U" || based_modelid == "RT-AC68U_V4" ||
-				based_modelid == "RT-AX86U_PRO" ||
 				based_modelid == "RT-AXE7800" || based_modelid == "GT10" || based_modelid == "RT-AX9000" ||
+				based_modelid == "RT-AX86U_PRO" ||
 				based_modelid == "GT-AXE11000" ||
 				based_modelid == "GT-AX6000" ||
 				based_modelid == "GT-AX11000_PRO" || based_modelid == "ET12" || based_modelid == "XT12" || 
-				based_modelid == "GT-AXE16000" ||
-				based_modelid == "RT-AX88U_PRO"
+				based_modelid == "GT-AXE16000" || based_modelid == "GT-BE98" || based_modelid == "GT-BE98_PRO" ||
+				based_modelid == "RT-AX88U_PRO" || based_modelid == "RT-BE96U" || based_modelid == "GT-BE96" || based_modelid == "RT-BE88U" || based_modelid == "RT-BE86U" ||
+				based_modelid == "RT-BE58U" || based_modelid == "TUF-BE3600" || based_modelid == "GT-BE19000" || based_modelid == "RT-BE92U" || based_modelid == "RT-BE95U" || based_modelid == "RT-BE82U" || based_modelid == "RT-BE58U_PRO" || based_modelid == "GT-BE19000_AI"
 				)?2167:1300,
 			value:1,
 			slide:function(event, ui){
@@ -1478,7 +1515,7 @@ function register_event(){
 				based_modelid == "GT-AX11000" ||
 				based_modelid == "RT-AX92U" ||
 				based_modelid == "RT-AX95Q" ||
-				based_modelid == "XT8PRO" ||
+				based_modelid == "XT8PRO" || based_modelid == "BT12" || based_modelid == "BT10" || based_modelid == "BQ16" || based_modelid == "BQ16_PRO" ||
 				based_modelid == "BM68" ||
 				based_modelid == "XT8_V2" ||
 				based_modelid == "RT-AXE95Q" ||
@@ -1504,13 +1541,14 @@ function register_event(){
 				based_modelid == "RT-AX56U"	||
 				based_modelid == "GS-AX3000" || based_modelid == "GS-AX5400" ||
 				based_modelid == "RT-AX86U" || based_modelid == "RT-AX68U" || based_modelid == "RT-AC68U_V4" ||
-				based_modelid == "RT-AX86U_PRO" ||
 				based_modelid == "RT-AXE7800" || based_modelid == "GT10" || based_modelid == "RT-AX9000" ||
+				based_modelid == "RT-AX86U_PRO" ||
 				based_modelid == "GT-AXE11000" ||
 				based_modelid == "GT-AX6000" ||
 				based_modelid == "GT-AX11000_PRO" || based_modelid == "ET12" || based_modelid == "XT12" || 
-				based_modelid == "GT-AXE16000" ||
-				based_modelid == "RT-AX88U_PRO"
+				based_modelid == "GT-AXE16000" || based_modelid == "GT-BE98" || based_modelid == "GT-BE98_PRO" ||
+				based_modelid == "RT-AX88U_PRO" || based_modelid == "RT-BE96U" || based_modelid == "GT-BE96" || based_modelid == "RT-BE88U" || based_modelid == "RT-BE86U" ||
+				based_modelid == "RT-BE58U" || based_modelid == "TUF-BE3600" || based_modelid == "GT-BE19000" || based_modelid == "RT-BE92U" || based_modelid == "RT-BE95U" || based_modelid == "RT-BE82U" || based_modelid == "RT-BE58U_PRO" || based_modelid == "GT-BE19000_AI"
 				)?2167:1300,
 			value:1,
 			slide:function(event, ui){
@@ -1534,12 +1572,13 @@ function register_event(){
 				based_modelid == "RT-AC3100" ||
 				based_modelid == "GT-AX11000" ||
 				based_modelid == "RT-AX92U" ||
-				based_modelid == "RT-AX95Q" || based_modelid == "XT8PRO" || based_modelid == "BM68" || based_modelid == "XT8_V2" || based_modelid == "RT-AXE95Q" || based_modelid == "ET8PRO" || based_modelid == "ET8_V2"
+				based_modelid == "RT-AX95Q" || based_modelid == "XT8PRO" || based_modelid == "BT12" || based_modelid == "BT10" || based_modelid == "BQ16" || based_modelid == "BQ16_PRO" || based_modelid == "BM68" || based_modelid == "XT8_V2" || based_modelid == "RT-AXE95Q" || based_modelid == "ET8PRO" || based_modelid == "ET8_V2"
 				|| based_modelid == "RT-AX86U" || based_modelid == "RT-AX68U" || based_modelid == "RT-AC68U_V4" ||
 				based_modelid == "RT-AXE7800" || based_modelid == "GT10" || based_modelid == "RT-AX9000" ||
 				based_modelid == "GT-AXE11000" ||
 				based_modelid == "GT-AX6000" ||
-				based_modelid == "GT-AX11000_PRO" || based_modelid == "ET12" || based_modelid == "XT12" || based_modelid == "GT-AXE16000"
+				based_modelid == "GT-AX11000_PRO" || based_modelid == "ET12" || based_modelid == "XT12" || based_modelid == "GT-AXE16000" || based_modelid == "GT-BE98" || based_modelid == "GT-BE98_PRO" || based_modelid == "RT-BE96U" || based_modelid == "GT-BE96" || based_modelid == "RT-BE88U" || based_modelid == "RT-BE86U" ||
+				based_modelid == "RT-BE58U" || based_modelid == "TUF-BE3600" || based_modelid == "GT-BE19000" || based_modelid == "RT-BE92U" || based_modelid == "RT-BE95U" || based_modelid == "RT-BE82U" || based_modelid == "RT-BE58U_PRO" || based_modelid == "GT-BE19000_AI"
 				)?2167:1300,
 			value:1,
 			slide:function(event, ui){
@@ -1563,12 +1602,12 @@ function register_event(){
 				based_modelid == "RT-AC3100" ||
 				based_modelid == "GT-AX11000" ||
 				based_modelid == "RT-AX92U" ||
-				based_modelid == "RT-AX95Q" || based_modelid == "XT8PRO" || based_modelid == "BM68" || based_modelid == "XT8_V2" || based_modelid == "RT-AXE95Q" || based_modelid == "ET8PRO" || based_modelid == "ET8_V2"
+				based_modelid == "RT-AX95Q" || based_modelid == "XT8PRO" || based_modelid == "BT12" || based_modelid == "BT10" || based_modelid == "BQ16" || based_modelid == "BQ16_PRO" || based_modelid == "BM68" || based_modelid == "XT8_V2" || based_modelid == "RT-AXE95Q" || based_modelid == "ET8PRO" || based_modelid == "ET8_V2"
 				|| based_modelid == "RT-AX86U" || based_modelid == "RT-AX68U" || based_modelid == "RT-AC68U_V4" ||
 				based_modelid == "RT-AXE7800" || based_modelid == "GT10" || based_modelid == "RT-AX9000" ||
 				based_modelid == "GT-AXE11000" ||
 				based_modelid == "GT-AX6000" ||
-				based_modelid == "GT-AX11000_PRO" || based_modelid == "ET12" || based_modelid == "XT12" || based_modelid == "GT-AXE16000"
+				based_modelid == "GT-AX11000_PRO" || based_modelid == "ET12" || based_modelid == "XT12" || based_modelid == "GT-AXE16000" || based_modelid == "GT-BE98" || based_modelid == "GT-BE98_PRO" || based_modelid == "RT-BE96U" || based_modelid == "GT-BE96" || based_modelid == "GT-BE19000" || based_modelid == "GT-BE19000_AI"
 				)?2167:1300,
 			value:1,
 			slide:function(event, ui){
@@ -1620,8 +1659,7 @@ function register_event(){
 			stop:function(event, ui){
 				set_bandutil_qualify_power(ui.value,'wl2_bsd_if_qualify_policy');	  
 			}
-		}); 							
-	});
+		});
 }
 
 function check_power(power_value,flag){
@@ -1647,7 +1685,7 @@ function check_power(power_value,flag){
 			based_modelid == "GT-AX11000" ||
 			based_modelid == "RT-AX92U" ||
 			based_modelid == "RT-AX95Q" ||
-			based_modelid == "XT8PRO" ||
+			based_modelid == "XT8PRO" || based_modelid == "BT12" || based_modelid == "BT10" || based_modelid == "BQ16" || based_modelid == "BQ16_PRO" ||
 			based_modelid == "BM68" ||
 			based_modelid == "XT8_V2" ||
 			based_modelid == "RT-AXE95Q" ||
@@ -1673,13 +1711,14 @@ function check_power(power_value,flag){
 			based_modelid == "RT-AX56U"	||
 			based_modelid == "GS-AX3000" || based_modelid == "GS-AX5400" ||
 			based_modelid == "RT-AX86U" || based_modelid == "RT-AX68U" || based_modelid == "RT-AC68U_V4" ||
-			based_modelid == "RT-AX86U_PRO" ||
 			based_modelid == "RT-AXE7800" || based_modelid == "GT10" || based_modelid == "RT-AX9000" ||
+			based_modelid == "RT-AX86U_PRO" ||
 			based_modelid == "GT-AXE11000" ||
 			based_modelid == "GT-AX6000" ||
 			based_modelid == "GT-AX11000_PRO" || based_modelid == "ET12" || based_modelid == "XT12" || 
-			based_modelid == "GT-AXE16000" ||
-			based_modelid == "RT-AX88U_PRO"
+			based_modelid == "GT-AXE16000" || based_modelid == "GT-BE98" || based_modelid == "GT-BE98_PRO" ||
+			based_modelid == "RT-AX88U_PRO" || based_modelid == "RT-BE96U" || based_modelid == "GT-BE96" || based_modelid == "RT-BE88U" || based_modelid == "RT-BE86U" ||
+			based_modelid == "RT-BE58U" || based_modelid == "TUF-BE3600" || based_modelid == "GT-BE19000" || based_modelid == "RT-BE92U" || based_modelid == "RT-BE95U" || based_modelid == "RT-BE82U" || based_modelid == "RT-BE58U_PRO" || based_modelid == "GT-BE19000_AI"
 			)
 			power_value_limit = 2167;
 		else
@@ -1713,7 +1752,7 @@ function set_lg_power(power_value,flag,idx){
 			based_modelid == "RT-AX92U" ||
 			based_modelid == "RT-AX92U" ||
 			based_modelid == "RT-AX95Q" ||
-			based_modelid == "XT8PRO" ||
+			based_modelid == "XT8PRO" || based_modelid == "BT12" || based_modelid == "BT10" || based_modelid == "BQ16" || based_modelid == "BQ16_PRO" ||
 			based_modelid == "BM68" ||
 			based_modelid == "XT8_V2" ||
 			based_modelid == "RT-AXE95Q" ||
@@ -1739,13 +1778,14 @@ function set_lg_power(power_value,flag,idx){
 			based_modelid == "RT-AX56U"	||
 			based_modelid == "GS-AX3000" || based_modelid == "GS-AX5400" ||
 			based_modelid == "RT-AX86U" || based_modelid == "RT-AX68U" || based_modelid == "RT-AC68U_V4" ||
-			based_modelid == "RT-AX86U_PRO" ||
 			based_modelid == "RT-AXE7800" || based_modelid == "GT10" || based_modelid == "RT-AX9000" ||
+			based_modelid == "RT-AX86U_PRO" ||
 			based_modelid == "GT-AXE11000" ||
 			based_modelid == "GT-AX6000" ||
 			based_modelid == "GT-AX11000_PRO" || based_modelid == "ET12" || based_modelid == "XT12" || 
-			based_modelid == "GT-AXE16000" ||
-			based_modelid == "RT-AX88U_PRO"
+			based_modelid == "GT-AXE16000" || based_modelid == "GT-BE98" || based_modelid == "GT-BE98_PRO" ||
+			based_modelid == "RT-AX88U_PRO" || based_modelid == "RT-BE96U" || based_modelid == "GT-BE96" || based_modelid == "RT-BE88U" || based_modelid == "RT-BE86U" ||
+			based_modelid == "RT-BE58U" || based_modelid == "TUF-BE3600" || based_modelid == "GT-BE19000" || based_modelid == "RT-BE92U" || based_modelid == "RT-BE95U" || based_modelid == "RT-BE82U" || based_modelid == "RT-BE58U_PRO" || based_modelid == "GT-BE19000_AI"
 			)
 			divd = 10;
 		else
@@ -1762,7 +1802,7 @@ function set_lg_power(power_value,flag,idx){
 			based_modelid == "GT-AX11000" ||
 			based_modelid == "RT-AX92U" ||
 			based_modelid == "RT-AX95Q" ||
-			based_modelid == "XT8PRO" ||
+			based_modelid == "XT8PRO" || based_modelid == "BT12" || based_modelid == "BT10" || based_modelid == "BQ16" || based_modelid == "BQ16_PRO" ||
 			based_modelid == "BM68" ||
 			based_modelid == "XT8_V2" ||
 			based_modelid == "RT-AXE95Q" ||
@@ -1788,13 +1828,14 @@ function set_lg_power(power_value,flag,idx){
 			based_modelid == "RT-AX56U"	||
 			based_modelid == "GS-AX3000" || based_modelid == "GS-AX5400" ||
 			based_modelid == "RT-AX86U" || based_modelid == "RT-AX68U" || based_modelid == "RT-AC68U_V4" ||
-			based_modelid == "RT-AX86U_PRO" ||
 			based_modelid == "RT-AXE7800" || based_modelid == "GT10" || based_modelid == "RT-AX9000" ||
+			based_modelid == "RT-AX86U_PRO" ||
 			based_modelid == "GT-AXE11000" ||
 			based_modelid == "GT-AX6000" ||
 			based_modelid == "GT-AX11000_PRO" || based_modelid == "ET12" || based_modelid == "XT12" || 
-			based_modelid == "GT-AXE16000" ||
-			based_modelid == "RT-AX86U_PRO"
+			based_modelid == "GT-AXE16000" || based_modelid == "GT-BE98" || based_modelid == "GT-BE98_PRO" ||
+			based_modelid == "RT-AX88U_PRO" || based_modelid == "RT-BE96U" || based_modelid == "GT-BE96" || based_modelid == "RT-BE88U" || based_modelid == "RT-BE86U" ||
+			based_modelid == "RT-BE58U" || based_modelid == "TUF-BE3600" || based_modelid == "GT-BE19000" || based_modelid == "RT-BE92U" || based_modelid == "RT-BE95U" || based_modelid == "RT-BE82U" || based_modelid == "RT-BE58U_PRO" || based_modelid == "GT-BE19000_AI"
 			)
 			divd = 21;
 		else
@@ -1812,6 +1853,11 @@ function set_lg_power(power_value,flag,idx){
 		document.getElementById(flag+'_t').innerHTML = power_value;
 	}
 	check_power(power_value,'phyrate');	
+}
+
+function showClientlistModal(){
+    const clientlistModal = new ClientlistModel();
+    clientlistModal.show();
 }
 
 </script>
@@ -1898,10 +1944,10 @@ function set_lg_power(power_value,flag,idx){
 		<tr>
 		  <td bgcolor="#4D595D" valign="top">
 		  <div>&nbsp;</div>
-		  <div class="formfonttitle"><#Network_Tools#> - <#smart_connect_rule#></div>
+		  <div class="formfonttitle"><#menu5_1#> - <#smart_connect_rule#></div>
      	 <div style="margin:10px 0 10px 5px;" class="splitLine"></div>
       	  <div class="formfontdesc"><#smart_connect_hint#></div>
-		  <div style="text-align:right;margin-top:-36px;padding-bottom:3px;"><input type="button" class="button_gen" value="<#View_List#>" onClick="pop_clientlist_listview(true)"></div>
+		  <div style="text-align:right;margin-top:-36px;padding-bottom:3px;"><input type="button" class="button_gen" value="<#View_List#>" onClick="showClientlistModal()"></div>
 		  <div id="bsd_steering_div"></div>
 
 		  <div id="bsd_sta_select_div"></div>

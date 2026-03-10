@@ -9,6 +9,15 @@
             "ping_target": "No"
         },
     "1":{
+            "FilterMode": "Ad block",
+            "DNSService": "Control D",
+            "ServiceIP1": "76.76.2.2",
+            "ServiceIP2": "76.76.10.2",
+            "Description": "Block Ads & tracking domains. Increasing privacy protection and internet connection speed.",
+            "confirmed": "Yes",
+            "ping_target": "No"
+        },
+    "2":{
             "FilterMode": "Family",
             "DNSService": "AdGuard",
             "ServiceIP1": "94.140.14.15",
@@ -17,9 +26,9 @@
             "confirmed": "Yes",
             "ping_target": "Yes"
         },
-    "2":{
+    "3":{
             "FilterMode": "Family",
-            "DNSService": "CleanBrowsing",
+            "DNSService": "CleanBrowsing-1",
             "ServiceIP1": "185.228.168.10",
             "ServiceIP2": "185.228.169.11",
             "Description": "Blocks access to all adult, pornography and explicit sites. Google and Bing set to Safe Mode. Security filter applied.",
@@ -27,9 +36,9 @@
             "confirmed": "Yes",
             "ping_target": "No"
         },
-    "3":{
+    "4":{
             "FilterMode": "Family",
-            "DNSService": "CleanBrowsing",
+            "DNSService": "CleanBrowsing-2",
             "ServiceIP1": "185.228.168.168",
             "ServiceIP2": "185.228.169.168",
             "Description": "Blocks access to all adult, pornography, explicit, VPN, Proxy and mixed content sites. Google, Bing, and YouTube set to Safe Mode. Security filter applied.",
@@ -37,7 +46,7 @@
             "confirmed": "Yes",
             "ping_target": "Yes"
         },
-    "4":{
+    "5":{
             "FilterMode": "Family",
             "DNSService": "Cloudflare",
             "ServiceIP1": "1.1.1.3",
@@ -46,15 +55,16 @@
             "confirmed": "No",
             "ping_target": "No"
         },
-    "5":{
+    "6":{
             "FilterMode": "Family",
             "DNSService": "OpenDNS",
             "ServiceIP1": "208.67.222.123",
             "ServiceIP2": "208.67.220.123",
             "Description": "Blocks adult contents.",
+            "confirmed": "No",
             "ping_target": "No"
         },
-    "6":{
+    "7":{
             "FilterMode": "Family",
             "DNSService": "Yandex",
             "ServiceIP1": "77.88.8.7",
@@ -63,15 +73,25 @@
             "confirmed": "No",
             "ping_target": "No"
         },
-    "7":{
+    "8":{
+            "FilterMode": "Family",
+            "DNSService": "Control D",
+            "ServiceIP1": "76.76.2.4",
+            "ServiceIP2": "76.76.10.4",
+            "Description": "Family-friendly rules to block Malware, Ads, tracking, and adult content.",
+            "confirmed": "Yes",
+            "ping_target": "No"
+        },
+    "9":{
             "FilterMode": "Fast DNS",
             "DNSService": "Cloudflare",
             "ServiceIP1": "1.1.1.1",
             "ServiceIP2": "1.0.0.1",
             "Description": "The Internet's Fatest, Privacy-First DNS Recolver.",
+            "confirmed": "No",
             "ping_target": "No"
         },
-    "8":{
+    "10":{
             "FilterMode": "Fast DNS",
             "DNSService": "DNS Watch",
             "ServiceIP1": "84.200.69.80",
@@ -81,62 +101,72 @@
             "confirmed": "mailing",
             "ping_target": "No"
         },
-    "9":{
+    "11":{
             "FilterMode": "Fast DNS",
             "DNSService": "DYN",
             "ServiceIP1": "216.146.35.35",
             "ServiceIP2": "216.146.36.36",
             "Description": "Provide the safe and fast experience on all devices connected to your network.",
             "url": "https://help.dyn.com/dyn-internet-guide/",
+            "confirmed": "No",
             "ping_target": "No"
         },
-    "10":{
+    "12":{
             "FilterMode": "Fast DNS",
             "DNSService": "FreeDNS",
             "ServiceIP1": "37.235.1.174",
             "ServiceIP2": "37.235.1.177",
             "Description": "Surf freely. No DNS redirects. No Logging.",
             "url": "https://freedns.zone/en/why/",
-            "ping_target": "No"
-        },
-    "11":{
-            "FilterMode": "Fast DNS",
-            "DNSService": "Google",
-            "ServiceIP1": "8.8.8.8",
-            "ServiceIP2": "8.8.4.4",
-            "confirmed": "Yes",
-            "ping_target": "Yes"
-        },
-    "12":{
-            "FilterMode": "Fast DNS",
-            "DNSService": "Level3",
-            "ServiceIP1": "209.244.0.3",
-            "ServiceIP2": "209.244.0.4",
+            "confirmed": "No",
             "ping_target": "No"
         },
     "13":{
             "FilterMode": "Fast DNS",
+            "DNSService": "Google",
+            "ServiceIP1": "8.8.8.8",
+            "ServiceIP2": "8.8.4.4",
+            "Description": "",
+            "confirmed": "Yes",
+            "ping_target": "Yes"
+        },
+    "14":{
+            "FilterMode": "Fast DNS",
+            "DNSService": "Level3",
+            "ServiceIP1": "209.244.0.3",
+            "ServiceIP2": "209.244.0.4",
+            "Description": "",
+            "confirmed": "No",
+            "ping_target": "No"
+        },
+    "15":{
+            "FilterMode": "Fast DNS",
             "DNSService": "Neustar",
             "ServiceIP1": "156.154.70.1",
             "ServiceIP2": "156.154.71.1",
+            "Description": "",
+            "confirmed": "No",
             "ping_target": "No"
         },
-    "14":{
+    "16":{
             "FilterMode": "Fast DNS",
             "DNSService": "OpenDNS",
             "ServiceIP1": "208.67.222.222",
             "ServiceIP2": "208.67.220.220",
             "Description": "Regular OpenDNS server (configurable through their portal)",
+            "confirmed": "No",
             "ping_target": "No"
         },
-    "15":{
+    "17":{
             "FilterMode": "Fast DNS",
             "DNSService": "SAFEDNS",
             "ServiceIP1": "195.46.39.39",
             "ServiceIP2": "195.46.39.40",
+            "Description": "",
+            "confirmed": "No",
             "ping_target": "No"
         },
-    "16":{
+    "18":{
             "FilterMode": "Safe",
             "DNSService": "Cloudflare",
             "ServiceIP1": "1.1.1.2",
@@ -145,7 +175,7 @@
             "confirmed": "No",
             "ping_target": "No"
         },
-    "17":{
+    "19":{
             "FilterMode": "Safe",
             "DNSService": "CleanBrowsing",
             "ServiceIP1": "185.228.168.9",
@@ -155,15 +185,16 @@
             "confirmed": "Yes",
             "ping_target": "No"
         },
-    "18":{
+    "20":{
             "FilterMode": "Safe",
             "DNSService": "Comodo ",
             "ServiceIP1": "8.26.56.26",
             "ServiceIP2": "8.20.247.20",
             "Description": "Block malicious content",
+            "confirmed": "No",
             "ping_target": "No"
         },
-    "19":{
+    "21":{
             "FilterMode": "Safe",
             "DNSService": "Quad9",
             "ServiceIP1": "9.9.9.9",
@@ -173,7 +204,7 @@
             "confirmed": "Yes",
             "ping_target": "Yes"
         },
-    "20":{
+    "22":{
             "FilterMode": "Safe",
             "DNSService": "Yandex",
             "ServiceIP1": "77.88.8.88",
@@ -182,7 +213,16 @@
             "confirmed": "No",
             "ping_target": "No"
         },
-    "21":{
+    "23":{
+            "FilterMode": "Safe",
+            "DNSService": "Control D",
+            "ServiceIP1": "76.76.2.1",
+            "ServiceIP2": "76.76.10.1",
+            "Description": "Preventing phishing and malware attacks.",
+            "confirmed": "Yes",
+            "ping_target": "No"
+        },
+    "24":{
             "FilterMode": "Privacy-respecting",
             "DNSService": "Quad9",
             "ServiceIP1": "9.9.9.11",
@@ -192,14 +232,22 @@
             "confirmed": "Yes",
             "ping_target": "No"
         },
-    "22":{
+    "25":{
+            "FilterMode": "",
             "DNSService": "Baidu",
             "ServiceIP1": "180.76.76.76",
+            "ServiceIP2": "",
+            "Description": "",
+            "confirmed": "No",
             "ping_target": "CN"
         },
-    "23":{
+    "26":{
+            "FilterMode": "",
             "DNSService": "AliDNS",
             "ServiceIP1": "223.5.5.5",
+            "ServiceIP2": "",
+            "Description": "",
+            "confirmed": "No",
             "ping_target": "CN"
         }
 }

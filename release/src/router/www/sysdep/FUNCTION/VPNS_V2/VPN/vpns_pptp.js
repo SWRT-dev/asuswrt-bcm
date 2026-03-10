@@ -1,9 +1,6 @@
 var based_modelid = httpApi.nvramGet(["productid"]).productid;
 var max_shift = "";	/* MODELDEP (include dict #PPTP_desc2# #vpn_max_clients# #vpn_maximum_clients#) */
-if(based_modelid == "RT-AC5300" || based_modelid == "GT-AC5300" || based_modelid == "GT-AC9600" || based_modelid == "RT-AC3200" || based_modelid == "RT-AC3100" || based_modelid == "GT-AX11000" || based_modelid == "RT-AX92U" || based_modelid == "RT-AX95Q" || based_modelid == "XT8PRO" || based_modelid == "BM68" || based_modelid == "XT8_V2" || based_modelid == "RT-AXE95Q" || based_modelid == "ET8PRO" || based_modelid == "ET8_V2" || based_modelid == "RT-AX56_XD4" || based_modelid == "XD4PRO" || based_modelid == "CT-AX56_XD4" || based_modelid == "RT-AX58U" || based_modelid == "RT-AX58U_V2" || based_modelid == "TUF-AX3000" || based_modelid == "TUF-AX5400" || based_modelid == "DSL-AX82U" || based_modelid == "RT-AX82U" || based_modelid == "RT-AX56U" ||
-		based_modelid == "RT-AC88U" || based_modelid == "RT-AX88U" || based_modelid == "RT-AC86U" || based_modelid == "GT-AC2900" || based_modelid == "RT-AC87U" || based_modelid == "RT-AC68U" || based_modelid == "RT-AX86U" || based_modelid == "RT-AX68U" || based_modelid == "RT-AC68U_V4" || based_modelid == "GT-AXE11000" || based_modelid == "GS-AX3000" || based_modelid == "GS-AX5400" || based_modelid == "GT-AX6000" || based_modelid == "GT-AX11000_PRO" || based_modelid == "ET12" || based_modelid == "XT12" || based_modelid == "GT-AXE16000" ||
-		based_modelid == "RT-AC66U" || based_modelid == "RT-AC56U" ||
-		based_modelid == "RT-N66U" || based_modelid == "RT-N18U" || based_modelid == "XC5" || based_modelid == "EBA63"){
+if(based_modelid == "RT-AC5300" || based_modelid == "GT-AC5300" || based_modelid == "GT-AC9600" || based_modelid == "RT-AC3200" || based_modelid == "RT-AC3100" || based_modelid == "GT-AX11000" || based_modelid == "RT-AX92U" || based_modelid == "RT-AX95Q" || based_modelid == "XT8PRO" || based_modelid == "BT12" || based_modelid == "BT10" || based_modelid == "BQ16" || based_modelid == "BQ16_PRO" || based_modelid == "BM68" || based_modelid == "XT8_V2" || based_modelid == "RT-AXE95Q" || based_modelid == "ET8PRO" || based_modelid == "ET8_V2" || based_modelid == "RT-AX56_XD4" || based_modelid == "XD4PRO" || based_modelid == "CT-AX56_XD4" || based_modelid == "RT-AX58U" || based_modelid == "RT-AX58U_V2" || based_modelid == "TUF-AX3000" || based_modelid == "TUF-AX5400" || based_modelid == "DSL-AX82U" || based_modelid == "RT-AX82U" || based_modelid == "RT-AX56U" || based_modelid == "RT-AC88U" || based_modelid == "RT-AX88U" || based_modelid == "RT-AC86U" || based_modelid == "GT-AC2900" || based_modelid == "RT-AC87U" || based_modelid == "RT-AC68U" || based_modelid == "RT-AX86U" || based_modelid == "RT-AX68U" || based_modelid == "RT-AC68U_V4" || based_modelid == "GT-AXE11000" || based_modelid == "GS-AX3000" || based_modelid == "GS-AX5400" || based_modelid == "GT-AX6000" || based_modelid == "GT-AX11000_PRO" || based_modelid == "ET12" || based_modelid == "XT12" || based_modelid == "GT-AXE16000" || based_modelid == "GT-BE98" || based_modelid == "GT-BE98_PRO" || based_modelid == "RT-BE96U" || based_modelid == "GT-BE96" || based_modelid == "RT-BE88U" || based_modelid == "RT-BE86U" || based_modelid == "RT-BE58U" || based_modelid == "TUF-BE3600" || based_modelid == "RT-BE58U_V2" || based_modelid == "TUF-BE3600_V2" || based_modelid == "RT-BE55" || based_modelid == "RT-AC66U" || based_modelid == "RT-AC56U" || based_modelid == "RT-N66U" || based_modelid == "RT-N18U" || based_modelid == "XC5" || based_modelid == "EBA63" || based_modelid == "GT-BE19000" || based_modelid == "RT-BE92U" || based_modelid == "RT-BE95U" || based_modelid == "RT-BE82U" || based_modelid == "TUF-BE82" || based_modelid == "RT-BE82M" || based_modelid == "RT-BE58U_PRO" || based_modelid == "GT-BE19000AI" || based_modelid == "GS-BE18000" || based_modelid == "GS-BE12000" || based_modelid == "GS7_PRO" || based_modelid == "GT7" || based_modelid == "GT-BE96_AI"){
 	max_shift = parseInt("29");
 }
 else{
@@ -41,7 +38,7 @@ function Get_Component_Feature_Desc_PPTP(){
 
 	var $popup_title_container = $("<div>").addClass("popup_title_container");
 	$popup_title_container.appendTo($container);
-	$("<div>").addClass("title").html("About Feature").appendTo($popup_title_container);/* untranslated */
+	$("<div>").addClass("title").html("<#NewFeatureAbout#>").appendTo($popup_title_container);
 	var $close_btn = $("<div>").addClass("vpn_icon_all_collect close_btn");
 	$close_btn.appendTo($popup_title_container);
 	$close_btn.unbind("click").click(function(e){
@@ -55,7 +52,7 @@ function Get_Component_Feature_Desc_PPTP(){
 
 	var $feature_desc = $("<div>").addClass("feature_desc");
 	$feature_desc.appendTo($popup_content_container);
-	$("<div>").addClass("title").html("Feature Description").appendTo($feature_desc);/* untranslated */
+	$("<div>").addClass("title").html("<#NewFeatureDesc#>").appendTo($feature_desc);
 
 	var $pptp_desc = $("#pptp_desc");
 	if(isMobile()){
@@ -201,7 +198,7 @@ function Get_Component_Add_Client_PPTP(){
 
 	$("<div>").attr({"id":"client_pwd_strength"}).append(Get_Component_PWD_Strength_Meter()).appendTo($content_container).hide();
 
-	$("<div>").addClass("profile_title_item").append($("<span>").html("Static Route (<#feedback_optional#>)")).appendTo($content_container);
+	$("<div>").addClass("profile_title_item").append($("<span>").html("<#RouterConfig_GWStatic#> (<#feedback_optional#>)")).appendTo($content_container);
 	var pptpd_sr_ipaddr = {"title":"<#RouterConfig_GWStaticIP_itemname#>", "type":"text", "id":"pptpd_sr_ipaddr", "maxlength":15, "openHint":"6_1"};
 	Get_Component_Input(pptpd_sr_ipaddr).appendTo($content_container)
 		.find("#" + pptpd_sr_ipaddr.id + "")
@@ -247,7 +244,7 @@ function Get_Component_PPTP_Edit_Client(username){
 
 	var $content_container = $("<div>").addClass("popup_content_container profile_setting").appendTo($container);
 
-	$("<div>").addClass("profile_title_item").append($("<span>").html("Static Route (<#feedback_optional#>)")).appendTo($content_container);
+	$("<div>").addClass("profile_title_item").append($("<span>").html("<#RouterConfig_GWStatic#> (<#feedback_optional#>)")).appendTo($content_container);
 	var pptpd_sr_ipaddr = {"title":"<#RouterConfig_GWStaticIP_itemname#>", "type":"text", "id":"pptpd_sr_ipaddr", "maxlength":15, "openHint":"6_1"};
 	Get_Component_Input(pptpd_sr_ipaddr).appendTo($content_container)
 		.find("#" + pptpd_sr_ipaddr.id + "")
@@ -301,11 +298,12 @@ function show_pptpd_clientlist(_obj){
 }
 function Get_Component_Client_List_PPTP(_client_info){
 	var $container = $("<div>").addClass("profile_setting_item nowrap clientlist");
-	var $client_content_bg = $("<div>").attr({"username":htmlEnDeCode.htmlEncode(_client_info.username)}).addClass("client_content_bg").appendTo($container);
+	const username = _client_info.username;
+	var $client_content_bg = $("<div>").attr({"username":htmlEnDeCode.htmlEncode(username)}).addClass("client_content_bg").appendTo($container);
 	var $client_info_bg = $("<div>").addClass("client_info_bg").appendTo($client_content_bg);
 
 	$("<div>").addClass("vpn_icon_all_collect status_icon").appendTo($client_info_bg);
-	$("<div>").addClass("client_name").html(htmlEnDeCode.htmlEncode(_client_info.username)).appendTo($client_info_bg);
+	$("<div>").addClass("client_name").attr({"title":htmlEnDeCode.htmlEncode(username)}).html(htmlEnDeCode.htmlEncode(username)).appendTo($client_info_bg);
 
 	var $client_contorl_bg = $("<div>").addClass("client_contorl_bg").appendTo($client_content_bg);
 	$("<div>").addClass("detail_icon").unbind("click").click(function(e){
@@ -327,7 +325,7 @@ function Get_Component_Client_List_PPTP(_client_info){
 		e.stopPropagation();
 		var del_idx = "";
 		$.each(pptpd_clientlist_data, function(index, item){
-			if(item.username == _client_info.username){
+			if(item.username == username){
 				del_idx = index;
 				return false;
 			}
@@ -345,7 +343,7 @@ function Get_Component_Client_List_PPTP(_client_info){
 		if($(".popup_container.popup_element").css("display") == "flex")
 			$(".popup_container.popup_element").addClass("blur_effect");
 		$(".popup_element_second").css("display", "flex");
-		$(".popup_container.popup_element_second").empty().append(Get_Component_PPTP_Edit_Client(_client_info.username));
+		$(".popup_container.popup_element_second").empty().append(Get_Component_PPTP_Edit_Client(username));
 	}).appendTo($client_contorl_bg);
 
 	var margin_right = (48 * $client_contorl_bg.find(".contorl_btn").length) + 10;//contorl_btn width * count + detail_icon margin right
@@ -1282,7 +1280,7 @@ function Get_Component_Setting_Profile_PPTP(_type){
 			return validator.isIPAddr(this, event);
 		});
 
-	$("<div>").addClass("profile_title_item").append($("<span>").html("VPN authentication for VPN clients")).appendTo($detail_general);/* untranslated */
+	$("<div>").addClass("profile_title_item").append($("<span>").html("<#vpnc_auth_for_clients#>")).appendTo($detail_general);
 
 	pptpd_clientlist_data = [];
 	var $Add_Client_Title_obj = Get_Component_Add_Client_Title().appendTo($detail_general);

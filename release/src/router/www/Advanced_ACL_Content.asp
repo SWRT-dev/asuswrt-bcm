@@ -13,15 +13,16 @@
 <link rel="stylesheet" type="text/css" href="index_style.css"> 
 <link rel="stylesheet" type="text/css" href="form_style.css">
 <link rel="stylesheet" type="text/css" href="/device-map/device-map.css">
+<script type="text/javascript" src="/js/jquery.js"></script>
+<script type="text/javascript" src="/js/httpApi.js"></script>
 <script language="JavaScript" type="text/javascript" src="/state.js"></script>
 <script language="JavaScript" type="text/javascript" src="/help.js"></script>
 <script language="JavaScript" type="text/javascript" src="/general.js"></script>
 <script language="JavaScript" type="text/javascript" src="/popup.js"></script>
 <script language="JavaScript" type="text/javascript" src="/client_function.js"></script>
 <script language="JavaScript" type="text/javascript" src="/validator.js"></script>
-<script type="text/javascript" src="/js/jquery.js"></script>
 <script type="text/javascript" src="/switcherplugin/jquery.iphone-switch.js"></script>
-<script type="text/javascript" src="/js/httpApi.js"></script>
+<script type="text/javascript" src="/form.js"></script>
 <style>
 #pull_arrow{
  	float:center;
@@ -42,6 +43,10 @@ var wl_maclist_x_array = '<% nvram_get("wl_maclist_x"); %>';
 var manually_maclist_list_array = new Array();
 var manually_maclist_list_ori_array = new Array();
 var wl_macmode_ori = ('<% nvram_get("wl_macmode"); %>' == "disabled") ? "allow" : '<% nvram_get("wl_macmode"); %>';
+
+var current_page = window.location.pathname.split("/").pop();
+var faq_index_tmp = get_faq_index(FAQ_List, current_page, 1);
+
 function initial(){
 	if(isSwMode("re") && concurrep_support){
 		document.form.wl_subunit.value = 1;
@@ -54,7 +59,7 @@ function initial(){
 		checkWLReady();
 	}	
 
-	if(!band5g_support)
+	if(isSupport("noWiFi"))
 		document.getElementById("wl_unit_field").style.display = "none";
 
 	var wl_maclist_x_row = wl_maclist_x_array.split('&#60');
@@ -98,19 +103,19 @@ function show_wl_maclist_x(){
 	else{
 		//user icon
 		var userIconBase64 = "NoIcon";
-		var clientName, deviceType, deviceVender;
+		var clientName, deviceType, deviceVendor;
 		Object.keys(manually_maclist_list_array).forEach(function(key) {
 			var clientMac = key.toUpperCase();
 			var clientIconID = "clientIcon_" + clientMac.replace(/\:/g, "");
 			if(clientList[clientMac]) {
 				clientName = (clientList[clientMac].nickName == "") ? clientList[clientMac].name : clientList[clientMac].nickName;
 				deviceType = clientList[clientMac].type;
-				deviceVender = clientList[clientMac].vendor;
+				deviceVendor = clientList[clientMac].vendor;
 			}
 			else {
 				clientName = "New device";
 				deviceType = 0;
-				deviceVender = "";
+				deviceVendor = "";
 			}
 			code +='<tr id="row_'+clientMac+'">';
 			code +='<td width="80%" align="center">';
@@ -123,18 +128,22 @@ function show_wl_maclist_x(){
 					userIconBase64 = getUploadIcon(clientMac.replace(/\:/g, ""));
 				}
 				if(userIconBase64 != "NoIcon") {
-					code += '<div id="' + clientIconID + '" style="text-align:center;"><img class="imgUserIcon_card" src="' + userIconBase64 + '"></div>';
+                    if(clientList[clientMac].isUserUplaodImg){
+					    code += '<div id="' + clientIconID + '" class="clientIcon"><img class="imgUserIcon_card" src="' + userIconBase64 + '"></div>';
+                    }else{
+                        code += '<div id="' + clientIconID + '" class="clientIcon"><i class="type" style="--svg:url(' + userIconBase64 + ')"></i></div>';
+                    }
 				}
-				else if(deviceType != "0" || deviceVender == "") {
-					code += '<div id="' + clientIconID + '" class="clientIcon type' + deviceType + '"></div>';
+				else if(deviceType != "0" || deviceVendor == "") {
+					code += '<div id="' + clientIconID + '" class="clientIcon"><i class="type'+deviceType+'"></i></div>';
 				}
-				else if(deviceVender != "" ) {
-					var venderIconClassName = getVenderIconClassName(deviceVender.toLowerCase());
-					if(venderIconClassName != "" && !downsize_4m_support) {
-						code += '<div id="' + clientIconID + '" class="venderIcon ' + venderIconClassName + '"></div>';
+				else if(deviceVendor != "" ) {
+					var vendorIconClassName = getVendorIconClassName(deviceVendor.toLowerCase());
+					if(vendorIconClassName != "" && !downsize_4m_support) {
+						code += '<div id="' + clientIconID + '" class="clientIcon"><i class="vendor-icon '+ vendorIconClassName +'"></i></div>';
 					}
 					else {
-						code += '<div id="' + clientIconID + '" class="clientIcon type' + deviceType + '"></div>';
+						code += '<div id="' + clientIconID + '" class="clientIcon"><i class="type' + deviceType + '"></i></div>';
 					}
 				}
 			}
@@ -266,7 +275,7 @@ function addRow(obj, upper){
 
 function applyRule(){
 	if(lantiq_support && wave_ready != 1){
-		alert("Please wait a minute for wireless ready");
+		alert(`<#Wireless_ready#>`);
 		return false;
 	}
 	
@@ -289,8 +298,24 @@ function applyRule(){
 	
 	if(prevent_lock(tmp_value)){
 		document.form.wl_maclist_x.value = tmp_value;
-		showLoading();
-		document.form.submit();	
+		showLoading(3);
+
+		let nvramSetObj = {'action_mode': 'apply', 'rc_service': 'restart_wireless;'};
+		const wl_macmode = document.form.wl_macmode.value;
+		if (isSupport("noWiFi")) {
+			const wl_ifname_count = 4;
+			for (let i = 0; i < wl_ifname_count; i++) {
+				nvramSetObj[`wl${i}_maclist_x`] = tmp_value;
+				nvramSetObj[`wl${i}_macmode`] = wl_macmode;
+			}
+		}
+		else {
+			nvramSetObj[`wl_maclist_x`] = tmp_value;
+			nvramSetObj[`wl_macmode`] = wl_macmode;
+			nvramSetObj['wl_unit'] = document.form.wl_unit.value;
+			nvramSetObj['wl_subunit'] = document.form.wl_subunit.value;
+		}
+		httpApi.nvramSet(nvramSetObj);
 	}
 }
 
@@ -341,7 +366,7 @@ function pullWLMACList(obj){
 	var element = document.getElementById('WL_MAC_List_Block');
 	var isMenuopen = element.offsetWidth > 0 || element.offsetHeight > 0;
 	if(isMenuopen == 0){		
-		obj.src = "/images/arrow-top.gif"
+		obj.src = "/images/unfold_less.svg"
 		element.style.display = "block";
 		document.form.wl_maclist_x_0.focus();		
 	}
@@ -350,7 +375,7 @@ function pullWLMACList(obj){
 }
 
 function hideClients_Block(){
-	document.getElementById("pull_arrow").src = "/images/arrow-down.gif";
+	document.getElementById("pull_arrow").src = "/images/unfold_more.svg";
 	document.getElementById("WL_MAC_List_Block").style.display="none";
 }
 
@@ -459,8 +484,11 @@ function change_wl_macmode(){
 		<tbody>
 			<tr>
 				<td bgcolor="#4D595D" valign="top">
+				<div class="container">
+
 					<div>&nbsp;</div>
 					<div class="formfonttitle"><#menu5_1#> - <#menu5_1_4#></div>
+					<div class="formfonttitle_help"><i onclick="show_feature_desc(`<#HOWTOSETUP#>`)" class="icon_help"></i></div>
 					<div style="margin:10px 0 10px 5px;" class="splitLine"></div>
 					<div class="formfontdesc"><#DeviceSecurity11a_display1_sectiondesc#></div>
 					<div id="lantiq_ready" style="display:none;color:#FC0;margin-left:5px;font-size:13px;">Wireless is setting...</div>
@@ -517,7 +545,7 @@ function change_wl_macmode(){
 							<tr>
 								<td width="80%">
 									<input type="text" maxlength="17" class="input_macaddr_table" name="wl_maclist_x_0" onKeyPress="return validator.isHWAddr(this,event)" onClick="hideClients_Block();" autocorrect="off" autocapitalize="off" placeholder="ex: <% nvram_get("lan_hwaddr"); %>" style="width:255px;">
-									<img id="pull_arrow" height="14px;" src="/images/arrow-down.gif" style="position:absolute;" onclick="pullWLMACList(this);" title="<#select_wireless_MAC#>">
+									<img id="pull_arrow" class="pull_arrow_acl_business" height="14px;" src="/images/unfold_more.svg" style="position:absolute;" onclick="pullWLMACList(this);" title="<#select_wireless_MAC#>">
 									<div id="WL_MAC_List_Block" class="clientlist_dropdown" style="margin-left:167px;"></div>
 								</td>
 								<td width="20%">	
@@ -528,7 +556,12 @@ function change_wl_macmode(){
 						<div id="wl_maclist_x_Block"></div>			
 						<div id="submitBtn" class="apply_gen">
 							<input class="button_gen" onclick="applyRule()" type="button" value="<#CTL_apply#>"/>
-						</div>				
+						</div>
+
+
+					</div>	<!-- for .container  -->
+					<div class="popup_container popup_element_second"></div>
+
 				</td>
 			</tr>
 		</tbody>
@@ -536,7 +569,7 @@ function change_wl_macmode(){
 		</td>
 </form>
         </tr>
-      </table>				
+      </table>
 		<!--===================================Ending of Main Content===========================================-->		
 	</td>	
     <td width="10" align="center" valign="top">&nbsp;</td>

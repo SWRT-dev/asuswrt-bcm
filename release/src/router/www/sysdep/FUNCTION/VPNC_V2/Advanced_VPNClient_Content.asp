@@ -11,12 +11,12 @@
 <title><#Web_Title#> - <#vpnc_title#></title>
 <link rel="stylesheet" type="text/css" href="/index_style.css">
 <link rel="stylesheet" type="text/css" href="/form_style.css">
+<script type="text/javascript" src="/js/jquery.js"></script>
 <script type="text/javascript" src="/state.js"></script>
 <script type="text/javascript" src="/popup.js"></script>
 <script type="text/javascript" src="/validator.js"></script>
 <script type="text/javascript" src="/general.js"></script>
 <script type="text/javascript" src="/help.js"></script>
-<script type="text/javascript" src="/js/jquery.js"></script>
 <style>
 .rwd_iframe {
 	width: 100%;
@@ -40,8 +40,11 @@ function initial(){
 			}
 			return "";
 		};
-		var referer = getUrlParameter("referer").toLocaleLowerCase();
-		var vpnc_iframe_src = "/VPN/vpnc.html";
+		var referer = getUrlParameter("referer").toLowerCase();
+
+		var curTheme = (parent.webWrapper) ? "?current_theme=white" : "";
+		var vpnc_iframe_src = "/VPN/vpnc.html" + curTheme;
+
 		if(referer != "")
 			vpnc_iframe_src += "?referer=" + referer + "";
 		document.getElementById("vpnc_iframe").setAttribute("src", vpnc_iframe_src);

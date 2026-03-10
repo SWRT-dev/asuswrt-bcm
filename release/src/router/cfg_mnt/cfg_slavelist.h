@@ -13,7 +13,7 @@
 #define ALIAS_LEN			33
 #define IP_LEN				4
 #define MAC_LEN				6
-#define FWVER_LEN			33
+#define FWVER_LEN			65
 #define MODEL_NAME_LEN		33
 #define TERRITORY_CODE_LEN	33
 #define RE_LIST_JSON_FILE	"/tmp/relist.json"
@@ -30,6 +30,12 @@ enum reListAction {
 	RELIST_ADD,
 	RELIST_DEL,
 	RELIST_UPDATE
+};
+
+enum obReListStatus {
+	OB_RELIST_ERROR = -1,
+	OB_RELIST_NONEXIST = 0,
+	OB_RELIST_EXIST = 1,
 };
 
 typedef struct _CM_CLIENT_TABLE {
@@ -61,6 +67,11 @@ typedef struct _CM_CLIENT_TABLE {
 	unsigned char ap5g1_fh[CFG_CLIENT_NUM][MAC_LEN];
 	unsigned char ap6g_fh[CFG_CLIENT_NUM][MAC_LEN];
 	unsigned char ap6g1_fh[CFG_CLIENT_NUM][MAC_LEN];
+	unsigned char ap2g_iot_fh[CFG_CLIENT_NUM][MAC_LEN];
+	unsigned char ap5g_iot_fh[CFG_CLIENT_NUM][MAC_LEN];
+	unsigned char ap5g1_iot_fh[CFG_CLIENT_NUM][MAC_LEN];
+	unsigned char ap6g_iot_fh[CFG_CLIENT_NUM][MAC_LEN];
+	unsigned char ap6g1_iot_fh[CFG_CLIENT_NUM][MAC_LEN];
 	char ap2g_ssid[CFG_CLIENT_NUM][SSID_LEN];
 	char ap5g_ssid[CFG_CLIENT_NUM][SSID_LEN];
 	char ap5g1_ssid[CFG_CLIENT_NUM][SSID_LEN];
@@ -85,17 +96,18 @@ typedef struct _CM_CLIENT_TABLE {
 	int count;
     char lldp_wlc_stat[CFG_CLIENT_NUM][LLDP_STAT_LEN];
     char lldp_eth_stat[CFG_CLIENT_NUM][LLDP_STAT_LEN];
-#ifdef RTCONFIG_FRONTHAUL_DWB
+#if defined(RTCONFIG_FRONTHAUL_DWB) || defined(RTCONFIG_MLO)
 	int BackhualStatus[CFG_CLIENT_NUM]; // bits 0(update or not) 0(reserved) 0(reserved) 0(used or not)
 #endif
 #ifdef RTCONFIG_BHCOST_OPT
 	unsigned int joinTime[CFG_CLIENT_NUM];
 #endif
 	int cost[CFG_CLIENT_NUM];
+	int dwb_band[CFG_CLIENT_NUM];
 } CM_CLIENT_TABLE, *P_CM_CLIENT_TABLE;
 
 extern int cm_checkReListExist(char *Mac);
-extern int cm_checkReListUpdate(char *newReMac, char *sta2gMac, char *sta5gMac, char *sta6gMac);
+extern int cm_checkReListUpdate(char *newReMac, char *sta2gMac, char *sta5gMac, char *sta6gMac, int action);
 extern void cm_updateReList(char *newReMac, char *sta2gMac, char *sta5gMac, char *sta6gMac, int action);
 extern void cm_handleReListUpdate(unsigned char *decodeMsg);
 extern int cm_isReWifiUpstreamMac(char *staMac);
@@ -123,9 +135,17 @@ extern int cm_getObVifReByNewReMac(char *newReMac, char *obReMac, int macLen);
 extern void cm_updateObVifReList(char *newReMac, char *obReMac, int action);
 #endif
 extern void cm_reorganizeReList();
-#ifdef RTCONFIG_AMAS_CENTRAL_CONTROL
 extern void cm_updateReObList(char *reMac, int action, int commit);
-#endif
+extern int cm_checkReObListByMac(char *reMac);
+extern void cm_updateReInfo(CM_CLIENT_TABLE *clientTbl, char *reMac);
+extern int cm_deleteReInfo(char *reMac);
+extern void cm_updateReInfoToClientTbl(CM_CLIENT_TABLE *clientTbl);
+extern void cm_sortReLevel(json_object *reListObj, json_object *sortedReListObj);
+extern int cm_checkReKeyListExist(char *mac);
+extern void cm_updateReKeyList(char *mac, int action);
+extern int cm_checkJoinData(unsigned char *msg, int role);
+extern int cm_checkKeyData(unsigned char *msg, char *key);
+extern int cm_checkIdData(unsigned char *msg, int index);
 
 #endif /* __CFG_SLAVELIST_H__ */
 /* End of cfg_slavelist.h */

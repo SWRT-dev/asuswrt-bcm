@@ -1,4 +1,4 @@
-c: Copyright (C) 1998 - 2022, Daniel Stenberg, <daniel@haxx.se>, et al.
+c: Copyright (C) Daniel Stenberg, <daniel@haxx.se>, et al.
 SPDX-License-Identifier: curl
 Short: a
 Long: append
@@ -8,7 +8,9 @@ Category: ftp sftp
 See-also: range continue-at
 Example: --upload-file local --append ftp://example.com/
 Added: 4.8
+Multi: boolean
 ---
-When used in an upload, this makes curl append to the target file instead of
-overwriting it. If the remote file does not exist, it will be created. Note
-that this flag is ignored by some SFTP servers (including OpenSSH).
+When used in an upload, this option makes curl append to the target file
+instead of overwriting it. If the remote file does not exist, it is
+created. Note that this flag is ignored by some SFTP servers (including
+OpenSSH).

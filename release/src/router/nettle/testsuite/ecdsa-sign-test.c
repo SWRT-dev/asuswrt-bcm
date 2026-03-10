@@ -12,26 +12,36 @@ test_ecdsa (const struct ecc_curve *ecc,
 	    const char *r, const char *s)
 {
   struct dsa_signature ref;
+  mpz_t t;
   mpz_t z;
   mpz_t k;
   mp_limb_t *rp = xalloc_limbs (ecc->p.size);
   mp_limb_t *sp = xalloc_limbs (ecc->p.size);
+  mp_limb_t *zp = xalloc_limbs (ecc->p.size);
+  mp_limb_t *kp = xalloc_limbs (ecc->p.size);
   mp_limb_t *scratch = xalloc_limbs (ecc_ecdsa_sign_itch (ecc));
 
   dsa_signature_init (&ref);
 
   mpz_init_set_str (z, sz, 16);
   mpz_init_set_str (k, sk, 16);
+  mpz_limbs_copy (zp, z, ecc->p.size);
+  mpz_limbs_copy (kp, k, ecc->p.size);
 
-  ecc_ecdsa_sign (ecc, mpz_limbs_read_n (z, ecc->p.size),
-		  mpz_limbs_read_n (k, ecc->p.size),
+  mark_bytes_undefined (sizeof(mp_limb_t) * ecc->p.size, zp);
+  mark_bytes_undefined (sizeof(mp_limb_t) * ecc->p.size, kp);
+
+  ecc_ecdsa_sign (ecc, zp, kp,
 		  h->length, h->data, rp, sp, scratch);
+
+  mark_bytes_defined (sizeof(mp_limb_t) * ecc->p.size, rp);
+  mark_bytes_defined (sizeof(mp_limb_t) * ecc->p.size, sp);
 
   mpz_set_str (ref.r, r, 16);
   mpz_set_str (ref.s, s, 16);
 
-  if (mpz_limbs_cmp (ref.r, rp, ecc->p.size) != 0
-      || mpz_limbs_cmp (ref.s, sp, ecc->p.size) != 0)
+  if (mpz_cmp (ref.r, mpz_roinit_n (t, rp, ecc->p.size)) != 0
+      || mpz_cmp (ref.s, mpz_roinit_n (t, sp, ecc->p.size)) != 0)
     {
       fprintf (stderr, "_ecdsa_sign failed, bit_size = %u\n", ecc->p.bit_size);
       fprintf (stderr, "r     = ");
@@ -48,6 +58,8 @@ test_ecdsa (const struct ecc_curve *ecc,
 
   free (rp);
   free (sp);
+  free (zp);
+  free (kp);
   free (scratch);
 
   dsa_signature_clear (&ref);
@@ -58,6 +70,10 @@ test_ecdsa (const struct ecc_curve *ecc,
 void
 test_main (void)
 {
+#if NETTLE_USE_MINI_GMP || WITH_EXTRA_ASSERTS
+  if (test_side_channel)
+    SKIP();
+#endif
   /* Producing the signature for corresponding test in
      ecdsa-verify-test.c, with special u1 and u2. */
   test_ecdsa (&_nettle_secp_224r1,
@@ -70,6 +86,18 @@ test_main (void)
 	      "d16dc18032d268fd1a704fa6", /* r */
 	      "3a41e1423b1853e8aa89747b1f987364"
 	      "44705d6d6d8371ea1f578f2e"); /* s */
+
+  /* Produce a signature where verify operation results in a point duplication. */
+  test_ecdsa (&_nettle_secp_256r1,
+	      "1", /* Private key */
+	      "01010101010101010101010101010101"
+	      "01010101010101010101010101010101", /* nonce */
+	      SHEX("6ff03b949241ce1dadd43519e6960e0a"
+		   "85b41a69a05c328103aa2bce1594ca16"), /* hash */
+	      "6ff03b949241ce1dadd43519e6960e0a"
+	      "85b41a69a05c328103aa2bce1594ca16", /* r */
+	      "53f097727a0e0dc284a0daa0da0ab77d"
+	      "5792ae67ed075d1f8d5bda0f853fa093"); /* s */
 
   /* Test cases for the smaller groups, verified with a
      proof-of-concept implementation done for Yubico AB. */

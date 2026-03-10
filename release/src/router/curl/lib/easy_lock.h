@@ -1,3 +1,5 @@
+#ifndef HEADER_CURL_EASY_LOCK_H
+#define HEADER_CURL_EASY_LOCK_H
 /***************************************************************************
  *                                  _   _ ____  _
  *  Project                     ___| | | |  _ \| |
@@ -5,7 +7,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2022, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -29,13 +31,6 @@
 #if defined(_WIN32_WINNT) && _WIN32_WINNT >= 0x600
 
 #ifdef __MINGW32__
-#ifndef __MINGW64_VERSION_MAJOR
-#if (__MINGW32_MAJOR_VERSION < 5) || \
-    (__MINGW32_MAJOR_VERSION == 5 && __MINGW32_MINOR_VERSION == 0)
-/* mingw >= 5.0.1 defines SRWLOCK, and slightly different from MS define */
-typedef PVOID SRWLOCK, *PSRWLOCK;
-#endif
-#endif
 #ifndef SRWLOCK_INIT
 #define SRWLOCK_INIT NULL
 #endif
@@ -47,7 +42,7 @@ typedef PVOID SRWLOCK, *PSRWLOCK;
 #define curl_simple_lock_lock(m) AcquireSRWLockExclusive(m)
 #define curl_simple_lock_unlock(m) ReleaseSRWLockExclusive(m)
 
-#elif defined (HAVE_ATOMIC)
+#elif defined(HAVE_ATOMIC) && defined(HAVE_STDATOMIC_H)
 #include <stdatomic.h>
 #if defined(HAVE_SCHED_YIELD)
 #include <sched.h>
@@ -103,3 +98,5 @@ static inline void curl_simple_lock_unlock(curl_simple_lock *lock)
 #undef  GLOBAL_INIT_IS_THREADSAFE
 
 #endif
+
+#endif /* HEADER_CURL_EASY_LOCK_H */

@@ -47,7 +47,7 @@
 .server_list_container{
 	width: 50%;
 	height: auto;
-	min-width: 360px;
+	min-width: 300px;
 }
 .profile_setting_container{
 	width: 50%;
@@ -194,7 +194,7 @@
 }
 .switch{
 	border-radius: 50px;
-	width: 36px;
+	width: 40px;
 	height: 20px;
 	position: relative;
 	-webkit-transition: all 0.6s;
@@ -202,30 +202,30 @@
 	cursor: pointer;
 }
 .switch.off{
-	background: rgb(255 255 255 / 0.3);
+	background: rgba(127, 143, 164, 1);
 }
 .switch.on{
-	background: rgb(30, 162, 255);
+	background: #248DFF;
 }
 .switch:before{
 	border-radius: 50%;
 	display: block;
 	position: absolute;
 	content: "";
-	height: 16px;
-	width: 16px;
-	left: 2px;
-	top: 2px;
+	height: 12px;
+	width: 12px;
+	left: 4px;
+	top: 4px;
 	-webkit-transition: 0.6s;
 	transition: all 0.6s;
 	-webkit-transition-delay: 0.01s;
 	transition-delay: 0.01s;
-	background: #f7f7f7;
+	background: rgb(48 61 67);
 }
 .switch.on:before{
-	-webkit-transform: translateX(16px);
-	-ms-transform: translateX(16px);
-	transform: translateX(16px);
+	-webkit-transform: translateX(20px);
+	-ms-transform: translateX(20px);
+	transform: translateX(20px);
 }
 .checkbox, .checkbox.off{
 	width: 16px;
@@ -313,7 +313,7 @@
 }
 .profile_setting_item.nowrap .title{
 	flex: 0 0 30%;
-	max-width: 160px;
+	max-width: 30%;
 	margin-top: initial;
 }
 .profile_setting_item.acc_pwd .title, .profile_setting_item.acc_pwd .input_container .add_acc_bg{
@@ -378,6 +378,7 @@
 	border-radius: 24px;
 	height: 30px;
 	width: 30px;
+	min-width: 30px;
 	background-color: rgba(164, 183, 195, 0.2);
 	background-position: -105px -213px;
 	position: relative;
@@ -396,8 +397,11 @@
 	background-color: rgb(0, 252, 255);
 }
 .client_content_bg .client_info_bg .client_name{
-	flex-grow: 1;
 	margin-left: 20px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	width: 75%;
 }
 .client_content_bg .client_info_bg .client_subnet{
 	flex-grow: 1;
@@ -671,7 +675,7 @@
 	flex-wrap: nowrap;
 	align-items: center;
 	justify-content: space-between;
-	}
+}
 .input_container.ipsec_clients .textInput, .input_container.ipsec_clients .textView{
 	width: 45%;
 }
@@ -714,11 +718,13 @@
 .profile_setting_item.export_mode{
 	height: auto !important;
 	padding: 16px 0;
+	justify-content: center;
 }
 .export_mode_container .desc{
 	font-size: 16px;
 	color: rgb(255, 255, 255);
 	margin-bottom: 12px;
+	width: 100%;
 }
 .qr_code_container{
 	display: flex;
@@ -744,21 +750,23 @@
 	border: 1px solid #00DEDA;
 	border-radius: 6px;
 	margin-bottom: 12px;
-	padding: 6px;
-	padding-left: 18px;
 	font-weight: 500;
 	font-size: 12px;
+	width: 100%;
 }
 .notice_container .notice_title{
 	color: #00DEDA;
+	margin: 6px 18px;
 }
 .notice_container .notice_desc{
 	color: #FFFFFF;
 	line-height: 160%;
+	margin: 0px 18px 6px;
 }
 .export_btn_container{
 	display: flex;
 	justify-content: space-between;
+	width: 100%;
 }
 .export_btn_container > .desc{
 	flex-basis: 60%;
@@ -774,7 +782,8 @@
 	justify-content: center;
 }
 .export_btn_container > .export_btn:hover{
-	background-color: rgb(37 151 255);;
+	background-color: rgb(37 151 255);
+	color: #FFF;
 }
 .export_btn_container > .export_btn .text{
 	position: relative;
@@ -942,16 +951,23 @@
 	border: 1px solid rgba(23, 62, 103, 0.2);
 	box-shadow: 0px 2px 3px 0px rgb(20 50 80 / 5%);
 	border-radius: 5px;
-	line-height: 40px;
+	line-height: 100%;
 	color: rgb(255, 255, 255);
 	font-size: 14px;
 	font-weight: 600;
 	letter-spacing: 1.25px;
 	text-align: center;
 	cursor: pointer;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	word-break: break-all;
+	white-space: normal;
+	overflow-wrap: break-word;
 }
 .action_container .btn_container.valid_fail{
-	background: rgba(239, 246, 255, 0.6);
+	cursor: not-allowed;
+	background-color: rgba(239, 246, 255, 0.6);
 }
 .action_container.multi_btn{
 	justify-content: space-evenly;
@@ -1116,6 +1132,13 @@
 	right: 0;
 	align-items: center;
 	line-height: 180%;
+	-webkit-tap-highlight-color: transparent;
+	-webkit-touch-callout: none;
+	-webkit-user-select: none;
+	-khtml-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
 }
 .popup_container.popup_element_second{
 	z-index: 500;
@@ -1129,13 +1152,21 @@
 	width: 90%;
 }
 .popup_container .close_btn, .popup_container .del_btn{
-	position: absolute;
-	width: 24px;
-	height: 24px;
-	right: 0;
-	top: 0;
-	cursor: pointer;
-	background-position: -108px 0px;
+	position: absolute !important;
+	width: 24px !important;
+	height: 24px !important;
+	right: 0 !important;
+	top: 0 !important;
+	cursor: pointer !important;
+	background: initial !important;
+	border-radius: initial !important;
+	color: initial !important;
+	display: block !important;
+	align-items: initial !important;
+	justify-content: initial !important;
+	background-image: url(/images/New_ui/vpn_icon_all_collect.svg) !important;
+	background-repeat: no-repeat !important;
+	background-position: -108px 0px !important;
 }
 .popup_container .close_btn:hover{
 	background-position: -108px -55px;
@@ -1150,17 +1181,19 @@
 }
 .popup_container .popup_title_container{
 	position: relative;
-	margin-bottom: 20px;
+	margin-bottom: 12px;
 }
 .popup_title_container .title{
 	min-height: 40px;
 	height: auto;
 	color: hsl(0deg 0% 100%);
-	font-size: 32px;
+	font-size: 24px;
 	font-weight: 600;
 	letter-spacing: -0.2px;
-	line-height: 40px;
+	line-height: 120% !important;
 	padding-left: 12px;
+	max-width: 90%;
+	word-wrap: break-word;
 }
 .popup_container .popup_content_container{
 	position: relative;
@@ -1192,7 +1225,8 @@
 }
 .popup_container .btn_options_container,
 .popup_container .export_mode_container{
-	max-width: 495px !important;
+	max-width: initial !important;
+	margin-left: 0;
 }
 .feature_desc .title{
 	height: 16px;
@@ -1306,7 +1340,7 @@
 	font-size: 20px;
 	font-weight: 600;
 	letter-spacing: -0.18px;
-	height: auto;;
+	height: auto;
 }
 .function_desc_container{
 	display: flex;
@@ -1466,12 +1500,15 @@
 		margin: initial;
 	}
 	.server_list_container{
-		width: 100%;
+		width: 94% !important;
+		margin: auto;
 	}
 	.svr_item_container, .svr_item_container.selected{
 		background: #1E2A41;
 		box-shadow: 0px 4px 5px 0px rgb(0 0 0 / 14%), 0px 1px 10px 0px rgb(0 0 0 / 12%), 0px 2px 4px -1px rgb(0 0 0 / 20%);
 		border-color: rgb(54, 71, 82);
+		margin-right: initial;
+		width: initial;
 	}
 	.action_container{
 		justify-content: space-around;
@@ -1521,30 +1558,33 @@
 		max-width: 540px;
 	}
 	.profile_setting_item .title{
-		flex: 0 0 30%;
-		max-width: 160px;
+		flex: 0 0 40%;
+		max-width: 30%;
 		margin-top: initial;
 	}
 	.input_container{
-		flex: 0 0 70%;
-		max-width: 312px;
+		flex: 0 0 60%;
+		max-width: none;
 		margin: initial;
 	}
 	.profile_setting_item.nowrap.switch_item .input_container,
 	.profile_setting_item.help_item .input_container,
 	.profile_setting_item.acc_pwd .input_container,
 	.profile_setting_item.keys_item .input_container,
-	.profile_setting_item.two_btn_switch .btn_options_container,
+	.profile_setting_item.two_btn_switch .btn_options_container{
+		flex: 0 0 92%;
+		max-width: none;
+		margin-left: 4%;
+		min-width: initial;
+	}
 	.profile_setting_item .export_mode_container{
 		flex: 0 0 93%;
-		max-width: 470px;
-		margin-left: 4%;
 		min-width: initial;
 	}
 	.profile_setting_item.clientlist .client_content_bg,
 	.profile_setting_item.allowed_clientlist .client_content_bg{
-		flex: 0 0 93%;
-		max-width: 470px;
+		flex: 0 0 92%;
+		max-width: none;
 		margin-left: 4%;
 		min-width: initial;
 		position: relative;
@@ -1587,5 +1627,25 @@
 	}
 	.profile_setting_container{
 		width: 60%;
+	}
+}
+@media (max-width: 360px) {
+	.server_list_container,
+	.popup_container{
+		min-width: 320px;
+		width: 96% !important;
+	}
+	.popup_container{
+		width: 92% !important;
+	}
+	.profile_setting_item.nowrap.switch_item .input_container,
+	.profile_setting_item.help_item .input_container,
+	.profile_setting_item.acc_pwd .input_container,
+	.profile_setting_item.keys_item .input_container{
+		min-width: initial !important;
+	}
+	.profile_setting_item.clientlist .client_content_bg,
+	.profile_setting_item.allowed_clientlist .client_content_bg{
+		min-width: initial !important;
 	}
 }

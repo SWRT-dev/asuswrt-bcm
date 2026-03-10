@@ -1,6 +1,6 @@
 /* gcm-internal.h
 
-   Copyright (C) 2020 Niels Möller
+   Copyright (C) 2024 Niels Möller
 
    This file is part of GNU Nettle.
 
@@ -32,23 +32,30 @@
 #ifndef NETTLE_GCM_INTERNAL_H_INCLUDED
 #define NETTLE_GCM_INTERNAL_H_INCLUDED
 
-/* Functions available only in some configurations */
-void
-_nettle_gcm_init_key (union nettle_block16 *table);
+#include "gcm.h"
 
-void
-_nettle_gcm_hash(const struct gcm_key *key, union nettle_block16 *x,
-		 size_t length, const uint8_t *data);
+#if HAVE_NATIVE_gcm_aes_encrypt
 
-#if HAVE_NATIVE_fat_gcm_init_key
-void
-_nettle_gcm_init_key_c (union nettle_block16 *table);
-#endif
+/* Name mangling */
+#define _gcm_aes_encrypt _nettle_gcm_aes_encrypt
+#define _gcm_aes_decrypt _nettle_gcm_aes_decrypt
 
-#if HAVE_NATIVE_fat_gcm_hash
-void
-_nettle_gcm_hash_c (const struct gcm_key *key, union nettle_block16 *x,
-		    size_t length, const uint8_t *data);
-#endif
+/* To reduce the number of arguments (e.g., maximum of 6 register
+   arguments on x86_64), pass a pointer to gcm_key, which really is a
+   pointer to the first member of the appropriate gcm_aes*_ctx
+   struct. */
+size_t
+_gcm_aes_encrypt (struct gcm_key *key,
+		  unsigned rounds,
+		  size_t size, uint8_t *dst, const uint8_t *src);
+
+size_t
+_gcm_aes_decrypt (struct gcm_key *CTX,
+		  unsigned rounds,
+		  size_t size, uint8_t *dst, const uint8_t *src);
+#else /* !HAVE_NATIVE_gcm_aes_encrypt */
+#define _gcm_aes_encrypt(key, rounds, size, dst, src) 0
+#define _gcm_aes_decrypt(key, rounds, size, dst, src) 0
+#endif /* !HAVE_NATIVE_gcm_aes_encrypt */
 
 #endif /* NETTLE_GCM_INTERNAL_H_INCLUDED */

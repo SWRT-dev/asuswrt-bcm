@@ -34,7 +34,7 @@
 #include "eddsa.h"
 #include "eddsa-internal.h"
 
-#define COUNT 1000
+#define COUNT 500
 
 void test_main (void)
 {
@@ -42,6 +42,7 @@ void test_main (void)
   unsigned i;
 
   gmp_randinit_default (rands);
+  test_randomize(rands);
 
   for (i = 0; ecc_curves[i]; i++)
     {

@@ -13,13 +13,14 @@
 <link rel="stylesheet" type="text/css" href="form_style.css">
 <link rel="stylesheet" type="text/css" href="/device-map/device-map.css">
 <script type="text/javascript" src="/js/jquery.js"></script>
+<script type="text/javascript" src="/js/httpApi.js"></script>
 <script type="text/javascript" src="/state.js"></script>
 <script type="text/javascript" src="/general.js"></script>
 <script type="text/javascript" src="/help.js"></script>
 <script type="text/javascript" src="/popup.js"></script>
 <script type="text/javascript" src="/validator.js"></script>
-<script type="text/javascript" src="/js/httpApi.js"></script>
 <script type="text/javascript" src="/client_function.js"></script>
+<script type="text/javascript" src="/js/asus_clientlist.js"></script>
 <style>
 .FormTable th{
 	width:20%;
@@ -76,7 +77,7 @@ hook = httpApi.hookGet('wl_cap_2g', true);
 	for(let i=0; i< wl_info.wl_if_total; i++){
 		let shift = i;
 		
-		if(based_modelid == 'GT-AXE16000'){		// wireless介面順序變換調整
+		if(based_modelid == 'GT-AXE16000' || based_modelid == 'GT-BE98' || based_modelid == 'GT-BE98_PRO' || based_modelid == 'BQ16_PRO' || based_modelid == 'BQ16'){		// wireless介面順序變換調整
 			shift = (i + 3) % 4;		// wireless unit ['1', '2', '3', '0']			
 		}
 		
@@ -128,7 +129,7 @@ let spatialStreams = (function(){
 
 let phyRate = (function(){
 	let array = [];
-	if(based_modelid === 'GT-AXE16000'){
+	if(based_modelid === 'GT-AXE16000' || based_modelid === 'GT-BE98' || based_modelid == 'GT-BE98_PRO' || based_modelid == 'BQ16_PRO' || based_modelid == 'BQ16'){
 		array = [1148, 4804, 4804, 4804];
 	}
 
@@ -515,6 +516,9 @@ for(let i=0; i<smart_connect_array.length; i++){
 	if(smart_connect_array[i] !== ''){
 		if_name_array[i] = [smart_connect_array[i], temp[i]];
 	}
+	else{
+		if_name_array[i] = [];
+	}
 }
 function genIfSelectBand(){
 	let code = '<th style="width:12%"><#Interface_target#></th>';
@@ -688,7 +692,7 @@ function applyRule(){
 			continue;
 		}
 
-		if(based_modelid == 'GT-AXE16000'){		// wireless介面順序變換調整
+		if(based_modelid == 'GT-AXE16000' || based_modelid == 'GT-BE98' || based_modelid == 'GT-BE98_PRO' || based_modelid == 'BQ16_PRO' || based_modelid == 'BQ16'){		// wireless介面順序變換調整
 			shift = (i + 3) % 4;		// wireless unit ['1', '2', '3', '0']			
 		}
 		/*
@@ -896,6 +900,11 @@ function restoreRule(){
 	});
 }
 
+function showClientlistModal(){
+    const clientlistModal = new ClientlistModel();
+    clientlistModal.show();
+}
+
 </script>
 </head>
 
@@ -939,7 +948,7 @@ function restoreRule(){
 			<div class="formfonttitle"><#menu5_1#> - <#smart_connect_rule#></div>
 			<div style="margin:10px 0 10px 5px;" class="splitLine"></div>
 			<div class="formfontdesc"><#smart_connect_hint#></div>
-			<div style="text-align:right;margin-top:-36px;padding-bottom:3px;"><input type="button" class="button_gen" value="<#View_List#>" onClick="pop_clientlist_listview(true)"></div>
+			<div style="text-align:right;margin-top:-36px;padding-bottom:3px;"><input type="button" class="button_gen" value="<#View_List#>" onClick="showClientlistModal()"></div>
 			<div id="bsd_steering_div">
 				<table cellspacing="0" cellpadding="4" bordercolor="#6b8fa3" border="1" align="center" width="100%" class="FormTable" style="margin-top:10px">
 					<thead>

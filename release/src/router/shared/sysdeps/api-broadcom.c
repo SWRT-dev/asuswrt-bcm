@@ -15,13 +15,12 @@
 #include <wlutils.h>
 #include <linux_gpio.h>
 #include <etioctl.h>
-#include "utils.h"
 #include "shutils.h"
 #include "shared.h"
 #include <trxhdr.h>
 #include <bcmutils.h>
 #include <bcmendian.h>
-#if defined(GT10) && !defined(RTCONFIG_BCM_MFG)
+#if (defined(GT10) || defined(GT7)) && !defined(RTCONFIG_BCM_MFG)
 #include <signal.h>
 #endif
 
@@ -31,6 +30,14 @@
 #ifdef HND_ROUTER
 #include <board.h>
 #endif
+
+/* RTCONFIG_HND_ROUTER_BE_4916 */
+#if defined(WIFI7_SDK_20230426) || defined(WIFI7_SDK_20231126) || defined(WIFI7_SDK_20240103) || defined(WIFI7_SDK_20241007) || defined(WIFI7_SDK_20250122)
+#include <rtconfig.h>
+#else
+#include "boardparms.h"
+#endif
+
 
 typedef enum cmds_e {
         REGACCESS,
@@ -76,7 +83,7 @@ typedef struct {
 	char config3_val[3][20];
 }bcm_cled_rgb_led_s;
 
-#if defined(RPAX56) || defined(RPAX58) || defined(ET12) || defined(XT12)
+#if defined(RPAX56) || defined(RPAX58) || defined(RPBE58) || defined(RTBE58_GO) || defined(ET12) || defined(XT12) || defined(GTBE19000AI) || defined(GTBE96_AI)
 typedef struct {
 	char config0_path[40];
 	char config0_val[20];
@@ -100,7 +107,7 @@ typedef struct {
 int read_cled_value(bcm_cled_rgb_led_s *cur_led)
 {
 	int i = 0;
-#if defined(BCM4912) || defined(RPAX58) || defined(GT10)
+#if defined(BCM4912) || defined(RPAX58) || defined(RPBE58) || defined(RTBE58_GO) || defined(GT10) || defined(BCM6813) || defined(BCM6766)
 	FILE *fp = NULL;
 	char *ptr = NULL, *saveptr, *val;
 	char cmd[64], buf[128];
@@ -159,10 +166,10 @@ int read_cled_value(bcm_cled_rgb_led_s *cur_led)
 	return 0;
 }
 
-#if defined(RPAX56) || defined(RPAX58) || defined(ET12) || defined(XT12)
+#if defined(RPAX56) || defined(RPAX58) || defined(RPBE58) || defined(RTBE58_GO) || defined(ET12) || defined(XT12) || defined(GTBE19000AI) || defined(GTBE96_AI)
 int read_cled_value_x(bcm_cled_x_led_s *cur_led)
 {
-#if defined(BCM4912) || defined(RPAX58) || defined(GT10)
+#if defined(BCM4912) || defined(RPAX58) || defined(RPBE58) || defined(RTBE58_GO) || defined(GT10) || defined(BCM6813) || defined(BCM6766)
 	FILE *fp = NULL;
 	char *ptr, *saveptr, *val;
 	char cmd[64], buf[128];
@@ -222,7 +229,7 @@ int read_cled_value_x(bcm_cled_x_led_s *cur_led)
 
 int is_cled_value_correct(bcm_cled_rgb_led_s *cur_led, int rgb_id, char *val0, char *val1, char *val2, char *val3)
 {
-#if defined(BCM4912) || defined(RPAX58) || defined(GT10)
+#if defined(BCM4912) || defined(RPAX58) || defined(RPBE58) || defined(RTBE58_GO) || defined(GT10) || defined(BCM6813) || defined(BCM6766)
 	if(strtoul(cur_led->config0_val[rgb_id], NULL, 16) != strtoul(val0, NULL, 16) ||
 	   strtoul(cur_led->config1_val[rgb_id], NULL, 16) != strtoul(val1, NULL, 16) ||
 	   strtoul(cur_led->config2_val[rgb_id], NULL, 16) != strtoul(val2, NULL, 16) ||
@@ -246,7 +253,7 @@ int is_cled_value_correct(bcm_cled_rgb_led_s *cur_led, int rgb_id, char *val0, c
 
 int set_cled_value(bcm_cled_rgb_led_s *cur_led, int rgb_id, char *val0, char *val1, char *val2, char *val3)
 {
-#if defined(BCM4912) || defined(RPAX58) || defined(GT10)
+#if defined(BCM4912) || defined(RPAX58) || defined(RPBE58) || defined(RTBE58_GO) || defined(GT10) || defined(BCM6813) || defined(BCM6766)
 	eval("sw", cur_led->config0_path[rgb_id], val0, val1, val2, val3);
 #else
 	f_write_string(cur_led->config0_path[rgb_id], val0, 0, 0);
@@ -257,10 +264,10 @@ int set_cled_value(bcm_cled_rgb_led_s *cur_led, int rgb_id, char *val0, char *va
 	return 0;
 }
 
-#if defined(RPAX56) || defined(RPAX58) || defined(ET12) || defined(XT12)
+#if defined(RPAX56) || defined(RPAX58) || defined(RPBE58) || defined(RTBE58_GO) || defined(ET12) || defined(XT12) || defined(GTBE19000AI) || defined(GTBE96_AI)
 int is_cled_value_correct_x(bcm_cled_x_led_s *cur_led, char *val0, char *val1, char *val2, char *val3)
 {
-#if defined(BCM4912) || defined(RPAX58) || defined(GT10)
+#if defined(BCM4912) || defined(RPAX58) || defined(RPBE58) || defined(RTBE58_GO) || defined(GT10) || defined(GTBE19000AI) || defined(GTBE96_AI) || defined(BCM6766)
 	if(strtoul(cur_led->config0_val, NULL, 16) != strtoul(val0, NULL, 16) ||
 	   strtoul(cur_led->config1_val, NULL, 16) != strtoul(val1, NULL, 16) ||
 	   strtoul(cur_led->config2_val, NULL, 16) != strtoul(val2, NULL, 16) ||
@@ -284,8 +291,8 @@ int is_cled_value_correct_x(bcm_cled_x_led_s *cur_led, char *val0, char *val1, c
 
 int set_cled_value_x(bcm_cled_x_led_s *cur_led, char *val0, char *val1, char *val2, char *val3)
 {
-#if defined(BCM4912) || defined(RPAX58) || defined(GT10)
-#ifdef RPAX58
+#if defined(BCM4912) || defined(RPAX58) || defined(RPBE58) || defined(RTBE58_GO) || defined(GT10) || defined(BCM6813) || defined(BCM6766)
+#if defined(RPAX58) || defined(RPBE58) || defined(RTBE58_GO)
 	strlcpy(cur_led->config0_val, val0, sizeof(cur_led->config0_val));
 	strlcpy(cur_led->config1_val, val1, sizeof(cur_led->config0_val));
 	strlcpy(cur_led->config2_val, val2, sizeof(cur_led->config0_val));
@@ -340,9 +347,9 @@ int _bcm_cled_ctrl(int rgb, int cled_mode)
 	};
 #else
 	char LED_BEHAVIOR_WRITE[BCM_CLED_MODE_END][20] =
-			{"0x0003e000", "0x0003d000", "0x0003c400", "0x0003e018", "0x0003e002", "0x0003e038"};
+			{"0x0003e000", "0x0003d000", "0x0003c400", "0x0003e018", "0x0003e002", "0x0003e038", "0x0003c0c0", "0x0"};
 	char LED_BEHAVIOR_READ[BCM_CLED_MODE_END][20] =
-			{"3e000\n", "3d000\n", "3c400\n", "3e018\n", "3e002\n", "3e038\n"};
+			{"3e000\n", "3d000\n", "3c400\n", "3e018\n", "3e002\n", "3e038\n", "3c0c0\n", "0\n"};
 #endif
 	bcm_cled_rgb_led_s led[CLED_RGB_NUM] = {
 #if defined(RTAX82_XD6) || defined(XD6_V2)
@@ -381,6 +388,24 @@ int _bcm_cled_ctrl(int rgb, int cled_mode)
                 "0x00000000", "0x00000000", "0x00000000",
                 "0xff80307c", "0xff80309c", "0xff8030dc",
                 "0x00000000", "0x00000000", "0x00000000"}
+#elif defined(RPBE58)
+                {"0xff803050", "0xff803060", "0xff803160",
+                "0x00000000", "0x00000000", "0x00000000",
+                "0xff803054", "0xff803064", "0xff803164",
+                "0x00000000", "0x00000000", "0x00000000",
+                "0xff803058", "0xff803068", "0xff803168",
+                "0x00000000", "0x00000000", "0x00000000",
+                "0xff80305c", "0xff80306c", "0xff80316c",
+                "0x00000000", "0x00000000", "0x00000000"}
+#elif defined(RTBE58_GO)
+                {"0xff803180", "0xff803190", "0xff803200",
+                "0x00000000", "0x00000000", "0x00000000",
+                "0xff803184", "0xff803194", "0xff803204",
+                "0x00000000", "0x00000000", "0x00000000",
+                "0xff803188", "0xff803198", "0xff803208",
+                "0x00000000", "0x00000000", "0x00000000",
+                "0xff80318c", "0xff80319c", "0xff80320c",
+                "0x00000000", "0x00000000", "0x00000000"}
 #elif defined(GT10)
 		{{"0xff803020", "0xff803030", "0xff803040"},
 		 {"0x00000000", "0x00000000", "0x00000000"},
@@ -389,6 +414,15 @@ int _bcm_cled_ctrl(int rgb, int cled_mode)
 		 {"0xff803028", "0xff803038", "0xff803048"},
 		 {"0x00000000", "0x00000000", "0x00000000"},
 		 {"0xff80302c", "0xff80303c", "0xff80304c"},
+		 {"0x00000000", "0x00000000", "0x00000000"}}
+#elif defined(GT7)
+		{{"0xff803150", "0xff803170", "0xff803060"},
+		 {"0x00000000", "0x00000000", "0x00000000"},
+		 {"0xff803154", "0xff803174", "0xff803064"},
+		 {"0x00000000", "0x00000000", "0x00000000"},
+		 {"0xff803158", "0xff803178", "0xff803068"},
+		 {"0x00000000", "0x00000000", "0x00000000"},
+		 {"0xff80315c", "0xff80317c", "0xff80306c"},
 		 {"0x00000000", "0x00000000", "0x00000000"}}
 #elif defined(ET12) || defined(XT12)
 		// LED1 [cled21 - cled17 - cled16]
@@ -417,6 +451,20 @@ int _bcm_cled_ctrl(int rgb, int cled_mode)
 		 {"0xff803048", "0xff803108", "0xff803118"},
 		 {"0x00000000", "0x00000000", "0x00000000"},
 		 {"0xff80304c", "0xff80310c", "0xff80311c"},
+		 {"0x00000000", "0x00000000", "0x00000000"}}
+#elif defined(BQ16) || defined(BQ16_PRO)
+		{{"0xff803140", "0xff803150", "0xff803160"},
+		 {"0x00000000", "0x00000000", "0x00000000"},
+		 {"0xff803144", "0xff803154", "0xff803164"},
+		 {"0x00000000", "0x00000000", "0x00000000"},
+		 {"0xff803148", "0xff803158", "0xff803168"},
+		 {"0x00000000", "0x00000000", "0x00000000"}}
+#elif defined(BT10)
+		{{"0xff803150", "0xff803170", "0xff803060"},
+		 {"0x00000000", "0x00000000", "0x00000000"},
+		 {"0xff803154", "0xff803174", "0xff803064"},
+		 {"0x00000000", "0x00000000", "0x00000000"},
+		 {"0xff803158", "0xff803178", "0xff803068"},
 		 {"0x00000000", "0x00000000", "0x00000000"}}
 #else
 		{"/proc/bcm_cled/led14/config0", "/proc/bcm_cled/led15/config0", "/proc/bcm_cled/led16/config0",
@@ -490,6 +538,54 @@ int _bcm_cled_ctrl(int rgb, int cled_mode)
                 "0x00000000"
 	};
 	read_cled_value_x(&led_p);
+#elif defined(RPBE58)
+	bcm_cled_x_led_s led_w = {
+                "0xff803020",
+                "0x00000000",
+                "0xff803024",
+                "0x00000000",
+                "0xff803028",
+                "0x00000000",
+                "0xff80302c",
+                "0x00000000"
+	};
+	read_cled_value_x(&led_w);
+
+	bcm_cled_x_led_s led_y = {
+                "0xff803070",
+                "0x00000000",
+                "0xff803074",
+                "0x00000000",
+                "0xff803078",
+                "0x00000000",
+                "0xff80307c",
+                "0x00000000"
+	};
+	read_cled_value_x(&led_y);
+
+	bcm_cled_x_led_s led_p = {
+                "0xff803120",
+                "0x00000000",
+                "0xff803124",
+                "0x00000000",
+                "0xff803128",
+                "0x00000000",
+                "0xff80312c",
+                "0x00000000"
+	};
+	read_cled_value_x(&led_p);
+#elif defined(RTBE58_GO)
+	bcm_cled_x_led_s led_w = {
+                "0xff803050",
+                "0x00000000",
+                "0xff803054",
+                "0x00000000",
+                "0xff803058",
+                "0x00000000",
+                "0xff80305c",
+                "0x00000000"
+	};
+	read_cled_value_x(&led_w);
 #endif
 
 	for(index = 0; index < CLED_RGB_NUM; index++) {
@@ -510,7 +606,7 @@ int _bcm_cled_ctrl(int rgb, int cled_mode)
 				strtoul(led[index].config0_val[BCM_CLED_GREEN], NULL, 16) != 0 ||
 				strtoul(led[index].config0_val[BCM_CLED_BLUE], NULL, 16) != 0) {
 				set_cled_value(&led[index], BCM_CLED_RED, LED_BEHAVIOR_WRITE[cled_mode], "0x00a34a32", "0x00000c34", "0x00000000");
-#if defined(BCM4912) || defined(RPAX58) || defined(GT10)
+#if defined(BCM4912) || defined(RPAX58) || defined(RPBE58) || defined(RTBE58_GO) || defined(GT10) || defined(BCM6813) || defined(BCM6766)
 				eval("sw", led[index].config0_path[BCM_CLED_GREEN], "0x00000000");
 				eval("sw", led[index].config0_path[BCM_CLED_BLUE], "0x00000000");
 #else
@@ -519,27 +615,29 @@ int _bcm_cled_ctrl(int rgb, int cled_mode)
 #endif
 				state_changed = 1;
 			}
-#if defined(RPAX56) || defined(RPAX58)
+#if defined(RPAX56) || defined(RPAX58) || defined(RPBE58) || defined(RTBE58_GO)
 			if(is_cled_value_correct_x(&led_w, "0\n", "a34a32\n", "c34\n", "0\n") == 0){
 				set_cled_value_x(&led_w, "0x00000000", "0x00a34a32", "0x00000c34", "0x00000000");
-#ifdef RPAX58
+#if defined(RPAX58) || defined(RPBE58) || defined(RTBE58_GO)
 				eval("sw", led_w.config0_path, "0x00000000");
 #endif
 				state_changed = 1;
 			}
+#if defined(RPAX56) || defined(RPAX58) || defined(RPBE58)
 			if(is_cled_value_correct_x(&led_y, "0\n", "a34a32\n", "c34\n", "0\n") == 0){
 				set_cled_value_x(&led_y, "0x00000000", "0x00a34a32", "0x00000c34", "0x00000000");
-#ifdef RPAX58
+#if defined(RPAX58) || defined(RPBE58)
 				eval("sw", led_y.config0_path, "0x00000000");
 #endif
 				state_changed = 1;
 			}
-#ifdef RPAX58
+#if defined(RPAX58) || defined(RPBE58)
 			if(is_cled_value_correct_x(&led_p, "0\n", "a34a32\n", "c34\n", "0\n") == 0){
 				set_cled_value_x(&led_p, "0x00000000", "0x00a34a32", "0x00000c34", "0x00000000");
 				eval("sw", led_p.config0_path, "0x00000000");
 				state_changed = 1;
 			}
+#endif
 #endif
 #endif
 		}else if(rgb == BCM_CLED_GREEN){
@@ -548,7 +646,7 @@ int _bcm_cled_ctrl(int rgb, int cled_mode)
 				strtoul(led[index].config0_val[BCM_CLED_BLUE], NULL, 16) != 0){
 
 				set_cled_value(&led[index], BCM_CLED_GREEN, LED_BEHAVIOR_WRITE[cled_mode], "0x00a34a32", "0x00000c34", "0x00000000");
-#if defined(BCM4912) || defined(RPAX58) || defined(GT10)
+#if defined(BCM4912) || defined(RPAX58) || defined(RPBE58) || defined(RTBE58_GO) || defined(GT10) || defined(BCM6813) || defined(BCM6766)
 				eval("sw", led[index].config0_path[BCM_CLED_RED], "0x00000000");
 				eval("sw", led[index].config0_path[BCM_CLED_BLUE], "0x00000000");
 #else
@@ -557,27 +655,29 @@ int _bcm_cled_ctrl(int rgb, int cled_mode)
 #endif
 				state_changed = 1;
 			}
-#if defined(RPAX56) || defined(RPAX58)
+#if defined(RPAX56) || defined(RPAX58) || defined(RPBE58) || defined(RTBE58_GO)
 			if(is_cled_value_correct_x(&led_w, "0\n", "a34a32\n", "c34\n", "0\n") == 0){
 				set_cled_value_x(&led_w, "0x00000000", "0x00a34a32", "0x00000c34", "0x00000000");
-#ifdef RPAX58
+#if defined(RPAX58) || defined(RPBE58) || defined(RTBE58_GO)
 				eval("sw", led_w.config0_path, "0x00000000");
 #endif
 				state_changed = 1;
 			}
+#if defined(RPAX56) || defined(RPAX58) || defined(RPBE58)
 			if(is_cled_value_correct_x(&led_y, "0\n", "a34a32\n", "c34\n", "0\n") == 0){
 				set_cled_value_x(&led_y, "0x00000000", "0x00a34a32", "0x00000c34", "0x00000000");
-#ifdef RPAX58
+#if defined(RPAX58) || defined(RPBE58)
 				eval("sw", led_y.config0_path, "0x00000000");
 #endif
 				state_changed = 1;
 			}
-#ifdef RPAX58
+#if defined(RPAX58) || defined(RPBE58)
 			if(is_cled_value_correct_x(&led_p, "0\n", "a34a32\n", "c34\n", "0\n") == 0){
 				set_cled_value_x(&led_p, "0x00000000", "0x00a34a32", "0x00000c34", "0x00000000");
 				eval("sw", led_p.config0_path, "0x00000000");
 				state_changed = 1;
 			}
+#endif
 #endif
 #endif
 		}else if(rgb == BCM_CLED_BLUE){
@@ -586,7 +686,7 @@ int _bcm_cled_ctrl(int rgb, int cled_mode)
 				strtoul(led[index].config0_val[BCM_CLED_GREEN], NULL, 16) != 0){
 
 				set_cled_value(&led[index], BCM_CLED_BLUE, LED_BEHAVIOR_WRITE[cled_mode], "0x00a34a32", "0x00000c34", "0x00000000");
-#if defined(BCM4912) || defined(RPAX58) || defined(GT10)
+#if defined(BCM4912) || defined(RPAX58) || defined(RPBE58) || defined(RTBE58_GO) || defined(GT10) || defined(BCM6813) || defined(BCM6766)
 				eval("sw", led[index].config0_path[BCM_CLED_RED], "0x00000000");
 				eval("sw", led[index].config0_path[BCM_CLED_GREEN], "0x00000000");
 #else
@@ -595,22 +695,23 @@ int _bcm_cled_ctrl(int rgb, int cled_mode)
 #endif
 				state_changed = 1;
 			}
-#if defined(RPAX56) || defined(RPAX58)
+#if defined(RPAX56) || defined(RPAX58) || defined(RPBE58) || defined(RTBE58_GO)
 			if(is_cled_value_correct_x(&led_w, "0\n", "a34a32\n", "c34\n", "0\n") == 0){
 				set_cled_value_x(&led_w, "0x00000000", "0x00a34a32", "0x00000c34", "0x00000000");
-#ifdef RPAX58
+#if defined(RPAX58) || defined(RPBE58) || defined(RTBE58_GO)
 				eval("sw", led_w.config0_path, "0x00000000");
 #endif
 				state_changed = 1;
 			}
+#if defined(RPAX56) || defined(RPAX58) || defined(RPBE58)
 			if(is_cled_value_correct_x(&led_y, "0\n", "a34a32\n", "c34\n", "0\n") == 0){
 				set_cled_value_x(&led_y, "0x00000000", "0x00a34a32", "0x00000c34", "0x00000000");
-#ifdef RPAX58
+#if defined(RPAX58) || defined(RPBE58)
 				eval("sw", led_y.config0_path, "0x00000000");
 #endif
 				state_changed = 1;
 			}
-#ifdef RPAX58
+#if defined(RPAX58) || defined(RPBE58)
 			if(is_cled_value_correct_x(&led_p, "0\n", "a34a32\n", "c34\n", "0\n") == 0){
 				set_cled_value_x(&led_p, "0x00000000", "0x00a34a32", "0x00000c34", "0x00000000");
 				eval("sw", led_p.config0_path, "0x00000000");
@@ -618,34 +719,37 @@ int _bcm_cled_ctrl(int rgb, int cled_mode)
 			}
 #endif
 #endif
+#endif
 		}else if(rgb == BCM_CLED_YELLOW){
-#if defined(RPAX56) || defined(RPAX58)
+#if defined(RPAX56) || defined(RPAX58) || defined(RPBE58) || defined(RTBE58_GO)
 			if(is_cled_value_correct_x(&led_w, "0\n", "a34a32\n", "c34\n", "0\n") == 0){
 				set_cled_value_x(&led_w, "0x00000000", "0x00a34a32", "0x00000c34", "0x00000000");
-#ifdef RPAX58
+#if defined(RPAX58) || defined(RPBE58) || defined(RTBE58_GO)
 				eval("sw", led_w.config0_path, "0x00000000");
 #endif
 				state_changed = 1;
 			}
-#ifdef RPAX58
+#if defined(RPAX58) || defined(RPBE58)
 			if(is_cled_value_correct_x(&led_p, "0\n", "a34a32\n", "c34\n", "0\n") == 0){
 				set_cled_value_x(&led_p, "0x00000000", "0x00a34a32", "0x00000c34", "0x00000000");
 				eval("sw", led_p.config0_path, "0x00000000");
 				state_changed = 1;
 			}
 #endif
+#if defined(RPAX56) || defined(RPAX58) || defined(RPBE58)
 			if(is_cled_value_correct_x(&led_y, LED_BEHAVIOR_READ[cled_mode], "a34a32\n", "c34\n", "0\n") == 0){
 				set_cled_value_x(&led_y, LED_BEHAVIOR_READ[cled_mode], "0x00a34a32", "0x00000c34", "0x00000000");
-#ifdef RPAX58
+#if defined(RPAX58) || defined(RPBE58)
 				eval("sw", led_y.config0_path, led_y.config0_val);
 #endif
 				state_changed = 1;
 			}
+#endif
 			if(is_cled_value_correct(&led[index], BCM_CLED_RED, LED_BEHAVIOR_READ[cled_mode], "a34a32\n", "c34\n", "0\n") == 0){
 				set_cled_value(&led[index], BCM_CLED_RED, LED_BEHAVIOR_READ[cled_mode], "0x00a34a32", "0x00000c34", "0x00000000");
 				state_changed = 1;
 			}
-#ifdef RPAX58
+#if defined(RPAX58) || defined(RPBE58) || defined(RTBE58_GO)
 			int _cled_mode = cled_mode;
 			if(_cled_mode == BCM_CLED_STEADY_NOBLINK)
 				_cled_mode = BCM_CLED_STEADY_NOBLINK_DIM;
@@ -674,7 +778,7 @@ int _bcm_cled_ctrl(int rgb, int cled_mode)
 				state_changed = 1;
 			}
 		}else if(rgb == BCM_CLED_WHITE){
-#if defined(RPAX56) || defined(RPAX58)
+#if defined(RPAX56) || defined(RPAX58) || defined(RPBE58) || defined(RTBE58_GO)
 			if(is_cled_value_correct(&led[index], BCM_CLED_RED, "0\n", "a34a32\n", "c34\n", "0\n") == 0){
 				set_cled_value(&led[index], BCM_CLED_RED, "0x00000000", "0x00a34a32", "0x00000c34", "0x00000000");
 				state_changed = 1;
@@ -689,24 +793,26 @@ int _bcm_cled_ctrl(int rgb, int cled_mode)
 			}
 			if(is_cled_value_correct_x(&led_w, LED_BEHAVIOR_READ[cled_mode], "a34a32\n", "c34\n", "0\n") == 0){
 				set_cled_value_x(&led_w, LED_BEHAVIOR_WRITE[cled_mode], "0x00a34a32", "0x00000c34", "0x00000000");
-#ifdef RPAX58
+#if defined(RPAX58) || defined(RPBE58) || defined(RTBE58_GO)
 				eval("sw", led_w.config0_path, led_w.config0_val);
 #endif
 				state_changed = 1;
 			}
+#if defined(RPAX56) || defined(RPAX58) || defined(RPBE58)
 			if(is_cled_value_correct_x(&led_y, "0\n", "a34a32\n", "c34\n", "0\n") == 0){
 				set_cled_value_x(&led_y, "0\n", "0x00a34a32", "0x00000c34", "0x00000000");
-#ifdef RPAX58
+#if defined(RPAX58) || defined(RPBE58)
 				eval("sw", led_y.config0_path, "0");
 #endif
 				state_changed = 1;
 			}
-#ifdef RPAX58
+#if defined(RPAX58) || defined(RPBE58)
 			if(is_cled_value_correct_x(&led_p, "0\n", "a34a32\n", "c34\n", "0\n") == 0){
 				set_cled_value_x(&led_p, "0\n", "0x00a34a32", "0x00000c34", "0x00000000");
 				eval("sw", led_p.config0_path, "0");
 				state_changed = 1;
 			}
+#endif
 #endif
 #else
 			if(is_cled_value_correct(&led[index], BCM_CLED_RED, LED_BEHAVIOR_READ[cled_mode], "a34a32\n", "c34\n", "0\n") == 0){
@@ -722,7 +828,7 @@ int _bcm_cled_ctrl(int rgb, int cled_mode)
 				state_changed = 1;
 			}
 #endif
-#ifdef RPAX58
+#if defined(RPAX58) || defined(RPBE58)
 		}else if(rgb == BCM_CLED_PURPLE){
 			if(is_cled_value_correct(&led[index], BCM_CLED_RED, LED_BEHAVIOR_READ[cled_mode], "a34a32\n", "c34\n", "0\n") == 0){
 				set_cled_value(&led[index], BCM_CLED_RED, LED_BEHAVIOR_WRITE[cled_mode], "0x00a34a32", "0x00000c34", "0x00000000");
@@ -765,20 +871,22 @@ int _bcm_cled_ctrl(int rgb, int cled_mode)
 				set_cled_value(&led[index], BCM_CLED_BLUE, "0x00000000", "0x00a34a32", "0x00000c34", "0x00000000");
 				state_changed = 1;
 			}
-#if defined(RPAX56) || defined(RPAX58)
+#if defined(RPAX56) || defined(RPAX58) || defined(RPBE58)|| defined(RTBE58_GO)
 			if(is_cled_value_correct_x(&led_w, "0\n", "a34a32\n", "c34\n", "0\n") == 0){
 				set_cled_value_x(&led_w, "0x00000000", "0x00a34a32", "0x00000c34", "0x00000000");
 				state_changed = 1;
 			}
+#if defined(RPAX56) || defined(RPAX58) || defined(RPBE58)
 			if(is_cled_value_correct_x(&led_y, "0\n", "a34a32\n", "c34\n", "0\n") == 0){
 				set_cled_value_x(&led_y, "0x00000000", "0x00a34a32", "0x00000c34", "0x00000000");
 				state_changed = 1;
 			}
-#ifdef RPAX58
+#if defined(RPAX58) || defined(RPBE58)
 			if(is_cled_value_correct_x(&led_p, "0\n", "a34a32\n", "c34\n", "0\n") == 0){
 				set_cled_value_x(&led_p, "0x00000000", "0x00a34a32", "0x00000c34", "0x00000000");
 				state_changed = 1;
 			}
+#endif
 #endif
 #endif
 		}
@@ -793,13 +901,13 @@ int bcm_cled_ctrl(int rgb, int cled_mode)
 {
 	int state_changed = 0;
 
-#if defined(RPAX56) || defined(RPAX58)
+#if defined(RPAX56) || defined(RPAX58) || defined(RPBE58) || defined(RTBE58_GO)
 	if(ate_brcm_factory_mode() || nvram_match("stop_watchdog", "1")) {
 		//_dprintf("skip bcmcledctrl under atemode\n");
 		return 0;
 	}
 #endif
-#if defined(GT10) && !defined(RTCONFIG_BCM_MFG)
+#if (defined(GT10) || defined(GT7)) && !defined(RTCONFIG_BCM_MFG)
 	if (nvram_get_int("asus_mfg") != 1) {
 		led_control(LED_WHITE, (rgb == BCM_CLED_WHITE) ? LED_ON : LED_OFF);
 		if (rgb == BCM_CLED_WHITE)
@@ -812,7 +920,7 @@ int bcm_cled_ctrl(int rgb, int cled_mode)
 #endif
 	}
 #endif
-#if defined(RTAX95Q) || defined(XT8PRO) || defined(BM68) || defined(XT8_V2) || defined(RTAXE95Q) || defined(ET8PRO) || defined(ET8_V2) || defined(RTAX56_XD4) || defined(XD4PRO) || defined(CTAX56_XD4) || defined(RTAX82_XD6) || defined(RTAX82_XD6S) || defined(RPAX56) || defined(RPAX58) || defined(ET12) || defined(XT12) || defined(GT10) || defined(XD6_V2) || defined(XC5) || defined(EBA63)
+#if defined(RTAX95Q) || defined(XT8PRO) || defined(BT12) || defined(BT10) || defined(BQ16) || defined(BQ16_PRO) || defined(BM68) || defined(XT8_V2) || defined(RTAXE95Q) || defined(ET8PRO) || defined(ET8_V2) || defined(RTAX56_XD4) || defined(XD4PRO) || defined(CTAX56_XD4) || defined(RTAX82_XD6) || defined(RTAX82_XD6S) || defined(RPAX56) || defined(RPAX58) || defined(RPBE58) || defined(RTBE58_GO) || defined(ET12) || defined(XT12) || defined(GT10) || defined(XD6_V2) || defined(XC5) || defined(EBA63) || defined(GT7)
 	state_changed = _bcm_cled_ctrl(rgb, cled_mode);
 	if(state_changed == 1){
 #if defined(RTAX82_XD6) || defined(XD6_V2)
@@ -823,10 +931,22 @@ int bcm_cled_ctrl(int rgb, int cled_mode)
                 f_write_string("/proc/bcm_cled/activate", "0x000058a0", 0, 0);
 #elif defined(RPAX58)
 		eval("sw", "0xff80301c", "0x0000d8a0");
+#elif defined(RPBE58)
+		eval("sw", "0xff80301c", "0x00110039");
+#elif defined(RTBE58_GO)
+		eval("sw", "0xff80301c", "0x40c00008");
 #elif defined(ET12) || defined(XT12)
 		eval("sw", "0xff80301c", "0x0027E006");
 #elif defined(GT10)
 		eval("sw", "0xff80301c", "0x00000007");
+#elif defined(GT7)
+		eval("sw", "0xff80301c", "0x00280010");
+#elif defined(BQ16) || defined(BQ16_PRO)
+		/* LED18, 19, 20, 24 */
+		eval("sw", "0xff80301c", "0x011c0000");
+#elif defined(BT10)
+		/* LED 19, 21, 4 */
+		eval("sw", "0xff80301c", "0x00280010");
 #else
 		f_write_string("/proc/bcm_cled/activate", "0x0001C000", 0, 0);
 #endif
@@ -846,22 +966,31 @@ int rc_bcm_cled_ctrl(int rgb, int cled_mode)
                 f_write_string("/proc/bcm_cled/activate", "0x000058a0", 0, 0);
 #elif defined(RPAX58)
 		eval("sw", "0xff80301c", "0x0000d8a0");
+#elif defined(RPBE58)
+		eval("sw", "0xff80301c", "0x00110039");
+#elif defined(RTBE58_GO)
+		eval("sw", "0xff80301c", "0x40c00008");
 #endif
 	}
 	return state_changed;
 }
 
+#if defined(ET12) || defined(XT12) || defined(GTBE19000AI) || defined(GTBE96_AI)
 #if defined(ET12) || defined(XT12)
 #define CLED_W_NUM 3
+#endif
+#if defined(GTBE19000AI) || defined(GTBE96_AI)
+#define CLED_W_NUM 1
+#endif
 int bcm_cled_ctrl_single_white(int rgb, int cled_mode) {
 
 	int index = 0;
 	int state_changed = 0;
 	char LED_BEHAVIOR_WRITE[BCM_CLED_MODE_END][20] =
-			{"0x0003e000", "0x0003d000", "0x0003e018", "0x0003e002", "0x0003e038", ""};
+			{"0x0003e000", "0x0003d000", "0x0003e018", "0x0003e002", "0x0003e038", "0x0", ""};
 	char LED_BEHAVIOR_READ[BCM_CLED_MODE_END][20] =
-			{"3e000\n", "3d000\n", "3e018\n", "3e002\n", "3e038\n", ""};
-
+			{"3e000\n", "3d000\n", "3e018\n", "3e002\n", "3e038\n", "0\n", ""};
+#if defined(ET12) || defined(XT12)
 	bcm_cled_x_led_s led_w[CLED_W_NUM] = {
 		// SIDE1 - cled23
 		{"0xff803190", "0x00000000",
@@ -879,7 +1008,17 @@ int bcm_cled_ctrl_single_white(int rgb, int cled_mode) {
 		 "0xff803380", "0x00000000",
 		 "0xff803380", "0x00000000"}
 	};
+#endif
+#if defined(GTBE19000AI) || defined(GTBE96_AI)
+	bcm_cled_x_led_s led_w[CLED_W_NUM] = {
+		// PWR LED - cled24
+		{"0xff8031a0", "0x00000000",
+		 "0xff8033a4", "0x00000000",
+		 "0xff8033a8", "0x00000000",
+		 "0xff8033ac", "0x00000000"}
+	};
 
+#endif
 	if(rgb != BCM_CLED_WHITE && rgb != BCM_CLED_OFF)
 		_dprintf("unsupport color [%d] for single while cled !!!\n", rgb);
 
@@ -901,10 +1040,129 @@ int bcm_cled_ctrl_single_white(int rgb, int cled_mode) {
 
 	if(state_changed)
 #if defined(RPAX58)
-		 eval("sw", "0xff80301c", "0x0000d8a0");
+		eval("sw", "0xff80301c", "0x0000d8a0");
+#elif defined(RPBE58)
+		eval("sw", "0xff80301c", "0x00110039");
+#elif defined(RTBE58_GO)
+		eval("sw", "0xff80301c", "0x40c00008");
+#elif defined(GTBE19000AI) || defined(GTBE96_AI)
+		eval("sw", "0xff80301c", "0x01000000");
 #else
-		 eval("sw", "0xff80301c", "0x01C00000");
+		eval("sw", "0xff80301c", "0x01C00000");
 #endif
+}
+#endif
+
+#if defined(GTBE19000AI) || defined(GTBE96_AI)
+#define CLED_SINGLE_NUM 1
+int bcm_cled_ctrl_single_led(int rgb, int cled_mode, int brightness) {
+
+	int index = 0;
+	int state_changed = 0;
+	int bright_ctrl = -1;
+	uint32_t val;
+	char val_READ[20], val_WRITE[20];
+	char LED_BEHAVIOR_WRITE[BCM_CLED_MODE_END][20] =
+			{"0x0003e000", "0x0003d000", "0x0003e018", "0x0003e002", "0x0003e038", "0x0", ""};
+	char LED_BEHAVIOR_READ[BCM_CLED_MODE_END][20] =
+			{"3e000\n", "3d000\n", "3e018\n", "3e002\n", "3e038\n", "0\n", ""};
+
+	bcm_cled_rgb_led_s led[CLED_SINGLE_NUM] = {
+		// LED1 [cled9 - cled0 - cled11]
+                {{"0xff8030b0", "0xff803020", "0xff8030d0"},
+                 {"0x00000000", "0x00000000", "0x00000000"},
+                 {"0xff8030b4", "0xff803024", "0xff8030d4"},
+                 {"0x00000000", "0x00000000", "0x00000000"},
+                 {"0xff8030b8", "0xff803028", "0xff8030d8"},
+                 {"0x00000000", "0x00000000", "0x00000000"},
+                 {"0xff8030bc", "0xff80302c", "0xff8030dc"},
+                 {"0x00000000", "0x00000000", "0x00000000"}},
+	};
+
+	if(brightness < 0 || brightness > 128)
+		bright_ctrl = 128 * 64;
+	else
+		bright_ctrl = brightness * 64;
+	val = (strtoul(LED_BEHAVIOR_READ[cled_mode], NULL, 16) & 0xffffc03f) | bright_ctrl;
+	snprintf(val_WRITE, sizeof(val_WRITE), "0x%08x", val);
+	snprintf(val_READ, sizeof(val_READ), "%x\n", val);
+
+
+	for(index = 0; index < CLED_W_NUM; index++) {
+		read_cled_value(&led[index]);
+
+		if(rgb == BCM_CLED_RED ){
+			if(is_cled_value_correct(&led[index], BCM_CLED_RED, val_READ, "a34a32\n", "c34\n", "0\n") == 0 ||
+				strtoul(led[index].config0_val[BCM_CLED_GREEN], NULL, 16) != 0 ||
+				strtoul(led[index].config0_val[BCM_CLED_BLUE], NULL, 16) != 0) {
+					set_cled_value(&led[index], BCM_CLED_RED, val_WRITE, "0x00a34a32", "0x00000c34", "0x00000000");
+					eval("sw", led[index].config0_path[BCM_CLED_GREEN], "0x00000000");
+					eval("sw", led[index].config0_path[BCM_CLED_BLUE], "0x00000000");
+					state_changed = 1;
+			}
+		}
+		else if(rgb == BCM_CLED_GREEN){
+			if(is_cled_value_correct(&led[index], BCM_CLED_GREEN, val_READ, "a34a32\n", "c34\n", "0\n") == 0 ||
+				strtoul(led[index].config0_val[BCM_CLED_RED], NULL, 16) != 0 ||
+				strtoul(led[index].config0_val[BCM_CLED_BLUE], NULL, 16) != 0){
+					set_cled_value(&led[index], BCM_CLED_GREEN, val_WRITE, "0x00a34a32", "0x00000c34", "0x00000000");
+					eval("sw", led[index].config0_path[BCM_CLED_RED], "0x00000000");
+					eval("sw", led[index].config0_path[BCM_CLED_BLUE], "0x00000000");
+					state_changed = 1;
+			}
+		}else if(rgb == BCM_CLED_BLUE){
+	               if(is_cled_value_correct(&led[index], BCM_CLED_BLUE, val_READ, "a34a32\n", "c34\n", "0\n") == 0 ||
+				strtoul(led[index].config0_val[BCM_CLED_RED], NULL, 16) != 0 ||
+				strtoul(led[index].config0_val[BCM_CLED_GREEN], NULL, 16) != 0){
+					set_cled_value(&led[index], BCM_CLED_BLUE, val_WRITE, "0x00a34a32", "0x00000c34", "0x00000000");
+					eval("sw", led[index].config0_path[BCM_CLED_RED], "0x00000000");
+					eval("sw", led[index].config0_path[BCM_CLED_GREEN], "0x00000000");
+					state_changed = 1;
+			}
+		}else if(rgb == BCM_CLED_YELLOW){
+			if(is_cled_value_correct(&led[index], BCM_CLED_RED, val_READ, "a34a32\n", "c34\n", "0\n") == 0){
+				set_cled_value(&led[index], BCM_CLED_RED, val_WRITE, "0x00a34a32", "0x00000c34", "0x00000000");
+				state_changed = 1;
+			}
+			if(is_cled_value_correct(&led[index], BCM_CLED_GREEN, val_READ, "a34a32\n", "c34\n", "0\n") == 0){
+				set_cled_value(&led[index], BCM_CLED_GREEN, val_WRITE, "0x00a34a32", "0x00000c34", "0x00000000");
+				state_changed = 1;
+			}
+			if(is_cled_value_correct(&led[index], BCM_CLED_BLUE, "0\n", "a34a32\n", "c34\n", "0\n") == 0){
+				set_cled_value(&led[index], BCM_CLED_BLUE, "0x00000000", "0x00a34a32", "0x00000c34", "0x00000000");
+				state_changed = 1;
+			}
+		}else if(rgb == BCM_CLED_WHITE){
+			if(is_cled_value_correct(&led[index], BCM_CLED_RED, val_READ, "a34a32\n", "c34\n", "0\n") == 0){
+				set_cled_value(&led[index], BCM_CLED_RED, val_WRITE, "0x00a34a32", "0x00000c34", "0x00000000");
+				state_changed = 1;
+			}
+			if(is_cled_value_correct(&led[index], BCM_CLED_GREEN, val_READ, "a34a32\n", "c34\n", "0\n") == 0){
+				set_cled_value(&led[index], BCM_CLED_GREEN, val_WRITE, "0x00a34a32", "0x00000c34", "0x00000000");
+				state_changed = 1;
+			}
+			if(is_cled_value_correct(&led[index], BCM_CLED_BLUE, val_READ, "a34a32\n", "c34\n", "0\n") == 0){
+				set_cled_value(&led[index], BCM_CLED_BLUE, val_WRITE, "0x00a34a32", "0x00000c34", "0x00000000");
+				state_changed = 1;
+			}
+		}else if(rgb == BCM_CLED_OFF){
+			if(is_cled_value_correct(&led[index], BCM_CLED_RED, "0\n", "a34a32\n", "c34\n", "0\n") == 0){
+				set_cled_value(&led[index], BCM_CLED_RED, "0x00000000", "0x00a34a32", "0x00000c34", "0x00000000");
+				state_changed = 1;
+			}
+			if(is_cled_value_correct(&led[index], BCM_CLED_GREEN, "0\n", "a34a32\n", "c34\n", "0\n") == 0){
+				set_cled_value(&led[index], BCM_CLED_GREEN, "0x00000000", "0x00a34a32", "0x00000c34", "0x00000000");
+				state_changed = 1;
+			}
+			if(is_cled_value_correct(&led[index], BCM_CLED_BLUE, "0\n", "a34a32\n", "c34\n", "0\n") == 0){
+				set_cled_value(&led[index], BCM_CLED_BLUE, "0x00000000", "0x00a34a32", "0x00000c34", "0x00000000");
+				state_changed = 1;
+			}
+		}
+	}
+
+	if(state_changed)
+		eval("sw", "0xff80301c", "0x00000a01");
 }
 #endif
 #endif
@@ -912,6 +1170,34 @@ int bcm_cled_ctrl_single_white(int rgb, int cled_mode) {
 uint32_t get_gpio(uint32_t gpio)
 {
 #ifdef HND_ROUTER
+#if defined(RTCONFIG_HND_ROUTER_BE_4916)
+	char btnpath[48];
+	char cmd[64];
+	int btnfd;
+	char value[2];
+	sprintf(btnpath, "/sys/class/gpio/gpio%d/value", gpio);
+	if (!f_exists(btnpath)) {
+		snprintf(cmd, sizeof(cmd), "echo %d > /sys/class/gpio/export", gpio);
+		system(cmd);
+        }
+
+	if (f_exists(btnpath)) {
+		btnfd = open(btnpath, O_RDONLY);
+		if (btnfd <=0 ) {
+			printf("\nopen %s failed !\n", btnpath);
+			return -1;
+		}
+		if(1 == read(btnfd, &value, 1) && (atoi(value) == 0 || atoi(value) == 1))
+		{
+			close(btnfd);
+			return atoi(value);
+		}
+		else{
+			close(btnfd);
+			return -1;
+		}
+	}
+#else
 	int board_fp = open("/dev/brcmboard", O_RDWR);
 	int active_low = _gpio_active_low(gpio & 0xff);
 	BOARD_IOCTL_PARMS ioctl_parms = {0};
@@ -940,6 +1226,7 @@ uint32_t get_gpio(uint32_t gpio)
 
 	close(board_fp);
 	return ioctl_parms.offset;
+#endif
 #else
 	uint32_t bit_value;
 	uint32_t bit_mask;
@@ -951,7 +1238,7 @@ uint32_t get_gpio(uint32_t gpio)
 #endif
 }
 
-#if defined(HND_ROUTER) || defined(RTCONFIG_HND_ROUTER_AX_6710) || defined(BCM6750) || defined(BCM6756) || defined(GTAX6000) || defined(RTAX86U_PRO) || defined(BCM6855) || defined(RTAX88U_PRO)
+#if defined(HND_ROUTER) || defined(RTCONFIG_HND_ROUTER_AX_6710) || defined(BCM6750) || defined(BCM6756) || defined(GTAX6000) || defined(RTAX86U_PRO) || defined(BCM6855) || defined(RTAX88U_PRO) || defined(RTCONFIG_HND_ROUTER_BE_4916)
 uint32_t get_gpio2(uint32_t gpio)
 {
 	int board_fp = open("/dev/brcmboard", O_RDWR);
@@ -987,7 +1274,7 @@ int get_gpio_rc(uint32_t gpio)
 		return get_gpio2(gpio);
 
 	//_dprintf("# btn gpio mask 0x1f\n");
-#if defined(RTCONFIG_HND_ROUTER_AX_6756)
+#if defined(RTCONFIG_HND_ROUTER_AX_6756) || defined(RTCONFIG_HND_ROUTER_BE_4916)
         sprintf(ledpath, "/sys/class/leds/sw_parallel_led_%d/brightness", gpio);
         if (!f_exists(ledpath))
                 sprintf(ledpath, "/sys/class/leds/led_gpio_%d/brightness", gpio);
@@ -1029,7 +1316,7 @@ uint32_t set_gpio_rc(uint32_t gpio, uint32_t value)
 		return -1;
 */
 	}
-#if defined(RTCONFIG_HND_ROUTER_AX_6756)
+#if defined(RTCONFIG_HND_ROUTER_AX_6756) || defined(RTCONFIG_HND_ROUTER_BE_4916)
 	sprintf(ledpath, "/sys/class/leds/sw_parallel_led_%d/brightness", gpio);
 	if (!f_exists(ledpath))
 		sprintf(ledpath, "/sys/class/leds/led_gpio_%d/brightness", gpio);
@@ -1100,7 +1387,7 @@ uint32_t set_gpio(uint32_t gpio, uint32_t value)
 #ifndef LEGACY_LED
 	char ledpath[48];
 	int active_low = _gpio_active_low(gpio & 0xff);
-	int ledfd;
+	int ret = -1;
 
 //	_dprintf("%s, gpio:%d, Value:%d\n", __func__, gpio, value);
 	if (active_low < 0) {
@@ -1108,7 +1395,7 @@ uint32_t set_gpio(uint32_t gpio, uint32_t value)
 		dump_ledtable();
 		return -1;
 	}
-#if defined(RTCONFIG_HND_ROUTER_AX_6756)
+#if defined(RTCONFIG_HND_ROUTER_AX_6756) || defined(RTCONFIG_HND_ROUTER_BE_4916)
 	sprintf(ledpath, "/sys/class/leds/sw_parallel_led_%d/brightness", gpio);
 	if (!f_exists(ledpath))
 		sprintf(ledpath, "/sys/class/leds/led_gpio_%d/brightness", gpio);
@@ -1119,20 +1406,22 @@ uint32_t set_gpio(uint32_t gpio, uint32_t value)
 #else
 	sprintf(ledpath, "/sys/class/leds/%d/brightness", gpio);
 #endif
-	ledfd = open(ledpath, O_RDWR);
-	if (ledfd <=0 ) {
+	if (!f_exists(ledpath)) {
 		printf("\nopen ledpath <%s> failed !\n", ledpath);
 		return -1;
 	}
 #if defined(RTAX95Q) || defined(RTAXE95Q)
-	write(ledfd, active_low?(!value?"0":"255"):(!value?"255":"0"), active_low?(!value?1:3):(!value?3:1));
-#elif defined(RTCONFIG_HND_ROUTER_AX_6756) && !defined(BCM4912)
-	write(ledfd, active_low?(!value?"255":"0"):(!value?"255":"0"), active_low?(!value?3:1):(!value?3:1));
+	ret = f_write_string(ledpath, active_low?(!value?"0":"255"):(!value?"255":"0"), 0, 0);
+#elif defined(BQ16) || defined(BQ16_PRO)
+	ret = f_write_string(ledpath, active_low?(!value?"0":"255"):(!value?"0":"255"), 0, 0);
+#elif defined(RTCONFIG_HND_ROUTER_AX_6756) && !defined(BCM4912) && !defined(RTCONFIG_HND_ROUTER_BE_4916)
+	ret = f_write_string(ledpath, active_low?(!value?"255":"0"):(!value?"255":"0"), 0, 0);
+#elif defined(RTCONFIG_HND_GPIO)
+	ret = f_write_string(ledpath, value ? "255" : "0", 0, 0);
 #else
-	write(ledfd, active_low?(!value?"255":"0"):(!value?"0":"255"), active_low?(!value?3:1):(!value?1:3));
+	ret = f_write_string(ledpath, active_low?(!value?"255":"0"):(!value?"0":"255"), 0, 0);
 #endif
-	close(ledfd);
-	return 0;
+	return ret;
 #else
 	int board_fp = open("/dev/brcmboard", O_RDWR);
 	int active_low = _gpio_active_low(gpio & 0xff);
@@ -1366,7 +1655,7 @@ int phy_ioctl(int fd, int write, int phy, int reg, uint32_t *value)
 	struct ifreq ifr;
 	int ret, vecarg[2];
 
-#if defined(RTAX95Q) || defined(XT8PRO) || defined(BM68) || defined(XT8_V2) || defined(RTAXE95Q) || defined(ET8PRO) || defined(ET8_V2) || defined(RTAX56U) || defined(RTAX56_XD4) || defined(XD4PRO) || defined(CTAX56_XD4) || defined(RTAX55) || defined(RTAX1800) || defined(RTAX58U_V2) || defined(RTAX3000N) || defined(BR63) || defined(XC5) || defined(EBA63)
+#if defined(RTAX95Q) || defined(XT8PRO) || defined(BT12) || defined(BT10) || defined(BQ16) || defined(BQ16_PRO) || defined(BM68) || defined(XT8_V2) || defined(RTAXE95Q) || defined(ET8PRO) || defined(ET8_V2) || defined(RTAX56U) || defined(RTAX56_XD4) || defined(XD4PRO) || defined(CTAX56_XD4) || defined(RTAX55) || defined(RTAX1800) || defined(RTAX58U_V2) || defined(RTAX3000N) || defined(BR63) || defined(XC5) || defined(EBA63) || defined(RTBE58U) || defined(TUFBE3600) || defined(RTBE58U_V2) || defined(TUFBE3600_V2) || defined(RTBE55) || defined(RTBE92U) || defined(RTBE95U) || defined(RTBE82U) || defined(TUFBE82) || defined(RTBE82M) || defined(RTBE58U_PRO) || defined(RTBE58_GO) || defined(GSBE18000) || defined(GSBE12000) || defined(GS7_PRO) || defined(GT7)
 	return 1;
 #endif
 	memset(&ifr, 0, sizeof(ifr));
@@ -1606,7 +1895,7 @@ uint32_t set_ex53134_ctrl(uint32_t portmask, int ctrl)
 	int i=0;
 	uint32_t value;
 
-#if defined(RTAX95Q) || defined(XT8PRO) || defined(BM68) || defined(XT8_V2) || defined(RTAXE95Q) || defined(ET8PRO) || defined(ET8_V2) || defined(RTAX56U) || defined(RTAX56_XD4) || defined(XD4PRO) || defined(CTAX56_XD4) || defined(TUFAX3000_V2) || defined(RTAXE7800) || defined(XC5) || defined(EBA63)
+#if defined(RTAX95Q) || defined(XT8PRO) || defined(BT12) || defined(BT10) || defined(BQ16) || defined(BQ16_PRO) || defined(BM68) || defined(XT8_V2) || defined(RTAXE95Q) || defined(ET8PRO) || defined(ET8_V2) || defined(RTAX56U) || defined(RTAX56_XD4) || defined(XD4PRO) || defined(CTAX56_XD4) || defined(TUFAX3000_V2) || defined(RTAXE7800) || defined(XC5) || defined(EBA63)
 	return 1;
 #endif
 	for (i = 0; i < 4 && (portmask >> i); i++) {
@@ -1628,7 +1917,7 @@ uint32_t set_phy_ctrl(uint32_t portmask, int ctrl)
 	int fd, i, model;
 	uint32_t value;
 
-#if defined(RTAX95Q) || defined(XT8PRO) || defined(BM68) || defined(XT8_V2) || defined(RTAXE95Q) || defined(ET8PRO) || defined(ET8_V2) || defined(RTAX56U) || defined(RTAX56_XD4) || defined(XD4PRO) || defined(CTAX56_XD4) || defined(RTAX55) || defined(RTAX1800) || defined(RTAX58U_V2) || defined(RTAX3000N) || defined(BR63) || defined(XC5) || defined(EBA63)
+#if defined(RTAX95Q) || defined(XT8PRO) || defined(BT12) || defined(BT10) || defined(BQ16) || defined(BQ16_PRO) || defined(BM68) || defined(XT8_V2) || defined(RTAXE95Q) || defined(ET8PRO) || defined(ET8_V2) || defined(RTAX56U) || defined(RTAX56_XD4) || defined(XD4PRO) || defined(CTAX56_XD4) || defined(RTAX55) || defined(RTAX1800) || defined(RTAX58U_V2) || defined(RTAX3000N) || defined(BR63) || defined(XC5) || defined(EBA63) || defined(RTBE58U) || defined(TUFBE3600) || defined(RTBE58U_V2) || defined(TUFBE3600_V2) || defined(RTBE55) || defined(RTBE92U) || defined(RTBE95U) || defined(RTBE82U) || defined(TUFBE82) || defined(RTBE82M) || defined(RTBE58U_PRO) || defined(RTBE58_GO) || defined(GSBE18000) || defined(GSBE12000) || defined(GS7_PRO) || defined(GT7)
 	return 1;
 #endif
 	model = get_switch();
@@ -2114,7 +2403,7 @@ int get_bonding_port_status(int port)
 #ifdef RTCONFIG_BONDING_WAN
 	int port_status = 0;
 	int ret;
-#if !defined(RTCONFIG_HND_ROUTER_AX_6710) && !defined(RTCONFIG_HND_ROUTER_AX_675X) && !defined(RTCONFIG_HND_ROUTER_AX_6756)
+#if !defined(RTCONFIG_HND_ROUTER_AX_6710) && !defined(RTCONFIG_HND_ROUTER_AX_675X) && !defined(RTCONFIG_HND_ROUTER_AX_6756) && !defined(RTCONFIG_HND_ROUTER_BE_4916)
 	int extra_p0=0;
 	unsigned int regv=0, pmdv=0, regv2=0, pmdv2=0;
 #endif
@@ -2133,6 +2422,7 @@ int get_bonding_port_status(int port)
 #elif defined(EBG19)
 	int lan_ports=8;
 	char *ports[lan_ports+1];
+	//ports[0]="eth0"; ports[1]="eth4"; ports[2]="eth3"; ports[3]="eth2"; ports[4]="eth1", ports[5]="ethsw_0", ports[6]="ethsw_1", ports[7]="ethsw_2", ports[8]="ethsw_3";
 	ports[0]="eth0"; ports[1]="eth4"; ports[2]="eth3"; ports[3]="eth2"; ports[4]="eth1", ports[5]="eth5", ports[6]="eth5", ports[7]="eth5", ports[8]="eth5";
 #elif defined(RTAX92U)
 	int lan_ports=4;
@@ -2149,6 +2439,26 @@ int get_bonding_port_status(int port)
 	int ports[lan_ports+1];
 	/* 7 3 2 1 0	W0 L1 L2 L3 L4 */
 	ports[0]=0; ports[1]=1; ports[2]=2; ports[3]=3;
+#elif defined(BT12)
+	int lan_ports=4;
+	int ports[lan_ports+1];
+	/* 7 3 2 1 0	W0 L1 L2 L3 L4 */
+	ports[0]=0; ports[1]=1; ports[2]=2; ports[3]=3; ports[4]=4;
+#elif defined(BT10)
+	int lan_ports=2;
+	int ports[lan_ports+1];
+	/* 7 3 2 	W0 L1 L2 */
+	ports[0]=0; ports[1]=1; ports[2]=2;
+#elif defined(BQ16)
+	int lan_ports=4;
+	int ports[lan_ports+1];
+	/* 7 3 2 1 0	W0 L1 L2 L3 L4 */
+	ports[0]=0; ports[1]=1; ports[2]=2; ports[3]=3; ports[4]=4;
+#elif defined(BQ16_PRO)
+	int lan_ports=4;
+	int ports[lan_ports+1];
+	/* 7 3 2 1 0	W0 L1 L2 L3 L4 */
+	ports[0]=0; ports[1]=1; ports[2]=2; ports[3]=3; ports[4]=4;
 #elif defined(RTAX56_XD4)
 	int lan_ports=1;
 
@@ -2217,8 +2527,8 @@ int get_bonding_port_status(int port)
 #elif defined(RTAX9000)
         int lan_ports=5;
         int ports[lan_ports+1];
-        /* 0 5 1 2 3 4 W0 L1 L2 L3 L4 L5 */
-        ports[0]=0; ports[1]=1; ports[2]=2; ports[3]=3; ports[4]=4; ports[5]=5;
+        /* 0 5 1 2 3 4 W0 L5 L1 L2 L3 L4 */
+        ports[0]=0; ports[1]=5; ports[2]=1; ports[3]=2; ports[4]=3; ports[5]=4;
 #elif defined(RTAX82_XD6) || defined(XD6_V2)
 	int lan_ports=3;
 	int ports[lan_ports+1];
@@ -2249,12 +2559,22 @@ int get_bonding_port_status(int port)
 #elif defined(GTAX6000) || defined(RTAX86U_PRO) || defined(RTAX88U_PRO)
 	/* 6 5 3 2 1 0  L5(2.5G) W0 L1 L2 L3 L4 */
 	char *ports[6] = { "eth5", "eth0", "eth1", "eth2", "eth3", "eth4" };
-#elif defined(GTAX11000_PRO)
+#elif defined(GTAX11000_PRO) || defined(RTBE96U)
 	char *ports[6] = { "eth0", "eth1", "eth2", "eth3", "eth4", "eth5" };
 #elif defined(GTAXE16000)
 	char *ports[7] = { "eth0", "eth1", "eth2", "eth3", "eth4", "eth5", "eth6" };
 #elif defined(ET12) || defined(XT12)
 	char *ports[4] = { "eth0", "eth1", "eth2", "eth3" };
+#elif defined(GTBE98) || defined(GTBE98_PRO) || defined(GTBE96) || defined(GTBE19000)
+	char *ports[7] = { "eth0", "eth1", "eth1", "eth1", "eth1", "eth2", "eth3" };
+	int ports_int[7] = { -1, 1, 2, 3, 4, -1, -1 };
+#elif defined(GTBE19000AI) || defined(GTBE96_AI)
+	char *ports[7] = { "eth0", "eth1", "eth2", "eth3", "eth4", "eth5", "eth6" };
+	int ports_int[7] = { -1, 1, 2, 3, 4, -1, -1 }; // reserved for rtl8372 HW
+#elif defined(RTBE88U)
+	char *ports[10] = { "eth0", "eth1", "eth2", "eth3", "eth4", "eth5", "eth6", "eth7", "eth8", "eth9" };
+#elif defined(RTBE86U)
+        char *ports[5] = { "eth0", "eth1", "eth2", "eth3", "eth4" };
 #elif defined(RTCONFIG_EXTPHY_BCM84880) /* GT-AX11000 */
 	int lan_ports=5;
 	int ports[lan_ports+1];
@@ -2265,7 +2585,7 @@ int get_bonding_port_status(int port)
 	ports[5]=7;
 #endif
 
-#if !defined(RTCONFIG_HND_ROUTER_AX_6710) && !defined(RTCONFIG_HND_ROUTER_AX_675X) && !defined(RTCONFIG_HND_ROUTER_AX_6756)
+#if !defined(RTCONFIG_HND_ROUTER_AX_6710) && !defined(RTCONFIG_HND_ROUTER_AX_675X) && !defined(RTCONFIG_HND_ROUTER_AX_6756) && !defined(RTCONFIG_HND_ROUTER_BE_4916)
 #ifdef RTCONFIG_EXT_BCM53134
 	extra_p0 = S_53134;
 #endif
@@ -2280,15 +2600,31 @@ int get_bonding_port_status(int port)
 #endif
 
 	/* WAN port */
-#if defined(RTCONFIG_HND_ROUTER_AX_6710) || defined(BCM4912) || defined(BCM6756) || defined(BCM4906_504)
+#if defined(RTCONFIG_HND_ROUTER_AX_6710) || defined(BCM4912) || defined(BCM6756) || defined(RTCONFIG_HND_ROUTER_BE_4916) || defined(BCM4906_504)
+#if defined(GTBE98) || defined(GTBE98_PRO) || defined(GTBE96) || defined(GTBE19000)
+	if ((!strcmp(ports[port], "eth1") && rtk_get_phy_status(ports_int[port])) || hnd_get_phy_status(ports[port]))
+#elif defined(GTBE19000AI) || defined(GTBE96_AI)
+	if ((is_rtl8372_boardid() && ((ports_int[port] != -1) && rtk_get_phy_status(ports_int[port]))) || 
+	    hnd_get_phy_status(ports[port]))
+#else
 	if (hnd_get_phy_status(ports[port]))				/*Disconnect*/
+#endif
 #elif defined(RTCONFIG_HND_ROUTER_AX_675X) || defined(BCM6855) || defined(BCM6750)
 	if (hnd_get_phy_status(ports[port]))				/*Disconnect*/
 #else
 	if (hnd_get_phy_status(ports[port], extra_p0, regv, pmdv))	/*Disconnect*/
 #endif
 	{
-#if defined(RTCONFIG_HND_ROUTER_AX_6710) || defined(BCM4912) || defined(BCM6756) || defined(BCM4906_504)
+#if defined(RTCONFIG_HND_ROUTER_AX_6710) || defined(BCM4912) || defined(BCM6756) || defined(RTCONFIG_HND_ROUTER_BE_4916) || defined(BCM4906_504)
+#if defined(GTBE98) || defined(GTBE98_PRO) || defined(GTBE96) || defined(GTBE19000)
+		if (!strcmp(ports[port], "eth1"))
+			port_status = rtk_get_phy_speed(ports_int[port]);
+		else
+#elif defined(GTBE19000AI) || defined(GTBE96_AI)
+		if (is_rtl8372_boardid() && ports_int[port] != -1)
+			port_status = rtk_get_phy_speed(ports_int[port]);
+		else
+#endif
 		port_status = hnd_get_phy_speed(ports[port]);
 #elif defined(RTCONFIG_HND_ROUTER_AX_675X) || defined(BCM6855) || defined(BCM6750)
 		port_status = hnd_get_phy_speed(ports[port]);
@@ -2311,6 +2647,37 @@ int get_bonding_port_status(int port)
 #endif // RTCONFIG_HND_ROUTER_AX
 #endif // RTCONFIG_BONDING
 
+int wl_cap_mbss(int unit)
+{
+	char nv_interface[NVRAM_MAX_PARAM_LEN];
+	char cap[WLC_IOCTL_SMLEN];
+	char caps[WLC_IOCTL_MEDLEN];
+	char *name = NULL;
+	char *next = NULL;
+	int max_mbss = 0;
+
+	snprintf(nv_interface, sizeof(nv_interface), "wl%d_ifname", unit);
+	name = nvram_safe_get(nv_interface);
+	if (!strlen(name))
+	{
+		max_mbss = -1;
+		return max_mbss;
+	}
+
+	if (!wl_iovar_get(name, "cap", (void *)caps, sizeof(caps))) {
+		foreach(cap, caps, next) {
+			if (!strcmp(cap, "mbss16"))
+				max_mbss= 16;
+			else if (!strcmp(cap, "mbss8"))
+				max_mbss= 8;
+			else if (!strcmp(cap, "mbss4"))
+				max_mbss= 4;
+		}
+	}
+
+	return max_mbss;
+}
+
 int wl_max_no_vifs(int unit)
 {
 	char nv_interface[NVRAM_MAX_PARAM_LEN];
@@ -2319,24 +2686,11 @@ int wl_max_no_vifs(int unit)
 	char *name = NULL;
 	char *next = NULL;
 	int max_no_vifs = 0;
-#ifdef RTCONFIG_PSR_GUEST
+#if defined(RTCONFIG_PSR_GUEST) && !defined(RTCONFIG_HND_ROUTER_BE_4916)
 	char tmp[100], prefix[]="wlXXXXXXX_";
 #endif
 #ifdef RTCONFIG_AMAS
-	int base_no_vifs = 5;
-#ifdef RTCONFIG_FRONTHAUL_DWB
-	base_no_vifs++;
-#endif
-#ifdef RTCONFIG_MSSID_PRELINK
-	base_no_vifs++;
-#endif
-#ifdef RTCONFIG_VIF_ONBOARDING
-	base_no_vifs++;
-#endif
-#ifdef RTCONFIG_FRONTHAUL_DBG
-	if (unit == WLC_BAND_2G)
-		base_no_vifs++;
-#endif
+	int base_no_vifs = 8;
 #endif
 
 #ifdef RTCONFIG_QTN
@@ -2345,7 +2699,7 @@ int wl_max_no_vifs(int unit)
 #endif
 
 	snprintf(nv_interface, sizeof(nv_interface), "wl%d_ifname", unit);
-#ifdef RTCONFIG_PSR_GUEST
+#if defined(RTCONFIG_PSR_GUEST) && !defined(RTCONFIG_HND_ROUTER_BE_4916)
 	snprintf(prefix, sizeof(prefix), "wl%d_", unit);
 #endif
 	name = nvram_safe_get(nv_interface);
@@ -2366,17 +2720,12 @@ int wl_max_no_vifs(int unit)
 		}
 	}
 
-#if defined(RTCONFIG_OWE_TRANS)
-	if(wl_get_band(name) != WLC_BAND_6G)
-		base_no_vifs++;
-#endif
-
-#if defined(RTCONFIG_AMAS) && (defined(RTCONFIG_FRONTHAUL_DWB) || defined(RTCONFIG_MSSID_PRELINK) || defined(RTCONFIG_FRONTHAUL_DBG))
+#ifdef RTCONFIG_AMAS
 	if (nvram_match("re_mode", "1"))
 		return min(max_no_vifs, base_no_vifs);
+	else
 #endif
-
-#ifdef RTCONFIG_PSR_GUEST
+#if defined(RTCONFIG_PSR_GUEST) && !defined(RTCONFIG_HND_ROUTER_BE_4916)
 #ifdef RTCONFIG_HND_ROUTER_AX
 	if (is_psta(unit) || is_psr(unit)) {
 #else
@@ -2405,7 +2754,7 @@ int wl_get_band(char* wlif)
 int wl_get_ifname_unit(char *wlif)
 {
         int unit = 0;
-        char nv_wlif[16], *wlx_ifname[16], word[64], *next;
+        char nv_wlif[16], wlx_ifname[16], word[64], *next;
         char wl_ifnames[32] = { 0 };
 
         strlcpy(wl_ifnames, nvram_safe_get("wl_ifnames"), sizeof(wl_ifnames));
@@ -2533,63 +2882,75 @@ typedef struct {
 
 bcmbsd_policy bcmbsd_def_policy[BCMBSD_SELIF_MAX] = {
 			// reserved 
-			{0, {"","","",""},
-			 {"","","",""},
-			 {"","","",""}},
+			{0, {"","","","",""},
+			 {"","","","",""},
+			 {"","","","",""}},
 			// 2G_5G1_5G2_6G (1)
 			{ 0xf, 
-			 {"0 5 3 -62 0 0 0x22",
-			  "0 5 3 -82 0 0 0x820",
-			  "0 5 3 -82 0 0 0x420",
-			  "0 5 3 -82 0 0 0x20"},
+			 {"0 5 3 -62 0 0 0x22", // 2G
+			  "0 5 3 -82 0 0 0x20",	// 5G1
+			  "0 5 3 -82 0 0 0x20",	// 5G2
+			  "0 5 3 -82 0 0 0x20",	// 6G/6G1
+			  ""},			// 6G2
 			 {"30 -62 0 0 0 1 1 0 0 0 0x122",
-			  "30 -82 0 0 0 1 1 0 0 0 0x8020",
-			  "30 -82 0 0 0 1 1 0 0 0 0x4020",
-			  "30 -82 0 0 0 1 1 0 0 0 0x20"},
+			  "30 -82 0 0 0 1 1 0 0 0 0x20",
+			  "30 -82 0 0 0 1 1 0 0 0 0x20",
+			  "30 -82 0 0 0 1 1 0 0 0 0x20",
+			  ""},
 			 {"0 0x0 -100",
-			  "0 0x400 -100",
-			  "0 0x200 -100",
-			  "0 0x0 -100"}},
+			  "0 0x0 -100",
+			  "0 0x0 -100",
+			  "0 0x0 -100",
+			  ""}},
 			// 2G_5G1_6G (2)
 			{ 0xb,
 			 {"0 5 3 -62 0 0 0x22",
 			  "0 5 3 -82 0 0 0x20",
 			  "",
-			  "0 5 3 -82 0 0 0x20"},
+			  "0 5 3 -82 0 0 0x20",
+			  ""},
 			 {"30 -62 0 0 0 1 1 0 0 0 0x122",
 			  "30 -82 0 0 0 1 1 0 0 0 0x20",
 			  "",
-			  "30 -82 0 0 0 1 1 0 0 0 0x20"},
+			  "30 -82 0 0 0 1 1 0 0 0 0x20",
+			  ""},
 			 {"0 0x0 -100",
 			  "0 0x0 -100",
 			  "",
-			  "0 0x0 -100"}},
+			  "0 0x0 -100",
+			  ""}},
 			// 2G_5G1_5G2 (3:QIS)
 			{ 0x7,
 			 {"0 5 3 -62 0 0 0x22",
-			  "0 5 3 -82 0 0 0x820",
-			  "0 5 3 -82 0 0 0x420",
+			  "0 5 3 -82 0 0 0x20",
+			  "0 5 3 -82 0 0 0x20",
+			  "",
 			  ""},
 			 {"30 -62 0 0 0 1 1 0 0 0 0x122",
-			  "30 -82 0 0 0 1 1 0 0 0 0x8020",
-			  "30 -82 0 0 0 1 1 0 0 0 0x4020",
+			  "30 -82 0 0 0 1 1 0 0 0 0x20",
+			  "30 -82 0 0 0 1 1 0 0 0 0x20",
+			  "",
 			  ""},
 			 {"0 0x0 -100",
 			  "0 0x400 -100",
 			  "0 0x200 -100",
+			  "",
 			  ""}},
 			// 2G_5G1 (4)
 			{ 0x3,
 			 {"0 5 3 -62 0 0 0x22",
 			  "0 5 3 -82 0 0 0x20",
 			  "",
+			  "",
 			  ""},
 			 {"30 -62 0 0 0 1 1 0 0 0 0x122",
 			  "30 -82 0 0 0 1 1 0 0 0 0x20",
 			  "",
+			  "",
 			  ""},
 			 {"0 0x0 -100",
 			  "0 0x0 -100",
+			  "",
 			  "",
 			  ""}},
 			// 2G_5G2_6G (5)
@@ -2597,96 +2958,236 @@ bcmbsd_policy bcmbsd_def_policy[BCMBSD_SELIF_MAX] = {
 			 {"0 5 3 -62 0 0 0x22",
 			  "",
 			  "0 5 3 -82 0 0 0x20",
-			  "0 5 3 -82 0 0 0x20"},
+			  "0 5 3 -82 0 0 0x20",
+			  ""},
 			 {"30 -62 0 0 0 1 1 0 0 0 0x122",
 			  "",
 			  "30 -82 0 0 0 1 1 0 0 0 0x20",
-			  "30 -82 0 0 0 1 1 0 0 0 0x20"},
+			  "30 -82 0 0 0 1 1 0 0 0 0x20",
+			  ""},
 			 {"0 0x0 -100",
 			  "",
 			  "0 0x0 -100",
-			  "0 0x0 -100"}},
+			  "0 0x0 -100",
+			  ""}},
 			// 2G_6G (6) 
 			{ 0x9, 
 			 {"0 5 3 -62 0 0 0x22",
 			  "",
 			  "",
-			  "0 5 3 -82 0 0 0x20"},
+			  "0 5 3 -82 0 0 0x20",
+			  ""},
 			 {"30 -62 0 0 0 1 1 0 0 0 0x122",
 			  "",
 			  "",
-			  "30 -82 0 0 0 1 1 0 0 0 0x20"},
+			  "30 -82 0 0 0 1 1 0 0 0 0x20",
+			  ""},
 			 {"0 0x0 -100",
 			  "",
 			  "",
-			  "0 0x0 -100"}},
+			  "0 0x0 -100",
+			  ""}},
 			// 5G1_5G2_6G (7) 
 			{ 0xe,
 			 {"",
-			  "0 5 3 -82 0 0 0x820",
-			  "0 5 3 -82 0 0 0x420",
-			  "0 5 3 -82 0 0 0x20"},
+			  "0 5 3 -82 0 0 0x20",
+			  "0 5 3 -82 0 0 0x20",
+			  "0 5 3 -82 0 0 0x20",
+			  ""},
 			 {"",
-			  "30 -82 0 0 0 1 1 0 0 0 0x8020",
-			  "30 -82 0 0 0 1 1 0 0 0 0x4020",
-			  "30 -82 0 0 0 1 1 0 0 0 0x20"},
+			  "30 -82 0 0 0 1 1 0 0 0 0x20",
+			  "30 -82 0 0 0 1 1 0 0 0 0x20",
+			  "30 -82 0 0 0 1 1 0 0 0 0x20",
+			  ""},
 			 {"",
 			  "0 0x400 -100",
 			  "0 0x200 -100",
-			  "0 0x0 -100"}},
+			  "0 0x0 -100",
+			  ""}},
 			// 5G1_6G (8) 
 			{ 0xa,
 			 {"",
 			  "0 5 3 -82 0 0 0x20",
 			  "",
-			  "0 5 3 -82 0 0 0x20"},
+			  "0 5 3 -82 0 0 0x20",
+			  ""},
 			 {"",
 			  "30 -82 0 0 0 1 1 0 0 0 0x20",
 			  "",
-			  "30 -82 0 0 0 1 1 0 0 0 0x20"},
+			  "30 -82 0 0 0 1 1 0 0 0 0x20",
+			  ""},
 			 {"",
 			  "0 0x0 -100",
 			  "",
-			  "0 0x0 -100"}},
+			  "0 0x0 -100",
+			  ""}},
 			// 2G_5G2 (9) 
 			{ 0x5,
 			 {"0 5 3 -62 0 0 0x22",
 			  "",
 			  "0 5 3 -82 0 0 0x20",
+			  "",
 			  ""},
 			 {"30 -62 0 0 0 1 1 0 0 0 0x12",
 			  "",
 			  "30 -82 0 0 0 1 1 0 0 0 0x20",
+			  "",
 			  ""},
 			 {"0 0x0 -100",
 			  "",
 			  "0 0x0 -100",
+			  "",
 			  ""}},
 			// 5G1_5G2 (10)
 			{ 0x6, 
 			 {"",
-			  "0 5 3 -82 0 0 0x820",
-			  "0 5 3 -82 0 0 0x420",
+			  "0 5 3 -82 0 0 0x20",
+			  "0 5 3 -82 0 0 0x20",
+			  "",
 			  ""},
 			 {"",
-			  "30 -82 0 0 0 1 1 0 0 0 0x8020",
-			  "30 -82 0 0 0 1 1 0 0 0 0x4020",
+			  "30 -82 0 0 0 1 1 0 0 0 0x20",
+			  "30 -82 0 0 0 1 1 0 0 0 0x20",
+			  "",
 			  ""},
 			 {"",
 			  "0 0x400 -100",
 			  "0 0x200 -100",
+			  "",
 			  ""}},
 			// 5G2_6G (11)
 			{ 0xc, 
 			 {"",
 			  "",
 			  "0 5 3 -82 0 0 0x20",
-			  "0 5 3 -82 0 0 0x20"},
+			  "0 5 3 -82 0 0 0x20",
+			  ""},
 			 {"",
+			  "",
+			  "30 -82 0 0 0 1 1 0 0 0 0x20",
+			  "30 -82 0 0 0 1 1 0 0 0 0x20",
+			  ""},
+			 {"",
+			  "",
+			  "0 0x0 -100",
+			  "0 0x0 -100",
+			  ""}},
+			// 2G_5G_6G1_6G2 (12)
+			{ 0x1b, 
+			 {"0 5 3 -62 0 0 0x22",  // 2G
+			  "0 5 3 -82 0 0 0x20",	 // 5G1
+			  "",	 		 // 5G2
+			  "0 5 3 -82 0 0 0x20",	 // 6G1
+			  "0 5 3 -82 0 0 0x20"}, // 6G2
+			 {"30 -62 0 0 0 1 1 0 0 0 0x122",
+			  "30 -82 0 0 0 1 1 0 0 0 0x20",
+			  "",
+			  "30 -82 0 0 0 1 1 0 0 0 0x20",
+			  "30 -82 0 0 0 1 1 0 0 0 0x20"},
+			 {"0 0x0 -100",
+			  "0 0x0 -100",
+			  "",
+			  "0 0x0 -100",
+			  "0 0x0 -100"}},
+			// 2G_6G1_6G2 (13)
+			{ 0x19, 
+			 {"0 5 3 -62 0 0 0x22",  // 2G
+			  "",	 		 // 5G1
+			  "",	 		 // 5G2
+			  "0 5 3 -82 0 0 0x20",	 // 6G1
+			  "0 5 3 -82 0 0 0x20"}, // 6G2
+			 {"30 -62 0 0 0 1 1 0 0 0 0x122",
+			  "",
+			  "",
+			  "30 -82 0 0 0 1 1 0 0 0 0x20",
+			  "30 -82 0 0 0 1 1 0 0 0 0x20"},
+			 {"0 0x0 -100",
+			  "",
+			  "",
+			  "0 0x0 -100",
+			  "0 0x0 -100"}},
+			// 5G_6G1_6G2 (14)
+			{ 0x1a, 
+			 {"",  // 2G
+			  "0 5 3 -82 0 0 0x20",	 // 5G1
+			  "",	 		 // 5G2
+			  "0 5 3 -82 0 0 0x20",	 // 6G1
+			  "0 5 3 -82 0 0 0x20"}, // 6G2
+			 {"",
+			  "30 -82 0 0 0 1 1 0 0 0 0x20",
 			  "",
 			  "30 -82 0 0 0 1 1 0 0 0 0x20",
 			  "30 -82 0 0 0 1 1 0 0 0 0x20"},
 			 {"",
+			  "0 0x0 -100",
+			  "",
+			  "0 0x0 -100",
+			  "0 0x0 -100"}},
+			// 2G_5G_6G2 (15)
+			{ 0x13, 
+			 {"0 5 3 -62 0 0 0x22",  // 2G
+			  "0 5 3 -82 0 0 0x20",	 // 5G1
+			  "",	 		 // 5G2
+			  "",	 		 // 6G1
+			  "0 5 3 -82 0 0 0x20"}, // 6G2
+			 {"30 -62 0 0 0 1 1 0 0 0 0x122",
+			  "30 -82 0 0 0 1 1 0 0 0 0x20",
+			  "",
+			  "",
+			  "30 -82 0 0 0 1 1 0 0 0 0x20"},
+			 {"0 0x0 -100",
+			  "0 0x0 -100",
+			  "",
+			  "",
+			  "0 0x0 -100"}},
+			// 2G_6G2 (16)
+			{ 0x11, 
+			 {"0 5 3 -62 0 0 0x22",  // 2G
+			  "",	 		 // 5G1
+			  "",	 		 // 5G2
+			  "",	 		 // 6G1
+			  "0 5 3 -82 0 0 0x20"}, // 6G2
+			 {"30 -62 0 0 0 1 1 0 0 0 0x122",
+			  "",
+			  "",
+			  "",
+			  "30 -82 0 0 0 1 1 0 0 0 0x20"},
+			 {"0 0x0 -100",
+			  "",
+			  "",
+			  "",
+			  "0 0x0 -100"}},
+			// 5G_6G2 (17)
+			{ 0x12, 
+			 {"",  // 2G
+			  "0 5 3 -82 0 0 0x20",	 // 5G1
+			  "",	 		 // 5G2
+			  "",	 		 // 6G1
+			  "0 5 3 -82 0 0 0x20"}, // 6G2
+			 {"",
+			  "30 -82 0 0 0 1 1 0 0 0 0x20",
+			  "",
+			  "",
+			  "30 -82 0 0 0 1 1 0 0 0 0x20"},
+			 {"",
+			  "0 0x0 -100",
+			  "",
+			  "",
+			  "0 0x0 -100"}},
+			// 6G1_6G2 (18)
+			{ 0x18, 
+			 {"",  // 2G
+			  "",	 		 // 5G1
+			  "",	 		 // 5G2
+			  "0 5 3 -82 0 0 0x20",	 // 6G1
+			  "0 5 3 -82 0 0 0x20"}, // 6G2
+			 {"",
+			  "",
+			  "",
+			  "30 -82 0 0 0 1 1 0 0 0 0x20",
+			  "30 -82 0 0 0 1 1 0 0 0 0x20"},
+			 {"",
+			  "",
 			  "",
 			  "0 0x0 -100",
 			  "0 0x0 -100"}},
@@ -2707,36 +3208,23 @@ int bcmbsd_tblidx(int selif_val)
 // wl_seq: rule-seq-id; return value(unit_id): which wlunit to set the rule[wl_seq] 
 int get_unitid(int wl_seq)
 {
-	char wlvar[16];
-	int nband = -1;
-
-	sprintf(wlvar, "wl%d_ifname", wl_seq);
-
-	if(!*nvram_safe_get(wlvar))
-		return -1;
-
-	sprintf(wlvar, "wl%d_nband", wl_seq);
-	nband = atoi(nvram_safe_get(wlvar));
-
 	switch(wl_seq) {
 		case RULE_2G:
 			return WLIF_2G;	// wl-unit-of-2G_xxx set 2G-rule
 		case RULE_5G1:
 			return WLIF_5G1; // wl-unit-of-5G1_xxx set 5G1 rule
+#if defined(RTCONFIG_HAS_5G_2) || (defined(RTCONFIG_QUADBAND) && !defined(RTCONFIG_HAS_6G_2))
 		case RULE_5G2:
-#if !defined(GTAXE16000)
-			if(nband == 4)
-				return WLIF_6G; // * wl-unit-of-6G_xxx should set 6G rule
-			else
+			return WLIF_5G2; // wl-unit-of-5G2_xxx set 5G2 rule
 #endif
-				return WLIF_5G2; // wl-unit-of-5G2_xxx set 5G2 rule
+#if defined(RTCONFIG_WIFI6E) || defined(RTCONFIG_HAS_6G)
 		case RULE_6G:
-#if !defined(GTAXE16000)
-			if(nband != 4)
-				return -1; // wl-unit-of-6G_xxx set 5G2 rule
-			else
-#endif			
-				return WLIF_6G; // wl-unit-of-6G_xxx set 6G rule
+			return WLIF_6G; // wl-unit-of-6G_xxx set 6G rule
+#endif
+#if defined(RTCONFIG_QUADBAND) && defined(RTCONFIG_HAS_6G_2)
+		case RULE_6G2:
+			return WLIF_6G2; // wl-unit-of-6G_xxx set 6G rule
+#endif
 	}
 
 	return -1;
@@ -2745,10 +3233,10 @@ int get_unitid(int wl_seq)
 void gen_bcmbsd_def_policy(int sel)
 {
 	int i, tbi, unit_id, ruleid;
-	char namebuf[32];
-	int smart_connect_x = nvram_get_int("smart_connect_x");
+	char namebuf[40];
 	int o_sel = sel;
-	
+	char target_bss[16];
+
 	if(!sel)
 		sel = nvram_get_int("smart_connect_selif");
 
@@ -2760,51 +3248,226 @@ void gen_bcmbsd_def_policy(int sel)
 
 	for(i=0; i<RULE_MAX; ++i) {
 		ruleid = i;
+		if((sel & 1<<ruleid) == 0) {
+			_dprintf("%s: skip ruleid %d due to unsupport sc_selif bit 0x%02x (selif: 0x%02x)\n", __func__, ruleid, 1<<ruleid, sel);
+			continue;
+		}
+
 		unit_id = get_unitid(ruleid);
 
 		if(unit_id < 0) {
-			_dprintf("%s fin due no more valid wl unit\n", __func__);
-			break;
+			_dprintf("%s: skip ruleid %d due not a valid wl unit\n", __func__, ruleid);
+			continue;
 		}
-#if !defined(GTAXE16000)
-		if(ruleid==RULE_5G2 && unit_id==WLIF_6G) {
-			_dprintf("%s: triband-2G/5G/6G Dut adjust its ruleid for seq-%d\n", __func__, i);
-			ruleid = RULE_6G;
+
+		_dprintf("%s: wl%d set rule_idx [%d]\n", __func__, unit_id, ruleid);
+#if defined(RTCONFIG_MULTILAN_MWL)
+		if(strlen(smart_connect_get_active_prefix_by_bandid(&target_bss, sizeof(target_bss), unit_id)))
+			_dprintf("%s: <mwl> main network interface: %s\n", __func__, target_bss);
+#endif
+
+		if(strlen(bcmbsd_def_policy[tbi].steering[ruleid])) {
+			sprintf(namebuf, "wl%d_bsd_steering_policy_def", unit_id);
+			nvram_set(namebuf, bcmbsd_def_policy[tbi].steering[ruleid]);
+			sprintf(namebuf, "wl%d_bsd_steering_policy", unit_id);
+			nvram_set(namebuf, bcmbsd_def_policy[tbi].steering[ruleid]);
+			_dprintf("%s: set defnv [%s]=[%s]\n", __func__, namebuf, bcmbsd_def_policy[tbi].steering[ruleid]);
+		}
+		else {
+			sprintf(namebuf, "wl%d_bsd_steering_policy_def", unit_id);
+			nvram_unset(namebuf);
+			sprintf(namebuf, "wl%d_bsd_steering_policy", unit_id);
+			nvram_unset(namebuf);
+			sprintf(namebuf, "wl%d_bsd_steering_policy_x", unit_id);
+			nvram_unset(namebuf);
+			_dprintf("%s: unset wl%d_bsd_steering_policy\n", __func__, unit_id);
+		}
+
+		if(strlen(bcmbsd_def_policy[tbi].sta_select[ruleid])) {
+#if defined(RTCONFIG_MULTILAN_MWL)
+			if(strlen(target_bss)) {
+				sprintf(namebuf, "%s_bsd_sta_select_policy_def", target_bss);
+				nvram_set(namebuf, bcmbsd_def_policy[tbi].sta_select[ruleid]);
+				sprintf(namebuf, "%s_bsd_sta_select_policy", target_bss);
+				nvram_set(namebuf, bcmbsd_def_policy[tbi].sta_select[ruleid]);
+			}
+#else
+			sprintf(namebuf, "wl%d_bsd_sta_select_policy_def", unit_id);
+			nvram_set(namebuf, bcmbsd_def_policy[tbi].sta_select[ruleid]);
+			sprintf(namebuf, "wl%d_bsd_sta_select_policy", unit_id);
+			nvram_set(namebuf, bcmbsd_def_policy[tbi].sta_select[ruleid]);
+#endif
+			_dprintf("%s: set defnv [%s]=[%s]\n", __func__, namebuf, bcmbsd_def_policy[tbi].sta_select[ruleid]);
+		}
+#if 0
+		else {
+#if defined(RTCONFIG_MULTILAN_MWL)
+			if(strlen(target_bss)) {
+				sprintf(namebuf, "%s_bsd_sta_select_policy_def", target_bss);
+				nvram_unset(namebuf);
+				sprintf(namebuf, "%s_bsd_sta_select_policy", target_bss);
+				nvram_unset(namebuf);
+				_dprintf("%s: unset %s_bsd_sta_select_policy\n", __func__, target_bss);
+			}
+#else
+			sprintf(namebuf, "wl%d_bsd_sta_select_policy_def", unit_id);
+			nvram_unset(namebuf);
+			sprintf(namebuf, "wl%d_bsd_sta_select_policy", unit_id);
+			nvram_unset(namebuf);
+			_dprintf("%s: unset wl%d_bsd_sta_select_policy\n", __func__, unit_id);
+#endif
 		}
 #endif
-		_dprintf("%s, wl%d set rule_idx=%d\n", __func__, unit_id, ruleid);
-
-		sprintf(namebuf, "wl%d_bsd_steering_policy_def", unit_id);
-		nvram_set(namebuf, bcmbsd_def_policy[tbi].steering[ruleid]);
-		sprintf(namebuf, "wl%d_bsd_steering_policy", unit_id);
-		nvram_set(namebuf, bcmbsd_def_policy[tbi].steering[ruleid]);
-		if(smart_connect_x == 2) {
-			sprintf(namebuf, "wl%d_bsd_steering_policy_x", unit_id);
-			nvram_set(namebuf, bcmbsd_def_policy[tbi].steering[ruleid]);
-		}
-		_dprintf("%s, set defnv [%s]=[%s]\n", __func__, namebuf, bcmbsd_def_policy[tbi].steering[ruleid]);
-
-		sprintf(namebuf, "wl%d_bsd_sta_select_policy_def", unit_id);
-		nvram_set(namebuf, bcmbsd_def_policy[tbi].sta_select[ruleid]);
-		sprintf(namebuf, "wl%d_bsd_sta_select_policy", unit_id);
-		nvram_set(namebuf, bcmbsd_def_policy[tbi].sta_select[ruleid]);
-		if(smart_connect_x == 2) {
-			sprintf(namebuf, "wl%d_bsd_sta_select_policy_x", unit_id);
-			nvram_set(namebuf, bcmbsd_def_policy[tbi].sta_select[ruleid]);
-		}
-		_dprintf("%s, set defnv [%s]=[%s]\n", __func__, namebuf, bcmbsd_def_policy[tbi].sta_select[ruleid]);
-
-		sprintf(namebuf, "wl%d_bsd_if_qualify_policy_def", unit_id);
-		nvram_set(namebuf, bcmbsd_def_policy[tbi].if_qualify[ruleid]);
-		sprintf(namebuf, "wl%d_bsd_if_qualify_policy", unit_id);
-		nvram_set(namebuf, bcmbsd_def_policy[tbi].if_qualify[ruleid]);
-		if(smart_connect_x == 2) {
-			sprintf(namebuf, "wl%d_bsd_if_qualify_policy_x", unit_id);
+		if(strlen(bcmbsd_def_policy[tbi].if_qualify[ruleid])) {
+			sprintf(namebuf, "wl%d_bsd_if_qualify_policy_def", unit_id);
 			nvram_set(namebuf, bcmbsd_def_policy[tbi].if_qualify[ruleid]);
+			sprintf(namebuf, "wl%d_bsd_if_qualify_policy", unit_id);
+			nvram_set(namebuf, bcmbsd_def_policy[tbi].if_qualify[ruleid]);
+			_dprintf("%s: set defnv [%s]=[%s]\n", __func__, namebuf, bcmbsd_def_policy[tbi].if_qualify[ruleid]);
 		}
-		_dprintf("%s, set defnv [%s]=[%s]\n", __func__, namebuf, bcmbsd_def_policy[tbi].if_qualify[ruleid]);
+		else {
+			sprintf(namebuf, "wl%d_bsd_if_qualify_policy_def", unit_id);
+			nvram_unset(namebuf);
+			sprintf(namebuf, "wl%d_bsd_if_qualify_policy", unit_id);
+			nvram_unset(namebuf);
+			_dprintf("%s: unset wl%d_bsd_if_qualify_policy\n", __func__, unit_id);
+		}
 	}	
 }
-
 #endif
+
+int envram_to_wlnvram_by_unit(int wl_unit, char *wl_name, int envram_unit, char *envram_name)
+{
+	int ret = 0;
+
+#if defined(BT10)
+	char tmp[100] = {0}, tmp_wlname[100] = {0}, tmp_envram[100] = {0};
+
+	snprintf(tmp_wlname, sizeof(tmp_wlname), "wl%d_%s", wl_unit, wl_name);
+	snprintf(tmp_envram, sizeof(tmp_envram), "%d:%s", envram_unit, envram_name);
+	snprintf(tmp, sizeof(tmp), "%s", nvram_safe_get(tmp_envram));
+	nvram_set(tmp_wlname, tmp);
+
+	ret = 1;
+#endif
+	return ret;
+}
+
+#if defined(RTCONFIG_BCMBSD_V2)
+char* smart_connect_get_active_prefix_by_bandid(char *target, size_t bsize, int bandid)
+{
+	if (!target || bsize <= 0)
+		return NULL;
+	memset(target, 0, bsize);
+
+#if defined(RTCONFIG_MULTILAN_MWL)
+	char ifnames[64], candi[16];
+	char word[16], *next;
+	int bitmap;
+
+	get_fh_sc_ifnames(&bitmap, &ifnames, sizeof(ifnames));
+	snprintf(candi, sizeof(candi), "wl%d", bandid);
+
+	foreach(word, ifnames, next) {
+		if(strstr(word, candi) != NULL) {
+			snprintf(target, bsize, "%s", word);
+			return target;
+		}
+	}
+#else
+	snprintf(target, bsize, "wl%d", bandid);
+#endif
+	return target;
+}
+
+#ifdef RTCONFIG_MULTILAN_MWL
+void smart_connect_align_policy_mwl(void)
+{
+	char policy[3][32] = {"bsd_sta_select_policy",
+			      "bsd_sta_select_policy_def",
+			      "bsd_if_select_policy"};
+
+	int unit = 0, pindex = 0;
+        char word[64], *next;
+        char wl_ifnames[32] = { 0 };
+	char nv_policy[64] = { 0 };
+	char nv_policy_mwl[64] = { 0 };
+	char target[16];
+
+	restore_nonexist_bcmbsd_def_policy();
+
+        strlcpy(wl_ifnames, nvram_safe_get("wl_ifnames"), sizeof(wl_ifnames));
+	foreach (word, wl_ifnames, next) {
+		for (pindex = 0 ; pindex < 3; pindex++) {
+			smart_connect_get_active_prefix_by_bandid(target, sizeof(target), unit);
+			snprintf(nv_policy, sizeof(nv_policy), "wl%d_%s", unit, policy[pindex]);
+			if(strlen(nvram_safe_get(nv_policy)) > 0 && strlen(target) > 0) {
+				snprintf(nv_policy_mwl, sizeof(nv_policy_mwl), "%s_%s", target, policy[pindex]);
+				if(strlen(nvram_safe_get(nv_policy_mwl)) == 0) {
+					nvram_set(nv_policy_mwl, nvram_safe_get(nv_policy));
+					_dprintf("%s: bsd rule transfer [%s] => [%s]\n", __func__, nv_policy, nv_policy_mwl);
+				}
+				nvram_unset(nv_policy);
+				nvram_commit();
+			}
+		}
+                unit++;
+        }
+
+        return;
+}
+
+void restore_nonexist_bcmbsd_def_policy()
+{
+	int i, tbi, unit_id, ruleid, sel;
+	char rule_steer[40], rule_if_qualify[40], rule[40];
+	char target[16];
+
+	sel = nvram_get_int("smart_connect_selif");
+	tbi = bcmbsd_tblidx(sel);
+        if(tbi < 0)
+                return;
+
+	for(i=0; i<RULE_MAX; ++i) {
+		ruleid = i;
+		unit_id = get_unitid(ruleid);
+
+		if(unit_id < 0) {
+			_dprintf("%s: skip ruleid %d due not a valid wl unit\n", __func__, ruleid);
+			continue;
+		}
+
+		sprintf(rule_steer, "wl%d_bsd_steering_policy_def", unit_id);
+		sprintf(rule_if_qualify, "wl%d_bsd_if_qualify_policy_def", unit_id);
+		if (!strlen(nvram_safe_get(rule_steer)) && !strlen(nvram_safe_get(rule_if_qualify))) {
+
+			sprintf(rule, "wl%d_bsd_steering_policy_def", unit_id);
+			nvram_set(rule, bcmbsd_def_policy[tbi].steering[ruleid]);
+
+			sprintf(rule, "wl%d_bsd_steering_policy", unit_id);
+			nvram_set(rule, bcmbsd_def_policy[tbi].steering[ruleid]);
+
+			sprintf(rule, "wl%d_bsd_sta_select_policy_def", unit_id);
+			nvram_set(rule, bcmbsd_def_policy[tbi].sta_select[ruleid]);
+
+			sprintf(rule, "wl%d_bsd_sta_select_policy", unit_id);
+			nvram_set(rule, bcmbsd_def_policy[tbi].sta_select[ruleid]);
+
+			sprintf(rule, "wl%d_bsd_if_qualify_policy_def", unit_id);
+			nvram_set(rule, bcmbsd_def_policy[tbi].if_qualify[ruleid]);
+
+			sprintf(rule, "wl%d_bsd_if_qualify_policy", unit_id);
+			nvram_set(rule, bcmbsd_def_policy[tbi].if_qualify[ruleid]);
+
+			smart_connect_get_active_prefix_by_bandid(target, sizeof(target), unit_id);
+			sprintf(rule, "%s_bsd_sta_select_policy", target);
+			nvram_unset(rule);
+			sprintf(rule, "%s_bsd_if_qualify_policy", target);
+			nvram_unset(rule);
+		}
+	}
+}
+#endif
+#endif
+
 

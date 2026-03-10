@@ -11,6 +11,7 @@
 <title><#Web_Title#> - AiCloud 2.0</title>
 <link rel="stylesheet" type="text/css" href="index_style.css"> 
 <link rel="stylesheet" type="text/css" href="form_style.css">
+<script type="text/javascript" src="/js/jquery.js"></script>
 <script type="text/javascript" src="/state.js"></script>
 <script type="text/javascript" src="/popup.js"></script>
 <script type="text/javascript" src="/help.js"></script>
@@ -18,7 +19,6 @@
 <script type="text/javascript" src="/general.js"></script>
 <script type="text/javascript" src="/validator.js"></script>
 <script type="text/javascript" src="/disk_functions.js"></script>
-<script type="text/javascript" src="/js/jquery.js"></script>
 <script type="text/javascript" src="/switcherplugin/jquery.iphone-switch.js"></script>
 <script type="text/javascript" src="/form.js"></script>
 <script type="text/javascript" src="js/oauth.js"></script>
@@ -449,7 +449,7 @@ function edit_Row(r){
 }
 
 function delRow(_rulenum){
-	if(!confirm("Are you sure to delete this profile?"))/*untranslated*/
+	if(!confirm(stringSafeGet("<#aicloud_rm_list_confirm#>")))
 		return false;
 	document.form.cloud_sync.value = cloud_sync.split('<').del(_rulenum-1).join("<");
 	FormActions("start_apply.htm", "apply", "restart_cloudsync", "2");
@@ -1260,9 +1260,6 @@ function get_layer_items(layer_order){
 	$.ajax({
     		url: '/gettree.asp?layer_order='+layer_order,
     		dataType: 'script',
-    		error: function(xhr){
-    			;
-    		},
     		success: function(){
 				get_tree_items(treeitems);					
   			}
@@ -1534,7 +1531,7 @@ function GetTree(layer_order, v){
 		document.getElementById('e'+layer_order).style.visibility = "";
 	}
 	else
-		alert("Error when show the folder-tree!");
+		alert(stringSafeGet("<#ALERT_OF_ERROR_show#>"));
 }
 
 function cancel_folderTree(){
@@ -1808,7 +1805,7 @@ function onDropBoxLogin(_parm){
 							</tr>	
 						<tr style="display:none;">
 							<th width="30%" style="font-family: Calibri;font-weight: bolder;">
-								<#Server_Name#>	<!-- Server Name -->
+								<#Server_Name#>
 							</th>			
 							<td>
 							  <input type="text" class="input_32_table" maxlength="32" style="height: 23px;" id="sambaclient_name" name="sambaclient_name" autocorrect="off" autocapitalize="off">
@@ -1835,7 +1832,7 @@ function onDropBoxLogin(_parm){
 
 						<tr style="display:none;">
 							<th width="30%" style="font-family: Calibri;font-weight: bolder;">
-								Server Name
+								<#Server_Name#>
 							</th>			
 							<td>
 							  <input type="text" class="input_32_table" maxlength="32" style="height: 23px;" id="usbclient_name" name="usbclient_name" autocorrect="off" autocapitalize="off">

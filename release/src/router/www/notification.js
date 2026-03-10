@@ -88,17 +88,17 @@ if(amesh_support && ameshRouter_support) {
 	}
 }
 
-var get_s46_hgw_case = '<% nvram_get("s46_hgw_case"); %>';	//topology 2,3,6
-var s46_ports_check_flag = (get_s46_hgw_case=='3' || get_s46_hgw_case=='6')? true:false;	//true for topology 3||6
-var check_ipv6_s46_ports_hook = (Softwire46_support && (wan_proto=="v6plus" || wan_proto=="ocnvc"))? '<%chk_s46_port_range();%>':'0';
+var get_s46_hgw_case = '<% nvram_get("wan0_s46_hgw_case"); %>';	//topology 2,3,6
+var s46_ports_check_flag = (get_s46_hgw_case=='3' || get_s46_hgw_case=='6');	//true for topology 3||6
+var check_ipv6_s46_ports_hook = (Softwire46_support && (wan_proto=="v6plus" || wan_proto=="ocnvc" || wan_proto=="v6opt"))? '<%chk_s46_port_range();%>':'0';
 // '{"pf":"1","open_nat":"0","pt":"1","https":"0","ssh":"0","openvpn":"0","ftp":"1","ipsec":"1"}';
 var check_ipv6_s46_ports = "0";
 if(check_ipv6_s46_ports_hook != "" && check_ipv6_s46_ports_hook != "0"){
 	check_ipv6_s46_ports = JSON.parse(check_ipv6_s46_ports_hook);
 }
 
-var get_ipv6_s46_ports = (Softwire46_support && (wan_proto=="v6plus" || wan_proto=="ocnvc"))? '<%nvram_get("ipv6_s46_ports");%>':'0';
-var array_ipv6_s46_ports = new Array("");
+var get_ipv6_s46_ports = (Softwire46_support && (wan_proto=="v6plus" || wan_proto=="ocnvc" || wan_proto=="v6opt"))? '<%nvram_get("ipv6_s46_ports");%>':'0';
+var array_ipv6_s46_ports = [];
 if(get_ipv6_s46_ports!="0" && get_ipv6_s46_ports!=""){
 	array_ipv6_s46_ports = get_ipv6_s46_ports.split(" ");
 }
@@ -121,6 +121,12 @@ if(wan_proto=="ocnvc"){
 	port_range_hint = port_range_hint.replace("%1$@", "<#IPv6_ocnvc#>");
 	port_mismatch_notice = port_mismatch_notice.replace("%2$@", "<#IPv6_ocnvc#>");
 	port_mismatch_list = port_mismatch_list.replace("%3$@", "<#IPv6_ocnvc#>");
+}
+if(wan_proto=="v6opt"){
+	port_confirm = port_confirm.replace("%0$@", "<#IPv6_opt#>");
+	port_range_hint = port_range_hint.replace("%1$@", "<#IPv6_opt#>");
+	port_mismatch_notice = port_mismatch_notice.replace("%2$@", "<#IPv6_opt#>");
+	port_mismatch_list = port_mismatch_list.replace("%3$@", "<#IPv6_opt#>");
 }
 
 function pop_s46_ports(p, flag){
@@ -283,9 +289,11 @@ function cal_panel_s46_ports(obj, multiple) {
 
 function exist_v6plus_conflict(){	//0 for no issue
 	var count=0;
-	$.each(check_ipv6_s46_ports, function (key, data) {
-	if(data=='1'){count += 1;}
-	})
+	if(check_ipv6_s46_ports != "0"){
+		$.each(check_ipv6_s46_ports, function (key, data) {
+			if(data=='1'){count += 1;}
+		})
+	}
 	return count;
 }
 
@@ -352,8 +360,11 @@ var notification = {
 	notif_hint: 0,
 	mobile_traffic: 0,
 	send_debug_log: 0,
+	low_nvram: 0,
+	low_jffs: 0,
 	clicking: 0,
 	sim_record: 0,
+	amas_newob: 0,
 	redirectftp:function(){location.href = 'Advanced_AiDisk_ftp.asp';},
 	redirectsamba:function(){location.href = 'Advanced_AiDisk_samba.asp';},
 	redirectFeedback:function(){location.href = 'Advanced_Feedback.asp';},
@@ -369,8 +380,30 @@ var notification = {
 	s46_ports: 0,
 	notiClick: function(){
 		// stop flashing after the event is checked.
-		cookie.set("notification_history", [notification.upgrade, notification.wifi_2g ,notification.wifi_5g, notification.wifi_5g2, notification.ftp ,notification.samba ,notification.loss_sync ,notification.experience_FB ,notification.notif_hint, notification.mobile_traffic, 
-											notification.send_debug_log, notification.sim_record, notification.pppoe_tw, notification.pppoe_tw_static, notification.ie_legacy, notification.s46_ports].join(), 1000);
+		cookie.set("notification_history", [notification.upgrade, notification.wifi_2g ,notification.wifi_5g ,notification.wifi_5g2 ,notification.ftp ,notification.samba ,notification.loss_sync ,notification.experience_FB ,notification.notif_hint, notification.mobile_traffic, 
+											notification.send_debug_log, notification.sim_record, notification.pppoe_tw, notification.pppoe_tw_static, notification.ie_legacy, notification.low_nvram, notification.low_jffs, notification.s46_ports].join(), 1000);
+		window.localStorage.setItem("notification_history",[
+			notification.upgrade,
+			notification.wifi_2g,
+			notification.wifi_5g,
+			notification.wifi_5g2,
+			notification.ftp,
+			notification.samba,
+			notification.loss_sync,
+			notification.experience_FB,
+			notification.notif_hint,
+			notification.mobile_traffic,
+			notification.send_debug_log,
+			notification.sim_record,
+			notification.pppoe_tw,
+			notification.pppoe_tw_static,
+			notification.low_nvram,
+			notification.low_jffs,
+			notification.ie_legacy,
+			notification.s46_ports,
+			notification.amas_newob
+		].join(), 1000);
+												
 		clearInterval(notification.flashTimer);
 		document.getElementById("notification_status").className = "notification_on";
 		if(notification.clicking == 0){
@@ -472,9 +505,30 @@ var notification = {
 			notification.flash = "on";
 			notification.run_notice();
 		}
-		else if(notification.stat == "on" && !notification.mobile_traffic && !notification.sim_record && !notification.upgrade && !notification.wifi_2g &&
-				!notification.wifi_5g && !notification.ftp && !notification.samba && !notification.loss_sync && !notification.experience_FB && !notification.notif_hint && !notification.mobile_traffic && 
-				!notification.send_debug_log && !notification.pppoe_tw && !notification.pppoe_tw_static && !notification.ie_legacy && !notification.s46_ports){
+		else if(
+			notification.stat == "on" &&
+			!notification.mobile_traffic &&
+			!notification.sim_record &&
+			!notification.upgrade &&
+			!notification.wifi_2g &&
+			!notification.wifi_5g &&
+			!notification.wifi_5g2 &&
+			!notification.ftp &&
+			!notification.samba &&
+			!notification.loss_sync &&
+			!notification.experience_FB &&
+			!notification.notif_hint &&
+			!notification.mobile_traffic &&
+			!notification.send_debug_log &&
+			!notification.pppoe_tw &&
+			!notification.pppoe_tw_static &&
+			!notification.low_nvram &&
+			!notification.low_jffs &&
+			!notification.ie_legacy &&
+			!notification.s46_ports &&
+			!notification.amas_newob
+		){
+			window.localStorage.removeItem("notification_history");
 			cookie.unset("notification_history");
 			clearInterval(notification.flashTimer);
 			document.getElementById("notification_status").className = "notification_off";
@@ -483,7 +537,7 @@ var notification = {
 
 	run: function(){
 	/*-- notification start --*/
-		cookie.unset("notification_history");
+		window.localStorage.removeItem("notification_history");
 		if(notice_pw_is_default == 1){	//case1
 			notification.array[0] = 'noti_acpw';
 			notification.acpw = 1;
@@ -493,34 +547,40 @@ var notification = {
 		}else
 			notification.acpw = 0;
 
-		if(amesh_support && ameshRouter_support) {
-			if(aimesh_system_new_fw_flag) {
-				notification.array[1] = 'noti_upgrade';
-				notification.upgrade = 1;
-				notification.desc[1] = '<#ASUSGATE_note2#>';
-				notification.action_desc[1] = '<#ASUSGATE_act_update#>';
-				notification.clickCallBack[1] = "location.href = 'Advanced_FirmwareUpgrade_Content.asp?confirm_show=0';"
+		var noti_upgrade_flag = 0;
+		if(amesh_support && ameshRouter_support && aimesh_system_new_fw_flag) {
+			notification.array[1] = 'noti_upgrade';
+			noti_upgrade_flag = 1;
+			notification.desc[1] = '<#ASUSGATE_note2#>';
+			notification.action_desc[1] = '<#ASUSGATE_act_update#>';
+			notification.clickCallBack[1] = "location.href = 'Advanced_FirmwareUpgrade_Content.asp?confirm_show=0'";
+		}
+
+		notification.amas_newob = 0;
+		if(isSupport("AMAS_NEWOB")){
+			if(Object.keys(httpApi.hookGet("get_newob_onboardinglist")).length > 0){
+				notification.array[21] = 'noti_amas_newob';
+				notification.amas_newob = 1;
+				notification.desc[21] = `New AiMesh device connected via Ethernet`;
+				notification.action_desc[21] = `<#btn_goSetting#>`;
+				notification.clickCallBack[21] = "location.href = 'AiMesh.asp'";
 			}
-			else
-				notification.upgrade = 0;
 		}
-		else {
-			if(webs_state_flag == 1 || webs_state_flag == 2){
-				notification.array[1] = 'noti_upgrade';
-				notification.upgrade = 1;
-				notification.desc[1] = '<#ASUSGATE_note2#>';
-				if(!live_update_support || !HTTPS_support){
-					notification.action_desc[1] = '<a id="link_to_downlodpage" target="_blank" href="'+get_helplink()+'" style="color:#FFCC00;"><#ASUSGATE_act_update#></a>';
-					notification.clickCallBack[1] = "";
-				}
-				else{
-					notification.action_desc[1] = '<#ASUSGATE_act_update#>';
-					notification.clickCallBack[1] = "location.href = 'Advanced_FirmwareUpgrade_Content.asp?confirm_show=0'";
-				}
-			}else
-				notification.upgrade = 0;
+		if(noti_upgrade_flag == 0 && (webs_state_flag == 1 || webs_state_flag == 2)){
+			notification.array[1] = 'noti_upgrade';
+			noti_upgrade_flag = 1;
+			notification.desc[1] = '<#ASUSGATE_note2#>';
+			if(!live_update_support || !HTTPS_support){
+				notification.action_desc[1] = '<a id="link_to_downlodpage" target="_blank" href="'+get_helplink()+'" style="color:#FFCC00;"><#ASUSGATE_act_update#></a>';
+				notification.clickCallBack[1] = "";
+			}
+			else{
+				notification.action_desc[1] = '<#ASUSGATE_act_update#>';
+				notification.clickCallBack[1] = "location.href = 'Advanced_FirmwareUpgrade_Content.asp?confirm_show=0'";
+			}
 		}
-		
+		notification.upgrade = (noti_upgrade_flag == 1)? 1:0;
+				
 		if(band2g_support && sw_mode != 4 && noti_auth_mode_2g == 'open'){ //case3-1
 				notification.array[2] = 'noti_wifi_2g';
 				notification.wifi_2g = 1;
@@ -529,7 +589,7 @@ var notification = {
 				notification.clickCallBack[2] = "change_wl_unit_status(0);";
 		}else
 			notification.wifi_2g = 0;
-			
+
 		if(band5g_support && sw_mode != 4 && noti_auth_mode_5g == 'open'){	//case3-2
 				notification.array[3] = 'noti_wifi_5g';
 				notification.wifi_5g = 1;
@@ -550,7 +610,7 @@ var notification = {
 				notification.clickCallBack[19] = "change_wl_unit_status(2);";
 		}else
 			notification.wifi_5g2 = 0;
-		
+	
 		if(usb_support && !noftp_support && enable_ftp == 1 && st_ftp_mode == 1 && st_ftp_force_mode == '' ){ //case4_1
 				notification.array[4] = 'noti_ftp';
 				notification.ftp = 1;
@@ -650,7 +710,7 @@ var notification = {
 			}
 		}
 
-		if(Softwire46_support && (wan_proto == "v6plus" || wan_proto == "ocnvc")){
+		if(Softwire46_support && (wan_proto == "v6plus" || wan_proto == "ocnvc" || wan_proto == "v6opt")){
 			var exist_conflict = exist_v6plus_conflict();
 			if(check_ipv6_s46_ports != "0" && exist_conflict>0){
 				notification.s46_ports = 1;
@@ -676,8 +736,51 @@ var notification = {
 			notification.action_desc[15] = '<#CHT_ppp_notice_2#>';
 			notification.clickCallBack[15] = "location.href = 'Advanced_WAN_Content.asp?af=wan_proto'";			
 		}
-		
-		if( notification.acpw || notification.upgrade || notification.wifi_2g || notification.wifi_5g || notification.wifi_5g2 || notification.ftp || notification.samba || notification.loss_sync || notification.experience_FB || notification.notif_hint || notification.send_debug_log || notification.mobile_traffic || notification.sim_record || notification.pppoe_tw || notification.pppoe_tw_static || notification.ie_legacy || notification.s46_ports){
+		// Low NVRAM
+		if((<% sysinfo("nvram.total"); %> - <% sysinfo("nvram.used"); %>) < 3000){
+			notification.array[17] = 'noti_low_nvram';
+			notification.low_nvram = 1;
+			notification.desc[17] = "Your router is running low on free NVRAM, which might affect its stability.<br>Review long parameter lists (like DHCP reservations), or consider doing a factory default reset and reconfiguring.";
+			notification.action_desc[17] = "Review System Information now";
+			notification.clickCallBack[17] = "location.href = 'Tools_Sysinfo.asp';"
+		}else
+			notification.low_nvram = 0;
+
+		// Low JFFS
+		var jffs_free = "<% sysinfo("jffs.free"); %>";
+		if(jffs_free < 3){
+			notification.array[18] = 'noti_low_jffs';
+			notification.low_jffs = 1;
+			if(jffs_free == -1)
+				notification.desc[18] = "Your router was unable to mount the JFFS partition, which will prevent it from working correctly.  Try rebooting it.";
+			else
+				notification.desc[18] = "Your router is running low on free JFFS storage, which might affect its stability.<br>Review the content of the /jffs directory on your router.";
+			notification.action_desc[18] = "Review System Information now";
+			notification.clickCallBack[18] = "location.href = 'Tools_Sysinfo.asp';"
+		}else
+			notification.low_jffs = 0;
+
+		if(notification.acpw ||
+			notification.upgrade ||
+			notification.wifi_2g ||
+			notification.wifi_5g ||
+			notification.wifi_5g2 ||
+			notification.ftp ||
+			notification.samba ||
+			notification.loss_sync ||
+			notification.experience_FB ||
+			notification.notif_hint ||
+			notification.mobile_traffic ||
+			notification.send_debug_log ||
+			notification.sim_record ||
+			notification.pppoe_tw ||
+			notification.pppoe_tw_static ||
+			notification.ie_legacy ||
+			notification.low_nvram ||
+			notification.low_jffs ||
+			notification.s46_ports ||
+			notification.amas_newob
+		){
 			notification.stat = "on";
 			notification.flash = "on";
 			notification.run_notice();
@@ -698,7 +801,27 @@ var notification = {
 			tarObj1.className = "notification_on1";
 		}
 
-		if(this.flash == "on" && cookie.get("notification_history") != [notification.upgrade, notification.wifi_2g ,notification.wifi_5g ,notification.ftp ,notification.samba ,notification.loss_sync ,notification.experience_FB ,notification.notif_hint, notification.mobile_traffic, notification.send_debug_log, notification.sim_record, notification.pppoe_tw, notification.pppoe_tw_static, notification.ie_legacy, notification.s46_ports].join()){
+		if(this.flash == "on" && window.localStorage.getItem("notification_history") != [
+			notification.upgrade,
+			notification.wifi_2g,
+			notification.wifi_5g,
+			notification.wifi_5g2,
+			notification.ftp,
+			notification.samba,
+			notification.loss_sync,
+			notification.experience_FB,
+			notification.notif_hint,
+			notification.mobile_traffic,
+			notification.send_debug_log,
+			notification.sim_record,
+			notification.pppoe_tw,
+			notification.pppoe_tw_static,
+			notification.ie_legacy,
+			notification.low_nvram,
+			notification.low_jffs, 
+			notification.s46_ports,
+			notification.amas_newob
+			].join()){
 			notification.flashTimer = setInterval(function(){
 				tarObj.className = (tarObj.className == "notification_on") ? "notification_off" : "notification_on";
 			}, 1000);
@@ -722,7 +845,10 @@ var notification = {
 		this.notif_hint = 0;
 		this.mobile_traffic = 0;
 		this.send_debug_log = 0;
+		this.low_nvram = 0;
+		this.low_jffs = 0;
 		this.sim_record = 0;
+		this.amas_newob = 0;
 		this.action_desc = [];
 		this.desc = [];
 		this.array = [];

@@ -369,7 +369,7 @@ void start_vlan_ifnames(void)
 
 				while ((ifname = strsep(&p, " ")) != NULL) {
 					while (*ifname == ' ') ++ifname;
-					if (*ifname == 0) break;
+					if (*ifname == 0) continue;
 					SKIP_ABSENT_FAKE_IFACE(ifname);
 
 					// bring up interface
@@ -475,7 +475,7 @@ void stop_vlan_ifnames(void)
 
 				while ((ifname = strsep(&p, " ")) != NULL) {
 					while (*ifname == ' ') ++ifname;
-					if (*ifname == 0) break;
+					if (*ifname == 0) continue;
 					SKIP_ABSENT_FAKE_IFACE(ifname);
 
 #ifdef CONFIG_BCMWL5
@@ -537,7 +537,7 @@ void start_vlan_wl_ifnames(void)
 				p = wl_ifnames;
 				while ((ifname = strsep(&p, " ")) != NULL) {
 					while (*ifname == ' ') ++ifname;
-					if (*ifname == 0) break;
+					if (*ifname == 0) continue;
 					SKIP_ABSENT_FAKE_IFACE(ifname);
 
 					// bring up interface
@@ -602,7 +602,7 @@ void stop_vlan_wl_ifnames(void)
 				p = wl_ifnames;
 				while ((ifname = strsep(&p, " ")) != NULL) {
 					while (*ifname == ' ') ++ifname;
-					if (*ifname == 0) break;
+					if (*ifname == 0) continue;
 					SKIP_ABSENT_FAKE_IFACE(ifname);
 #ifdef CONFIG_BCMWL5
 #ifdef RTCONFIG_QTN
@@ -983,7 +983,7 @@ void start_vlan_wl(void)
 				p = lan_ifnames;
 				while ((ifname = strsep(&p, " ")) != NULL) {
 					while (*ifname == ' ') ++ifname;
-					if (*ifname == 0) break;
+					if (*ifname == 0) continue;
 
 					unit = -1; subunit = -1;
 
@@ -1031,6 +1031,9 @@ void start_vlan_wl(void)
 #endif	// CONFIG_BCMWL5
 				}
 				free(lan_ifnames);
+#ifdef RTCONFIG_MLO
+				bring_up_wifi_in_mlo_config();
+#endif
 			}
 		}
 #ifdef CONFIG_BCMWL5
@@ -1080,7 +1083,7 @@ void restart_vlan_wl(void)
 				p = lan_ifnames;
 				while ((ifname = strsep(&p, " ")) != NULL) {
 					while (*ifname == ' ') ++ifname;
-					if (*ifname == 0) break;
+					if (*ifname == 0) continue;
 
 					unit = -1; subunit = -1;
 
@@ -1128,6 +1131,9 @@ void restart_vlan_wl(void)
 #endif	// CONFIG_BCMWL5
 				}
 				free(lan_ifnames);
+#ifdef RTCONFIG_MLO
+				bring_up_wifi_in_mlo_config();
+#endif
 			}
 		}
 #ifdef CONFIG_BCMWL5
@@ -1193,7 +1199,7 @@ void vlan_lanaccess_wl(void)
 			p = wl_ifnames;
 			while ((ifname = strsep(&p, " ")) != NULL) {
 				while (*ifname == ' ') ++ifname;
-				if (*ifname == 0) break;
+				if (*ifname == 0) continue;
 				SKIP_ABSENT_FAKE_IFACE(ifname);
 #ifdef CONFIG_BCMWL5
 				if (strncmp(ifname, "wl", 2) == 0 && strchr(ifname, '.')) {

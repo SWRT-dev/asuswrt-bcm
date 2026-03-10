@@ -12,11 +12,11 @@
 <link rel="stylesheet" type="text/css" href="/device-map/amesh.css" />
 <link rel="stylesheet" type="text/css" href="/device-map/device-map.css" />
 <title>device-map/amesh.asp</title>
+<script type="text/javascript" src="/js/jquery.js"></script>
+<script type="text/javascript" src="/js/httpApi.js"></script>
 <script type="text/javascript" src="/state.js"></script>
 <script type="text/javascript" src="/help.js"></script>
-<script type="text/javascript" src="/js/jquery.js"></script>
 <script type="text/javascript" src="/client_function.js"></script>
-<script type="text/javascript" src="../js/httpApi.js"></script>
 <script type="text/javascript" src="../js/sorterApi.js"></script>
 <script>
 
@@ -197,6 +197,7 @@ function ajax_onboarding() {
 			/* Update ready_onBoarding_block end */
 
 			/* Update onBoarding_block */
+			update_node_ui_model_name(get_cfg_clientlist);
 			var list_status = get_cfg_clientlist.length;
 			if(list_status > 1) {
 				if($("#onBoarding_block").children(".amesh_no_data").length > 0)
@@ -348,6 +349,7 @@ function gen_ready_onboardinglist(_onboardingList) {
 		var newReMacArray = _onboardingList[reMac];
 		Object.keys(newReMacArray).forEach(function(key) {
 			var newReMac = key;
+			update_node_ui_model_name([newReMacArray[newReMac]]);
 			var model_name = newReMacArray[newReMac].model_name;
 			var ui_model_name = newReMacArray[newReMac].ui_model_name;
 			var icon_model_name = "";
@@ -413,6 +415,7 @@ function gen_ready_onboardinglist(_onboardingList) {
 						code += "</div>";
 					code += "</div>";
 					code += "</div>";
+					code += `<div class='amesh_ob_status' style='display:none;'></div>`;
 				code += "</div>";
 				$('#ready_onBoarding_block').append(code);
 
@@ -683,10 +686,12 @@ function connectingDevice(_reMac, _newReMac, delay) {
 	$('#ready_onBoarding_block').find("#" + device_id + "").find(".loading-container").css("display", "");
 	$('#ready_onBoarding_block').find("#" + device_id + "").find(".amesh_each_router_icon_bg").css("display", "none");
 	processCount = 0;
+	ajax_extend_obtimeout_flag = false;
 	$('#ready_onBoarding_block').find("#" + device_id + "").find(".processText").html("" + processCount + " %");
 	interval_ajax_get_onboardinglist_status = setInterval(ajax_get_onboardinglist_status, 1000);
 	$('#ready_onBoarding_block').find("#" + device_id + "").find(".amesh_rotate").addClass("connect");
 	$('#ready_onBoarding_block').find("#" + device_id + "").find(".amesh_line_run").addClass("connect");
+	$('#ready_onBoarding_block').find("#" + device_id + "").find(".amesh_ob_status").show().html(`Adding the AiMesh node....`);/* untranslated */
 	$("#searchReadyOnBoarding").css("display", "none");
 	$("#amesh_loadingIcon").css("display", "none");
 	onboarding_flag = true;
@@ -735,6 +740,9 @@ function connectingDevice(_reMac, _newReMac, delay) {
 		document.form.submit();	
 	}
 }
+let ajax_cfg_obstart = "";
+let ajax_cfg_obtimeout = 0;
+let ajax_extend_obtimeout_flag = false;
 function ajax_get_onboardinglist_status() {
 	var accelerate_count = function(_device_id) {
 		if(interval_ajax_get_onboardinglist_status) {
@@ -760,11 +768,19 @@ function ajax_get_onboardinglist_status() {
 		dataType: 'script',
 		success: function() {
 			onboarding_flag = true;
-			var device_id = get_onboardingstatus.cfg_newre.replace(/:/g, "").toUpperCase();
-			var cfg_obresult = get_onboardingstatus.cfg_obresult;
+			const cfg_newre = get_onboardingstatus.cfg_newre;
+			const cfg_obstatus = get_onboardingstatus.cfg_obstatus;
+			const cfg_obstart = get_onboardingstatus.cfg_obstart;
+			const cfg_obtimeout = get_onboardingstatus.cfg_obtimeout;
+			const device_id = cfg_newre.replace(/:/g, "").toUpperCase();
+			let cfg_obresult = get_onboardingstatus.cfg_obresult;
+			const specific_node = get_cfg_clientlist.find(item => item.mac === cfg_newre);
+			const node_online = specific_node?.online || "0";
 			if(Object.keys(get_onboardinglist).length > 0) {
-				if(cfg_obresult != "" && get_onboardingstatus.cfg_newre != "" && get_onboardingstatus.cfg_obstatus == "4" && get_onboardingstatus.cfg_obstart != "" && get_onboardingstatus.cfg_obtimeout != "") {
-					processCount = set_process_percentage(get_onboardingstatus.cfg_obstart, get_onboardingstatus.cfg_obcurrent, get_onboardingstatus.cfg_obtimeout , 100);
+				if(cfg_obresult != "" && cfg_newre != "" && cfg_obstatus == "4" && cfg_obstart != "" && cfg_obtimeout != "") {
+					ajax_cfg_obstart = cfg_obstart;
+					ajax_cfg_obtimeout = (isNaN(parseInt(cfg_obtimeout)) ? 0 : parseInt(cfg_obtimeout));
+					processCount = set_process_percentage(ajax_cfg_obstart, get_onboardingstatus.cfg_obcurrent, ajax_cfg_obtimeout , 100);
 					switch(parseInt(cfg_obresult)) {
 						case 0 : //Init
 						case 1 : //Start
@@ -780,7 +796,7 @@ function ajax_get_onboardinglist_status() {
 							break;
 					}
 				}
-				else if(get_onboardingstatus.cfg_obstatus == "1") {//for onboarding abnormal
+				else if(cfg_obstatus == "1" && cfg_obresult != "2") {//for onboarding abnormal
 					if(processCount < 100) {
 						accelerate_count(device_id);
 						cfg_obresult = 4;
@@ -789,20 +805,48 @@ function ajax_get_onboardinglist_status() {
 			}
 			else {
 				//for onboarding finish
-				if(get_onboardingstatus.cfg_obstatus == "1" && (get_onboardingstatus.cfg_obresult == "2" || get_onboardingstatus.cfg_obresult == "4" || get_onboardingstatus.cfg_obresult == "5") && get_onboardingstatus.cfg_newre != "") {
-					if(processCount < 100)
-						accelerate_count(device_id);
+				if(processCount < 100){
+					if(!ajax_extend_obtimeout_flag && cfg_obresult === "2" && node_online === "0"){
+						ajax_extend_obtimeout_flag = true;
+						ajax_cfg_obtimeout = 180;
+						ajax_cfg_obstart = get_onboardingstatus.cfg_obcurrent;
+					}
+					processCount = set_process_percentage(ajax_cfg_obstart, get_onboardingstatus.cfg_obcurrent, ajax_cfg_obtimeout , 100);
+				}
+				if(cfg_obstatus == "1" && cfg_newre != ""){
+					if(cfg_obresult === "4" || cfg_obresult === "5"){
+						if(processCount < 100)
+							accelerate_count(device_id);
+					}
+					else if(cfg_obresult === "2" && node_online === "1"){
+						if(processCount < 100)
+							accelerate_count(device_id);
+					}
 				}
 			}
 
 			$('#ready_onBoarding_block').find("#" + device_id + "").find(".processText").html("" + processCount + " %");
+			if(processCount > 0 && processCount < 100){
+				const ob_status = (()=>{
+					if(cfg_obresult == "1") return `Adding the AiMesh node....`;/* untranslated */
+					else if(cfg_obresult == "3") return `The node is joining the network....`;/* untranslated */
+					else if(cfg_obresult == "2") return `Activating your mesh network....`;/* untranslated */
+					else return ``;
+				})();
+				if(ob_status === ""){
+					$('#ready_onBoarding_block').find("#" + device_id + "").find(".amesh_ob_status").hide().html(``);
+				}
+				else{
+					$('#ready_onBoarding_block').find("#" + device_id + "").find(".amesh_ob_status").show().html(ob_status);
+				}
+			}
 
 			if(processCount >= 100) {
 				if(interval_ajax_get_onboardinglist_status) {
 					clearInterval(interval_ajax_get_onboardinglist_status);
 					interval_ajax_get_onboardinglist_status = false;
 				}
-				show_connect_result(cfg_obresult, get_onboardingstatus.cfg_newre, get_onboardingstatus.cfg_obmodel, get_onboardingstatus.cfg_ui_obmodel);
+				show_connect_result(cfg_obresult, cfg_newre, get_onboardingstatus.cfg_obmodel, get_onboardingstatus.cfg_ui_obmodel, node_online);
 			}
 		}
 	});
@@ -1099,6 +1143,9 @@ function show_connect_msg(_reMac, _newReMac, _node_info) {
 						auth_list["wpa2"] = "WPA2-Enterprise";
 						auth_list["wpawpa2"] = "WPA/WPA2-Enterprise";
 						auth_list["sae"] = "WPA3-Personal";
+						auth_list["wpa3"] = "WPA3-Enterprise";
+						auth_list["wpa2wpa3"] = "WPA2/WPA3-Enterprise";
+						auth_list["suite-b"] = "WPA3-Enterprise 192-bit";
 
 						var current_auth = "";
 						var changeTo_auth = "";
@@ -1129,10 +1176,25 @@ function show_connect_msg(_reMac, _newReMac, _node_info) {
 								changeTo_auth += set_replace_str(changeTo_auth, "psk2sae", index);
 								auth_flag = true;
 							}
+							//case 3, WPA3-Enterprise, WPA2/WPA3-Enterprise, WPA3-Enterprise 192-bit
+							if(authMode == "wpa3" || authMode == "wpa2wpa3" || authMode == "suite-b"){
+								postData["wl" + index + "_auth_mode_x"] = "psk2sae";
+								if(authMode == "suite-b"){
+									postData["wl" + index + "_crypto"] = "aes";
+								}
+								postData["wl" + index + "_mfp"] = 1;
+								current_auth += set_replace_str(current_auth, authMode, index);
+								changeTo_auth += set_replace_str(changeTo_auth, "psk2sae", index);
+								auth_flag = true;
+							}
 						});
 
 						if(enable_wps_flag){
 							postData["wps_enable"] = "1";
+						}
+
+						if(isSupport("mlo")){
+							if(httpApi.nvramGet(["mld_enable"]).mld_enable == "1") postData = {};
 						}
 
 						if(Object.keys(postData).length){
@@ -1218,7 +1280,7 @@ function show_connect_msg(_reMac, _newReMac, _node_info) {
 		}
 	});	
 }
-function show_connect_result(_status, _newReMac, _model_name, _ui_model_name) {
+function show_connect_result(_status, _newReMac, _model_name, _ui_model_name, _node_online) {
 	initial_amesh_obj();
 
 	var labelMac = _newReMac;
@@ -1242,7 +1304,10 @@ function show_connect_result(_status, _newReMac, _model_name, _ui_model_name) {
 		$successResult1.attr({"id" : "amesh_successResult_1"});
 		$connectResultHtml.append($successResult1);
 		result_text = "";
-		result_text += "<#AiMesh_Node_AddDescA#>";
+		if(_node_online === "1")
+			result_text += "<#AiMesh_Node_AddDescA#>";
+		else
+			result_text += "<#AiMesh_Node_WaitReady#>";
 		result_text += "<br>";
 		result_text += "<#AiMesh_Node_AddDescB#>";
 		result_text += "<br>";
@@ -1331,6 +1396,15 @@ function show_connect_result(_status, _newReMac, _model_name, _ui_model_name) {
 	var $amesh_action_bg = $('<div>');
 	$amesh_action_bg.addClass("amesh_action_bg");
 	$connectResultHtml.append($amesh_action_bg);
+
+	$("<input/>")
+		.addClass("button_gen")
+		.attr({"type" : "button", "value" : `<#menu_feedback#>`})
+		.unbind("click").click(function(e){
+			e = e || event;
+			e.stopPropagation();
+			top.location.href = "/Advanced_Feedback.asp?origPage=AiMesh";
+		}).appendTo($amesh_action_bg);
 
 	var $amesh_cancel = $('<input/>');
 	$amesh_cancel.addClass("button_gen");
@@ -1465,7 +1539,7 @@ function download_cloud_icon(model_info, device_id, parent_bg_id) {
 		}
 	};
 
-	if('<% nvram_get("x_Setting"); %>' == '1' && parent.wanConnectStatus && checkCloudIconErrorTimes[cloudModelName] < 5 && !checkCloudIconExist[cloudModelName]) {
+	if((httpApi.isConnected(0) || httpApi.isConnected(1)) && checkCloudIconErrorTimes[cloudModelName] < 5 && !checkCloudIconExist[cloudModelName]) {
 		httpApi.checkCloudModelIcon(
 			model_info,
 			function(src){
@@ -2241,7 +2315,7 @@ function set_process_percentage(_start, _current, _timeout, _percentage) {
 	var percentage = 0;
 	var interval = parseInt(_current) - parseInt(_start);
 	var denominator = parseInt(_timeout) / parseInt(_percentage);
-	percentage = Math.round( interval / denominator );
+	percentage = isNaN(Math.round( interval / denominator )) ? 0 : Math.round( interval / denominator );
 	return percentage;
 }
 function formatMAC(_value) {
@@ -2355,6 +2429,7 @@ function ajax_AiMesh_node_clients(_nodeMac){
 					}
 					return result;
 				};
+				update_node_ui_model_name(get_cfg_clientlist);
 				var node_info = getNodeInfo(get_cfg_clientlist, ["mac", _nodeMac]);
 				var wired_client = get_wiredclientlist[_nodeMac];
 				var wl_client = get_wclientlist[_nodeMac];
@@ -2421,21 +2496,25 @@ function gen_AiMesh_node_client(_nodeClient_array) {
 			}
 			nodeClientHtml += "<td class='IE8HACK' width='" + aimesh_node_client_info_width[0] + "' align='center' title='" + deviceTitle + "'>";
 			if(userIconBase64 != "NoIcon") {
-				nodeClientHtml += "<div class='aimesh_node_client_icon_userIcon' style='background-image:url(" + userIconBase64 + ");'></div>";
+                if(nodeClientObj.isUserUplaodImg){
+				    nodeClientHtml += "<div class='aimesh_node_client_icon_userIcon' style='background-image:url(" + userIconBase64 + ");'></div>";
+                }else{
+                    nodeClientHtml += "<div class='aimesh_node_client_icon_userIcon'><i class='type' style='--svg:url(" + userIconBase64 + ")'></i></div>";
+                }
 				nodeClientHtml += "";
 			}
 			else if( nodeClientObj.type != "0" || nodeClientObj.vendor == "") {
 				var icon_type = "type" + nodeClientObj.type;
-				nodeClientHtml += "<div class='clientIcon_no_hover " + icon_type + " aimesh_node_client_icon_default'></div>";
+				nodeClientHtml += "<div class='clientIcon_no_hover aimesh_node_client_icon_default'><i class='" + icon_type + "'></i></div>";
 			}
 			else if(nodeClientObj.vendor != "" ) {
-				var venderIconClassName = getVenderIconClassName(nodeClientObj.vendor.toLowerCase());
-				if(venderIconClassName != "" && !downsize_4m_support) {
-					nodeClientHtml += "<div class='venderIcon_no_hover " + venderIconClassName + " aimesh_node_client_icon_vendor'></div>";
+				var vendorIconClassName = getVendorIconClassName(nodeClientObj.vendor.toLowerCase());
+				if(vendorIconClassName != "" && !downsize_4m_support) {
+					nodeClientHtml += "<div class='vendorIcon_no_hover aimesh_node_client_icon_vendor'><i class='vendor-icon " + vendorIconClassName + "'></i></div>";
 				}
 				else {
 					var icon_type = "type" + nodeClientObj.type;
-					nodeClientHtml += "<div class='clientIcon_no_hover " + icon_type + " aimesh_node_client_icon_default'></div>";
+					nodeClientHtml += "<div class='clientIcon_no_hover aimesh_node_client_icon_default'><i class='" + icon_type + "'></i></div>";
 				}
 			}
 			nodeClientHtml += "</td>";
@@ -2453,7 +2532,9 @@ function gen_AiMesh_node_client(_nodeClient_array) {
 			nodeClientHtml += "<div style='margin: auto;' class='radioIcon radio_" + rssi + "'></div>";
 			if(nodeClientObj.isWL != "0") {
 				var bandClass = (navigator.userAgent.toUpperCase().match(/CHROME\/([\d.]+)/)) ? "band_txt_chrome" : "band_txt";
-				nodeClientHtml += "<div class='band_block' style='margin: auto;'><span class=" + bandClass + " style='color: #000000;'>" + isWL_map[nodeClientObj.isWL]["text"] + "</span></div>";
+				let band_text = isWL_map[nodeClientObj.isWL]["text"];
+				if(isSupport("mlo") && nodeClientObj.mlo == "1") band_text = `MLO`;
+				nodeClientHtml += `<div class='band_block' style='margin: auto;'><span class="${bandClass}" style='color: #000000;'>${band_text}</span></div>`;
 			}
 			nodeClientHtml += "</td>";
 			nodeClientHtml += "</tr>";
@@ -2723,6 +2804,79 @@ function handle_re_path(_re_path){
 	var result = parseInt(_re_path);
 	return ((isNaN(result)) ? 0 : result);
 }
+let uiModelNameCloud = (()=>{
+	const storedData = window.localStorage.getItem('uiModelNameJson');
+	if (storedData) {
+		return JSON.parse(storedData);
+	}
+	else {
+		return {};
+	}
+})();
+function update_node_ui_model_name(nodeList){
+	if (!Array.isArray(nodeList)) return;
+	let lang = httpApi.nvramGet(["preferred_lang"]).preferred_lang;
+	for (let node of nodeList){
+		let model_name = node["model_name"];
+		let cobrand = httpApi.aimesh_get_misc_info(node).cobrand;
+		const uiModelName = findUIModelName({
+			"model": model_name,
+			"lang": lang,
+			"coBrand": cobrand,
+		});
+		if (uiModelName) {
+			node["ui_model_name"] = uiModelName;
+		}
+	}
+
+	function findUIModelName(params) {
+		if (!params) {
+			return "";
+		}
+		const { model, lang, coBrand } = params;
+		if (!model) {
+			return "";
+		}
+		if (!uiModelNameCloud[model]) return "";
+
+		let defaultLang = null;
+		let defaultCoBrand = null;
+
+		for (let item of uiModelNameCloud[model]) {
+			if (item.lang === lang && item.CoBrand === coBrand) {
+				return item.uiModelName;
+			}
+			if (item.lang === "*" && item.CoBrand === coBrand) {
+				defaultLang = item.uiModelName;
+			}
+			if (item.lang === lang && item.CoBrand === "*") {
+				defaultCoBrand = item.uiModelName;
+			}
+			if (item.lang === "*" && item.CoBrand === "*") {
+				defaultLang = item.uiModelName;
+			}
+		}
+
+		if (defaultCoBrand) {
+			return defaultCoBrand;
+		}
+
+		if (defaultLang) {
+			return defaultLang;
+		}
+
+		return "";
+	}
+}
+</script>
+<script type="module">
+	import { initializeUIModelName, uiModelNameJson } from '/js/uiModelName.module.js';
+	if (Object.keys(uiModelNameCloud).length === 0) {
+		(async () => {
+			const data = await initializeUIModelName();
+			uiModelNameCloud = data;
+		})();
+	}
 </script>
 </head>
 
@@ -2767,7 +2921,7 @@ function handle_re_path(_re_path){
 	</tr>
 	<tr>
 </table>
-<table  width="95%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="table1px" style="margin-bottom:5px;display:;">
+<table  width="95%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="table1px" style="margin-bottom:5px;">
 	<tr>
 		<td colspan="2">
 			<div class="amesh_title"><#AiMesh_FindNode#></div>

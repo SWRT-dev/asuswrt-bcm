@@ -111,8 +111,9 @@ static int connection_del(server *srv, connection *con) {
 
 	/* not last element */
 
-	if (i != conns->used - 1) {
+	if (conns != NULL && conns->ptr != NULL && i >= 0 && i < conns->used && conns->used > 0) {
 		temp = conns->ptr[i];
+
 		conns->ptr[i] = conns->ptr[conns->used - 1];
 		conns->ptr[conns->used - 1] = temp;
 
@@ -493,6 +494,12 @@ static int connection_handle_write_prepare(server *srv, connection *con) {
 		/* only custom body for 4xx and 5xx */
 		if (con->http_status < 400 || con->http_status >= 600) break;
 
+		if (is_valid_string(con->url.rel_path->ptr)!=0) {
+			con->http_status = 451;
+			con->file_finished = 1;
+			break;
+		}
+
 		con->file_finished = 0;
 
 		buffer_reset(con->physical.path);
@@ -516,9 +523,10 @@ static int connection_handle_write_prepare(server *srv, connection *con) {
 
 				//- 20130104 Sungmin add
 				if(con->http_status==401){
+
 					buffer *out = buffer_init();					
-					buffer_copy_string_len(out, CONST_STR_LEN("<input class='urlInfo' value='"));				
-					buffer_append_string_buffer(out, con->url.rel_path);				
+					buffer_copy_string_len(out, CONST_STR_LEN("<input class='urlInfo' value='"));
+					buffer_append_string_buffer(out, con->url.rel_path);
 					buffer_append_string_len(out, CONST_STR_LEN("' type='hidden'>"));
 					chunkqueue_append_buffer(con->write_queue, out);
 					buffer_free(out);
@@ -681,7 +689,16 @@ static int connection_handle_write(server *srv, connection *con) {
 static int parser_share_link(server *srv, connection *con){	
 	int result=0;
 
-	if(strncmp(con->request.uri->ptr, "/AICLOUD", 8)==0){
+	if (srv==NULL || con==NULL) {
+		return result;
+	}
+	
+	if (con->request.uri == NULL|| con->request.uri->ptr == NULL) {
+		return result;
+	}
+
+	size_t uri_length = strlen(con->request.uri->ptr);
+	if(uri_length >= 8 && strncmp(con->request.uri->ptr, "/AICLOUD", 8)==0){
 		int is_illegal = 0;
 		int y = strstr (con->request.uri->ptr+1,"/") - (con->request.uri->ptr);
 		
@@ -724,15 +741,24 @@ static int parser_share_link(server *srv, connection *con){
 				buffer* filename2 = buffer_init();
 				buffer_copy_buffer(filename2,c->filename);
 				
-				int com_result = strncmp( filename->ptr, filename2->ptr, filename2->used-1) ;
+				if (filename != NULL && filename->ptr != NULL &&
+					filename2 != NULL && filename2->ptr != NULL &&
+					filename2->used > 0) {
 
-				buffer_free(filename2);
+					int com_result = strncmp( filename->ptr, filename2->ptr, filename2->used-1) ;
+					buffer_free(filename2);	
 
-				if( com_result!= 0 ){					
+					if( com_result!= 0 ){					
+						is_illegal = 1;					
+						break;
+					}
+				}
+				else {
+					buffer_free(filename2);
 					is_illegal = 1;					
 					break;
 				}
-
+				
 				buffer_copy_string( con->share_link_basic_auth, "Basic " );
 				buffer_append_string_buffer( con->share_link_basic_auth, c->auth );
 
@@ -793,7 +819,7 @@ static int parser_share_link(server *srv, connection *con){
 
 static int redirect_mobile_share_link(server *srv, connection *con){
 	data_string *ds_userAgent = (data_string *)array_get_element(con->request.headers, "user-Agent");
-	char* aa = get_filename_ext(con->request.uri->ptr);
+	const char* aa = get_filename_ext(con->request.uri->ptr);
 	int len = strlen(aa)+1; 		
 	char* file_ext = (char*)malloc(len);
 	memset(file_ext,'\0', len);
@@ -988,12 +1014,12 @@ static void check_available_temp_space(server *srv, connection *con){
 			snprintf(disk_full_path, sizeof(disk_full_path), "%s%s", disk_path, de->d_name);
 			snprintf(querycmd, sizeof(querycmd), "df|grep -i '%s'", disk_full_path);
 			
-			char mybuffer[BUFSIZ]="\0";
+			char mybuffer[BUFSIZ] = "\0";
 			FILE* fp = popen( querycmd, "r");
 			if(fp){
-				int len = fread(mybuffer, sizeof(char), BUFSIZ, fp);
+				int len = fread(mybuffer, sizeof(char), BUFSIZ - 1, fp);
 				if(len>0){
-					mybuffer[len-1]="\0";
+					mybuffer[len] = '\0';
 				
 					char * pch;
 					pch = strtok(mybuffer, " ");
@@ -1021,6 +1047,9 @@ static void check_available_temp_space(server *srv, connection *con){
 						count++;
 					}
 
+				}
+				else {
+					mybuffer[0] = '\0';
 				}
 
 				pclose(fp);
@@ -1315,11 +1344,13 @@ int connection_reset(server *srv, connection *con) {
 
 		if (!pd) continue;
 
-		if (con->plugin_ctx[pd->id] != NULL) {
-			log_error_write(srv, __FILE__, __LINE__, "sb", "missing cleanup in", p->name);
-		}
+		if (pd->id >= 0 && pd->id < srv->plugins.used) {
+			if (con->plugin_ctx[pd->id] != NULL) {
+				log_error_write(srv, __FILE__, __LINE__, "sb", "missing cleanup in", p->name);
+			}
 
-		con->plugin_ctx[pd->id] = NULL;
+			con->plugin_ctx[pd->id] = NULL;
+		}
 	}
 
 	/* The cond_cache gets reset in response.c */
@@ -1769,7 +1800,9 @@ int connection_state_machine(server *srv, connection *con) {
 				buffer_copy_string_len(tmp, ds_cookie->value->ptr, ds_cookie->value->used);		
 				buffer_urldecode_path(tmp);
 				memset(buf, 0, sizeof(buf));
-				strncpy(buf, tmp->ptr, tmp->used);
+				size_t len = tmp->used > sizeof(buf) ? sizeof(buf) - 1 : tmp->used;
+				strncpy(buf, tmp->ptr, len);
+				buf[len] = '\0';
 				buffer_free(tmp);
 				
 				// check for "<AuthName>=" entry in a cookie

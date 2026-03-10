@@ -154,7 +154,7 @@ void start_ubifs(void)
 	int mtd_part = 0, mtd_size = 0;
 	char dev_mtd[] = "/dev/mtdXXX";
 #endif
-#if (defined(RTCONFIG_BCMARM) || defined(RTCONFIG_HND_ROUTER)) && !defined(RTCONFIG_HND_ROUTER_AX_6756)
+#if (defined(RTCONFIG_BCMARM) || defined(RTCONFIG_HND_ROUTER)) && !defined(BCM4912) && !defined(RTCONFIG_HND_ROUTER_AX_6756) && !defined(RTCONFIG_HND_ROUTER_BE_4916)
 	int mtd_part = 0, mtd_size = 0;
 	char dev_mtd[] = "/dev/mtdXXX";
 #endif
@@ -179,7 +179,7 @@ void start_ubifs(void)
 	if (!nvram_get_int("ubifs_clean_fs")) {
 		/* attach ubi */
 		snprintf(dev_mtd, sizeof(dev_mtd), "/dev/mtd%d", mtd_part);
-		_dprintf("*** ubifs: attach (%s, %d)\n", dev_mtd, UBI_DEV_NUM);
+		_dprintf("*** ubifs: attach (%s, %s)\n", dev_mtd, UBI_DEV_NUM);
 		eval("ubiattach", "-p", dev_mtd, "-d", UBI_DEV_NUM);
 	}
 
@@ -206,17 +206,17 @@ void start_ubifs(void)
 
 			/* attach ubi */
 			snprintf(dev_mtd, sizeof(dev_mtd), "/dev/mtd%d", mtd_part);
-			_dprintf("*** ubifs: attach (%s, %d)\n", dev_mtd, UBI_DEV_NUM);
+			_dprintf("*** ubifs: attach (%s, %s)\n", dev_mtd, UBI_DEV_NUM);
 			eval("ubiattach", "-p", dev_mtd, "-d", UBI_DEV_NUM);
 
 			/* make ubi volume */
 			_dprintf("*** ubifs: create jffs2 volume\n");
-			eval("ubimkvol", UBI_DEV_PATH, "-s", vol_size_s, "-N", UBIFS_VOL_NAME);
+			eval("ubimkvol", UBI_DEV_PATH, "-N", UBIFS_VOL_NAME, "-m");
 			format = 1;
 		}
 	}
 #endif
-#if (defined(RTCONFIG_BCMARM) || defined(RTCONFIG_HND_ROUTER)) && !defined(RTCONFIG_HND_ROUTER_AX_6756)
+#if (defined(RTCONFIG_BCMARM) || defined(RTCONFIG_HND_ROUTER)) && !defined(BCM4912) && !defined(RTCONFIG_HND_ROUTER_AX_6756) && !defined(RTCONFIG_HND_ROUTER_BE_4916)
 	if (!mtd_getinfo(JFFS2_MTD_NAME, &mtd_part, &mtd_size)) return;
 	snprintf(dev_mtd, sizeof(dev_mtd), "/dev/mtd%d", mtd_part);
 	_dprintf("*** ubifs: %s (%d, %d)\n", JFFS2_MTD_NAME, mtd_part, mtd_size);
@@ -281,6 +281,7 @@ void start_ubifs(void)
 
 	sprintf(s, "%d", size);
 	p = nvram_get("ubifs_size");
+
 	if ((p == NULL) || (strcmp(p, s) != 0)) {
 		if (format) {
 			nvram_set("ubifs_size", s);
@@ -295,11 +296,12 @@ void start_ubifs(void)
 	    && (sf.f_type != 0x73717368 /* squashfs */ )) {
 		// already mounted
 		notice_set("ubifs", format ? "Formatted" : "Loaded");
-#if defined(RTCONFIG_HND_ROUTER_AX_6756)
+#if defined(RTCONFIG_HND_ROUTER_AX_6756) || defined(RTCONFIG_HND_ROUTER_BE_4916)
 		goto skip_mnt;
 #endif
 		return;
 	}
+#if !defined(RTCONFIG_MT798X) && !defined(RTCONFIG_MT799X)
 	if (nvram_get_int("ubifs_clean_fs")) {
 		if (ubifs_unlock(dev, part)) {
 			error("unlocking");
@@ -310,6 +312,7 @@ void start_ubifs(void)
 		nvram_commit_x();
 #endif
 	}
+#endif
 	sprintf(s, "/dev/ubi%d_%d", dev, part);
 
 	if (mount(s, UBIFS_MNT_DIR, UBIFS_FS_TYPE, MS_NOATIME, "") != 0) {
@@ -328,14 +331,14 @@ void start_ubifs(void)
 	}
 
 
-#if defined(RTCONFIG_HND_ROUTER_AX_6756)
+#if defined(RTCONFIG_HND_ROUTER_AX_6756) || defined(RTCONFIG_HND_ROUTER_BE_4916)
 skip_mnt:
 #endif
 
 #if defined(RTCONFIG_ISP_CUSTOMIZE)
 	load_customize_package();
 #endif
-#if (defined(RTCONFIG_BCMARM) || defined(RTCONFIG_HND_ROUTER)) && !defined(BCM4912) && !defined(RTCONFIG_HND_ROUTER_AX_6756)
+#if (defined(RTCONFIG_BCMARM) || defined(RTCONFIG_HND_ROUTER)) && !defined(BCM4912) && !defined(RTCONFIG_HND_ROUTER_AX_6756) && !defined(RTCONFIG_HND_ROUTER_BE_4916)
 BRCM_UBI:
 		nvram_unset("ubifs_clean_fs");
 		nvram_commit_x();
@@ -345,22 +348,24 @@ BRCM_UBI:
 		// This refer to jffs2.c. 
 		// Because ubifs_unlock (erase) doesn't be called if ISP_CUSTOMIZE=y.
 		// We use rm command (remove file includes hidden files.) instead.
-		//if((0 == nvram_get_int("x_Setting")) && (check_if_file_exist("/jffs/remove_hidden_flag")))
-		//{
+		if((0 == nvram_get_int("x_Setting")) && (check_if_file_exist("/jffs/remove_hidden_flag")))
+		{
 #if defined(RTCONFIG_ISP_CUSTOMIZE_TOOL) || defined(RTCONFIG_ISP_CUSTOMIZE)
 			// Remove hidden folder but excluding /jffs/.ac and /jffs/.package.
 			system("find /jffs/ -name '.*' -a ! -name '.ict' -a ! -name '.package' -a ! -name '.package.tar.gz' -a ! -name 'package.tar.gz' -exec rm -rf {} \\;");
 			_dprintf("Clean /jffs/.*\n");
 #else
-			//system("rm -rf /jffs/.*");
+			system("rm -rf /jffs/.*");
 #endif
-		//}
+		}
 		_dprintf("Clean /jffs/*\n");
 		system("rm -fr /jffs/*");
 		nvram_unset("ubifs_clean_fs");
 		nvram_commit_x();
 	}
+
 	userfs_prepare(UBIFS_MNT_DIR);
+
 	notice_set("ubifs", format ? "Formatted" : "Loaded");
 
 	if (((p = nvram_get("ubifs_exec")) != NULL) && (*p != 0)) {
@@ -391,6 +396,12 @@ BRCM_UBI:
 	if (!check_if_dir_exist("/jffs/scripts/")) mkdir("/jffs/scripts/", 0755);
 	if (!check_if_dir_exist("/jffs/configs/")) mkdir("/jffs/configs/", 0755);
 	if (!check_if_dir_exist("/jffs/.sys/")) mkdir("/jffs/.sys/", 0755);
+#if defined(RTCONFIG_SWRTMESH)
+	if (!check_if_dir_exist("/jffs/swrtmesh/")) mkdir("/jffs/swrtmesh/", 0755);
+	if (!check_if_dir_exist("/jffs/multiap/")) mkdir("/jffs/multiap/", 0755);
+	system("ln -sf /jffs/swrtmesh /etc/config");
+	system("ln -sf /jffs/multiap /etc/multiap");
+#endif
 }
 
 void stop_ubifs(int stop)

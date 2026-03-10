@@ -12,11 +12,11 @@
 <link rel="stylesheet" type="text/css" href="form_style.css">
 <link rel="stylesheet" type="text/css" href="usp_style.css">
 <link rel="stylesheet" type="text/css" href="app_installation.css">
+<script type="text/javascript" src="/js/jquery.js"></script>
 <script type="text/javascript" src="/state.js"></script>
 <script type="text/javascript" src="/popup.js"></script>
 <script type="text/javascript" src="/help.js"></script>
 <script type="text/javascript" src="/disk_functions.js"></script>
-<script type="text/javascript" src="/js/jquery.js"></script>
 <script type="text/javascript" src="/js/httpApi.js"></script>
 <style>
 #Aidisk_png{
@@ -154,7 +154,7 @@ function initial(){
 	}
 
 	if(sw_mode == 2 || sw_mode == 3 || sw_mode == 4 || re_mode == "1" || !modem_support  || nomodem_support ||
-		based_modelid == "4G-AC53U" || based_modelid == "4G-AC55U" ||based_modelid == "4G-AC68U"){
+		based_modelid.substring(0,3) == "4G-"){
 		if(default_apps_array.getIndexByValue2D("3G/4G") != -1)
 			default_apps_array = default_apps_array.del(default_apps_array.getIndexByValue2D("3G/4G")[0]);
 	}

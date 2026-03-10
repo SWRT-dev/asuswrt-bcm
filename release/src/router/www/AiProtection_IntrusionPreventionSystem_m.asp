@@ -2,19 +2,18 @@
 <html>
 <head>
 	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 	<meta http-equiv="X-UA-Compatible" content="ie=edge">
 	<title><#Web_Title#> - <#AiProtection_two-way_IPS#></title>
 	<link rel="stylesheet" href="index_style.css"> 
 	<link rel="stylesheet" href="form_style.css">
 	<link rel="stylesheet" href="/css/adaptive_mobile.css">
-
+    <script type="text/javascript" src="/js/jquery.js"></script>
 	<script src="/js/httpApi.js"></script>
 	<script src="/state.js"></script>
 	<script src="/popup.js"></script>
 	<script src="/general.js"></script>
 	<script src="/help.js"></script>
-	<script src="/js/jquery.js"></script>
 	<script src="/disk_functions.js"></script>
 	<script src="/form.js"></script>
 	<script src="/client_function.js"></script>
@@ -68,6 +67,28 @@
 <script>
 var ctf_disable = '<% nvram_get("ctf_disable"); %>';
 var ctf_fa_mode = '<% nvram_get("ctf_fa_mode"); %>';
+var getUrlParameter = function getUrlParameter(param){
+	var url_parm = window.location.search.substring(1);
+	var parm_array = url_parm.split("&");
+	var key_value;
+
+	for(var i = 0; i < parm_array.length; i += 1){
+		key_value = parm_array[i].split("=");
+		if (key_value[0] == param) {
+			return typeof key_value[1] == "undefined" ? "" : decodeURIComponent(key_value[1]);
+		}
+	}
+	return "";
+};
+let theme = getUrlParameter("current_theme").toUpperCase();
+if(theme == "WHITE"){
+	$('link').last().after('<link group="extend_css" rel="stylesheet" type="text/css" href="/css/adaptive_mobile_WHITE.css">');
+}
+else{
+	if (isSupport("UI4")) {
+		$('link').last().after('<link group="extend_css" rel="stylesheet" type="text/css" href="/css/adaptive_mobile_WHITE.css">');
+	}
+}
 
 function initial(){
 	if(document.form.wrs_protect_enable.value == '1' && document.form.wrs_vp_enable.value == '1'){
@@ -269,20 +290,21 @@ function collectChart(data, date){
 }
 
 function drawLineChart(date_label, high_array, medium_array, low_array){
+	const fillColor = (theme === "WHITE" || isSupport("UI4")) ? "#181818" : "#FFFFFF";
 	var lineChartData = {
 		labels: date_label,
 		datasets: [{
 			fillColor: "rgba(255,255,255,0)",
 			strokeColor: "#ED1C24",
 			pointColor: "#ED1C24",
-			pointHighlightFill: "#FFF",
+			pointHighlightFill: fillColor,
 			pointHighlightStroke: "#ED1C24",
 			data: high_array
 		}, {
 			fillColor: "rgba(255,255,255,0)",
 			strokeColor: "#FFE500",
 			pointColor: "#FFE500",
-			pointHighlightFill: "#FFF",
+			pointHighlightFill: fillColor,
 			pointHighlightStroke: "#FFE500",
 			data: medium_array
 		},
@@ -290,7 +312,7 @@ function drawLineChart(date_label, high_array, medium_array, low_array){
 			fillColor: "rgba(255,255,255,0)",
 			strokeColor: "#59CA5E",
 			pointColor: "#59CA5E",
-			pointHighlightFill: "#FFF",
+			pointHighlightFill: fillColor,
 			pointHighlightStroke: "#59CA5E",
 			data: low_array
 		}]
@@ -298,9 +320,11 @@ function drawLineChart(date_label, high_array, medium_array, low_array){
 
 
 	var ctx = document.getElementById("canvas").getContext("2d");
+	const axisColor = (theme === "WHITE" || isSupport("UI4")) ? "#181818" : "#FFFFFF";
 	window.myLine = new Chart(ctx).Line(lineChartData, {
 		responsive: true,
 		maintainAspectRatio: false,
+		scaleFontColor: axisColor,
 	});
 }
 
@@ -700,7 +724,7 @@ function hideConfirm(){
 			</div>
 		</div>
 		
-		<div>
+		<div class="card-lv1 card-lv1-bg">
 			<div class="table" id="detail_info_table"></div>
 		</div>
 

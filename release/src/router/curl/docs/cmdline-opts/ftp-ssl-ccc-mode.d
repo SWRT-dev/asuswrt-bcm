@@ -1,4 +1,4 @@
-c: Copyright (C) 1998 - 2022, Daniel Stenberg, <daniel@haxx.se>, et al.
+c: Copyright (C) Daniel Stenberg, <daniel@haxx.se>, et al.
 SPDX-License-Identifier: curl
 Long: ftp-ssl-ccc-mode
 Arg: <active/passive>
@@ -8,8 +8,9 @@ Added: 7.16.2
 See-also: ftp-ssl-ccc
 Category: ftp tls
 Example: --ftp-ssl-ccc-mode active --ftp-ssl-ccc ftps://example.com/
+Multi: boolean
 ---
-Sets the CCC mode. The passive mode will not initiate the shutdown, but
-instead wait for the server to do it, and will not reply to the shutdown from
+Sets the CCC mode. The passive mode does not initiate the shutdown, but
+instead waits for the server to do it, and does not reply to the shutdown from
 the server. The active mode initiates the shutdown and waits for a reply from
 the server.

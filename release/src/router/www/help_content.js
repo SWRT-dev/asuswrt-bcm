@@ -26,10 +26,9 @@ helpcontent[0] = new Array("",
 			"",
 			"<#Access_Time_desc#>",
 			"<#Access_Intranet_desc#>",
-			"Smart Connect is the feature which could automatically steer clients to the most appropriate band (2.4GHz, 5GHz-1 and 5GHz-2)." /*untranslated*/
+			"<#smart_connect_help_hint#>",
+			"<#WiFi_AFC_hint#>"
 			 );
-if ("<% nvram_get("wl2_band"); %>".length == 0)
-	helpcontent[0][27] = "Smart Connect is the feature which could automatically steer clients to the most appropriate band (2.4GHz and 5GHz)."; /*untranslated*/
 helpcontent[1] = new Array("",
 						   "<#WLANConfig11b_x_APMode_itemdesc#>",
 						   "<#WLANConfig11b_Channel_itemdesc#>",
@@ -76,7 +75,8 @@ helpcontent[3] = new Array("",
 							"<#WLANConfig11b_x_roamingassit_desc#>",	//31
 							"<#WLANConfig11b_x_Airtime_Fairness_itemdesc#>",
 							"<#WLANConfig11b_x_Auto#>",
-							"<#WLANConfig11b_x_BTCoexistence_itemdesc#>"
+							"<#WLANConfig11b_x_BTCoexistence_itemdesc#>",
+							"<#WLANConfig11b_x_client_limit_itemdesc#>"
 							 );
 
 helpcontent[4] = new Array("",
@@ -158,8 +158,9 @@ helpcontent[7] = new Array("",
 							 "<#WAN_DNS_Rebind_Desc#>",
 							 "<#WAN_DNSSEC_Support_Desc#>",
 							 "<#WAN_Valid_Unsigned_DNSSEC_Desc#>",
-							 "<#WAN_Prevent_DoH_Desc#>"
+							 "Some clients like Firefox will automatically switch to DNS over HTTPS, bypassing your preferred DNS servers. This option may prevent that. If set to Auto (the default), it will only prevent it if either DNSPrivacy or DNS Director in global mode are enabled."
 							 );
+
 //Firewall
 helpcontent[8] = new Array("",
 						   "<#FirewallConfig_WanLanLog_itemdesc#>",
@@ -194,7 +195,8 @@ helpcontent[11] = new Array("",
 							"<#usb_HDD_Hibernation_Desc#>",
 							"If there is no client connection for more than 1 minute, the PLC will enter sleep mode (power saving). The PLC will not wake up until the client connects. (It takes about ten seconds to wake up the PLC)", /* untranslated */
 							"Enable Login CAPTCHA is to ensure only human users to pass through and prevent brute force login attack.", /* untranslated */
-							"<#FW_auto_upgrade_desc#>");
+							"<#FW_auto_upgrade_desc#>",
+							"<#Secur_Stab_auto_upgrade_desc#>");	//15
 //Log
 helpcontent[12] = new Array("",
 							"<#General_x_SystemUpTime_itemdesc#>",
@@ -231,7 +233,8 @@ helpcontent[17] = new Array("",
 							"<#JS_basiconfig8#>",
 							"<#ShareNode_Seeding_itemdesc#>",
 							"<#ShareNode_MaxUpload_itemdesc#>",
-							"<#ShareNode_FTPLANG_itemdesc#>");
+							"<#ShareNode_FTPLANG_itemdesc#>",
+							`<#JS_storageright_1#>`);
 // MAC filter
 helpcontent[18] = new Array("",
 							"<#FirewallConfig_MFMethod_itemdesc#>",
@@ -333,10 +336,8 @@ helpcontent[27] = new Array("",
 							"<#YandexDNS_mode1#>: <#YandexDNS_mode1desc#><br>" +
 							"<#YandexDNS_mode2#>: <#YandexDNS_mode2desc#>");
 
-if('<% nvram_default_get("lan_ipaddr"); %>' != "192.168.1.1"){
-	helpcontent[4][1] = "<#LANHostConfig_IPRouters_itemdesc#>".replace("192.168.1.1", '<% nvram_default_get("lan_ipaddr"); %>');
-	helpcontent[24][5] = "<#LANHostConfig_IPRouters_itemdesc#>".replace("192.168.1.1", '<% nvram_default_get("lan_ipaddr"); %>');
-}
+helpcontent[4][1] = "<#LANHostConfig_IPRouters_itemdesc#>".replace("192.168.1.1", '192.168.50.1');
+helpcontent[24][5] = "<#LANHostConfig_IPRouters_itemdesc#>".replace("192.168.1.1", '192.168.50.1');
 
 //28 is used by WAN Aggregation unexpectedly. Move help content of mobile broadband to 35.
 helpcontent[28] = new Array("");
@@ -378,7 +379,7 @@ helpcontent[32] = new Array("",
 							"Response the DNS query from clients.",/*untranslated*/
 							"In server mode, provide DNS information to clients.",/*untranslated*/
 							"The cipher algorithm to encrypt packets in transmission. AES-128-CBC is recommendation.",/*untranslated*/
-							"Use fast LZO compression. It may add up to 1 byte per packet for incompressible data.",/*untranslated*/
+							"Use fast LZO (or LZ4 with OpenVPN 2.4 clients)  compression. It may add up to 1 byte per packet for incompressible data.",/*untranslated*/
 							"This option can be used on both the client and server, and whichever uses the lower value will be the one to trigger the renegotiation. Renegotiate data channel key after n seconds (default=3600), 0 to disable.",/*untranslated*/
 							"When this option is enabled, each client can view the other clients which are currently connected. Otherwise, each client will only see the server.",/*untranslated*/	//20
 							"Only the client in the \"Allowed Clients\" table could be authenticated.",/*untranslated*/
@@ -397,6 +398,7 @@ helpcontent[33] = new Array("",
 							"<#vpn_ipsec_re_cert_hint#>"
 							);
 
+
 //Feedback
 helpcontent[34] = new Array("",
 							"This feature allows system to capture diagnostic System debug log in the background, duration depends on the Diagnostic debug log capture duration option, depends on the option selected, system might transmit single debug log automatically to ASUS Support Team for analysis after capture completed or transmit multiple debug logs over a period of time. Click on the yellow System icon could cancel the debug log capture.",/*untranslated*/
@@ -409,3 +411,39 @@ helpcontent[35] = new Array("",
 							"<#Mobile_Usage_Limit_Desc#>",
 							"<#Mobile_Usage_Alert_Desc#>",
 							"<#Mobile_SMS_Noti_Desc#>");
+
+helpcontent[50] = new Array("",
+				"<#IPConnection_LocalIP_itemdesc#> or fixed Interface (Device) ID starting with ::<br/>A fixed Interface ID is commonly an EUI-64 address.",
+				"On ARM routers, Asus regularly flushes caches, which can hurt performance while preserving a maximum amount of available RAM.",
+				"By default miniupnpd runs in secure mode, which prevents a client to forward a port to another IP than its own.",
+				"Some IPv6-enabled Comcast customers are getting flooded by Neighbour Solicitation traffic.  This option allows you to filter out this unwanted traffic.",
+				"Enabling IGDv2 support allows clients to create IPv6 firewall pinholes through UPnP.  However various clients are incompatible with IGDv2, so leave this disabled if you are experiencing UPnP issues.<br><br>You might need to reboot your clients when changing this setting.",
+				"",
+				"Some ISPs like Sky (UK) require a clientid to be provided for customer authentication.",
+				"Some ISPs like SFR (FR) require a vendor class ID to be provided for identification purposes.",
+				"",
+				"Allows you to use SSH port tunneling",
+				"Log level used for messages generated by the core firmware",
+				"Filter out what minimum level get logged in the system log",
+				"The JFFS partition is a portion of the router flash memory which contains data such as OpenVPN key/cers and user created scripts.  It's strongly recommended to create a backup of it before updating your firmware.",
+				"Disabled: Actively block the port used by the protocol<br><br>Enabled: Allow NAT traffic through the protocol's port<br><br>Enabled+NAT Helper: Allow NAT traffic, and use a Netfilter module to help handle NAT forwarding for that protocol's traffic",
+				"This feature tells the router to regularly check for the availability of a new firmware version and to notify you if there is one available.  You must still manually download and update your router afterward.",
+				"OpenVPN can automatically negotiate the cipher based on a list.  Requires OpenVPN 2.4.  For older remote client/servers, disable it, or use Enabled with Fallback mode, which will use the legacy cipher parameter when connecting to older remotes.",
+				"MiniDLNA can offer a web page showing the number of indexed media files and a list of DLNA clients.  Default address is http://www.asusrouter.com:8200/",
+				"Wanduck sends DNS queries every few seconds to check for the WAN state.  You can disable this behaviour here.  DO NOT disable those probes if using Dual WAN, especially in failover mode.",
+				"You can redirect your Internet traffic through the tunnel.  Select between \"No\", \"Yes\" (all traffic), or \"VPN Director\", which allows you to create rules to determine which of your clients will get their Internet traffic redirected through the tunnel.",
+				"",
+				"For improved compatibility with Windows, the router sends an WPAD value containing a carriage return on DHCP requests.  This can cause issues with some clients, you can disable that behavior here.",
+				"When using a self-generated certificate, you can specify other hostnames to use in addition to the built-in ones, separated by a space",
+				"Restrict this rule to a specific source IP address",
+				"How should your router handle DNS servers pushed by the remote VPN server.  Disabled = ignore them, Relaxed = just add to list of known DNS,  Strict = add to list, but use all servers in order specified, Exclusive = use only these servers for all queries from clients routed through the tunnel.",
+				"",
+				"",
+				"",
+				"You can finetune traffic allocation by specifying the packet overhead of your WAN connection.  You can use a pre-configured preset, or manually enter a value, and enable ATM if you know your WAN connection uses it (many DSL-based services do).  If unsure, just leave these values to their default setting.",
+				"Intercept NTP connections from LAN clients and redirect them to the router's own NTP server.  Note that IPv6 is not supported.",
+				"Allow or block any traffic sent to your network through the VPN tunnel.  Should be set to Block unless running a site-to-site tunnel, or explicitely expecting inbound connections coming through the tunnel.",
+				"",
+				"Cake is a smart queue management (SQM) system that focuses on optimizing packet delay and reducing bufferbloat.");
+// Last: 50,32
+

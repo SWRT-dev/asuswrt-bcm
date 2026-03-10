@@ -14,6 +14,12 @@ typedef struct _capability_ss {
 	unsigned int capSupportRole;
 } capability_s;
 
+typedef struct _led_capability_ss {
+	unsigned int type;
+	unsigned int subtype;
+} led_capability_s;
+
+
 extern json_object *cm_generateCapability(unsigned int role, capability_s *capablity);
 extern int cm_checkWifiAuthCap(char *mac, int capBandNum, int reBandNum, int type, char *name, char *outAuth, int outAuthLen);
 extern int cm_isCapSupported(char *reMac, int capType, int capSubtype);
@@ -21,6 +27,7 @@ extern int cm_getCapabilityIntValue(char *mac, int capType);
 #ifdef RTCONFIG_AMAS_CENTRAL_ADS
 extern int cm_getAdsDsCapByUnit(int unit);
 #endif
+extern int cm_isSupportedParamByCapability(char *mac, unsigned int capability, unsigned int version);
 
 /* type */
 enum capabilityType {
@@ -31,7 +38,7 @@ enum capabilityType {
 #endif
 	RC_SUPPORT = 4,
 	LINK_AGGREGATION = 5,
-#ifdef RTCONFIG_AMAS_WGN
+#if defined(RTCONFIG_AMAS_WGN) || defined(RTCONFIG_MULTILAN_CFG)
 	GUEST_NETWORK_NO_2G = 6,
 	GUEST_NETWORK_NO_5G = 7,
 	GUEST_NETWORK_NO_5GH = 8,
@@ -45,7 +52,7 @@ enum capabilityType {
 	WANS_CAP = 15,
 	RE_RECONNECT = 16,
 	FORCE_ROAMING = 17,
-#ifdef RTCONFIG_FRONTHAUL_DWB
+#if defined(RTCONFIG_FRONTHAUL_DWB) || defined(RTCONFIG_MLO)
 	FRONTHAUL_AP_CTL = 18,
 #endif
 #ifdef RTCONFIG_STA_AP_BAND_BIND
@@ -60,14 +67,41 @@ enum capabilityType {
 	CONN_EAP_MODE = 23,
 #endif
 
-#ifdef RTCONFIG_AMAS_WGN
+#if defined(RTCONFIG_AMAS_WGN) || defined(RTCONFIG_MULTILAN_CFG)
 	GUEST_NETWORK_NO_6G = 24, 	
 #endif
+
+#ifdef RTCONFIG_AMAS_CHANNEL_PLAN
+    CHANNEL_PLAN = 25,
+#endif
+
+#ifdef RTCONFIG_MULTILAN_CFG
+    WIFI_BAND_CAP = 26,
+    LAN_PORT_CAP = 27,
+	WAN_PORT_CAP = 28,
+#endif // RTCONFIG_MULTILAN_CFG
+
 #ifdef RTCONFIG_AMAS_CENTRAL_ADS
 	DIVERSITY_PORT_STATE_BAND0 = 29,
 	DIVERSITY_PORT_STATE_BAND1 = 30,
 	DIVERSITY_PORT_STATE_BAND2 = 31,
 	DIVERSITY_PORT_STATE_BAND3 = 32,
+#endif
+
+#if defined(RTCONFIG_AMAS_WGN) || defined(RTCONFIG_MULTILAN_CFG)
+	GUEST_NETWORK_NO_6GH = 34, 	
+#endif
+
+#ifdef RTCONFIG_MULTILAN_CFG
+	MAX_MTLAN = 35,
+	AVAILABLE_SDN_INDEX = 36,
+#endif	// RTCONFIG_MULTILAN_CFG
+
+#ifdef RTCONFIG_MLO
+	MLO_RADIO = 40,
+#endif
+#ifdef RTCONFIG_REBOOT_SCHEDULE_V2
+	REBOOT_SCHEDULE_V2 = 42,
 #endif
 	CAPABILITY_MAX
 };
@@ -93,12 +127,12 @@ enum capabilityType {
 /* for RC_SUPPORT */
 #define USBX			BIT(0)
 #define GUEST_NETWORK		BIT(1)
-#define CFG_MNT_WPA3		BIT(2)	/* amas-utils.h has a WPA3 definition with different value. */
+#define WPA3			BIT(2)
 #define VIF_ONBOARDING			BIT(3)
 #define WL_SCHED_V2		BIT(4)
 #define WIFI_RADIO		BIT(5)
 #define WL_SCHED_V3		BIT(6)
-#define REVERT_FW               BIT(7)
+#define REVERT_FW		BIT(7)
 #define SWITCHCTRL		BIT(8)
 #define PORT_STATUS		BIT(9)
 #define LOCAL_ACCESS		BIT(10)
@@ -106,9 +140,22 @@ enum capabilityType {
 #define NO_FW_MANUAL		BIT(12)
 #define UPDATE			BIT(13)
 #define ROLLBACK_FW		BIT(14)
+#define SDN				BIT(15)
+#define WPA3_ENT		BIT(16)
 #ifdef RTCONFIG_AMAS_CENTRAL_OPTMZ
 #define CENTRAL_OPTMZ		BIT(17)
 #endif
+#ifdef RTCONFIG_MLO
+#define MLO		BIT(20)
+#define MLO_RE_BH_FH	BIT(21)
+#endif
+#ifdef RTCONFIG_SMART_HOME_MASTER_UI
+#define SMART_HOME_MASTER_UI	BIT(22)
+#endif
+
+#define WIFI7_SUPPORT  BIT(23)
+
+#define MULTILAN_MWL BIT(24)
 
 /* for LINK_AGGREGATION */
 #define LACP_ENABLE                    BIT(0)
@@ -156,6 +203,15 @@ enum capabilityType {
 #define WIFI_RADIO_5G		BIT(1)
 #define WIFI_RADIO_5GH		BIT(2)
 #define WIFI_RADIO_6G		BIT(3)
+#define WIFI_RADIO_6GH		BIT(4)
+
+/* for channel plan */
+#ifdef RTCONFIG_AMAS_CHANNEL_PLAN
+#define CHANNEL_PLAN_CAP_OFF	BIT(0)
+#define CHANNEL_PLAN_CAP_ON	BIT(1)
+#define CHANNEL_PLAN_CAP_MANUAL	BIT(2)
+#define CHANNEL_PLAN_CAP_CENTRAL	BIT(3)
+#endif
 
 /* Capability support on role */
 #define CAP_SUPPORT		BIT(0)
@@ -189,6 +245,9 @@ static capability_s capability_list[] __attribute__ ((unused)) = {
 	{ STA_BINDING_AP, MANUAL_STA_BINDING, RE_SUPPORT |CAP_SUPPORT},
 #endif
 	{ RESET_DEFAULT, MANUAL_RESET_DEFAULT, RE_SUPPORT |CAP_SUPPORT},
+#ifdef RTCONFIG_AMAS_CHANNEL_PLAN
+	{ CHANNEL_PLAN, CHANNEL_PLAN_CAP_OFF | CHANNEL_PLAN_CAP_ON | CHANNEL_PLAN_CAP_MANUAL, RE_SUPPORT |CAP_SUPPORT},
+#endif
 
 	/* END */
 	{ 0, 0 }

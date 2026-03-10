@@ -1,4 +1,4 @@
-/* dnsmasq is Copyright (c) 2000-2022 Simon Kelley
+/* dnsmasq is Copyright (c) 2000-2025 Simon Kelley
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -89,10 +89,11 @@ void dhcp6_init(void)
 void dhcp6_packet(time_t now)
 {
   struct dhcp_context *context;
+  struct dhcp_relay *relay;
   struct iface_param parm;
   struct cmsghdr *cmptr;
   struct msghdr msg;
-  int if_index = 0;
+  uint32_t if_index = 0;
   union {
     struct cmsghdr align; /* this ensures alignment */
     char control6[CMSG_SPACE(sizeof(struct in6_pktinfo))];
@@ -118,11 +119,6 @@ void dhcp6_packet(time_t now)
   if ((sz = recv_dhcp_packet(daemon->dhcp6fd, &msg)) == -1)
     return;
   
-#ifdef HAVE_DUMPFILE
-  dump_packet_udp(DUMP_DHCPV6, (void *)daemon->dhcp_packet.iov_base, sz,
-		  (union mysockaddr *)&from, NULL, daemon->dhcp6fd);
-#endif
-  
   for (cmptr = CMSG_FIRSTHDR(&msg); cmptr; cmptr = CMSG_NXTHDR(&msg, cmptr))
     if (cmptr->cmsg_level == IPPROTO_IPV6 && cmptr->cmsg_type == daemon->v6pktinfo)
       {
@@ -138,6 +134,34 @@ void dhcp6_packet(time_t now)
 
   if (!indextoname(daemon->dhcp6fd, if_index, ifr.ifr_name))
     return;
+  
+#ifdef HAVE_LINUX_NETWORK
+  /* This works around a possible Linux kernel bug when using interfaces
+     enslaved to a VRF. The scope_id in the source address gets set
+     to the index of the VRF interface, not the slave. Fortunately,
+     the interface index returned by packetinfo is correct so we use
+     that instead. Log this once, so if it triggers in other circumstances
+     we've not anticipated and breaks things, we get some clues. */
+  if (from.sin6_scope_id != if_index)
+    {
+      static int logged = 0;
+      
+      if (!logged)
+	{
+	  my_syslog(MS_DHCP | LOG_WARNING,
+		    _("Working around kernel bug: faulty source address scope for VRF slave %s"),
+		    ifr.ifr_name);
+	  logged = 1;
+	}
+      
+      from.sin6_scope_id = if_index;
+    }
+#endif
+
+#ifdef HAVE_DUMPFILE
+  dump_packet_udp(DUMP_DHCPV6, (void *)daemon->dhcp_packet.iov_base, sz,
+		  (union mysockaddr *)&from, NULL, daemon->dhcp6fd);
+#endif
 
   if (relay_reply6(&from, sz, ifr.ifr_name))
     {
@@ -153,13 +177,15 @@ void dhcp6_packet(time_t now)
   else
     {
       struct dhcp_bridge *bridge, *alias;
+      int multicast_dest = 0;
       
       for (tmp = daemon->if_except; tmp; tmp = tmp->next)
 	if (tmp->name && wildcard_match(tmp->name, ifr.ifr_name))
 	  return;
       
       for (tmp = daemon->dhcp_except; tmp; tmp = tmp->next)
-	if (tmp->name && wildcard_match(tmp->name, ifr.ifr_name))
+	if (tmp->name && (tmp->flags & INAME_6) &&
+	    wildcard_match(tmp->name, ifr.ifr_name))
 	  return;
       
       parm.current = NULL;
@@ -206,16 +232,26 @@ void dhcp6_packet(time_t now)
 	    context->current = context;
 	    memset(&context->local6, 0, IN6ADDRSZ);
 	  }
+
+      for (relay = daemon->relay6; relay; relay = relay->next)
+	relay->matchcount = 0;
+
+      inet_pton(AF_INET6, ALL_RELAY_AGENTS_AND_SERVERS, &all_servers);
+      if (IN6_ARE_ADDR_EQUAL(&dst_addr, &all_servers))
+	multicast_dest = 1;
       
-      /* Ignore requests sent to the ALL_SERVERS multicast address for relay when
-	 we're listening there for DHCPv6 server reasons. */
       inet_pton(AF_INET6, ALL_SERVERS, &all_servers);
+      if (IN6_ARE_ADDR_EQUAL(&dst_addr, &all_servers))
+	multicast_dest = 1;
+      else
+	{
+	  /* Ignore requests sent to the ALL_SERVERS multicast address for relay when
+	     we're listening there for DHCPv6 server reasons. */
+	  if (relay_upstream6(if_index, (size_t)sz, &from.sin6_addr, from.sin6_scope_id, now))
+	    return;
+	}
       
-      if (!IN6_ARE_ADDR_EQUAL(&dst_addr, &all_servers) &&
-	  relay_upstream6(if_index, (size_t)sz, &from.sin6_addr, from.sin6_scope_id, now))
-	return;
-      
-      if (!iface_enumerate(AF_INET6, &parm, complete_context6))
+      if (!iface_enumerate(AF_INET6, &parm, (callback_t){.af_inet6=complete_context6}))
 	return;
       
       /* Check for a relay again after iface_enumerate/complete_context has had
@@ -242,7 +278,7 @@ void dhcp6_packet(time_t now)
       
       lease_prune(NULL, now); /* lose any expired leases */
       
-      port = dhcp6_reply(parm.current, if_index, ifr.ifr_name, &parm.fallback, 
+      port = dhcp6_reply(parm.current, multicast_dest, if_index, ifr.ifr_name, &parm.fallback, 
 			 &parm.ll_addr, &parm.ula_addr, sz, &from.sin6_addr, now);
       
       /* The port in the source address of the original request should
@@ -420,7 +456,17 @@ static int complete_context6(struct in6_addr *local,  int prefix,
   if (match)
     for (relay = daemon->relay6; relay; relay = relay->next)
       if (IN6_ARE_ADDR_EQUAL(local, &relay->local.addr6))
-	relay->iface_index = if_index;
+	{
+	  relay->iface_index = if_index;
+
+	  /* More than one interface with the relay address breaks things. */
+	  if (relay->matchcount++ == 1 && !relay->warned)
+	    {
+	      relay->warned = 1;
+	      inet_ntop(AF_INET6, &local, daemon->addrbuff, ADDRSTRLEN);
+	      my_syslog(MS_DHCP | LOG_WARNING, _("DHCP relay address %s appears on more than one interface"), daemon->addrbuff);
+	    }
+	}
   
   return 1;
 }
@@ -593,7 +639,7 @@ void make_duid(time_t now)
 	newnow = now - 946684800;
 #endif      
       
-      iface_enumerate(AF_LOCAL, &newnow, make_duid1);
+      iface_enumerate(AF_LOCAL, &newnow, (callback_t){.af_local=make_duid1});
       
       if(!daemon->duid)
 	die("Cannot create DHCPv6 server DUID: %s", NULL, EC_MISC);
@@ -643,7 +689,7 @@ struct cparam {
 
 static int construct_worker(struct in6_addr *local, int prefix, 
 			    int scope, int if_index, int flags, 
-			    int preferred, int valid, void *vparam)
+			    unsigned int preferred, unsigned int valid, void *vparam)
 {
   char ifrn_name[IFNAMSIZ];
   struct in6_addr start6, end6;
@@ -777,7 +823,7 @@ void dhcp_construct_contexts(time_t now)
     if (context->flags & CONTEXT_CONSTRUCTED)
       context->flags |= CONTEXT_GC;
    
-  iface_enumerate(AF_INET6, &param, construct_worker);
+  iface_enumerate(AF_INET6, &param, (callback_t){.af_inet6=construct_worker});
 
   for (up = &daemon->dhcp6, context = daemon->dhcp6; context; context = tmp)
     {
@@ -788,7 +834,7 @@ void dhcp_construct_contexts(time_t now)
 	{
 	  if ((context->flags & CONTEXT_RA) || option_bool(OPT_RA))
 	    {
-	      /* previously constructed context has gone. advertise it's demise */
+	      /* previously constructed context has gone; advertise its demise */
 	      context->flags |= CONTEXT_OLD;
 	      context->address_lost_time = now;
 	      /* Apply same ceiling of configured lease time as in radv.c */

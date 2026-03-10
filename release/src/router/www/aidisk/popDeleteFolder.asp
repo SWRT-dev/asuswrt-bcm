@@ -8,8 +8,8 @@
 <link rel="icon" href="images/favicon.png">
 <title>Del Folder</title>
 <link rel="stylesheet" href="../form_style.css"  type="text/css">
-<script type="text/javascript" src="../state.js"></script>
 <script type="text/javascript" src="/js/jquery.js"></script>
+<script type="text/javascript" src="../state.js"></script>
 <script type="text/javascript">
 <% get_AiDisk_status(); %>
 
@@ -41,6 +41,8 @@ function submit(){
 	document.getElementById("pool").value = PoolDevice;
 	document.getElementById("folder").value = selectedFolder;
 	if(parent.document.form.current_page.value != "mediaserver.asp" 
+	&& parent.document.form.current_page.value != "Advanced_AiDisk_NFS.asp" 
+	&& parent.document.form.current_page.value != "Tools_OtherSettings.asp" 
 	&& parent.document.form.current_page.value != "cloud_sync.asp"
 	&& parent.document.form.current_page.value != "cloud_router_sync.asp" ){
 		parent.showLoading();
@@ -50,6 +52,8 @@ function submit(){
 	parent.hidePop("apply");
 	setTimeout(" ",5000);
 	if(parent.document.form.current_page.value == "mediaserver.asp" 
+	|| parent.document.form.current_page.value == "Advanced_AiDisk_NFS.asp" 
+	|| parent.document.form.current_page.value == "Tools_OtherSettings.asp" 
 	|| parent.document.form.current_page.value == "cloud_sync.asp"
 	|| parent.document.form.current_page.value == "cloud_router_sync.asp" ){
 		if(delete_flag == 1){
@@ -80,9 +84,6 @@ function get_layer_items_test(layer_order_t){
 	$.ajax({
     		url: '/gettree.asp?layer_order='+layer_order_t,
     		dataType: 'script',
-    		error: function(xhr){
-    			;
-    		},
     		success: function(){
 				delete_flag = treeitems.length;
   			}

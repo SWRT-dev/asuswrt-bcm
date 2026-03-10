@@ -177,6 +177,50 @@ void disable_dpi_engine_setting(void)
 
 	nvram_commit();
 }
+
+typedef struct TM_RECYCLE_PS_T tm_recycle_ps_t;
+struct TM_RECYCLE_PS_T {
+        char *ps_name;
+};
+
+struct TM_RECYCLE_PS_T s_tm_recycle_ps_tuple[] =
+{
+	/* bwdpi_sql command */
+	{"AiProtectionMonitor"},
+	{"WebHistory"},
+	{"TrafficAnalyzer"},
+
+	// The End
+	{0}
+};
+
+/*
+ * Usage : use this function to kill some process stuck due to system memory issue
+ * */
+void tm_recycle_stuck_process()
+{
+	struct TM_RECYCLE_PS_T *t_recycle = s_tm_recycle_ps_tuple;
+	char buf[40] = {0};
+	static int period = 0;
+	int cycle = 120; // 120*10 = 1200 sec
+	int debug = nvram_get_int("tm_recycle_debug");
+
+	// step1. check ntp sync
+	// no need to check ntp_ready
+
+	// step2. do cycle
+	period = (period + 1) % cycle;
+
+	// step3. period
+	if (!period) {
+		for (;t_recycle->ps_name != 0; t_recycle++) {
+			if (pidof(t_recycle->ps_name) < 0) continue; // not found process
+			snprintf(buf, sizeof(buf), "kill -9 `pidof %s`", t_recycle->ps_name);
+			system(buf);
+			if (debug) logmessage("tm_recycle", "[recycle_debug] buf=%s", buf);
+		}
+	}
+}
 #endif
 
 /*
@@ -264,7 +308,7 @@ int check_filesize_over(char *path, long int size)
 */
 time_t get_last_month_timestamp()
 {
-	struct tm local, t;
+	struct tm local;
 	time_t now, t_t = 0;
 			
 	// get timestamp and tm
@@ -272,15 +316,30 @@ time_t get_last_month_timestamp()
 	localtime_r(&now, &local);
 
 	// copy t from local
-	t.tm_year = local.tm_year;
-	t.tm_mon = local.tm_mon;
-	t.tm_mday = 1;
-	t.tm_hour = 0;
-	t.tm_min = 0;
-	t.tm_sec = 0;
+	local.tm_mday = 1;
+	local.tm_hour = 0;
+	local.tm_min = 0;
+	local.tm_sec = 0;
 
 	// transfer tm to timestamp
-	t_t = mktime(&t);
+	t_t = mktime(&local);
 
 	return t_t;
+}
+
+/*
+ * name : which name to save this timestamp
+ * timestmp format : 2014-07-14 19:20:10
+ * */
+void TstampToNvram(char *name)
+{
+	time_t now;
+	struct tm *local;
+	char date[32] = {0};
+
+	time(&now);
+	local = localtime(&now);
+	strftime(date, 30, "%Y-%m-%d %H:%M:%S", local);
+
+	nvram_set(name, date);
 }

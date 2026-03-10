@@ -11,18 +11,19 @@
 
 #include "json.h"
 
+#include "api.h"
+
 #include "uploader_ipc.h"
 
 #include "upload_api.h"
 
-
 #include "log.h"
 
-
-extern char mac_no_symbol[32];
-
+extern char g_formated_router_mac[32];
+extern backup_file_types BACK_FILE_TYPES[];
 
 #define APC_DBG 1
+#define MAX_RESP_RAW_LEN         2048
 
 pthread_attr_t *attrp;
 
@@ -41,21 +42,14 @@ Note:
 ========================================================================
 */
 
-void *cm_ipcPacketHandler(void *args)
-{
+void *cm_ipcPacketHandler(void *args) {
 
     pthread_detach(pthread_self());
 
-    Cdbg(APC_DBG, "Get ipc Packet msg = %s", args);
-
-    // publish_shadow_remote_connection(1, args);
-    
-    // goto err;
-
     json_object *root = NULL;
-    json_object *o_api = NULL, *o_file_path = NULL, *o_file_name = NULL;
+    json_object *o_func_name = NULL;
 
-    struct ipcArgStruct *ipcArgs = (struct ipcArgStruct *)args;
+    struct aaeIpcArgStruct *ipcArgs = (struct aaeIpcArgStruct *)args;
     unsigned char *pPktBuf = NULL;
 
     if (IsNULL_PTR(ipcArgs->data)) {
@@ -67,69 +61,97 @@ void *cm_ipcPacketHandler(void *args)
 
     Cdbg(APC_DBG, "Get ipc Packet msg = %s", (char *)pPktBuf);
 
-    // publish_shadow_remote_connection(1, args);
-
-    // goto err;
+    char raw_resp[MAX_RESP_RAW_LEN] = {0};
 
     root = json_tokener_parse((char *)pPktBuf);
 
     if (root) {
+        json_object_object_get_ex(root, "function_name", &o_func_name);
 
+        if (o_func_name) {
+            const char *func_name = json_object_get_string(o_func_name);
 
-      char timestamp_str[16] = {0};
-      getTimeInMillis(timestamp_str);
+#ifdef RTCONFIG_FU_TEST
+            if (!strcmp(func_name, "list_files")) {
 
-      Cdbg(APC_DBG, "timestamp_str = %s", timestamp_str);
+                json_object *root_obj = json_object_new_array();
 
-      /* create temp folder */
-      if(!check_if_dir_exist(UPLOADER_FOLDER)) {
+                int i = 0;
+                backup_file_types *handler = NULL;
+                for(handler = &BACK_FILE_TYPES[0]; handler->id>0; handler++){
 
-          Cdbg(APC_DBG, "create temp folder for uploader (%s)", UPLOADER_FOLDER);
-          mkdir(UPLOADER_FOLDER, 0755);
-      }
+                    int len = count_backup_file(handler->bf);
 
+                    json_object *bk_obj = json_object_new_object();
+                    json_object_object_add(bk_obj, "name", json_object_new_string(handler->bf_name));
+                    json_object_object_add(bk_obj, "bf_len", json_object_new_int(handler->bf_len));
+                    json_object_object_add(bk_obj, "len", json_object_new_int(len));
+                    json_object_object_add(bk_obj, "limit", json_object_new_int(handler->max_file_limit));
 
-      json_object_object_get_ex(root, "api", &o_api);
-      json_object_object_get_ex(root, "file_path", &o_file_path);
-      json_object_object_get_ex(root, "file_name", &o_file_name);
+                    // Cdbg(APC_DBG, "%s, %d(%d)/%d", handler->bf_name, handler->bf_len, len, handler->max_file_limit);
+                    /////////////////////////////////////////////////////
 
+                    json_object *bf_obj = json_object_new_array();
+                    backup_files* curr_file = handler->bf;
+                    while (curr_file) {
 
-      const char *api = json_object_get_string(o_api);
-      const char *file_path = json_object_get_string(o_file_path);
-      const char *file_name = json_object_get_string(o_file_name);
+                        // Cdbg(APC_DBG, "%s", curr_file->filename);  
 
+                        json_object_array_add(bf_obj, json_object_new_string(curr_file->filename));
 
-      char msg[512] = {0};
-      snprintf(msg, sizeof(msg) ,"{\"api\":\"%s\", \"file_path\":\"%s\",\"file_name\":\"router_%s_%s.cfg\"}", api, UPLOADER_FOLDER, mac_no_symbol, timestamp_str);
+                        curr_file = curr_file->next;
+                    }
+                    
+                    json_object_object_add(bk_obj, "bf", bf_obj);
+                    /////////////////////////////////////////////////////
 
-      Cdbg(APC_DBG, "cm_ipcPacketHandler write msg = %s", msg);
+                    json_object_array_add(root_obj, bk_obj);
+                }
+                
+                const char *json_str = json_object_to_json_string(root_obj);
+                
+                snprintf(raw_resp, sizeof(raw_resp), "%s", json_str);
 
-      char upload_file[128] = {0};
+                json_object_put(root_obj);
+            }
+#endif
 
-      snprintf(upload_file, sizeof(upload_file), "%srouter_%s_%s.cfg", UPLOADER_FOLDER, mac_no_symbol, timestamp_str);
+        }
 
-      write_file(upload_file, msg);
+        json_object_put(root);
+        
+        if (ipcArgs->waitResp) {
+            
+            struct aaeIpcArgStruct resp;
+            int length;
+            memset(&resp, 0, sizeof(struct aaeIpcArgStruct));
+            
+            resp.dataLen = snprintf((char *)resp.data, sizeof(resp.data), "%s", raw_resp);
+            
+            length = send(ipcArgs->sock, &resp, sizeof(struct aaeIpcArgStruct), MSG_NOSIGNAL);
+            
+            if (length < 0) {
+                // DBG_ERR("error writing:%s\n", strerror(errno));
+                Cdbg(APC_DBG, "error writing:%s", strerror(errno));
+                goto err;
+            }
+        }
 
-
-      // ipc_api_process(api, file_path, file_name);
-
-
-      json_object_put(root);
-
-
-    } else {
-      Cdbg(APC_DBG, "root is invalid");
+    } 
+    else {
+        Cdbg(APC_DBG, "root is invalid");
     }
 
 err:
+    if (ipcArgs->sock >= 0) {
+        close(ipcArgs->sock);
+    }
 
-  free(args);
+    free(ipcArgs);
 
-  pthread_exit(NULL);
+    pthread_exit(NULL);
 
 } /* End of cm_ipcPacketHandler */
-
-
 
 /*
 ========================================================================
@@ -145,48 +167,91 @@ Return Value:
 Note:
 ========================================================================
 */
-void cm_rcvIpcHandler(int sock)
-{
-  int clientSock = 0;
-  pthread_t sockThread;
-  struct ipcArgStruct *args = NULL;
-  unsigned char pPktBuf[MAX_IPC_PACKET_SIZE] = {0};
-  int len = 0;
+void cm_rcvIpcHandler(int sock) {
 
-  Cdbg(APC_DBG, "cm_rcvIpcHandler enter");
+    int clientSock = -1;
+    pthread_t sockThread;
+    struct aaeIpcArgStruct *args = NULL;
+    int len = 0;
 
-  clientSock = accept(sock, NULL, NULL);
+    //Cdbg(IPC_DBG, "enter");
 
-  if (clientSock < 0) {
-    Cdbg(APC_DBG, "cm_rcvIpcHandler Failed to socket accept() !!!");
-    return;
-  }
+    clientSock = accept(sock, NULL, NULL);
 
-  /* handle the packet */
-  if ((len = read(clientSock, pPktBuf, sizeof(pPktBuf))) <= 0) {
-    Cdbg(APC_DBG, "cm_rcvIpcHandler Failed to socket read()!!");
+    if (clientSock < 0) {
+        // Cdbg(IPC_DBG, "aae_rcvIpcHandler Failed to socket accept() !!! (%s)", strerror(errno));
+        return;
+    }
+
+    args = malloc(sizeof(struct aaeIpcArgStruct));
+    memset(args, 0, sizeof(struct aaeIpcArgStruct));
+
+    /* handle the packet */
+    if ((len = read(clientSock, args, sizeof(struct aaeIpcArgStruct))) <= 0) {
+        // Cdbg(IPC_DBG, "aae_rcvIpcHandler Failed to socket read()!!! (%s)", strerror(errno));
+        close(clientSock);
+        return;
+    }
+
+    if (!args->waitResp)
+        close(clientSock);
+    else {
+        args->sock = clientSock;
+    }
+    // Cdbg(IPC_DBG, "aae_rcvIpcHandler create thread for handle ipc packet");
+    pthread_attr_t attr;
+    pthread_attr_init(&attr);
+#ifdef PTHREAD_STACK_SIZE
+    pthread_attr_setstacksize(&attr, PTHREAD_STACK_SIZE);
+#endif
+    if (pthread_create(&sockThread, &attr, (void *)cm_ipcPacketHandler, args) < 0) {
+        // Cdbg(IPC_DBG, "could not create thread !!!", strerror(errno));
+        free(args);
+    }
+    pthread_attr_destroy(&attr);
+
+    //Cdbg(IPC_DBG, "leave");
+}
+
+void xxcm_rcvIpcHandler(int sock) {
+
+    int clientSock = 0;
+    pthread_t sockThread;
+    struct aaeIpcArgStruct *args = NULL;
+    unsigned char pPktBuf[AAE_MAX_IPC_PACKET_SIZE] = {0};
+    int len = 0;
+
+    Cdbg(APC_DBG, "cm_rcvIpcHandler enter");
+
+    clientSock = accept(sock, NULL, NULL);
+
+    if (clientSock < 0) {
+        Cdbg(APC_DBG, "cm_rcvIpcHandler Failed to socket accept() !!!");
+        return;
+    }
+
+    /* handle the packet */
+    if ((len = read(clientSock, pPktBuf, sizeof(pPktBuf))) <= 0) {
+        Cdbg(APC_DBG, "cm_rcvIpcHandler Failed to socket read()!!");
+        close(clientSock);
+        return;
+    }
+
     close(clientSock);
-    return;
-  }
 
-  close(clientSock);
+    args = malloc(sizeof(struct aaeIpcArgStruct));
+    memset(args, 0, sizeof(struct aaeIpcArgStruct));
+    memcpy(args->data, (unsigned char *)&pPktBuf[0], len);
+    args->dataLen = len;
 
-  args = malloc(sizeof(struct ipcArgStruct));
-  memset(args, 0, sizeof(struct ipcArgStruct));
-  memcpy(args->data, (unsigned char *)&pPktBuf[0], len);
-  args->dataLen = len;
+    Cdbg(APC_DBG, "cm_rcvIpcHandler create thread for handle ipc packet");
+    if (pthread_create(&sockThread, attrp, cm_ipcPacketHandler, args) < 0) {
+        Cdbg(APC_DBG, "could not create thread !!!");
+        free(args);
+    }
 
-  Cdbg(APC_DBG, "cm_rcvIpcHandler create thread for handle ipc packet");
-  if (pthread_create(&sockThread, attrp, cm_ipcPacketHandler, args) < 0) {
-    Cdbg(APC_DBG, "could not create thread !!!");
-    free(args);
-  }
-
-  Cdbg(APC_DBG, "cm_rcvIpcHandler leave");
+    Cdbg(APC_DBG, "cm_rcvIpcHandler leave");
 } /* End of cm_rcvIpcHandler */
-
-
-
 
 /*
 ========================================================================
@@ -204,94 +269,91 @@ Return Value:
 
 ========================================================================
 */
-int cm_sendIpcHandler(char *ipcPath, char *data, int dataLen)
-{
-  int fd = -1;
-  int length = 0;
-  int ret = 0;
-  struct sockaddr_un addr;
-  int flags;
-  int status;
-  socklen_t statusLen;
-  fd_set writeFds;
-  int selectRet;
-  struct timeval timeout = {2, 0};
+int cm_sendIpcHandler(char *ipcPath, char *data, int dataLen) {
 
-  Cdbg(APC_DBG, "ncm_sendIpcHandler enter");
+    int fd = -1;
+    int length = 0;
+    int ret = 0;
+    struct sockaddr_un addr;
+    int flags;
+    int status;
+    socklen_t statusLen;
+    fd_set writeFds;
+    int selectRet;
+    struct timeval timeout = {2, 0};
 
-  Cdbg(APC_DBG, "enter AF_UNIX = %d", AF_UNIX);
-  Cdbg(APC_DBG, "enter SOCK_STREAM = %d", SOCK_STREAM);
+    Cdbg(APC_DBG, "ncm_sendIpcHandler enter");
+
+    Cdbg(APC_DBG, "enter AF_UNIX = %d", AF_UNIX);
+    Cdbg(APC_DBG, "enter SOCK_STREAM = %d", SOCK_STREAM);
   
-  if ((fd = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
-    Cdbg(APC_DBG, "ipc socket error!");
-    goto err;
-  }
-
-  /* set NONBLOCK for connect() */
-  if ((flags = fcntl(fd, F_GETFL)) < 0) {
-    Cdbg(APC_DBG, "F_GETFL error!");
-    goto err;
-  }
-
-
-  flags |= O_NONBLOCK;
-
-
-  if (fcntl(fd, F_SETFL, flags) < 0) {
-    Cdbg(APC_DBG, "F_SETFL error!");
-    goto err;
-  }
-
-  memset(&addr, 0, sizeof(addr));
-  addr.sun_family = AF_UNIX;
-  strncpy(addr.sun_path, ipcPath, sizeof(addr.sun_path)-1);
-
-  Cdbg(APC_DBG, "addr.sun_path  = %s", addr.sun_path);
-
-  if (connect(fd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
-
-    if (errno == EINPROGRESS) {
-      FD_ZERO(&writeFds);
-      FD_SET(fd, &writeFds);
-
-      selectRet = select(fd + 1, NULL, &writeFds, NULL, &timeout);
-
-      //Check return, -1 is error, 0 is timeout
-      if (selectRet == -1 || selectRet == 0) {
-        Cdbg(APC_DBG, "ipc connect error");
+    if ((fd = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
+        Cdbg(APC_DBG, "ipc socket error!");
         goto err;
-      }
     }
-    else
-    {
-      Cdbg(APC_DBG, "ipc connect error");
-      goto err;
+
+    /* set NONBLOCK for connect() */
+    if ((flags = fcntl(fd, F_GETFL)) < 0) {
+        Cdbg(APC_DBG, "F_GETFL error!");
+        goto err;
     }
-  }
 
-  /* check the status of connect() */
-  status = 0;
-  statusLen = sizeof(status);
-  if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &status, &statusLen) == -1) {
-    Cdbg(APC_DBG, "getsockopt(SO_ERROR): %s", strerror(errno));
-    goto err;
-  }
+    flags |= O_NONBLOCK;
 
-  length = write(fd, data, dataLen);
+    if (fcntl(fd, F_SETFL, flags) < 0) {
+        Cdbg(APC_DBG, "F_SETFL error!");
+        goto err;
+    }
 
-  if (length < 0) {
-    Cdbg(APC_DBG, "error writing:%s", strerror(errno));
-    goto err;
-  }
+    memset(&addr, 0, sizeof(addr));
+    addr.sun_family = AF_UNIX;
+    strncpy(addr.sun_path, ipcPath, sizeof(addr.sun_path)-1);
 
-  ret = 1;
+    Cdbg(APC_DBG, "addr.sun_path  = %s", addr.sun_path);
 
-  Cdbg(APC_DBG, "send data out (%s) via (%s)", data, ipcPath);
+    if (connect(fd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+
+        if (errno == EINPROGRESS) {
+            FD_ZERO(&writeFds);
+            FD_SET(fd, &writeFds);
+
+            selectRet = select(fd + 1, NULL, &writeFds, NULL, &timeout);
+
+            //Check return, -1 is error, 0 is timeout
+            if (selectRet == -1 || selectRet == 0) {
+                Cdbg(APC_DBG, "ipc connect error");
+                goto err;
+            }
+        }
+        else {
+            Cdbg(APC_DBG, "ipc connect error");
+            goto err;
+        }
+    }
+
+    /* check the status of connect() */
+    status = 0;
+    statusLen = sizeof(status);
+    if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &status, &statusLen) == -1) {
+        Cdbg(APC_DBG, "getsockopt(SO_ERROR): %s", strerror(errno));
+        goto err;
+    }
+
+    length = write(fd, data, dataLen);
+
+    if (length < 0) {
+        Cdbg(APC_DBG, "error writing:%s", strerror(errno));
+        goto err;
+    }
+
+    ret = 1;
+
+    Cdbg(APC_DBG, "send data out (%s) via (%s)", data, ipcPath);
 
 err:
-  if (fd >= 0)
-    close(fd);
+    if (fd >= 0)
+        close(fd);
 
-  Cdbg(APC_DBG, "cm_sendIpcHandler leave");
-  return ret;
+    Cdbg(APC_DBG, "cm_sendIpcHandler leave");
+    return ret;
 } /* End of cm_sendIpcHandler */

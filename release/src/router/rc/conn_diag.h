@@ -132,6 +132,7 @@ struct chanel_info {
 	int control_chan;
 	int center_chan;
 	int bw;
+	int rclass;
 };
 
 //for ui actions to conn diag SQL 
@@ -221,6 +222,7 @@ extern int get_subif_count(char *target, int *count); // TODO: non-Brcm needs to
 extern int get_subif_ssid(char *target, char *output, int outputlen); // TODO: non-Brcm needs to do.
 extern int get_wifi_txop(char *ifname,int *txop, int outputlen);
 extern int get_wifi_glitch(char *ifname,int *glitch, int outputlen);
+extern int get_wifi_knoise(char *ifname,int *knoise, int outputlen);
 extern int get_wifi_chanim(char *ifname, char *output, int outputlen);
 extern int get_wifi_counters_info(char *ifname, char *info_name, int *value);
 #endif
@@ -237,6 +239,7 @@ extern int get_plc_phy_rate(unsigned long *tx_rate, unsigned long *rx_rate);
 extern char* diag_get_wl_ifname(int unit, int subunit, char *buffer, size_t buffer_size);
 extern int diag_get_sub_if_bss_enabled(int unit, int subunit);
 extern int diag_get_sub_if_closed(int unit, int subunit);
+char *get_node_band_by_unit_with_postfix(int unit, const char *low_postfix, const char *high_postfix, char *buf, int buflen);
 
 extern int special_alphasort(const void *d1, const void *d2);
 extern void create_cd_sql_thread(void);

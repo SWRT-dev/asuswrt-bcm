@@ -1,4 +1,4 @@
-/* dnsmasq is Copyright (c) 2000-2022 Simon Kelley
+/* dnsmasq is Copyright (c) 2000-2025 Simon Kelley
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
 #ifdef HAVE_LOOP
 static ssize_t loop_make_probe(u32 uid);
 
-void loop_send_probes()
+void loop_send_probes(void)
 {
    struct server *serv;
    struct randfd_list *rfds = NULL;
@@ -92,7 +92,7 @@ int detect_loop(char *query, int type)
     return 0;
 
   for (i = 0; i < 8; i++)
-    if (!isxdigit(query[i]))
+    if (!isxdigit((unsigned char)query[i]))
       return 0;
 
   uid = strtol(query, NULL, 16);
