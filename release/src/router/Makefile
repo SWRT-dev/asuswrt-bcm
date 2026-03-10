@@ -1008,7 +1008,7 @@ obj-y += k3screenctrl
 obj-y += sw-auth-lite
 endif
 ifeq ($(RTCONFIG_SOFTCENTER),y)
-obj-y += skipdbv2 libev-4.33 softcenter libiconv-1.14 lua
+obj-y += skipdbv2 libev-4.33 softcenter libiconv-1.14 lua jq-1.7.1
 #obj-y += httpdb mbedtls-2.6.0
 obj-y += ipset-7.6 libmnl-1.0.4 libnfnetlink-$(NETLINK_LIB_VER)
 endif
