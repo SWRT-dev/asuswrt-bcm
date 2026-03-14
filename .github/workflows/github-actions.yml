@@ -9,7 +9,8 @@ jobs:
         fail-fast: false
         matrix:
           cfg:
-            - { model: "tuf-ax5400_v2",       sdk: "src-rt-5.04axhnd.675x",    skip: false }
+            - { model: "tuf-ax5400_v2",   sdk: "src-rt-5.04axhnd.675x",    skip: false }
+            - { model: "gt10",            sdk: "src-rt-5.04axhnd.675x",    skip: false }
       container:
         image: paldier/swrt-docker:latest
         env:
