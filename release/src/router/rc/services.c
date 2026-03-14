@@ -4412,12 +4412,12 @@ start_ddns(char *caller)
 	wan_public = is_private_subnet(wan_ip); // 0 is public IP; 1, 2, 3, 4 is private IP.
 #ifdef RTCONFIG_INADYN
 	if (wan_public) { // private WAN IP
-		/* use External WAN IP */
-		nvram_set_int("ddns_realip_x", 1);
-		realip = 1;
 #ifdef RTCONFIG_GETREALIP
 		if (nvram_get_int(strcat_r(prefix, "realip_state", tmp)) == 2) {
 			wan_ip = nvram_safe_get(strcat_r(prefix, "realip_ip", tmp));
+			/* use External WAN IP */
+			nvram_set_int("ddns_realip_x", 1);
+			realip = 1;
 		}
 #endif
 	} else {
