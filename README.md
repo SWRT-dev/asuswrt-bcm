@@ -2,9 +2,32 @@
 
 ## 编译测试
 
-测试目标:GT-AX6000 GT-AX11000 RT-AX82U TUF-AX3000_V2
-
-**状态** [![CircleCI](https://dl.circleci.com/status-badge/img/gh/SWRT-dev/asuswrt-bcm/tree/master.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/SWRT-dev/asuswrt-bcm/tree/master)
+|型号|状态|
+|:--:|:-:|
+|gt-ax11000|[![Build testing](https://github.com/SWRT-dev/asuswrt-bcm/actions/workflows/github-actions.yml/badge.svg)](https://github.com/SWRT-dev/asuswrt-bcm/actions/workflows/github-actions.yml)|
+|rt-ax88u|[![Build testing](https://github.com/SWRT-dev/asuswrt-bcm/actions/workflows/github-actions.yml/badge.svg)](https://github.com/SWRT-dev/asuswrt-bcm/actions/workflows/github-actions.yml)|
+|rt-ax92u|[![Build testing](https://github.com/SWRT-dev/asuswrt-bcm/actions/workflows/github-actions.yml/badge.svg)](https://github.com/SWRT-dev/asuswrt-bcm/actions/workflows/github-actions.yml)|
+|gt-axe11000|[![Build testing](https://github.com/SWRT-dev/asuswrt-bcm/actions/workflows/github-actions.yml/badge.svg)](https://github.com/SWRT-dev/asuswrt-bcm/actions/workflows/github-actions.yml)|
+|rt-ax68u|[![Build testing](https://github.com/SWRT-dev/asuswrt-bcm/actions/workflows/github-actions.yml/badge.svg)](https://github.com/SWRT-dev/asuswrt-bcm/actions/workflows/github-actions.yml)|
+|rt-ax86u|[![Build testing](https://github.com/SWRT-dev/asuswrt-bcm/actions/workflows/github-actions.yml/badge.svg)](https://github.com/SWRT-dev/asuswrt-bcm/actions/workflows/github-actions.yml)|
+|rt-ax58u|[![Build testing](https://github.com/SWRT-dev/asuswrt-bcm/actions/workflows/github-actions.yml/badge.svg)](https://github.com/SWRT-dev/asuswrt-bcm/actions/workflows/github-actions.yml)|
+|rt-ax82u|[![Build testing](https://github.com/SWRT-dev/asuswrt-bcm/actions/workflows/github-actions.yml/badge.svg)](https://github.com/SWRT-dev/asuswrt-bcm/actions/workflows/github-actions.yml)|
+|rt-ax58u_v2|[![Build testing](https://github.com/SWRT-dev/asuswrt-bcm/actions/workflows/github-actions.yml/badge.svg)](https://github.com/SWRT-dev/asuswrt-bcm/actions/workflows/github-actions.yml)|
+|rt-ax82u_v2|[![Build testing](https://github.com/SWRT-dev/asuswrt-bcm/actions/workflows/github-actions.yml/badge.svg)](https://github.com/SWRT-dev/asuswrt-bcm/actions/workflows/github-actions.yml)|
+|rt-ax95q|[![Build testing](https://github.com/SWRT-dev/asuswrt-bcm/actions/workflows/github-actions.yml/badge.svg)](https://github.com/SWRT-dev/asuswrt-bcm/actions/workflows/github-actions.yml)|
+|rt-axe95q|[![Build testing](https://github.com/SWRT-dev/asuswrt-bcm/actions/workflows/github-actions.yml/badge.svg)](https://github.com/SWRT-dev/asuswrt-bcm/actions/workflows/github-actions.yml)|
+|tuf-ax3000|[![Build testing](https://github.com/SWRT-dev/asuswrt-bcm/actions/workflows/github-actions.yml/badge.svg)](https://github.com/SWRT-dev/asuswrt-bcm/actions/workflows/github-actions.yml)|
+|tuf-ax3000_v2|[![Build testing](https://github.com/SWRT-dev/asuswrt-bcm/actions/workflows/github-actions.yml/badge.svg)](https://github.com/SWRT-dev/asuswrt-bcm/actions/workflows/github-actions.yml)|
+|tuf-ax5400|[![Build testing](https://github.com/SWRT-dev/asuswrt-bcm/actions/workflows/github-actions.yml/badge.svg)](https://github.com/SWRT-dev/asuswrt-bcm/actions/workflows/github-actions.yml)|
+|gt-ax6000|[![Build testing](https://github.com/SWRT-dev/asuswrt-bcm/actions/workflows/github-actions.yml/badge.svg)](https://github.com/SWRT-dev/asuswrt-bcm/actions/workflows/github-actions.yml)|
+|gt-ax11000_pro|[![Build testing](https://github.com/SWRT-dev/asuswrt-bcm/actions/workflows/github-actions.yml/badge.svg)](https://github.com/SWRT-dev/asuswrt-bcm/actions/workflows/github-actions.yml)|
+|gt-axe16000|[![Build testing](https://github.com/SWRT-dev/asuswrt-bcm/actions/workflows/github-actions.yml/badge.svg)](https://github.com/SWRT-dev/asuswrt-bcm/actions/workflows/github-actions.yml)|
+|rt-ax86u_pro|[![Build testing](https://github.com/SWRT-dev/asuswrt-bcm/actions/workflows/github-actions.yml/badge.svg)](https://github.com/SWRT-dev/asuswrt-bcm/actions/workflows/github-actions.yml)|
+|rt-ax88u_pro|[![Build testing](https://github.com/SWRT-dev/asuswrt-bcm/actions/workflows/github-actions.yml/badge.svg)](https://github.com/SWRT-dev/asuswrt-bcm/actions/workflows/github-actions.yml)|
+|xt12|[![Build testing](https://github.com/SWRT-dev/asuswrt-bcm/actions/workflows/github-actions.yml/badge.svg)](https://github.com/SWRT-dev/asuswrt-bcm/actions/workflows/github-actions.yml)|
+|tuf-ax5400_v2|[![Build testing](https://github.com/SWRT-dev/asuswrt-bcm/actions/workflows/github-actions.yml/badge.svg?branch=22525)](https://github.com/SWRT-dev/asuswrt-bcm/actions/workflows/github-actions.yml)|
+|gt10|[![Build testing](https://github.com/SWRT-dev/asuswrt-bcm/actions/workflows/github-actions.yml/badge.svg?branch=22525)](https://github.com/SWRT-dev/asuswrt-bcm/actions/workflows/github-actions.yml)|
+|rt-ax56u|[![Build testing](https://github.com/SWRT-dev/asuswrt-bcm/actions/workflows/github-actions.yml/badge.svg?branch=24353)](https://github.com/SWRT-dev/asuswrt-bcm/actions/workflows/github-actions.yml)|
 
 
 =======
