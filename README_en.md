@@ -29,6 +29,7 @@
 |tuf-ax5400_v2|[![Build testing](https://github.com/SWRT-dev/asuswrt-bcm/actions/workflows/github-actions.yml/badge.svg?branch=22525)](https://github.com/SWRT-dev/asuswrt-bcm/actions/workflows/github-actions.yml)|
 |gt10|[![Build testing](https://github.com/SWRT-dev/asuswrt-bcm/actions/workflows/github-actions.yml/badge.svg?branch=22525)](https://github.com/SWRT-dev/asuswrt-bcm/actions/workflows/github-actions.yml)|
 |rt-ax56u|[![Build testing](https://github.com/SWRT-dev/asuswrt-bcm/actions/workflows/github-actions.yml/badge.svg?branch=24353)](https://github.com/SWRT-dev/asuswrt-bcm/actions/workflows/github-actions.yml)|
+|rt-ax55|[![Build testing](https://github.com/SWRT-dev/asuswrt-bcm/actions/workflows/github-actions.yml/badge.svg?branch=386)](https://github.com/SWRT-dev/asuswrt-bcm/actions/workflows/github-actions.yml)|
 
 =======
 
